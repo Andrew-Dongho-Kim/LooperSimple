@@ -1,0 +1,200 @@
+<resources>
+    <string name="app_name">LooperSimple</string>
+
+    <string name="loop">loop</string>
+    <string name="loops">%d loops</string>
+    <string name="desc_no_loops">There are no loops.</string>
+
+    <string name="ok">OK</string>
+    <string name="cancel">Cancel</string>
+
+    <string name="every">Every %s</string>
+    <string name="everyday">Everyday</string>
+    <string name="weekdays">Weekdays</string>
+    <string name="weekends">Weekends</string>
+
+    <string name="sec">sec</string>
+    <string name="secs">secs</string>
+    <plurals name="sec">
+        <item quantity="zero">@string/sec</item>
+        <item quantity="one">@string/sec</item>
+        <item quantity="two">@string/secs</item>
+        <item quantity="few">@string/secs</item>
+        <item quantity="many">@string/secs</item>
+        <item quantity="other">@string/secs</item>
+    </plurals>
+
+    <string name="second">second</string>
+    <string name="seconds">seconds</string>
+    <plurals name="second">
+        <item quantity="zero">@string/second</item>
+        <item quantity="one">@string/second</item>
+        <item quantity="two">@string/seconds</item>
+        <item quantity="few">@string/seconds</item>
+        <item quantity="many">@string/seconds</item>
+        <item quantity="other">@string/seconds</item>
+    </plurals>
+
+    <string name="min">min</string>
+    <string name="mins">mins</string>
+    <plurals name="min">
+        <item quantity="zero">@string/min</item>
+        <item quantity="one">@string/min</item>
+        <item quantity="two">@string/mins</item>
+        <item quantity="few">@string/mins</item>
+        <item quantity="many">@string/mins</item>
+        <item quantity="other">@string/mins</item>
+    </plurals>
+
+    <string name="minute">minute</string>
+    <string name="minutes">minutes</string>
+    <plurals name="minute">
+        <item quantity="zero">@string/minute</item>
+        <item quantity="one">@string/minute</item>
+        <item quantity="two">@string/minute</item>
+        <item quantity="few">@string/minutes</item>
+        <item quantity="many">@string/minutes</item>
+        <item quantity="other">@string/minutes</item>
+    </plurals>
+
+    <string name="hour">hour</string>
+    <string name="hours">hours</string>
+    <plurals name="hour">
+        <item quantity="zero">@string/hour</item>
+        <item quantity="one">@string/hour</item>
+        <item quantity="two">@string/hours</item>
+        <item quantity="few">@string/hours</item>
+        <item quantity="many">@string/hours</item>
+        <item quantity="other">@string/hours</item>
+    </plurals>
+
+    <string name="day">day</string>
+    <string name="days">days</string>
+    <plurals name="day">
+        <item quantity="zero">@string/day</item>
+        <item quantity="one">@string/day</item>
+        <item quantity="two">@string/days</item>
+        <item quantity="few">@string/days</item>
+        <item quantity="many">@string/days</item>
+        <item quantity="other">@string/days</item>
+    </plurals>
+
+    <string name="week">week</string>
+    <string name="weeks">weeks</string>
+    <plurals name="week">
+        <item quantity="zero">@string/week</item>
+        <item quantity="one">@string/week</item>
+        <item quantity="two">@string/weeks</item>
+        <item quantity="few">@string/weeks</item>
+        <item quantity="many">@string/weeks</item>
+        <item quantity="other">@string/weeks</item>
+    </plurals>
+
+    <string name="month">month</string>
+    <string name="months">months</string>
+    <plurals name="month">
+        <item quantity="zero">@string/month</item>
+        <item quantity="one">@string/month</item>
+        <item quantity="two">@string/months</item>
+        <item quantity="few">@string/months</item>
+        <item quantity="many">@string/months</item>
+        <item quantity="other">@string/months</item>
+    </plurals>
+
+    <string name="d">d</string>
+    <plurals name="d">
+        <item quantity="zero">@string/d</item>
+        <item quantity="one">@string/d</item>
+        <item quantity="two">@string/d</item>
+        <item quantity="few">@string/d</item>
+        <item quantity="many">@string/d</item>
+        <item quantity="other">@string/d</item>
+    </plurals>
+    <string name="w">w</string>
+    <plurals name="w">
+        <item quantity="zero">@string/w</item>
+        <item quantity="one">@string/w</item>
+        <item quantity="two">@string/w</item>
+        <item quantity="few">@string/w</item>
+        <item quantity="many">@string/w</item>
+        <item quantity="other">@string/w</item>
+    </plurals>
+    <string name="M">M</string>
+    <plurals name="M">
+        <item quantity="zero">@string/M</item>
+        <item quantity="one">@string/M</item>
+        <item quantity="two">@string/M</item>
+        <item quantity="few">@string/M</item>
+        <item quantity="many">@string/M</item>
+        <item quantity="other">@string/M</item>
+    </plurals>
+
+    <string name="abb_sunday">S</string>
+    <string name="abb_monday">M</string>
+    <string name="abb_tuesday">T</string>
+    <string name="abb_wednesday">W</string>
+    <string name="abb_thursday">T</string>
+    <string name="abb_friday">F</string>
+    <string name="abb_saturday">S</string>
+
+    <string name="abb2_sunday">SUN</string>
+    <string name="abb2_monday">MON</string>
+    <string name="abb2_tuesday">TUE</string>
+    <string name="abb2_wednesday">WEN</string>
+    <string name="abb2_thursday">THU</string>
+    <string name="abb2_friday">FRI</string>
+    <string name="abb2_saturday">SAT</string>
+
+    <string name="january">January</string>
+    <string name="february">February</string>
+    <string name="march">March</string>
+    <string name="april">April</string>
+    <string name="may">May</string>
+    <string name="june">June</string>
+    <string name="july">July</string>
+    <string name="august">August</string>
+    <string name="september">September</string>
+    <string name="october">October</string>
+    <string name="november">November</string>
+    <string name="december">December</string>
+
+    <string name="delete_dialog_message">Delete this loop ?</string>
+
+    <string name="icon_category_check">Check</string>
+    <string name="icon_category_navigation">Navigation</string>
+    <string name="icon_category_place">Place</string>
+    <string name="icon_category_people">People</string>
+    <string name="icon_category_social">Social</string>
+    <string name="icon_category_sports">Sports</string>
+
+    <string name="alarm_category_sounds">Sounds</string>
+    <string name="alarm_category_vibes">Vibes</string>
+
+    <!-- Mon, May 20-->
+    <string name="desc_day_month_date">%s, %s %d</string>
+
+    <string name="am">AM</string>
+    <string name="pm">PM</string>
+
+    <string name="add">Add</string>
+    <string name="filter">Filter</string>
+    <string name="about_app">About LooperSimple</string>
+
+    <string name="filter_enabled">Filter enabled</string>
+    <string name="filter_progress">Filter in progress</string>
+    <string name="filter_today">Filter today</string>
+
+    <string name="desc_allowed_time">Allowed time</string>
+    <string name="desc_alarm_interval">Alarm interval</string>
+    <string name="desc_notification">Alarm notification</string>
+
+    <string name="desc_start_time">Loop start time</string>
+    <string name="desc_end_time">Loop end time</string>
+
+    <string name="desc_icon_selector">Icon Selector</string>
+    <string name="desc_interval_selector">Interval Selector</string>
+    <string name="desc_alarm_selector">Alarm Selector</string>
+
+    <string name="desc_enter_loop_title">Enter loop title</string>
+
+</resources>
