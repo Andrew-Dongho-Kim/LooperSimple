@@ -35,8 +35,8 @@ import com.pnd.android.loop.data.Loop.Day.Companion.SUNDAY
 import com.pnd.android.loop.data.Loop.Day.Companion.fromIndex
 import com.pnd.android.loop.data.Loop.Day.Companion.isOn
 import com.pnd.android.loop.data.Loop.Day.Companion.toggle
-import com.pnd.android.loop.ui.common.Pager
-import com.pnd.android.loop.ui.common.PagerState
+import com.pnd.android.loop.ui.common.pager.Pager
+import com.pnd.android.loop.ui.common.pager.PagerState
 import com.pnd.android.loop.ui.theme.Blue500
 import com.pnd.android.loop.ui.theme.PADDING_HZ_ITEM
 import com.pnd.android.loop.ui.theme.PADDING_VT_ITEM
