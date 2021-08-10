@@ -6,7 +6,10 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.material.Scaffold
 import androidx.compose.material.rememberScaffoldState
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.viewinterop.AndroidViewBinding
 import androidx.core.view.WindowCompat
+import androidx.fragment.app.FragmentContainerView
+import androidx.viewbinding.ViewBindings
 import com.pnd.android.loop.databinding.ContentMainBinding
 import com.pnd.android.loop.ui.theme.AppTheme
 import com.pnd.android.loop.util.LocalBackPressedDispatcher
@@ -32,7 +35,7 @@ class MainActivity : AppCompatActivity() {
                     Scaffold(
                         scaffoldState = scaffoldState
                     ) {
-                        FragmentAwareAndroidViewBinding(ContentMainBinding::inflate)
+                        AndroidViewBinding(factory = ContentMainBinding::inflate)
                     }
                 }
             }

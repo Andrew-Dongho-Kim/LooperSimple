@@ -67,29 +67,29 @@ val AppTypography = Typography(
     body1 = TextStyle(
         fontFamily = KarlaFontFamily,
         fontWeight = FontWeight.Normal,
-        fontSize = 16.sp,
+        fontSize = 14.sp,
         letterSpacing = 0.sp,
         lineHeight = 24.sp
     ),
     body2 = TextStyle(
         fontWeight = FontWeight.Medium,
-        fontSize = 14.sp,
+        fontSize = 12.sp,
         letterSpacing = 0.25.sp
     ),
     button = TextStyle(
         fontWeight = FontWeight.SemiBold,
-        fontSize = 14.sp,
+        fontSize = 12.sp,
         letterSpacing = 1.25.sp
     ),
     caption = TextStyle(
         fontFamily = KarlaFontFamily,
         fontWeight = FontWeight.Bold,
-        fontSize = 12.sp,
+        fontSize = 11.sp,
         letterSpacing = 0.15.sp
     ),
     overline = TextStyle(
         fontWeight = FontWeight.SemiBold,
-        fontSize = 12.sp,
+        fontSize = 11.sp,
         letterSpacing = 1.sp
     )
 )

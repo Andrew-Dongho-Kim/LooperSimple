@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-
-    <!-- User Input -->
-    <dimen name="user_input_selector_content_height">240dp</dimen>
-
-</resources>
