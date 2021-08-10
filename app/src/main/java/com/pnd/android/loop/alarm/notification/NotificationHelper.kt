@@ -9,7 +9,7 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.pnd.android.loop.R
 import com.pnd.android.loop.alarm.AlarmHelper
-import com.pnd.android.loop.data.Loop
+import com.pnd.android.loop.data.LoopVo
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 
@@ -32,7 +32,7 @@ class NotificationHelper @Inject constructor(
         }
     }
 
-    private fun Loop.pendingIntent(action: String) = PendingIntent.getBroadcast(
+    private fun LoopVo.pendingIntent(action: String) = PendingIntent.getBroadcast(
         context,
         0,
         Intent(context, AlarmHelper.AlarmReceiver::class.java).apply {
@@ -42,7 +42,7 @@ class NotificationHelper @Inject constructor(
         PendingIntent.FLAG_UPDATE_CURRENT
     )
 
-    fun notify(loop: Loop) {
+    fun notify(loop: LoopVo) {
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_app)
             .setContentTitle(loop.title)
@@ -56,7 +56,7 @@ class NotificationHelper @Inject constructor(
         nm.notify(loop.id, builder.build())
     }
 
-    fun cancel(loop: Loop) {
+    fun cancel(loop: LoopVo) {
         nm.cancel(loop.id)
     }
 }

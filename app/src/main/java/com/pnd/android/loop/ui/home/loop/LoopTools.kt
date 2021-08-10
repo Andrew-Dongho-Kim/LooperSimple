@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pnd.android.loop.R
 import com.pnd.android.loop.alarm.AlarmHelper
-import com.pnd.android.loop.data.Loop
+import com.pnd.android.loop.data.LoopVo
 import com.pnd.android.loop.ui.home.HomeViewModel
 import com.pnd.android.loop.ui.theme.PADDING_HZ_ITEM
 import kotlinx.coroutines.launch
@@ -32,7 +32,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun LoopTools(
     alarmHelper: AlarmHelper,
-    loop: Loop,
+    loop: LoopVo,
+    editedLoop: MutableState<LoopVo?>,
     swipeState: SwipeableState<Int>,
     modifier: Modifier = Modifier
 ) {
@@ -60,6 +61,7 @@ fun LoopTools(
         LoopToolIcon(
             imageVector = Icons.Outlined.ModeEdit,
             onClick = {
+                editedLoop.value = loop
                 scope.launch { swipeState.animateTo(targetValue = 0) }
             }
         )
@@ -99,7 +101,7 @@ private fun LoopToolIcon(
 fun DeleteDialog(
     viewModel: HomeViewModel,
     alarmHelper: AlarmHelper,
-    loop: Loop,
+    loop: LoopVo,
     showDeleteDialog: MutableState<Boolean>
 ) {
     AlertDialog(

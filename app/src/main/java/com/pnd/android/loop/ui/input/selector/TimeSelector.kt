@@ -17,7 +17,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusModifier
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusTarget
 import androidx.compose.ui.graphics.Color
@@ -30,11 +29,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.common.log
-import com.pnd.android.loop.data.Loop.Day.Companion.SATURDAY
-import com.pnd.android.loop.data.Loop.Day.Companion.SUNDAY
-import com.pnd.android.loop.data.Loop.Day.Companion.fromIndex
-import com.pnd.android.loop.data.Loop.Day.Companion.isOn
-import com.pnd.android.loop.data.Loop.Day.Companion.toggle
+import com.pnd.android.loop.data.LoopVo.Day.Companion.SATURDAY
+import com.pnd.android.loop.data.LoopVo.Day.Companion.SUNDAY
+import com.pnd.android.loop.data.LoopVo.Day.Companion.fromIndex
+import com.pnd.android.loop.data.LoopVo.Day.Companion.isOn
+import com.pnd.android.loop.data.LoopVo.Day.Companion.toggle
 import com.pnd.android.loop.ui.common.pager.Pager
 import com.pnd.android.loop.ui.common.pager.PagerState
 import com.pnd.android.loop.ui.theme.Blue500

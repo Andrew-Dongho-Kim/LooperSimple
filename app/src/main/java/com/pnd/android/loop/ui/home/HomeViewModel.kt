@@ -3,7 +3,7 @@ package com.pnd.android.loop.ui.home
 import androidx.lifecycle.*
 import com.pnd.android.loop.common.log
 import com.pnd.android.loop.data.AppDatabase
-import com.pnd.android.loop.data.Loop
+import com.pnd.android.loop.data.LoopVo
 import com.pnd.android.loop.data.LoopFilter
 import com.pnd.android.loop.data.LoopFilter.Companion.filter
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -25,11 +25,11 @@ class HomeViewModel @Inject constructor(
     }
     private val _loops = liveData {
         emitSource(loopDao.getAll())
-    } as MutableLiveData<List<Loop>>
-    private val _filteredLoops = MediatorLiveData<List<Loop>>().apply {
+    } as MutableLiveData<List<LoopVo>>
+    private val _filteredLoops = MediatorLiveData<List<LoopVo>>().apply {
         var savedFilter: LoopFilter = LoopFilter.DEFAULT
-        var savedLoops: List<Loop> = emptyList()
-        fun result(): List<Loop> {
+        var savedLoops: List<LoopVo> = emptyList()
+        fun result(): List<LoopVo> {
             return savedLoops.filter { loop -> loop.filter(savedFilter) }
         }
         addSource(loopFilter) { filter ->
@@ -42,7 +42,7 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    val loops: LiveData<List<Loop>> = _filteredLoops
+    val loops: LiveData<List<LoopVo>> = _filteredLoops
 
     private val loopsInProgress = Transformations.switchMap(loops) { loops ->
         liveData {
@@ -67,7 +67,7 @@ class HomeViewModel @Inject constructor(
         GlobalScope.launch { loopFilterDao.update(loopFilter) }
     }
 
-    fun addLoop(vararg loops: Loop, action: ((Loop) -> Unit)? = null) {
+    fun addLoop(vararg loops: LoopVo, action: ((LoopVo) -> Unit)? = null) {
         GlobalScope.launch {
             logger.d { "Add loop" }
             loops.forEach { logger.d { " - $it" } }

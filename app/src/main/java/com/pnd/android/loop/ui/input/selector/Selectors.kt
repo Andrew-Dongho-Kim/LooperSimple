@@ -7,7 +7,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.alarm.AlarmCategory
 import com.pnd.android.loop.common.log
-import com.pnd.android.loop.data.Loop
+import com.pnd.android.loop.data.LoopVo
 import com.pnd.android.loop.ui.input.*
 import com.pnd.android.loop.util.h2m2
 
@@ -25,7 +25,7 @@ enum class InputSelector {
 @Composable
 fun Selectors(
     currentSelector: InputSelector,
-    loop: Loop
+    loop: LoopVo
 ) {
     var icon by remember { mutableStateOf(loop.icon) }
     var loopStart by remember { mutableStateOf(loop.loopStart) }

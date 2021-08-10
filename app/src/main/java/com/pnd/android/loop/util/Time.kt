@@ -4,18 +4,18 @@ import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import com.pnd.android.loop.R
-import com.pnd.android.loop.data.Loop
-import com.pnd.android.loop.data.Loop.Day.Companion.EVERYDAY
-import com.pnd.android.loop.data.Loop.Day.Companion.FRIDAY
-import com.pnd.android.loop.data.Loop.Day.Companion.MONDAY
-import com.pnd.android.loop.data.Loop.Day.Companion.SATURDAY
-import com.pnd.android.loop.data.Loop.Day.Companion.SUNDAY
-import com.pnd.android.loop.data.Loop.Day.Companion.THURSDAY
-import com.pnd.android.loop.data.Loop.Day.Companion.TUESDAY
-import com.pnd.android.loop.data.Loop.Day.Companion.WEDNESDAY
-import com.pnd.android.loop.data.Loop.Day.Companion.WEEKDAYS
-import com.pnd.android.loop.data.Loop.Day.Companion.WEEKENDS
-import com.pnd.android.loop.data.Loop.Day.Companion.isOn
+import com.pnd.android.loop.data.LoopVo
+import com.pnd.android.loop.data.LoopVo.Day.Companion.EVERYDAY
+import com.pnd.android.loop.data.LoopVo.Day.Companion.FRIDAY
+import com.pnd.android.loop.data.LoopVo.Day.Companion.MONDAY
+import com.pnd.android.loop.data.LoopVo.Day.Companion.SATURDAY
+import com.pnd.android.loop.data.LoopVo.Day.Companion.SUNDAY
+import com.pnd.android.loop.data.LoopVo.Day.Companion.THURSDAY
+import com.pnd.android.loop.data.LoopVo.Day.Companion.TUESDAY
+import com.pnd.android.loop.data.LoopVo.Day.Companion.WEDNESDAY
+import com.pnd.android.loop.data.LoopVo.Day.Companion.WEEKDAYS
+import com.pnd.android.loop.data.LoopVo.Day.Companion.WEEKENDS
+import com.pnd.android.loop.data.LoopVo.Day.Companion.isOn
 import java.util.*
 import java.util.concurrent.TimeUnit
 
@@ -73,7 +73,7 @@ val AmPm = listOf(
     R.string.pm
 )
 
-fun day(msTime: Long): @Loop.Day Int {
+fun day(msTime: Long): @LoopVo.Day Int {
     val cal = Calendar.getInstance()
     cal.timeInMillis = msTime - TimeZone.getDefault().getOffset(msTime)
     return when (cal.get(Calendar.DAY_OF_WEEK)) {
@@ -111,11 +111,11 @@ fun localTime(): Long {
     return msTime + TimeZone.getDefault().getOffset(msTime)
 }
 
-fun Loop.isAllowedDay(currTime: Long = localTime()): Boolean {
+fun LoopVo.isAllowedDay(currTime: Long = localTime()): Boolean {
     return loopEnableDays.isOn(day(currTime))
 }
 
-fun Loop.isAllowedTime(timeInDay: Long = localTime() % MS_1DAY): Boolean {
+fun LoopVo.isAllowedTime(timeInDay: Long = localTime() % MS_1DAY): Boolean {
     val start = loopStart
     val end = if (loopStart > loopEnd) loopEnd + MS_1DAY else loopEnd
     return timeInDay in start..end

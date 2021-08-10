@@ -31,14 +31,13 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.common.log
-import com.pnd.android.loop.data.Loop
+import com.pnd.android.loop.data.LoopVo
 import com.pnd.android.loop.ui.common.SelectorButton
 import com.pnd.android.loop.ui.input.selector.InputSelector
 import com.pnd.android.loop.ui.input.selector.Selectors
 import com.pnd.android.loop.ui.theme.compositedOnSurface
 import com.pnd.android.loop.ui.theme.elevatedSurface
 import com.pnd.android.loop.util.BackPressHandler
-import com.pnd.android.loop.util.h2m2
 import kotlinx.coroutines.launch
 
 private val logger = log("UserInput")
@@ -46,9 +45,10 @@ private val logger = log("UserInput")
 
 @Composable
 fun UserInput(
-    defaultLoop: Loop = Loop(),
-    onInputEntered: (Loop) -> Unit,
+    defaultLoop: LoopVo = LoopVo(),
+    onInputEntered: (LoopVo) -> Unit,
     scrollState: ScrollState,
+    editedLoop: MutableState<LoopVo?>,
     modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
@@ -61,8 +61,10 @@ fun UserInput(
     }
 
     val loop by remember { mutableStateOf(defaultLoop) }
-
     var textState by remember { mutableStateOf(TextFieldValue()) }
+    textState = TextFieldValue(text = editedLoop.value?.title ?: "")
+
+    logger.d { "TEST-DH, USER INPUT REBIND : ${editedLoop.value?.title}" }
 
     // Used to decide if the keyboard should be shown
     var textFieldFocusState by remember { mutableStateOf(false) }

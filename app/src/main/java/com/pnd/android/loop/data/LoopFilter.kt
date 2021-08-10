@@ -2,10 +2,8 @@ package com.pnd.android.loop.data
 
 import androidx.lifecycle.LiveData
 import androidx.room.*
-import com.pnd.android.loop.util.MS_1DAY
 import com.pnd.android.loop.util.isAllowedDay
 import com.pnd.android.loop.util.isAllowedTime
-import com.pnd.android.loop.util.localTime
 
 @Entity(tableName = "loop_filter")
 data class LoopFilter(
@@ -31,21 +29,21 @@ data class LoopFilter(
             onlyProgress = false
         )
 
-        fun Loop.filter(filter: LoopFilter): Boolean {
+        fun LoopVo.filter(filter: LoopFilter): Boolean {
             return filter.filterEnabled(this) &&
                     filter.filterProgress(this) &&
                     filter.filterToday(this)
         }
 
-        private fun LoopFilter.filterEnabled(loop: Loop): Boolean {
+        private fun LoopFilter.filterEnabled(loop: LoopVo): Boolean {
             return if (onlyEnabled) loop.enabled else true
         }
 
-        private fun LoopFilter.filterProgress(loop: Loop): Boolean {
+        private fun LoopFilter.filterProgress(loop: LoopVo): Boolean {
             return if (onlyProgress) loop.isAllowedDay() && loop.isAllowedTime() else true
         }
 
-        private fun LoopFilter.filterToday(loop: Loop): Boolean {
+        private fun LoopFilter.filterToday(loop: LoopVo): Boolean {
             return if (onlyToday) loop.isAllowedDay() else true
         }
     }

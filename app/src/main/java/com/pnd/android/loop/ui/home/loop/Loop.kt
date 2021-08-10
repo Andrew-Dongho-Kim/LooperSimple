@@ -21,8 +21,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.whenStarted
 import com.pnd.android.loop.alarm.AlarmHelper
-import com.pnd.android.loop.data.Loop
-import com.pnd.android.loop.data.Loop.Day.Companion.isOn
+import com.pnd.android.loop.data.LoopVo
+import com.pnd.android.loop.data.LoopVo.Day.Companion.isOn
 import com.pnd.android.loop.ui.animation.CircleProgress
 import com.pnd.android.loop.ui.home.HomeViewModel
 import com.pnd.android.loop.ui.icons.icon
@@ -39,7 +39,8 @@ import kotlin.math.roundToInt
 @Composable
 fun Loop(
     alarmHelper: AlarmHelper,
-    loop: Loop,
+    loop: LoopVo,
+    editedLoop: MutableState<LoopVo?>,
     modifier: Modifier = Modifier
 ) {
 
@@ -53,6 +54,7 @@ fun Loop(
         LoopTools(
             alarmHelper = alarmHelper,
             loop = loop,
+            editedLoop = editedLoop,
             swipeState = swipeState,
             modifier = Modifier.align(Alignment.CenterStart)
         )
@@ -73,7 +75,7 @@ fun Loop(
 @Composable
 fun LoopMain(
     alarmHelper: AlarmHelper,
-    loop: Loop,
+    loop: LoopVo,
     swipeState: SwipeableState<Int>,
     pxToolSize: Float
 ) {
@@ -142,10 +144,8 @@ fun LoopMain(
 }
 
 
-
-
 @Composable
-fun LoopImage(loop: Loop) {
+fun LoopImage(loop: LoopVo) {
     Box(
         modifier = Modifier.size(30.dp),
         contentAlignment = Alignment.Center
@@ -165,7 +165,7 @@ fun LoopImage(loop: Loop) {
 
 
 @Composable
-fun LoopProgress(loop: Loop, progress: Float) {
+fun LoopProgress(loop: LoopVo, progress: Float) {
     if (!loop.enabled) return
 
     if (loop.isAllowedDay() && loop.isAllowedTime()) {
@@ -179,7 +179,7 @@ fun LoopProgress(loop: Loop, progress: Float) {
 
 
 @Composable
-fun progress(loop: Loop): MutableState<Float> {
+fun progress(loop: LoopVo): MutableState<Float> {
     val progressState = remember { mutableStateOf(1f) }
     val lifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(true) {
@@ -200,7 +200,7 @@ fun progress(loop: Loop): MutableState<Float> {
 
 @Composable
 fun LoopTexts(
-    loop: Loop,
+    loop: LoopVo,
     modifier: Modifier
 ) {
     Column(
@@ -253,7 +253,7 @@ fun LoopTexts(
 private fun setAlarmOn(
     viewModel: HomeViewModel,
     alarmHelper: AlarmHelper,
-    loop: Loop,
+    loop: LoopVo,
     isAlarmOn: Boolean
 ) {
     if (isAlarmOn) {
@@ -266,12 +266,17 @@ private fun setAlarmOn(
 
 @Composable
 fun LoopDaysEnabled(
-    loop: Loop,
+    loop: LoopVo,
     modifier: Modifier = Modifier
 ) {
     val contentAlpha = if (loop.enabled) ContentAlpha.medium else ContentAlpha.disabled
 
-    if (loop.loopEnableDays in arrayOf(Loop.Day.EVERYDAY, Loop.Day.WEEKDAYS, Loop.Day.WEEKENDS)) {
+    if (loop.loopEnableDays in arrayOf(
+            LoopVo.Day.EVERYDAY,
+            LoopVo.Day.WEEKDAYS,
+            LoopVo.Day.WEEKENDS
+        )
+    ) {
         Text(
             modifier = modifier.padding(end = 2.dp),
             text = stringResource(DAY_STRING_MAP[loop.loopEnableDays]!!),
@@ -286,7 +291,7 @@ fun LoopDaysEnabled(
             modifier = modifier
         ) {
             ABB_DAYS.forEachIndexed { index, dayResId ->
-                val day = Loop.Day.fromIndex(index)
+                val day = LoopVo.Day.fromIndex(index)
                 val selected = loop.loopEnableDays.isOn(day)
                 val color =
                     (if (selected) MaterialTheme.colors.primary else MaterialTheme.colors.onSurface).copy(

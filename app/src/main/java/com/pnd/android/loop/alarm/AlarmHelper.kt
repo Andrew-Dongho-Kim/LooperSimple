@@ -15,7 +15,7 @@ import com.pnd.android.loop.alarm.notification.NotificationHelper
 import com.pnd.android.loop.common.log
 import com.pnd.android.loop.common.test
 import com.pnd.android.loop.data.AppDatabase
-import com.pnd.android.loop.data.Loop
+import com.pnd.android.loop.data.LoopVo
 import com.pnd.android.loop.data.description
 import com.pnd.android.loop.util.*
 import dagger.hilt.android.AndroidEntryPoint
@@ -38,7 +38,7 @@ class AlarmHelper @Inject constructor(
     private val loopDao = appDb.loopDao()
 
     @VisibleForTesting
-    fun notifyAfter(loop: Loop): Long {
+    fun notifyAfter(loop: LoopVo): Long {
         val curr = localTime()
         if (loop.tickStart == 0L) {
             val timeInDay = curr % MS_1DAY
@@ -55,7 +55,7 @@ class AlarmHelper @Inject constructor(
     }
 
     fun reserveRepeat(
-        loop: Loop,
+        loop: LoopVo,
         showToast: Boolean = true
     ) {
         val after = notifyAfter(loop)
@@ -129,7 +129,7 @@ class AlarmHelper @Inject constructor(
         }
     }
 
-    fun cancel(loop: Loop) {
+    fun cancel(loop: LoopVo) {
         if (loop.enabled) {
             loop.enabled = false
             loop.tickStart = 0
@@ -173,15 +173,15 @@ class AlarmHelper @Inject constructor(
         }
 
         private fun handleActionLoopDone(intent: Intent) {
-            notificationHelper.cancel(Loop.popFromIntent(intent))
+            notificationHelper.cancel(LoopVo.popFromIntent(intent))
         }
 
         private fun handleActionLoopCancel(intent: Intent) {
-            notificationHelper.cancel(Loop.popFromIntent(intent))
+            notificationHelper.cancel(LoopVo.popFromIntent(intent))
         }
 
         private fun handleActionLoopAlarm(context: Context, intent: Intent) {
-            val loop = Loop.popFromIntent(intent)
+            val loop = LoopVo.popFromIntent(intent)
             alarmHelper.reserveRepeat(loop = loop, showToast = false)
 
             val currTime = localTime()
@@ -197,7 +197,7 @@ class AlarmHelper @Inject constructor(
                 """ -->
                 |Received alarm id:${loop.id} 
                 | title:${loop.title},
-                | today:${Loop.Day.toString(today)},
+                | today:${LoopVo.Day.toString(today)},
                 | isAllowedDay:$isAllowedDay, 
                 | isAllowedTime:$isAllowedTime""".trimMargin()
             }

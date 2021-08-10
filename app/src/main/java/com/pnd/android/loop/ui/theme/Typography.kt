@@ -25,32 +25,32 @@ val AppTypography = Typography(
     defaultFontFamily = MontserratFontFamily,
     h1 = TextStyle(
         fontWeight = FontWeight.Light,
-        fontSize = 96.sp,
+        fontSize = 94.sp,
         letterSpacing = (-1.5).sp
     ),
     h2 = TextStyle(
         fontWeight = FontWeight.Light,
-        fontSize = 60.sp,
+        fontSize = 58.sp,
         letterSpacing = (-0.5).sp
     ),
     h3 = TextStyle(
         fontWeight = FontWeight.Normal,
-        fontSize = 48.sp,
+        fontSize = 46.sp,
         letterSpacing = 0.sp
     ),
     h4 = TextStyle(
         fontWeight = FontWeight.SemiBold,
-        fontSize = 30.sp,
+        fontSize = 28.sp,
         letterSpacing = 0.sp
     ),
     h5 = TextStyle(
         fontWeight = FontWeight.SemiBold,
-        fontSize = 24.sp,
+        fontSize = 22.sp,
         letterSpacing = 0.sp
     ),
     h6 = TextStyle(
         fontWeight = FontWeight.SemiBold,
-        fontSize = 20.sp,
+        fontSize = 18.sp,
         letterSpacing = 0.sp
     ),
     subtitle1 = TextStyle(

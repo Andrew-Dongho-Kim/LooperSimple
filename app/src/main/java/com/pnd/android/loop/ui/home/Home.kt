@@ -8,9 +8,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pnd.android.loop.alarm.AlarmHelper
+import com.pnd.android.loop.data.LoopVo
 import com.pnd.android.loop.ui.home.loop.Loops
 import com.pnd.android.loop.ui.input.UserInput
 import dev.chrisbanes.accompanist.insets.navigationBarsWithImePadding
@@ -24,8 +27,8 @@ fun Home(
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
-
     val viewModel: HomeViewModel = viewModel()
+    val editedLoop = remember { mutableStateOf<LoopVo?>(null) }
 
     Surface(modifier = modifier) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -33,6 +36,7 @@ fun Home(
                 Loops(
                     alarmHelper = alarmHelper,
                     scrollState = scrollState,
+                    editedLoop = editedLoop,
                     modifier = Modifier
                         .weight(1f)
                         .statusBarsPadding()
@@ -44,6 +48,7 @@ fun Home(
                         }
                     },
                     scrollState = scrollState,
+                    editedLoop = editedLoop,
                     // Use navigationBarsWithImePadding(), to move the input panel above both the
                     // navigation bar, and on-screen keyboard (IME)
                     modifier = Modifier.navigationBarsWithImePadding()
