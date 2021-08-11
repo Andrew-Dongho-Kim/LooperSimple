@@ -42,13 +42,13 @@ fun Home(
                         .statusBarsPadding()
                 )
                 UserInput(
-                    onInputEntered = { loop ->
+                    scrollStateLoops = scrollState,
+                    onLoopSubmitted = { loop ->
                         viewModel.addLoop(loop) {
                             if (it.enabled) alarmHelper.reserveRepeat(it)
                         }
                     },
-                    scrollState = scrollState,
-                    editedLoop = editedLoop,
+                    loopInEdit = editedLoop,
                     // Use navigationBarsWithImePadding(), to move the input panel above both the
                     // navigation bar, and on-screen keyboard (IME)
                     modifier = Modifier.navigationBarsWithImePadding()

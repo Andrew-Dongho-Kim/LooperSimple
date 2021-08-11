@@ -16,7 +16,6 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.pnd.android.loop.ui.input.getSelectorExpandedColor
 
 @Composable
 fun TextSelectorItem(
