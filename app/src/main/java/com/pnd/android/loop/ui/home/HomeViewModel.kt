@@ -43,6 +43,7 @@ class HomeViewModel @Inject constructor(
     }
 
     val loops: LiveData<List<LoopVo>> = _filteredLoops
+    val scope = GlobalScope
 
     private val loopsInProgress = Transformations.switchMap(loops) { loops ->
         liveData {
@@ -64,11 +65,11 @@ class HomeViewModel @Inject constructor(
     }
 
     fun saveFilter(loopFilter: LoopFilter) {
-        GlobalScope.launch { loopFilterDao.update(loopFilter) }
+        scope.launch { loopFilterDao.update(loopFilter) }
     }
 
     fun addLoop(vararg loops: LoopVo, action: ((LoopVo) -> Unit)? = null) {
-        GlobalScope.launch {
+        scope.launch {
             logger.d { "Add loop" }
             loops.forEach { logger.d { " - $it" } }
 
@@ -82,7 +83,7 @@ class HomeViewModel @Inject constructor(
     }
 
     fun removeLoop(id: Int) {
-        GlobalScope.launch {
+        scope.launch {
             loopDao.remove(id)
         }
     }

@@ -2,17 +2,27 @@ package com.pnd.android.loop.ui.input
 
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.Divider
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.common.log
 import com.pnd.android.loop.data.LoopVo
+import com.pnd.android.loop.ui.home.loop.LoopDaysEnabled
 import com.pnd.android.loop.ui.input.selector.InputSelector
 import com.pnd.android.loop.ui.input.selector.Selectors
 import com.pnd.android.loop.ui.input.selector.UserInputSelector
 import com.pnd.android.loop.util.BackPressHandler
+import com.pnd.android.loop.util.h2m2
+import com.pnd.android.loop.util.intervalString
+import com.pnd.android.loop.util.textFormatter
 import kotlinx.coroutines.launch
 
 private val logger = log("UserInput")
@@ -49,26 +59,28 @@ fun UserInput(
 
     Column(modifier) {
         Divider()
-
+        var hasInputFocus by remember { mutableStateOf(false) }
         // Used to decide if the keyboard should be shown
-        var isLoopTitleFocused by remember { mutableStateOf(false) }
         UserInputText(
             onTextChanged = {
                 loopTitle.value = it
                 loop.value.title = it.text
             },
             onTextFieldFocused = { focused ->
-                logger.d { "onTextFieldFocused : $focused" }
                 if (focused) {
                     currSelector.value = InputSelector.NONE
                     onScrollToBottomOfLoops()
                 }
-                isLoopTitleFocused = focused
+                hasInputFocus = focused
             },
-            focusState = isLoopTitleFocused,
-            textFieldValue = loopTitle.value,
-            keyboardShown = currSelector.value == InputSelector.NONE && isLoopTitleFocused
+            hasFocus = hasInputFocus,
+            textField = loopTitle.value,
+            keyboardShown = currSelector.value == InputSelector.NONE && hasInputFocus,
+            loopVo = loop.value
         )
+        if (hasInputFocus || !loopTitle.value.text.isEmpty()) {
+            UserInputSummary(modifier = Modifier, loopVo = loop.value)
+        }
         UserInputSelector(
             onSelectorChange = onUserInputSelectorChanged(currSelector),
             selectedInterval = loop.value.interval,
@@ -90,6 +102,30 @@ fun UserInput(
     }
 }
 
+
+@Composable
+private fun UserInputSummary(
+    modifier: Modifier,
+    loopVo: LoopVo
+) {
+    Row(modifier.padding(start = 16.dp)) {
+        Text(
+            text = "${h2m2(loopVo.loopStart)} ~ ${h2m2(loopVo.loopEnd)}",
+            style = MaterialTheme.typography.caption,
+            modifier = Modifier.width(110.dp)
+        )
+        Text(
+            text = textFormatter(
+                intervalString(loopVo.interval, isAbb = true)
+            ),
+            style = MaterialTheme.typography.caption,
+            modifier = Modifier.width(70.dp)
+        )
+
+        LoopDaysEnabled(loopVo)
+    }
+}
+
 @Composable
 private fun OverrideBackPress(
     currentInputSelector: MutableState<InputSelector>,
@@ -100,6 +136,7 @@ private fun OverrideBackPress(
     val isSelectorOpened = currentInputSelector.value != InputSelector.NONE
 
     if (isSelectorOpened || isEditing) {
+        logger.d { "override back press, edit mode or selector will be dismissed" }
         BackPressHandler(onBackPressed = onDismiss)
     }
 }
@@ -155,6 +192,7 @@ private fun onDismissSelectorOrEditMode(
         loopInEdit.value = null
         currLoop.value = LoopVo()
         currLoopTitle.value = TextFieldValue()
+        logger.d { "onDismissEditMode" }
     } else {
         // Dismiss selector
         currSelector.value = InputSelector.NONE

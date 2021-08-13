@@ -244,7 +244,7 @@ fun LoopTexts(
                     modifier = Modifier.width(70.dp)
                 )
 
-                LoopDaysEnabled(loop = loop)
+                LoopDaysEnabled(loopVo = loop)
             }
         }
     }
@@ -266,12 +266,12 @@ private fun setAlarmOn(
 
 @Composable
 fun LoopDaysEnabled(
-    loop: LoopVo,
+    loopVo: LoopVo,
     modifier: Modifier = Modifier
 ) {
-    val contentAlpha = if (loop.enabled) ContentAlpha.medium else ContentAlpha.disabled
+    val contentAlpha = if (loopVo.enabled) ContentAlpha.medium else ContentAlpha.disabled
 
-    if (loop.loopEnableDays in arrayOf(
+    if (loopVo.loopEnableDays in arrayOf(
             LoopVo.Day.EVERYDAY,
             LoopVo.Day.WEEKDAYS,
             LoopVo.Day.WEEKENDS
@@ -279,7 +279,7 @@ fun LoopDaysEnabled(
     ) {
         Text(
             modifier = modifier.padding(end = 2.dp),
-            text = stringResource(DAY_STRING_MAP[loop.loopEnableDays]!!),
+            text = stringResource(DAY_STRING_MAP[loopVo.loopEnableDays]!!),
             style = MaterialTheme.typography.caption.copy(
                 color = MaterialTheme.colors.primary.copy(
                     alpha = contentAlpha
@@ -292,7 +292,7 @@ fun LoopDaysEnabled(
         ) {
             ABB_DAYS.forEachIndexed { index, dayResId ->
                 val day = LoopVo.Day.fromIndex(index)
-                val selected = loop.loopEnableDays.isOn(day)
+                val selected = loopVo.loopEnableDays.isOn(day)
                 val color =
                     (if (selected) MaterialTheme.colors.primary else MaterialTheme.colors.onSurface).copy(
                         alpha = contentAlpha
