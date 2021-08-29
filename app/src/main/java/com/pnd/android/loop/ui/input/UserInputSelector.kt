@@ -1,4 +1,4 @@
-package com.pnd.android.loop.ui.input.selector
+package com.pnd.android.loop.ui.input
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
@@ -14,10 +14,13 @@ import androidx.compose.material.icons.twotone.HourglassBottom
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
+import com.pnd.android.loop.TestTag
 import com.pnd.android.loop.ui.common.SelectorButton
+import com.pnd.android.loop.ui.input.selector.InputSelector
 
 @Composable
 fun UserInputSelector(
@@ -86,9 +89,10 @@ fun UserInputSelectorFunctionButtons(
 fun UserInputSubmitButton(
     sendMessageEnabled: Boolean,
     onLoopSubmitted: (Boolean) -> Unit,
-    isEditing:Boolean
+    isEditing: Boolean
 ) {
     Button(
+        modifier = Modifier.testTag(TestTag.USER_INPUT_SUBMIT_BUTTON),
         enabled = sendMessageEnabled,
         onClick = { onLoopSubmitted(isEditing) },
         shape = CircleShape,

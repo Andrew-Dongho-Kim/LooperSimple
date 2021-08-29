@@ -19,6 +19,7 @@ class VibratorHelper(
         context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
     }
 
+    @Suppress("deprecation")
     fun vibe() {
         val msTime = 10L
         audioManager.ringerMode = AudioManager.RINGER_MODE_SILENT

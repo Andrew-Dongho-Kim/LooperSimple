@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
@@ -19,6 +20,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
+import com.pnd.android.loop.TestTag
 import com.pnd.android.loop.data.LoopVo
 import com.pnd.android.loop.ui.input.common.keyboardShownProperty
 
@@ -66,6 +68,7 @@ private fun UserInputTextField(
         value = text,
         onValueChange = { onTextChanged(it) },
         modifier = modifier
+            .testTag(TestTag.USER_INPUT_TEXT_FIELD)
             .fillMaxWidth()
             .padding(start = 16.dp)
             .onFocusChanged { state -> onTextFieldFocused(state.isFocused) },

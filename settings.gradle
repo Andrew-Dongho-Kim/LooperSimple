@@ -8,3 +8,4 @@ dependencyResolutionManagement {
 }
 rootProject.name = "LooperSimple"
 include ':app'
+include ':benchmark'

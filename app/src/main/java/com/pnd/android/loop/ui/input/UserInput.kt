@@ -18,7 +18,6 @@ import com.pnd.android.loop.data.LoopVo
 import com.pnd.android.loop.ui.home.loop.LoopDaysEnabled
 import com.pnd.android.loop.ui.input.selector.InputSelector
 import com.pnd.android.loop.ui.input.selector.Selectors
-import com.pnd.android.loop.ui.input.selector.UserInputSelector
 import com.pnd.android.loop.util.BackPressHandler
 import com.pnd.android.loop.util.h2m2
 import com.pnd.android.loop.util.intervalString

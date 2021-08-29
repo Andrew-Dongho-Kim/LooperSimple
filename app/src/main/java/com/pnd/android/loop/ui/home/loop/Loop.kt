@@ -226,11 +226,6 @@ fun LoopTexts(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(top = 4.dp)
             ) {
-                Text(
-                    text = "${h2m2(loop.loopStart)} ~ ${h2m2(loop.loopEnd)}",
-                    style = typography.caption,
-                    modifier = Modifier.width(110.dp)
-                )
 
                 Text(
                     text = textFormatter(
@@ -242,6 +237,12 @@ fun LoopTexts(
                     ),
                     style = typography.caption,
                     modifier = Modifier.width(70.dp)
+                )
+
+                Text(
+                    text = "${h2m2(loop.loopStart)} ~ ${h2m2(loop.loopEnd)}",
+                    style = typography.caption,
+                    modifier = Modifier.width(90.dp)
                 )
 
                 LoopDaysEnabled(loopVo = loop)
