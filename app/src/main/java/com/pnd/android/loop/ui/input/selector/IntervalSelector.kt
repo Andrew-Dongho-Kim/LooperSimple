@@ -1,17 +1,10 @@
-package com.pnd.android.loop.ui.input
+package com.pnd.android.loop.ui.input.selector
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusModifier
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.focusTarget
-import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -23,18 +16,14 @@ import java.util.concurrent.TimeUnit
 
 @Composable
 fun IntervalSelector(
+    modifier: Modifier = Modifier,
     selectedInterval: Long,
     onIntervalSelected: (Long) -> Unit,
-    focusRequester: FocusRequester
 ) {
     val description = stringResource(R.string.desc_interval_selector)
     Column(
-        modifier = Modifier
-            .height(dimensionResource(id = R.dimen.user_input_selector_content_height))
-            .fillMaxWidth()
+        modifier = modifier
             .verticalScroll(rememberScrollState())
-            .focusRequester(focusRequester)
-            .focusTarget()
             .semantics { contentDescription = description }
     ) {
 
@@ -50,6 +39,7 @@ fun IntervalSelector(
 
 
 private val intervals = listOf(
+    TimeUnit.MINUTES.toMillis(0),
     TimeUnit.MINUTES.toMillis(5),
     TimeUnit.MINUTES.toMillis(10),
     TimeUnit.MINUTES.toMillis(20),

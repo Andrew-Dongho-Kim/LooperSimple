@@ -3,6 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="com.pnd.android.loop">
 
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
@@ -33,7 +34,7 @@
             </intent-filter>
         </activity>
 
-        <receiver android:name=".alarm.AlarmHelper$AlarmReceiver" />
+        <receiver android:name=".alarm.AlarmController$AlarmReceiver" />
     </application>
 
 </manifest>

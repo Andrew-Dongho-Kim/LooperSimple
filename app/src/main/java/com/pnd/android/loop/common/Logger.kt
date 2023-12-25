@@ -1,10 +1,9 @@
 package com.pnd.android.loop.common
 
 import android.util.Log
-import com.pnd.android.loop.BuildConfig
 
 const val PREFIX_TAG = "LooperSimple"
-const val APP_VERSION = BuildConfig.VERSION_NAME
+const val APP_VERSION = "1.0"
 
 fun log(tag: String) = Logger(tag)
 

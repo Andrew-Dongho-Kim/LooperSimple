@@ -7,7 +7,7 @@ import androidx.compose.material.lightColors
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-private val DarkColorPalette = darkColors(
+private val darkColorPalette = darkColors(
     primary = Blue400,
     primaryVariant = Blue500,
     onPrimary = Color.Black,
@@ -19,7 +19,7 @@ private val DarkColorPalette = darkColors(
     onError = Color.Black
 )
 
-private val LightColorPalette = lightColors(
+private val lightColorPalette = lightColors(
     primary = Blue500,
     primaryVariant = Blue800,
     onPrimary = Color.White,
@@ -32,26 +32,15 @@ private val LightColorPalette = lightColors(
     onError = Color.White
 )
 
-private val WineLineColorPalette = lightColors(
-    primary = WinePurple700,
-    primaryVariant = WinePurple800,
-    onPrimary = Color.White,
-    secondary = WineRed,
-    secondaryVariant = WineRed,
-    onSecondary = Color.Black,
-    onSurface = Color.Black,
-    onBackground = Color.Black
-)
-
 @Composable
 fun AppTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable() () -> Unit
 ) {
     val colors = if (darkTheme) {
-        DarkColorPalette
+        darkColorPalette
     } else {
-        LightColorPalette
+        lightColorPalette
     }
 
     MaterialTheme(

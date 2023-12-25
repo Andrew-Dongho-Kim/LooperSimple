@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import androidx.annotation.IntDef
 import androidx.annotation.IntRange
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.LiveData
 import androidx.room.*
 import com.pnd.android.loop.alarm.NO_ALARMS
@@ -14,40 +15,40 @@ import com.pnd.android.loop.data.LoopVo.Day.Companion.SUNDAY
 import com.pnd.android.loop.data.LoopVo.Day.Companion.THURSDAY
 import com.pnd.android.loop.data.LoopVo.Day.Companion.TUESDAY
 import com.pnd.android.loop.data.LoopVo.Day.Companion.WEDNESDAY
+import com.pnd.android.loop.util.MS_1HOUR
 import com.pnd.android.loop.util.h2m2
 import com.pnd.android.loop.util.intervalString
 import com.pnd.android.loop.util.localTime
+import java.time.LocalTime
 import java.util.*
 import java.util.concurrent.TimeUnit
 
-
+@Immutable
 @Entity(tableName = "loop")
 data class LoopVo(
     @PrimaryKey(autoGenerate = true)
-    var id: Int = 0,
-    var icon: Int = 0,
-    var title: String = "",
-    var tickStart: Long = 0L,
-    var loopStart: Long = TimeUnit.HOURS.toMillis(8),
-    var loopEnd: Long = TimeUnit.HOURS.toMillis(22),
-    var loopEnableDays: Int = Day.EVERYDAY,
-    var interval: Long = TimeUnit.HOURS.toMillis(1),
-    var alarms: Int = NO_ALARMS,
-    var enabled: Boolean = true
+    val id: Int = 0,
+    val color: Int = DEFAULT_COLOR,
+    val title: String = "",
+    val tickStart: Long = 0L,
+    val loopStart: Long = 0L,
+    val loopEnd: Long = 0L,
+    val loopActiveDays: Int = Day.EVERYDAY,
+    val interval: Long = NO_REPEAT,
+    val alarms: Int = NO_ALARMS,
+    val enabled: Boolean = true
 ) {
-    fun putToIntent(intent: Intent) {
+    fun putTo(intent: Intent) {
         intent.putExtra(EXTRA_ID, id)
-        intent.putExtra(EXTRA_ICON, icon)
+        intent.putExtra(EXTRA_COLOR, color)
         intent.putExtra(EXTRA_TITLE, title)
-        intent.putExtra(EXTRA_TICK_START, tickStart)
         intent.putExtra(EXTRA_LOOP_START, loopStart)
         intent.putExtra(EXTRA_LOOP_END, loopEnd)
-        intent.putExtra(EXTRA_LOOP_ENABLE_DAYS, loopEnableDays)
+        intent.putExtra(EXTRA_LOOP_ACTIVE_DAYS, loopActiveDays)
         intent.putExtra(EXTRA_ALARM_INTERVAL, interval)
         intent.putExtra(EXTRA_LOOP_ALARMS, alarms)
         intent.putExtra(EXTRA_ALARM_ENABLED, enabled)
     }
-
 
     @Target(AnnotationTarget.TYPE, AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.FUNCTION)
     @IntDef(SUNDAY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY)
@@ -110,28 +111,44 @@ data class LoopVo(
     }
 
     companion object {
-        fun popFromIntent(intent: Intent): LoopVo {
+
+        const val NO_REPEAT = 0L
+        const val DEFAULT_COLOR = 0xff000099.toInt()
+
+        val SUPPORTED_COLORS = listOf(
+            DEFAULT_COLOR, 0xff0000cc.toInt(), 0xff3333ff.toInt(),
+            0xff00ccff.toInt(), 0xff0099ff.toInt(), 0xff3366ff.toInt(),
+            0xff00cc99.toInt(), 0xff00ff99.toInt(), 0xff00ff00.toInt(),
+            0xff6600ff.toInt(), 0xff9933ff.toInt(), 0xff9900cc.toInt(),
+            0xff99ff33.toInt(), 0xffccff66.toInt(), 0xffffff00.toInt(),
+            0xffcccc00.toInt(), 0xffcc9900.toInt(), 0xffcc6600.toInt(),
+            0xffff0000.toInt(), 0xffff3399.toInt(), 0xffcc6699.toInt(),
+        )
+        fun default() = LoopVo(
+            loopStart = TimeUnit.HOURS.toMillis(LocalTime.now().hour.toLong()),
+            loopEnd = TimeUnit.HOURS.toMillis(LocalTime.now().hour.toLong() + 1),
+        )
+
+        fun Intent.asLoop(): LoopVo {
             return LoopVo(
-                id = intent.getIntExtra(EXTRA_ID, 0),
-                icon = intent.getIntExtra(EXTRA_ICON, 0),
-                title = intent.getStringExtra(EXTRA_TITLE) ?: "",
-                tickStart = intent.getLongExtra(EXTRA_TICK_START, localTime()),
-                loopStart = intent.getLongExtra(EXTRA_LOOP_START, 8),
-                loopEnd = intent.getLongExtra(EXTRA_LOOP_END, 22),
-                loopEnableDays = intent.getIntExtra(EXTRA_LOOP_ENABLE_DAYS, Day.EVERYDAY),
-                interval = intent.getLongExtra(EXTRA_ALARM_INTERVAL, TimeUnit.HOURS.toMillis(1)),
-                alarms = intent.getIntExtra(EXTRA_LOOP_ALARMS, NO_ALARMS),
-                enabled = intent.getBooleanExtra(EXTRA_ALARM_ENABLED, true)
+                id = getIntExtra(EXTRA_ID, 0),
+                color = getIntExtra(EXTRA_COLOR, 0),
+                title = getStringExtra(EXTRA_TITLE) ?: "",
+                loopStart = getLongExtra(EXTRA_LOOP_START, 8),
+                loopEnd = getLongExtra(EXTRA_LOOP_END, 22),
+                loopActiveDays = getIntExtra(EXTRA_LOOP_ACTIVE_DAYS, Day.EVERYDAY),
+                interval = getLongExtra(EXTRA_ALARM_INTERVAL, TimeUnit.HOURS.toMillis(1)),
+                alarms = getIntExtra(EXTRA_LOOP_ALARMS, NO_ALARMS),
+                enabled = getBooleanExtra(EXTRA_ALARM_ENABLED, true)
             )
         }
 
         private const val EXTRA_ID = "extra_loop_id"
-        private const val EXTRA_ICON = "extra_loop_icon"
+        private const val EXTRA_COLOR = "extra_loop_color"
         private const val EXTRA_TITLE = "extra_loop_title"
-        private const val EXTRA_TICK_START = "extra_tick_start"
         private const val EXTRA_LOOP_START = "extra_loop_allowed_start"
         private const val EXTRA_LOOP_END = "extra_loop_allowed_end"
-        private const val EXTRA_LOOP_ENABLE_DAYS = "extra_loop_enable_days"
+        private const val EXTRA_LOOP_ACTIVE_DAYS = "extra_loop_active_days"
         private const val EXTRA_ALARM_INTERVAL = "extra_loop_alarm_interval"
         private const val EXTRA_LOOP_ALARMS = "extra_loop_alarms"
         private const val EXTRA_ALARM_ENABLED = "extra_loop_alarm_enabled"
@@ -139,15 +156,13 @@ data class LoopVo(
 
 }
 
-
 fun LoopVo.description(context: Context) =
     """ -->
     |*Loop  
     | title : $title
-    | tickStart : ${Date(tickStart)}
     | loopStart : ${h2m2(loopStart)}
     | loopEnd : ${h2m2(loopEnd)}
-    | enabledDays : ${LoopVo.Day.description(loopEnableDays)}
+    | activeDays : ${LoopVo.Day.description(loopActiveDays)}
     | interval : ${intervalString(context, interval)}
     | alarms : $alarms
     | enabled : $enabled""".trimMargin()

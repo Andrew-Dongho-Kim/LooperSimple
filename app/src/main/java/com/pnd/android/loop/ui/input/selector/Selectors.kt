@@ -1,23 +1,23 @@
 package com.pnd.android.loop.ui.input.selector
 
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.material.Surface
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.focusTarget
+import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.unit.dp
-import com.pnd.android.loop.alarm.AlarmCategory
-import com.pnd.android.loop.common.log
+import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopVo
-import com.pnd.android.loop.ui.input.*
 import com.pnd.android.loop.ui.input.common.getSelectorExpandedColor
-import com.pnd.android.loop.util.h2m2
-
-
-private val logger = log("Selectors")
 
 enum class InputSelector {
     NONE,
-    ICONS,
+    COLOR,
     ALARM_INTERVAL,
     START_END_TIME,
     ALARMS,
@@ -25,85 +25,11 @@ enum class InputSelector {
 
 @Composable
 fun Selectors(
+    focusRequester: FocusRequester,
     currentSelector: InputSelector,
-    loop: LoopVo
+    loop: LoopVo,
+    onLoopUpdated: (LoopVo) -> Unit,
 ) {
-    var icon by remember { mutableStateOf(loop.icon) }
-    var loopStart by remember { mutableStateOf(loop.loopStart) }
-    var loopEnd by remember { mutableStateOf(loop.loopEnd) }
-    var enabledDays by remember { mutableStateOf(loop.loopEnableDays) }
-    var interval by remember { mutableStateOf(loop.interval) }
-    var alarms by remember { mutableStateOf(loop.alarms) }
-
-    Selectors(
-        selectedInterval = interval,
-        onIntervalSelected = {
-            loop.interval = it
-            interval = it
-        },
-        selectedIcon = icon,
-        onIconSelected = { _, index ->
-            loop.icon = index
-            icon = index
-        },
-        selectedStartTime = loopStart,
-        onStartTimeSelected = {
-            loop.loopStart = it
-            loopStart = it
-            logger.d { "Loop start time : ${h2m2(it)}" }
-        },
-        selectedEndTime = loopEnd,
-        onEndTimeSelected = {
-            loop.loopEnd = it
-            loopEnd = it
-            logger.d { "Loop end time : ${h2m2(it)}" }
-        },
-        currentSelector = currentSelector,
-        selectedDays = enabledDays,
-        onSelectedDayChanged = {
-            loop.loopEnableDays = it
-            enabledDays = it
-        },
-        selectedAlarms = alarms,
-        onAlarmSelected = {
-            loop.alarms = it
-            alarms = it
-            logger.d { "selected alarms - sound:${AlarmCategory.Sounds.nameOf(alarms)}" }
-        }
-    )
-}
-
-
-@Composable
-fun Selectors(
-    currentSelector: InputSelector,
-    // Related intervals
-    selectedInterval: Long,
-    onIntervalSelected: (Long) -> Unit,
-
-    // Related icons
-    selectedIcon: Int,
-    onIconSelected: (ImageVector, Int) -> Unit,
-
-    //Related start & end times, dates
-    selectedStartTime: Long,
-    onStartTimeSelected: (Long) -> Unit,
-    selectedEndTime: Long,
-    onEndTimeSelected: (Long) -> Unit,
-    selectedDays: Int,
-    onSelectedDayChanged: (Int) -> Unit,
-
-    //Related alarms
-    selectedAlarms: Int,
-    onAlarmSelected: (Int) -> Unit,
-) {
-    if (currentSelector == InputSelector.NONE) return
-
-
-    // Request focus to force the TextField to lose it
-    // If the selector is shown, always request focus to trigger a TextField.onFocusChange.
-    val focusRequester = FocusRequester()
-
     SideEffect {
         if (currentSelector != InputSelector.NONE) {
             focusRequester.requestFocus()
@@ -111,35 +37,60 @@ fun Selectors(
     }
     val selectorExpandedColor = getSelectorExpandedColor()
 
+    val modifier = Modifier
+        .fillMaxWidth()
+        .height(dimensionResource(id = R.dimen.user_input_selector_content_height))
+        .focusRequester(focusRequester)
+        .focusTarget()
+
     Surface(color = selectorExpandedColor, elevation = 3.dp) {
-        when (currentSelector) {
-            InputSelector.ICONS -> IconSelector(
-                selectedIcon = selectedIcon,
-                onIconSelected = onIconSelected,
-                focusRequester = focusRequester,
-            )
-            InputSelector.ALARM_INTERVAL -> IntervalSelector(
-                focusRequester = focusRequester,
-                selectedInterval = selectedInterval,
-                onIntervalSelected = onIntervalSelected,
-            )
-            InputSelector.START_END_TIME -> StartEndTimeSelector(
-                focusRequester = focusRequester,
-                selectedStartTime = selectedStartTime,
-                onStartTimeSelected = onStartTimeSelected,
-                selectedEndTime = selectedEndTime,
-                onEndTimeSelected = onEndTimeSelected,
-                selectedDays = selectedDays,
-                onSelectedDayChanged = onSelectedDayChanged
-            )
-            InputSelector.ALARMS -> AlarmSelector(
-                focusRequester = focusRequester,
-                selectedAlarm = selectedAlarms,
-                onAlarmSelected = onAlarmSelected
-            )
-            else -> {
-                // do nothing
-            }
+        Selector(
+            modifier = modifier,
+            currentSelector = currentSelector,
+            loop = loop,
+            onLoopUpdated = onLoopUpdated
+        )
+    }
+}
+
+@Composable
+private fun Selector(
+    modifier: Modifier = Modifier,
+    currentSelector: InputSelector,
+    loop: LoopVo,
+    onLoopUpdated: (LoopVo) -> Unit,
+) {
+    when (currentSelector) {
+        InputSelector.NONE -> {
+            // do nothing
         }
+
+        InputSelector.COLOR -> ColorSelector(
+            modifier = modifier,
+            selectedColor = loop.color,
+            onColorSelected = { onLoopUpdated(loop.copy(color = it)) },
+        )
+
+        InputSelector.ALARM_INTERVAL -> IntervalSelector(
+            modifier = modifier,
+            selectedInterval = loop.interval,
+            onIntervalSelected = { onLoopUpdated(loop.copy(interval = it)) }
+        )
+
+        InputSelector.START_END_TIME -> StartEndTimeSelector(
+            modifier = modifier,
+            selectedStartTime = loop.loopStart,
+            onStartTimeSelected = { onLoopUpdated(loop.copy(loopStart = it)) },
+            selectedEndTime = loop.loopEnd,
+            onEndTimeSelected = { onLoopUpdated(loop.copy(loopEnd = it)) },
+            selectedDays = loop.loopActiveDays,
+            onSelectedDayChanged = { onLoopUpdated(loop.copy(loopActiveDays = it)) }
+        )
+
+        InputSelector.ALARMS -> AlarmSelector(
+            modifier = modifier,
+            selectedAlarm = loop.alarms,
+            onAlarmSelected = { onLoopUpdated(loop.copy(alarms = it)) }
+        )
     }
 }

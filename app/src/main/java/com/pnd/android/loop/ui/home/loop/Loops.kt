@@ -1,42 +1,41 @@
 package com.pnd.android.loop.ui.home.loop
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.*
-import androidx.compose.runtime.*
+import androidx.compose.material.ContentAlpha
+import androidx.compose.material.LocalContentAlpha
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pnd.android.loop.R
-import com.pnd.android.loop.alarm.AlarmHelper
-import com.pnd.android.loop.common.log
-import com.pnd.android.loop.data.LoopVo
-import com.pnd.android.loop.ui.home.HomeViewModel
+import com.pnd.android.loop.ui.home.LoopViewModel
 
-private val logger = log("LoopUi")
-
-@ExperimentalMaterialApi
-@ExperimentalFoundationApi
 @Composable
 fun Loops(
-    alarmHelper: AlarmHelper,
+    modifier: Modifier = Modifier,
     scrollState: ScrollState,
-    editedLoop: MutableState<LoopVo?>,
-    modifier: Modifier = Modifier
+    loopViewModel: LoopViewModel,
 ) {
-    val viewModel: HomeViewModel = viewModel()
-    val loopsState = viewModel.loops.observeAsState()
+    val loops by loopViewModel.loops.observeAsState(emptyList())
 
     Box(modifier = modifier.background(MaterialTheme.colors.onSurface.copy(alpha = 0.02f))) {
-        val loops = loopsState.value
-        if (loops.isNullOrEmpty()) {
-            logger.d { "Empty loops" }
+        if (loops.isEmpty()) {
             EmptyLoops(modifier = Modifier.fillMaxSize())
         } else {
             Column(
@@ -48,7 +47,10 @@ fun Loops(
 
                 loops.forEach { loop ->
                     key(loop.id) {
-                        Loop(alarmHelper = alarmHelper, loop = loop, editedLoop = editedLoop)
+                        LoopCard(
+                            loopViewModel = loopViewModel,
+                            loop = loop,
+                        )
                     }
                 }
             }

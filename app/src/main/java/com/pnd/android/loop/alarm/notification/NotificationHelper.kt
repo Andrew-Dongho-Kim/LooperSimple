@@ -8,7 +8,7 @@ import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.pnd.android.loop.R
-import com.pnd.android.loop.alarm.AlarmHelper
+import com.pnd.android.loop.alarm.AlarmController
 import com.pnd.android.loop.data.LoopVo
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -35,9 +35,9 @@ class NotificationHelper @Inject constructor(
     private fun LoopVo.pendingIntent(action: String) = PendingIntent.getBroadcast(
         context,
         0,
-        Intent(context, AlarmHelper.AlarmReceiver::class.java).apply {
+        Intent(context, AlarmController.AlarmReceiver::class.java).apply {
             this.action = action
-            putToIntent(this)
+            putTo(this)
         },
         PendingIntent.FLAG_UPDATE_CURRENT
     )

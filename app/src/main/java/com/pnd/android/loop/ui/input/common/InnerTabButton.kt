@@ -1,4 +1,4 @@
-package com.pnd.android.loop.ui.input
+package com.pnd.android.loop.ui.input.common
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.height

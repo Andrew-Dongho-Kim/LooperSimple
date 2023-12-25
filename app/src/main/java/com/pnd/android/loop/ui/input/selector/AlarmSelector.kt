@@ -1,12 +1,21 @@
-package com.pnd.android.loop.ui.input
+package com.pnd.android.loop.ui.input.selector
 
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -22,6 +31,7 @@ import com.pnd.android.loop.R
 import com.pnd.android.loop.alarm.ALL_ALARM_CATEGORIES
 import com.pnd.android.loop.alarm.AlarmCategory
 import com.pnd.android.loop.alarm.AlarmPlayer
+import com.pnd.android.loop.ui.input.common.InnerTabButton
 import com.pnd.android.loop.ui.input.common.TextSelectorItem
 import kotlinx.coroutines.launch
 
@@ -35,18 +45,15 @@ private data class Item(
 
 @Composable
 fun AlarmSelector(
+    modifier: Modifier = Modifier,
     selectedAlarm: Int,
     onAlarmSelected: (Int) -> Unit = {},
-    focusRequester: FocusRequester
 ) {
     var selectedCategory by remember { mutableStateOf(AlarmCategory.Sounds) }
 
     val description = stringResource(id = R.string.desc_alarm_selector)
     Column(
-        modifier = Modifier
-            .height(dimensionResource(id = R.dimen.user_input_selector_content_height))
-            .focusRequester(focusRequester)
-            .focusTarget()
+        modifier = modifier
             .semantics { contentDescription = description }
     ) {
 

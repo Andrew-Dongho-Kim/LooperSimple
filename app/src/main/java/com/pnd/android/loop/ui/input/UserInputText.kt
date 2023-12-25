@@ -6,40 +6,36 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.*
+import androidx.compose.material.ContentAlpha
+import androidx.compose.material.LocalTextStyle
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
-import com.pnd.android.loop.TestTag
-import com.pnd.android.loop.data.LoopVo
-import com.pnd.android.loop.ui.input.common.keyboardShownProperty
 
 
 @Composable
 fun UserInputText(
+    modifier: Modifier = Modifier,
     textField: TextFieldValue,
     keyboardType: KeyboardType = KeyboardType.Text,
-    keyboardShown: Boolean,
     hasFocus: Boolean,
     onTextChanged: (TextFieldValue) -> Unit,
-    onTextFieldFocused: (Boolean) -> Unit,
-    loopVo: LoopVo
+    onTextFieldFocused: (Boolean) -> Unit
 ) {
     Box(
-        modifier = Modifier
+        modifier = modifier
             .height(48.dp)
             .fillMaxWidth()
-            .semantics { keyboardShownProperty = keyboardShown },
     ) {
         UserInputTextField(
             modifier = Modifier.align(Alignment.CenterStart),
@@ -68,7 +64,6 @@ private fun UserInputTextField(
         value = text,
         onValueChange = { onTextChanged(it) },
         modifier = modifier
-            .testTag(TestTag.USER_INPUT_TEXT_FIELD)
             .fillMaxWidth()
             .padding(start = 16.dp)
             .onFocusChanged { state -> onTextFieldFocused(state.isFocused) },
@@ -77,14 +72,14 @@ private fun UserInputTextField(
             imeAction = ImeAction.Send
         ),
         maxLines = 1,
-        cursorBrush = SolidColor(LocalContentColor.current),
-        textStyle = LocalTextStyle.current.copy(color = LocalContentColor.current)
+        cursorBrush = SolidColor(MaterialTheme.colors.onSurface),
+        textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colors.onSurface)
     )
 }
 
 @Composable
 private fun EmptyTextField(
-    modifier: Modifier,
+    modifier: Modifier = Modifier,
 ) {
     Text(
         modifier = modifier.padding(start = 16.dp),

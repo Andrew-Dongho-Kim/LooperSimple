@@ -1,5 +1,6 @@
 package com.pnd.android.loop.ui.input
 
+import android.util.Log
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,14 +9,20 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.Divider
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.common.log
 import com.pnd.android.loop.data.LoopVo
-import com.pnd.android.loop.ui.home.loop.LoopDaysEnabled
+import com.pnd.android.loop.ui.home.loop.LoopCardActiveDays
 import com.pnd.android.loop.ui.input.selector.InputSelector
 import com.pnd.android.loop.ui.input.selector.Selectors
 import com.pnd.android.loop.util.BackPressHandler
@@ -30,74 +37,74 @@ private val logger = log("UserInput")
 @Composable
 fun UserInput(
     modifier: Modifier = Modifier,
-    scrollStateLoops: ScrollState,
+    scrollState: ScrollState,
+    loop: LoopVo,
+    onLoopUpdated: (LoopVo) -> Unit,
     onLoopSubmitted: (LoopVo) -> Unit,
-    loopInEdit: MutableState<LoopVo?>
+    isEditing: Boolean = false,
 ) {
-    val isEditing = loopInEdit.value != null
+    var currSelector by rememberSaveable { mutableStateOf(InputSelector.NONE) }
+    var titleTextField by remember { mutableStateOf(TextFieldValue()) }
 
-    val loop = remember { mutableStateOf(LoopVo()) }
-    val loopTitle = remember { mutableStateOf(TextFieldValue()) }
-    FillLoopInEdit(
-        loopInEdit = loopInEdit.value,
-        currLoop = loop,
-        currLoopTitle = loopTitle
-    )
-
-    val currSelector = rememberSaveable { mutableStateOf(InputSelector.NONE) }
-    val onDismiss = onDismissSelectorOrEditMode(
-        currSelector = currSelector,
-        loopInEdit = loopInEdit,
-        currLoop = loop,
-        currLoopTitle = loopTitle
-    )
-    OverrideBackPress(currSelector, isEditing, onDismiss)
+    var hasInputFocus by remember { mutableStateOf(false) }
+    // Request focus to force the TextField to lose it
+    // If the selector is shown, always request focus to trigger a TextField.onFocusChange.
+    val focusRequester = FocusRequester()
+    OverrideBackPress(
+        inputSelector = currSelector
+    ) { inputSelector ->
+        currSelector = inputSelector
+    }
 
 
-    val onScrollToBottomOfLoops = onScrollToBottomOfLoops(scrollStateLoops)
-
+    val coroutineScope = rememberCoroutineScope()
+    val scrollToBottom = remember {
+        { coroutineScope.launch { scrollState.animateScrollTo(0) } }
+    }
     Column(modifier) {
         Divider()
-        var hasInputFocus by remember { mutableStateOf(false) }
         // Used to decide if the keyboard should be shown
         UserInputText(
-            onTextChanged = {
-                loopTitle.value = it
-                loop.value.title = it.text
-            },
-            onTextFieldFocused = { focused ->
-                if (focused) {
-                    currSelector.value = InputSelector.NONE
-                    onScrollToBottomOfLoops()
-                }
-                hasInputFocus = focused
-            },
+            textField = titleTextField,
             hasFocus = hasInputFocus,
-            textField = loopTitle.value,
-            keyboardShown = currSelector.value == InputSelector.NONE && hasInputFocus,
-            loopVo = loop.value
-        )
-        if (hasInputFocus || !loopTitle.value.text.isEmpty()) {
-            UserInputSummary(modifier = Modifier, loopVo = loop.value)
+            onTextChanged = { textFiledValue -> titleTextField = textFiledValue }
+        ) { focused ->
+            if (focused) {
+                currSelector = InputSelector.NONE
+                scrollToBottom()
+            }
+            hasInputFocus = focused
         }
-        UserInputSelector(
-            onSelectorChange = onUserInputSelectorChanged(currSelector),
-            selectedInterval = loop.value.interval,
-            canSubmitLoop = loopTitle.value.text.isNotBlank(),
-            onLoopSubmitted = onLoopSubmitted(
-                currLoop = loop,
-                currLoopTitle = loopTitle,
-                onDone = { loopVo ->
-                    onLoopSubmitted(loopVo)
-                    onScrollToBottomOfLoops()
-                    onDismiss()
-                },
-            ),
-            currentInputSelector = currSelector.value,
+        if (hasInputFocus || currSelector != InputSelector.NONE) {
+            UserInputSummary(modifier = Modifier, loopVo = loop)
+        }
+
+        UserInputButtons(
+            submitEnabled = titleTextField.text.isNotBlank(),
+            onSubmitted = {
+                onLoopSubmitted(loop.copy(title = titleTextField.text))
+
+                titleTextField = TextFieldValue()
+                scrollToBottom()
+                onLoopUpdated(LoopVo.default())
+            },
+            inputSelector = currSelector,
+            onInputSelectorChanged = { selector ->
+                currSelector = if (selector == currSelector) {
+                    InputSelector.NONE
+                } else {
+                    selector
+                }
+            },
             isEditing = isEditing
         )
 
-        Selectors(currentSelector = currSelector.value, loop = loop.value)
+        Selectors(
+            focusRequester = focusRequester,
+            currentSelector = currSelector,
+            loop = loop,
+            onLoopUpdated = onLoopUpdated
+        )
     }
 }
 
@@ -109,103 +116,37 @@ private fun UserInputSummary(
 ) {
     Row(modifier.padding(start = 16.dp)) {
         Text(
+            modifier = Modifier.width(110.dp),
             text = "${h2m2(loopVo.loopStart)} ~ ${h2m2(loopVo.loopEnd)}",
-            style = MaterialTheme.typography.caption,
-            modifier = Modifier.width(110.dp)
+            style = MaterialTheme.typography.caption.copy(
+                color = MaterialTheme.colors.onSurface
+            ),
         )
         Text(
             text = textFormatter(
-                intervalString(loopVo.interval, isAbb = true)
+                intervalString(loopVo.interval)
             ),
-            style = MaterialTheme.typography.caption,
+            style = MaterialTheme.typography.caption.copy(
+                color = MaterialTheme.colors.onSurface
+            ),
             modifier = Modifier.width(70.dp)
         )
 
-        LoopDaysEnabled(loopVo)
+        LoopCardActiveDays(loop = loopVo)
     }
 }
 
 @Composable
 private fun OverrideBackPress(
-    currentInputSelector: MutableState<InputSelector>,
-    isEditing: Boolean,
-    onDismiss: () -> Unit
+    inputSelector: InputSelector,
+    onInputSelectorChanged: (InputSelector) -> Unit,
 ) {
-    // Intercept back navigation if there's a InputSelector visible
-    val isSelectorOpened = currentInputSelector.value != InputSelector.NONE
-
-    if (isSelectorOpened || isEditing) {
-        logger.d { "override back press, edit mode or selector will be dismissed" }
-        BackPressHandler(onBackPressed = onDismiss)
-    }
-}
-
-
-@Composable
-private fun FillLoopInEdit(
-    loopInEdit: LoopVo?,
-    currLoop: MutableState<LoopVo>,
-    currLoopTitle: MutableState<TextFieldValue>
-) {
-    if (loopInEdit != null && loopInEdit != currLoop.value) {
-        currLoop.value = loopInEdit
-        currLoopTitle.value = TextFieldValue(loopInEdit.title)
-    }
-}
-
-
-@Composable
-private fun onLoopSubmitted(
-    currLoop: MutableState<LoopVo>,
-    currLoopTitle: MutableState<TextFieldValue>,
-    onDone: (LoopVo) -> Unit,
-): (Boolean) -> Unit {
-    return { isEditing ->
-        with(currLoop.value) {
-            if (!isEditing) {
-                id = 0
-                tickStart = 0
+    if (inputSelector != InputSelector.NONE) {
+        BackPressHandler(
+            onBackPressed = {
+                onInputSelectorChanged(InputSelector.NONE)
             }
-            onDone(this)
-        }
-        currLoopTitle.value = TextFieldValue()
+        )
     }
 }
-
-@Composable
-private fun onUserInputSelectorChanged(currentInputSelector: MutableState<InputSelector>): (InputSelector) -> Unit =
-    { selector ->
-        with(currentInputSelector) {
-            value = if (selector == value) InputSelector.NONE else selector
-        }
-    }
-
-private fun onDismissSelectorOrEditMode(
-    currSelector: MutableState<InputSelector>,
-    loopInEdit: MutableState<LoopVo?>,
-    currLoop: MutableState<LoopVo>,
-    currLoopTitle: MutableState<TextFieldValue>
-): () -> Unit = {
-    if (currSelector.value == InputSelector.NONE) {
-        // Dismiss edit mode
-        loopInEdit.value = null
-        currLoop.value = LoopVo()
-        currLoopTitle.value = TextFieldValue()
-        logger.d { "onDismissEditMode" }
-    } else {
-        // Dismiss selector
-        currSelector.value = InputSelector.NONE
-    }
-}
-
-
-@Composable
-private fun onScrollToBottomOfLoops(scrollStateLoops: ScrollState): () -> Unit {
-    val scope = rememberCoroutineScope()
-    return {
-        scope.launch { scrollStateLoops.animateScrollTo(0) }
-    }
-}
-
-
 

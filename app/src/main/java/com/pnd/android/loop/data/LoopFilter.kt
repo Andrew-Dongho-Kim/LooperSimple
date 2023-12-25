@@ -2,8 +2,8 @@ package com.pnd.android.loop.data
 
 import androidx.lifecycle.LiveData
 import androidx.room.*
-import com.pnd.android.loop.util.isAllowedDay
-import com.pnd.android.loop.util.isAllowedTime
+import com.pnd.android.loop.util.isActiveDay
+import com.pnd.android.loop.util.isActiveTime
 
 @Entity(tableName = "loop_filter")
 data class LoopFilter(
@@ -40,11 +40,11 @@ data class LoopFilter(
         }
 
         private fun LoopFilter.filterProgress(loop: LoopVo): Boolean {
-            return if (onlyProgress) loop.isAllowedDay() && loop.isAllowedTime() else true
+            return if (onlyProgress) loop.isActiveDay() && loop.isActiveTime() else true
         }
 
         private fun LoopFilter.filterToday(loop: LoopVo): Boolean {
-            return if (onlyToday) loop.isAllowedDay() else true
+            return if (onlyToday) loop.isActiveDay() else true
         }
     }
 }

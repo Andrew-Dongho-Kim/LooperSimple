@@ -1,4 +1,4 @@
-package com.pnd.android.loop.ui.input
+package com.pnd.android.loop.ui.input.selector
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -49,7 +49,6 @@ private val logger = log("TimeSelector")
 @Composable
 fun StartEndTimeSelector(
     modifier: Modifier = Modifier,
-    focusRequester: FocusRequester,
     selectedStartTime: Long,
     onStartTimeSelected: (Long) -> Unit,
     selectedEndTime: Long,
@@ -60,10 +59,6 @@ fun StartEndTimeSelector(
 
     Column(
         modifier = modifier
-            .fillMaxWidth()
-            .height(dimensionResource(id = R.dimen.user_input_selector_content_height))
-            .focusRequester(focusRequester)
-            .focusTarget()
 //            .semantics { contentDescription = description }
     ) {
         Row(

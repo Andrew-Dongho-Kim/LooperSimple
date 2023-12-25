@@ -14,7 +14,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.pnd.android.loop.LooperSimpleApplication
 import com.pnd.android.loop.MainActivity
 import com.pnd.android.loop.TestTag
-import com.pnd.android.loop.alarm.AlarmHelper
+import com.pnd.android.loop.alarm.AlarmController
 import com.pnd.android.loop.data.AppDatabase
 import com.pnd.android.loop.di.AppModule
 import dagger.hilt.android.testing.BindValue
@@ -40,14 +40,14 @@ class HomeTest {
     lateinit var appDb: AppDatabase
 
     @BindValue
-    lateinit var alarmHelper: AlarmHelper
+    lateinit var alarmHelper: AlarmController
 
     @Before
     fun setUp() {
         val context = ApplicationProvider.getApplicationContext<LooperSimpleApplication>()
         appDb = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java).build()
 
-        alarmHelper = AlarmHelper(
+        alarmHelper = AlarmController(
             context = context,
             alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager,
             appDb = appDb

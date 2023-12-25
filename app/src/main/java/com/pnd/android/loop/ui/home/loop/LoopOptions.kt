@@ -22,22 +22,22 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pnd.android.loop.R
-import com.pnd.android.loop.alarm.AlarmHelper
+import com.pnd.android.loop.alarm.AlarmController
 import com.pnd.android.loop.data.LoopVo
-import com.pnd.android.loop.ui.home.HomeViewModel
+import com.pnd.android.loop.ui.home.LoopViewModel
 import com.pnd.android.loop.ui.theme.PADDING_HZ_ITEM
 import kotlinx.coroutines.launch
 
 @ExperimentalMaterialApi
 @Composable
-fun LoopTools(
-    alarmHelper: AlarmHelper,
+fun LoopOptions(
+    alarmHelper: AlarmController,
     loop: LoopVo,
     editedLoop: MutableState<LoopVo?>,
     swipeState: SwipeableState<Int>,
     modifier: Modifier = Modifier
 ) {
-    val viewModel = viewModel<HomeViewModel>()
+    val viewModel = viewModel<LoopViewModel>()
     val showDeleteDialog = remember { mutableStateOf(false) }
 
     if (showDeleteDialog.value) {
@@ -99,8 +99,8 @@ private fun LoopToolIcon(
 
 @Composable
 fun DeleteDialog(
-    viewModel: HomeViewModel,
-    alarmHelper: AlarmHelper,
+    viewModel: LoopViewModel,
+    alarmHelper: AlarmController,
     loop: LoopVo,
     showDeleteDialog: MutableState<Boolean>
 ) {
@@ -123,8 +123,7 @@ fun DeleteDialog(
         },
         confirmButton = {
             TextButton(onClick = {
-                alarmHelper.cancel(loop)
-                viewModel.removeLoop(loop.id)
+                viewModel.removeLoop(loop)
             }) {
                 Text(text = stringResource(id = R.string.ok))
             }

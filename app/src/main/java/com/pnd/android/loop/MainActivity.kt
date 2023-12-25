@@ -3,15 +3,11 @@ package com.pnd.android.loop
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.material.Scaffold
-import androidx.compose.material.rememberScaffoldState
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.viewinterop.AndroidViewBinding
 import androidx.core.view.WindowCompat
-import androidx.fragment.app.FragmentContainerView
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
-import androidx.viewbinding.ViewBindings
 import com.pnd.android.loop.databinding.ContentMainBinding
 import com.pnd.android.loop.ui.theme.AppTheme
 import com.pnd.android.loop.util.LocalBackPressedDispatcher
@@ -28,17 +24,9 @@ class MainActivity : AppCompatActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         setContent {
-            CompositionLocalProvider(
-                LocalBackPressedDispatcher provides this.onBackPressedDispatcher
-            ) {
-                val scaffoldState = rememberScaffoldState()
-
+            CompositionLocalProvider(LocalBackPressedDispatcher provides onBackPressedDispatcher) {
                 AppTheme {
-                    Scaffold(
-                        scaffoldState = scaffoldState
-                    ) {
-                        AndroidViewBinding(factory = ContentMainBinding::inflate)
-                    }
+                    AndroidViewBinding(factory = ContentMainBinding::inflate)
                 }
             }
         }

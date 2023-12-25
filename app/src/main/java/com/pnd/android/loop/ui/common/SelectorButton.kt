@@ -36,7 +36,7 @@ fun SelectorButton(
                 indication = rememberRipple(bounded = false, radius = 24.dp)
             )
     ) {
-        val tint = if (selected) MaterialTheme.colors.primary else LocalContentColor.current
+        val tint = if (selected) MaterialTheme.colors.primary else MaterialTheme.colors.onSurface
         CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.medium) {
             Icon(
                 modifier = Modifier

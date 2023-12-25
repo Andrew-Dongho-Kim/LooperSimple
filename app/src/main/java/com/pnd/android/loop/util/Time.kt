@@ -1,8 +1,12 @@
 package com.pnd.android.loop.util
 
 import android.content.Context
+import androidx.compose.material.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopVo
 import com.pnd.android.loop.data.LoopVo.Day.Companion.EVERYDAY
@@ -16,7 +20,14 @@ import com.pnd.android.loop.data.LoopVo.Day.Companion.WEDNESDAY
 import com.pnd.android.loop.data.LoopVo.Day.Companion.WEEKDAYS
 import com.pnd.android.loop.data.LoopVo.Day.Companion.WEEKENDS
 import com.pnd.android.loop.data.LoopVo.Day.Companion.isOn
-import java.util.*
+import com.pnd.android.loop.ui.theme.Blue500
+import com.pnd.android.loop.ui.theme.Red500
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.ZoneId
+import java.util.Calendar
+import java.util.TimeZone
 import java.util.concurrent.TimeUnit
 
 
@@ -27,19 +38,19 @@ val MS_1DAY = TimeUnit.DAYS.toMillis(1)
 val MS_1WEEK = TimeUnit.DAYS.toMillis(7)
 val MS_1MONTH = TimeUnit.DAYS.toMillis(7 * 4)
 
-val MONTHS = arrayOf(
-    R.string.january,
-    R.string.february,
-    R.string.march,
-    R.string.april,
+val ABB_MONTHS = arrayOf(
+    R.string.jan,
+    R.string.fab,
+    R.string.mar,
+    R.string.apr,
     R.string.may,
-    R.string.june,
-    R.string.july,
-    R.string.august,
-    R.string.september,
-    R.string.october,
-    R.string.november,
-    R.string.december
+    R.string.jun,
+    R.string.jul,
+    R.string.aug,
+    R.string.sep,
+    R.string.oct,
+    R.string.nov,
+    R.string.dec
 )
 
 val ABB_DAYS = arrayOf(
@@ -52,14 +63,14 @@ val ABB_DAYS = arrayOf(
     R.string.abb_saturday
 )
 
-val ABB2_DAYS = arrayOf(
-    R.string.abb2_sunday,
-    R.string.abb2_monday,
-    R.string.abb2_tuesday,
-    R.string.abb2_wednesday,
-    R.string.abb2_thursday,
-    R.string.abb2_friday,
-    R.string.abb2_saturday
+val DAYS_WITH_3CHARS = arrayOf(
+    R.string.mon,
+    R.string.tue,
+    R.string.wed,
+    R.string.thu,
+    R.string.fri,
+    R.string.sat,
+    R.string.sun,
 )
 
 val DAY_STRING_MAP = mapOf(
@@ -72,6 +83,59 @@ val AmPm = listOf(
     R.string.am,
     R.string.pm
 )
+
+
+@Composable
+fun LocalDate.toYearMonthDateDaysString(): String {
+    val args = listOf(
+        "$year",
+        stringResource(id = ABB_MONTHS[monthValue - 1]),
+        "$dayOfMonth",
+        stringResource(id = DAYS_WITH_3CHARS[dayOfWeek.value - 1])
+    )
+    return stringResource(
+        id = R.string.format_year_month_date_day,
+        formatArgs = args.toTypedArray()
+    )
+}
+
+fun Long.toLocalTime(): LocalTime {
+    return LocalTime.ofSecondOfDay(this / 1000)
+}
+
+@Composable
+fun Long.toHourMinute(withAmPm: Boolean = true): String {
+    return toLocalTime().toHourMinute(withAmPm)
+}
+
+@Composable
+fun LocalTime.toHourMinute(withAmPm: Boolean = true): String {
+    val resultHour = if (withAmPm) (hour % 12).run { if (this == 0) 12 else this } else hour
+
+    return stringResource(
+        id = if (withAmPm) {
+            if (hour < 12) R.string.format_am_hour_minute else R.string.format_pm_hour_minute
+        } else {
+            R.string.format_hour_minute_24
+        },
+        formatArgs = arrayOf(
+            resultHour,
+            minute
+        )
+    )
+}
+
+@Composable
+fun rememberDayColor(day: Int): Color {
+    val commonColor = MaterialTheme.colors.onSurface
+    return remember(day) {
+        when (day) {
+            SUNDAY -> Red500
+            SATURDAY -> Blue500
+            else -> commonColor
+        }
+    }
+}
 
 fun day(msTime: Long): @LoopVo.Day Int {
     val cal = Calendar.getInstance()
@@ -105,66 +169,83 @@ fun hourIn12(msTime: Long): Int {
 
 fun min(msTime: Long) = ((msTime % MS_1HOUR) / MS_1MIN).toInt()
 
-fun localTime(): Long {
-    val cal = Calendar.getInstance()
-    val msTime = cal.timeInMillis
-    return msTime + TimeZone.getDefault().getOffset(msTime)
+fun localTime(zoneId: ZoneId = ZoneId.systemDefault()): Long {
+    return LocalDateTime.now().atZone(zoneId).toInstant().toEpochMilli()
 }
 
-fun LoopVo.isAllowedDay(currTime: Long = localTime()): Boolean {
-    return loopEnableDays.isOn(day(currTime))
+fun localTimeInDay() = with(LocalTime.now()) {
+    hour * MS_1HOUR + minute * MS_1MIN + second
 }
 
-fun LoopVo.isAllowedTime(timeInDay: Long = localTime() % MS_1DAY): Boolean {
+fun LoopVo.isActive(currTime: Long = localTime()): Boolean {
+    return isActiveDay(currTime = currTime) && isActiveTime(timeInDay = currTime % MS_1DAY)
+}
+
+fun LoopVo.isActiveDay(currTime: Long = localTime()): Boolean {
+    return loopActiveDays.isOn(day(currTime))
+}
+
+fun LoopVo.isActiveTime(timeInDay: Long = localTime() % MS_1DAY): Boolean {
     val start = loopStart
     val end = if (loopStart > loopEnd) loopEnd + MS_1DAY else loopEnd
     return timeInDay in start..end
 }
 
 @Composable
-fun intervalString(msTime: Long, highlight: String = "", isAbb: Boolean = false): String {
-    return intervalString(LocalContext.current, msTime, highlight, isAbb)
+fun intervalString(
+    msTime: Long,
+    highlight: String = ""
+): String {
+    return intervalString(LocalContext.current, msTime, highlight)
 }
 
 fun intervalString(
     context: Context,
     msTime: Long,
     highlight: String = "",
-    isAbb: Boolean = false
 ): String {
+    val res = context.resources
+    if (msTime <= 0) {
+        return "$highlight${res.getString(R.string.no_repeat)}"
+    }
+
     val time: Int
     val pluralResTimeUnit = when {
         msTime < MS_1MIN -> {
             time = (msTime / MS_1SEC).toInt()
-            if (isAbb) R.plurals.sec else R.plurals.second
+            R.plurals.second
         }
+
         msTime < MS_1HOUR -> {
             time = (msTime / MS_1MIN).toInt()
-            if (isAbb) R.plurals.min else R.plurals.minute
+            R.plurals.minute
         }
+
         msTime < MS_1DAY -> {
             time = (msTime / MS_1HOUR).toInt()
             R.plurals.hour
         }
+
         msTime < MS_1WEEK -> {
             time = (msTime / MS_1DAY).toInt()
-            if (isAbb) R.plurals.d else R.plurals.day
+            R.plurals.day
         }
+
         msTime < MS_1MONTH -> {
             time = (msTime / MS_1WEEK).toInt()
-            if (isAbb) R.plurals.w else R.plurals.week
+            R.plurals.week
         }
+
         else -> {
             time = (msTime / MS_1MONTH).toInt()
-            if (isAbb) R.plurals.M else R.plurals.month
+            R.plurals.month
         }
     }
 
-    val res = context.resources
     val interval = res.getQuantityString(pluralResTimeUnit, time, time)
     val result = "$highlight$time $interval"
 
-    return if (isAbb) result else res.getString(R.string.every, result)
+    return res.getString(R.string.every, result)
 }
 
 
@@ -183,10 +264,4 @@ fun dh2m2(msTime: Long): String {
     }
 }
 
-fun d3m3d2(context: Context, msTime: Long): String {
-    val day = context.getString(ABB2_DAYS[0])
-    val month = context.getString(MONTHS[0])
-    val date = 1
 
-    return context.getString(R.string.desc_day_month_date, day, month, date)
-}

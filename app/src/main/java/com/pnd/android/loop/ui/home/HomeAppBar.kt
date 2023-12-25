@@ -1,16 +1,41 @@
 package com.pnd.android.loop.ui.home
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.material.Checkbox
+import androidx.compose.material.ContentAlpha
+import androidx.compose.material.Divider
+import androidx.compose.material.DropdownMenu
+import androidx.compose.material.DropdownMenuItem
+import androidx.compose.material.Icon
+import androidx.compose.material.LocalContentAlpha
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Text
+import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -18,35 +43,29 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pnd.android.loop.R
 import com.pnd.android.loop.common.test
 import com.pnd.android.loop.data.LoopFilter
-import com.pnd.android.loop.ui.AppBar
+import com.pnd.android.loop.ui.theme.elevatedSurface
 import com.pnd.android.loop.util.textFormatter
-
+import com.pnd.android.loop.util.toYearMonthDateDaysString
+import java.time.LocalDate
 
 @Composable
 fun HomeAppBar(
-    onNavIconPressed: () -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
-    val viewModel: HomeViewModel = viewModel()
-
+    val viewModel: LoopViewModel = viewModel()
     val totalLoops = viewModel.total.observeAsState()
-
     val countInProgress = viewModel.countInProgress.observeAsState()
 
     AppBar(
         modifier = modifier,
-        onNavIconPressed = onNavIconPressed,
         title = {
-            Column(
-                modifier = Modifier.weight(1f),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                // Channel name
+            Column(modifier = Modifier.weight(1f)) {
+                val localDate by viewModel.localTime.collectAsState(initial = LocalDate.now())
                 Text(
-                    text = stringResource(R.string.app_name),
+                    text = localDate.toYearMonthDateDaysString(),
                     style = MaterialTheme.typography.subtitle1
                 )
-                // Number of members
+
                 CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.medium) {
                     Text(
                         text = textFormatter(
@@ -61,7 +80,8 @@ fun HomeAppBar(
                     )
                 }
             }
-        }, actions = {
+        },
+        actions = {
             CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.medium) {
                 // Filter icon
                 FilterAppIcon()
@@ -74,6 +94,35 @@ fun HomeAppBar(
             }
         }
     )
+}
+
+
+@Composable
+private fun AppBar(
+    modifier: Modifier = Modifier,
+    title: @Composable RowScope.() -> Unit,
+    actions: @Composable RowScope.() -> Unit = {}
+) {
+    // This bar is translucent but elevation overlays are not applied to translucent colors.
+    // Instead we manually calculate the elevated surface color from the opaque color,
+    // then apply our alpha.
+    //
+    // We set the background on the Column rather than the TopAppBar,
+    // so that the background is drawn behind any padding set on the app bar (i.e. status bar).
+    val backgroundColor = MaterialTheme.colors.elevatedSurface(3.dp)
+    Column(
+        Modifier.background(backgroundColor.copy(alpha = 0.95f))
+    ) {
+        TopAppBar(
+            modifier = modifier,
+            backgroundColor = Color.Transparent,
+            elevation = 0.dp, // No shadow needed
+            contentColor = MaterialTheme.colors.onSurface,
+            actions = actions,
+            title = { Row { title() } },
+        )
+        Divider()
+    }
 }
 
 @Composable
@@ -92,7 +141,7 @@ fun AppBarIcon(
 
 @Composable
 fun FilterAppIcon() {
-    val viewModel = viewModel<HomeViewModel>()
+    val viewModel = viewModel<LoopViewModel>()
     val loopFilter by viewModel.loopFilter.observeAsState(LoopFilter.DEFAULT)
 
     var isExpanded by remember { mutableStateOf(false) }
@@ -138,7 +187,9 @@ fun CheckableMenuItem(
     onCheckChanged: (Boolean) -> Unit = {}
 ) {
     DropdownMenuItem(onClick = { onCheckChanged(!checked) }) {
-        Row {
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Text(
                 modifier = Modifier.weight(1f),
                 text = stringResource(strResId),
