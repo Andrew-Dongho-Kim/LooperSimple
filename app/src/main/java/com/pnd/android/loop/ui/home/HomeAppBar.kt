@@ -39,7 +39,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pnd.android.loop.R
 import com.pnd.android.loop.common.test
 import com.pnd.android.loop.data.LoopFilter
@@ -51,16 +50,15 @@ import java.time.LocalDate
 @Composable
 fun HomeAppBar(
     modifier: Modifier = Modifier,
+    loopViewModel: LoopViewModel,
 ) {
-    val viewModel: LoopViewModel = viewModel()
-    val totalLoops = viewModel.total.observeAsState()
-    val countInProgress = viewModel.countInProgress.observeAsState()
-
+    val totalLoops = loopViewModel.total.observeAsState()
+    val countInProgress = loopViewModel.countInProgress.observeAsState()
     AppBar(
         modifier = modifier,
         title = {
             Column(modifier = Modifier.weight(1f)) {
-                val localDate by viewModel.localTime.collectAsState(initial = LocalDate.now())
+                val localDate by loopViewModel.localDate.collectAsState(initial = LocalDate.now())
                 Text(
                     text = localDate.toYearMonthDateDaysString(),
                     style = MaterialTheme.typography.subtitle1
@@ -84,7 +82,7 @@ fun HomeAppBar(
         actions = {
             CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.medium) {
                 // Filter icon
-                FilterAppIcon()
+                FilterAppIcon(loopViewModel = loopViewModel)
 
                 // Info icon
                 AppBarIcon(
@@ -140,14 +138,15 @@ fun AppBarIcon(
 )
 
 @Composable
-fun FilterAppIcon() {
-    val viewModel = viewModel<LoopViewModel>()
-    val loopFilter by viewModel.loopFilter.observeAsState(LoopFilter.DEFAULT)
+fun FilterAppIcon(
+    modifier: Modifier = Modifier,
+    loopViewModel: LoopViewModel,
+) {
+    val loopFilter by loopViewModel.loopFilter.observeAsState(LoopFilter.DEFAULT)
 
     var isExpanded by remember { mutableStateOf(false) }
     Box(
-        modifier = Modifier
-            .wrapContentSize(Alignment.TopEnd)
+        modifier = modifier.wrapContentSize(Alignment.TopEnd)
     ) {
         AppBarIcon(
             imageVector = Icons.Outlined.FilterList,
@@ -164,17 +163,17 @@ fun FilterAppIcon() {
             CheckableMenuItem(
                 strResId = R.string.filter_enabled,
                 checked = loopFilter.onlyEnabled,
-                onCheckChanged = { checked -> viewModel.saveFilter(loopFilter.copy(onlyEnabled = checked)) }
+                onCheckChanged = { checked -> loopViewModel.saveFilter(loopFilter.copy(onlyEnabled = checked)) }
             )
             CheckableMenuItem(
                 strResId = R.string.filter_progress,
                 checked = loopFilter.onlyProgress,
-                onCheckChanged = { checked -> viewModel.saveFilter(loopFilter.copy(onlyProgress = checked)) }
+                onCheckChanged = { checked -> loopViewModel.saveFilter(loopFilter.copy(onlyProgress = checked)) }
             )
             CheckableMenuItem(
                 strResId = R.string.filter_today,
                 checked = loopFilter.onlyToday,
-                onCheckChanged = { checked -> viewModel.saveFilter(loopFilter.copy(onlyToday = checked)) }
+                onCheckChanged = { checked -> loopViewModel.saveFilter(loopFilter.copy(onlyToday = checked)) }
             )
         }
     }

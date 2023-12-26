@@ -194,8 +194,7 @@ class AlarmController @Inject constructor(
                 alarmController.reserveAlarm(loop = loop, showToast = false)
             }
 
-            val currTime = localTime()
-            val today = day(currTime)
+            val today = day()
             val isAllowedDay = loop.isActiveDay()
             val isAllowedTime = loop.isActiveTime()
             if (isAllowedDay && isAllowedTime) {

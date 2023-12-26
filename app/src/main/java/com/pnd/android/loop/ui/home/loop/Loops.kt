@@ -1,6 +1,5 @@
 package com.pnd.android.loop.ui.home.loop
 
-import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -9,7 +8,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material.ContentAlpha
 import androidx.compose.material.LocalContentAlpha
 import androidx.compose.material.MaterialTheme
@@ -29,7 +29,7 @@ import com.pnd.android.loop.ui.home.LoopViewModel
 @Composable
 fun Loops(
     modifier: Modifier = Modifier,
-    scrollState: ScrollState,
+    lazyListState: LazyListState,
     loopViewModel: LoopViewModel,
 ) {
     val loops by loopViewModel.loops.observeAsState(emptyList())
@@ -38,15 +38,24 @@ fun Loops(
         if (loops.isEmpty()) {
             EmptyLoops(modifier = Modifier.fillMaxSize())
         } else {
-            Column(
+            LazyColumn(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(scrollState, reverseScrolling = true)
+                    .fillMaxWidth(),
+                state = lazyListState,
             ) {
-                Spacer(modifier = Modifier.height(64.dp))
+                item { Spacer(modifier = Modifier.height(64.dp)) }
+
+                item(
+                    contentType = ContentTypes.EXPANDABLE_HEADER
+                ) {
+                    LoopCardHeader(headText = "Loop in progress", isExpanded = false, onExpandChanged = {})
+                }
 
                 loops.forEach { loop ->
-                    key(loop.id) {
+                    item(
+                        key = loop.id,
+                        contentType = ContentTypes.LOOP_CARD
+                    ) {
                         LoopCard(
                             loopViewModel = loopViewModel,
                             loop = loop,
@@ -70,8 +79,15 @@ fun EmptyLoops(
         CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.medium) {
             Text(
                 text = stringResource(R.string.desc_no_loops),
-                style = MaterialTheme.typography.subtitle1
+                style = MaterialTheme.typography.subtitle1.copy(
+                    color = MaterialTheme.colors.onSurface
+                )
             )
         }
     }
+}
+
+
+enum class ContentTypes {
+    EXPANDABLE_HEADER, LOOP_CARD,
 }

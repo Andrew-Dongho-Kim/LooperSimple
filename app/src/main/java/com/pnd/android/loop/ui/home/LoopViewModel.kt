@@ -21,6 +21,11 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.temporal.ChronoUnit
+import java.time.temporal.TemporalUnit
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 @HiltViewModel
@@ -34,16 +39,22 @@ class LoopViewModel @Inject constructor(
     private val loopDao = appDb.loopDao()
     private val loopFilterDao = appDb.loopFilterDao()
 
-    val localTime = flow {
+    val localDate = flow {
         while (currentCoroutineContext().isActive) {
-            emit(LocalDate.now())
-            delay(1000L)
+            val now = LocalDateTime.now()
+            emit(now.toLocalDate())
+
+            val delayInMs = now.toLocalTime().until(LocalTime.MAX, ChronoUnit.MILLIS)
+            delay(delayInMs)
         }
     }
 
-//    private val _loops = liveData {
-//        emitSource(loopDao.getAll())
-//    } as MutableLiveData<List<LoopVo>>
+    val localDateTime = flow {
+        while (currentCoroutineContext().isActive) {
+            emit(LocalDateTime.now())
+            delay(1000L)
+        }
+    }
 
     val loopFilter = loopFilterDao.get().map {
         it ?: LoopFilter.DEFAULT
@@ -80,10 +91,6 @@ class LoopViewModel @Inject constructor(
 
     val total = loops.map { it.size }
 
-//    fun notifyLoops() {
-//        _loops.postValue(_loops.value)
-//    }
-
     fun saveFilter(loopFilter: LoopFilter) {
         coroutineScope.launch { loopFilterDao.update(loopFilter) }
     }
@@ -103,7 +110,7 @@ class LoopViewModel @Inject constructor(
         }
     }
 
-    fun removeLoop(loop:LoopVo) {
+    fun removeLoop(loop: LoopVo) {
         coroutineScope.launch {
             alarmController.cancelAlarm(loop)
             loopDao.remove(loop.id)

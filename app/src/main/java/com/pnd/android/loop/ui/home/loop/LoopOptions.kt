@@ -43,7 +43,6 @@ fun LoopOptions(
     if (showDeleteDialog.value) {
         DeleteDialog(
             viewModel = viewModel,
-            alarmHelper = alarmHelper,
             loop = loop,
             showDeleteDialog = showDeleteDialog
         )
@@ -100,7 +99,6 @@ private fun LoopToolIcon(
 @Composable
 fun DeleteDialog(
     viewModel: LoopViewModel,
-    alarmHelper: AlarmController,
     loop: LoopVo,
     showDeleteDialog: MutableState<Boolean>
 ) {

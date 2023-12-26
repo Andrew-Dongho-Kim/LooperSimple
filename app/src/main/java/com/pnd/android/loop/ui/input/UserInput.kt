@@ -1,11 +1,10 @@
 package com.pnd.android.loop.ui.input
 
-import android.util.Log
-import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material.Divider
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
@@ -31,13 +30,11 @@ import com.pnd.android.loop.util.intervalString
 import com.pnd.android.loop.util.textFormatter
 import kotlinx.coroutines.launch
 
-private val logger = log("UserInput")
-
 
 @Composable
 fun UserInput(
     modifier: Modifier = Modifier,
-    scrollState: ScrollState,
+    lazyListState: LazyListState,
     loop: LoopVo,
     onLoopUpdated: (LoopVo) -> Unit,
     onLoopSubmitted: (LoopVo) -> Unit,
@@ -59,7 +56,7 @@ fun UserInput(
 
     val coroutineScope = rememberCoroutineScope()
     val scrollToBottom = remember {
-        { coroutineScope.launch { scrollState.animateScrollTo(0) } }
+        { coroutineScope.launch { lazyListState.animateScrollToItem(0) } }
     }
     Column(modifier) {
         Divider()

@@ -4,7 +4,6 @@ import android.graphics.Path
 import android.graphics.PathDashPathEffect
 import android.graphics.PathMeasure
 import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -31,6 +30,7 @@ import androidx.compose.material.ContentAlpha
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -56,6 +56,7 @@ import com.pnd.android.loop.util.isActive
 import com.pnd.android.loop.util.rememberDayColor
 import com.pnd.android.loop.util.textFormatter
 import com.pnd.android.loop.util.toHourMinute
+import java.time.LocalDateTime
 
 @Composable
 fun LoopCard(
@@ -97,6 +98,7 @@ fun LoopCard(
                 modifier = Modifier
                     .width(maxWidth)
                     .height(50.dp),
+                loopViewModel = loopViewModel,
                 loop = loop,
             )
         }
@@ -106,15 +108,15 @@ fun LoopCard(
 @Composable
 private fun LoopCardActiveEffect(
     modifier: Modifier = Modifier,
+    loopViewModel: LoopViewModel,
     loop: LoopVo,
 ) {
-
-    if (!loop.isActive()) return
+    val localDateTime by loopViewModel.localDateTime.collectAsState(initial = LocalDateTime.now())
+    if (!loop.isActive(localDateTime = localDateTime)) return
 
     val paint = remember { Paint() }
     val pathMeasure = remember { PathMeasure() }
     val cardShape = remember { LoopCardShape(12.dp) }
-
 
     val infiniteTransition = rememberInfiniteTransition(label = "")
     val phase by infiniteTransition.animateFloat(
@@ -129,7 +131,7 @@ private fun LoopCardActiveEffect(
         ),
         label = ""
     )
-    val edgeColor = MaterialTheme.colors.primary.copy(alpha = 0.3f)
+    val edgeColor = Color(loop.color).copy(alpha = 0.4f)
 
     Canvas(modifier = modifier) {
         val path = cardShape.createOutlinePath(
@@ -191,7 +193,7 @@ fun LoopCardColor(
             )
             .border(
                 width = 0.5.dp,
-                color = MaterialTheme.colors.surface.copy(alpha = 0.1f),
+                color = MaterialTheme.colors.onSurface.copy(alpha = 0.4f),
                 shape = CircleShape
             )
     )
@@ -271,8 +273,6 @@ private fun LoopCardStartEndTime(
     loopStart: Long,
     loopEnd: Long,
 ) {
-
-
     Text(
         modifier = modifier,
         text = "${loopStart.toHourMinute(false)} ~ ${loopEnd.toHourMinute(false)}",

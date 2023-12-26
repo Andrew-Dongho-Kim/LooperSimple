@@ -1,6 +1,7 @@
 package com.pnd.android.loop.util
 
 import android.content.Context
+import android.util.Log
 import androidx.compose.material.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -22,12 +23,11 @@ import com.pnd.android.loop.data.LoopVo.Day.Companion.WEEKENDS
 import com.pnd.android.loop.data.LoopVo.Day.Companion.isOn
 import com.pnd.android.loop.ui.theme.Blue500
 import com.pnd.android.loop.ui.theme.Red500
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
-import java.util.Calendar
-import java.util.TimeZone
 import java.util.concurrent.TimeUnit
 
 
@@ -137,17 +137,16 @@ fun rememberDayColor(day: Int): Color {
     }
 }
 
-fun day(msTime: Long): @LoopVo.Day Int {
-    val cal = Calendar.getInstance()
-    cal.timeInMillis = msTime - TimeZone.getDefault().getOffset(msTime)
-    return when (cal.get(Calendar.DAY_OF_WEEK)) {
-        Calendar.SUNDAY -> SUNDAY
-        Calendar.MONDAY -> MONDAY
-        Calendar.TUESDAY -> TUESDAY
-        Calendar.WEDNESDAY -> WEDNESDAY
-        Calendar.THURSDAY -> THURSDAY
-        Calendar.FRIDAY -> FRIDAY
-        Calendar.SATURDAY -> SATURDAY
+fun day(localDateTime: LocalDateTime = LocalDateTime.now()): @LoopVo.Day Int {
+    val localDate = localDateTime.toLocalDate()
+    return when (localDate.dayOfWeek) {
+        DayOfWeek.SUNDAY -> SUNDAY
+        DayOfWeek.MONDAY -> MONDAY
+        DayOfWeek.TUESDAY -> TUESDAY
+        DayOfWeek.WEDNESDAY -> WEDNESDAY
+        DayOfWeek.THURSDAY -> THURSDAY
+        DayOfWeek.FRIDAY -> FRIDAY
+        DayOfWeek.SATURDAY -> SATURDAY
         else -> throw IllegalStateException("Unknown value for day of week")
     }
 }
@@ -177,18 +176,23 @@ fun localTimeInDay() = with(LocalTime.now()) {
     hour * MS_1HOUR + minute * MS_1MIN + second
 }
 
-fun LoopVo.isActive(currTime: Long = localTime()): Boolean {
-    return isActiveDay(currTime = currTime) && isActiveTime(timeInDay = currTime % MS_1DAY)
+fun LoopVo.isActive(localDateTime: LocalDateTime = LocalDateTime.now()): Boolean {
+    return enabled &&
+            isActiveDay(localDateTime = localDateTime) &&
+            isActiveTime(localDateTime = localDateTime)
 }
 
-fun LoopVo.isActiveDay(currTime: Long = localTime()): Boolean {
-    return loopActiveDays.isOn(day(currTime))
+fun LoopVo.isActiveDay(localDateTime: LocalDateTime = LocalDateTime.now()): Boolean {
+    return loopActiveDays.isOn(day(localDateTime))
 }
 
-fun LoopVo.isActiveTime(timeInDay: Long = localTime() % MS_1DAY): Boolean {
+fun LoopVo.isActiveTime(localDateTime: LocalDateTime = LocalDateTime.now()): Boolean {
+    val localTime = localDateTime.toLocalTime()
+    val timeInMs = TimeUnit.MILLISECONDS.convert(localTime.toNanoOfDay(), TimeUnit.NANOSECONDS)
+
     val start = loopStart
     val end = if (loopStart > loopEnd) loopEnd + MS_1DAY else loopEnd
-    return timeInDay in start..end
+    return timeInMs in start..end
 }
 
 @Composable
