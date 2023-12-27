@@ -191,6 +191,10 @@ fun LoopCardColor(
                 color = Color(color),
                 shape = CircleShape
             )
+            .background(
+                color = MaterialTheme.colors.surface.copy(alpha = 0.3f),
+                shape = CircleShape
+            )
             .border(
                 width = 0.5.dp,
                 color = MaterialTheme.colors.onSurface.copy(alpha = 0.4f),

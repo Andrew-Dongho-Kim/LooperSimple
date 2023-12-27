@@ -169,7 +169,7 @@ fun LoopVo.description(context: Context) =
 
 @Dao
 interface LoopDao {
-    @Query("SELECT * FROM loop")
+    @Query("SELECT * FROM loop ORDER BY loopStart ASC, loopEnd ASC")
     fun getAll(): LiveData<List<LoopVo>>
 
     @Query("SELECT * FROM loop")

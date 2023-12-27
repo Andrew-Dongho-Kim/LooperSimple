@@ -1,6 +1,5 @@
 package com.pnd.android.loop.ui.input
 
-import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -17,6 +16,7 @@ import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.outlined.InsertEmoticon
 import androidx.compose.material.icons.outlined.ModeEdit
 import androidx.compose.material.icons.outlined.Timelapse
@@ -68,11 +68,10 @@ private fun UserInputSelectorButtons(
     inputSelector: InputSelector,
     onInputSelectorChanged: (InputSelector) -> Unit,
 ) {
-    Log.d("DDEBUG2", "UserInputSelectorButtons:$inputSelector")
     Row(modifier = modifier) {
         SelectorButton(
             onClick = { onInputSelectorChanged(InputSelector.COLOR) },
-            icon = Icons.Outlined.InsertEmoticon,
+            icon = Icons.Filled.FiberManualRecord,
             selected = inputSelector == InputSelector.COLOR,
             contentDescription = stringResource(id = R.string.desc_color_selector)
         )

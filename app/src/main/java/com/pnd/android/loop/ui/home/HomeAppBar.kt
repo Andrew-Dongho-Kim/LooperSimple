@@ -53,7 +53,7 @@ fun HomeAppBar(
     loopViewModel: LoopViewModel,
 ) {
     val totalLoops = loopViewModel.total.observeAsState()
-    val countInProgress = loopViewModel.countInProgress.observeAsState()
+    val countInProgress = loopViewModel.countInActive.observeAsState()
     AppBar(
         modifier = modifier,
         title = {
@@ -82,7 +82,7 @@ fun HomeAppBar(
         actions = {
             CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.medium) {
                 // Filter icon
-                FilterAppIcon(loopViewModel = loopViewModel)
+//                FilterAppIcon(loopViewModel = loopViewModel)
 
                 // Info icon
                 AppBarIcon(
@@ -137,47 +137,47 @@ fun AppBarIcon(
     contentDescription = stringResource(descriptionResId)
 )
 
-@Composable
-fun FilterAppIcon(
-    modifier: Modifier = Modifier,
-    loopViewModel: LoopViewModel,
-) {
-    val loopFilter by loopViewModel.loopFilter.observeAsState(LoopFilter.DEFAULT)
-
-    var isExpanded by remember { mutableStateOf(false) }
-    Box(
-        modifier = modifier.wrapContentSize(Alignment.TopEnd)
-    ) {
-        AppBarIcon(
-            imageVector = Icons.Outlined.FilterList,
-            descriptionResId = R.string.filter,
-            onClick = {
-                isExpanded = !isExpanded
-                test { "isExpanded : $isExpanded" }
-            }
-        )
-
-        DropdownMenu(
-            expanded = isExpanded,
-            onDismissRequest = { isExpanded = false }) {
-            CheckableMenuItem(
-                strResId = R.string.filter_enabled,
-                checked = loopFilter.onlyEnabled,
-                onCheckChanged = { checked -> loopViewModel.saveFilter(loopFilter.copy(onlyEnabled = checked)) }
-            )
-            CheckableMenuItem(
-                strResId = R.string.filter_progress,
-                checked = loopFilter.onlyProgress,
-                onCheckChanged = { checked -> loopViewModel.saveFilter(loopFilter.copy(onlyProgress = checked)) }
-            )
-            CheckableMenuItem(
-                strResId = R.string.filter_today,
-                checked = loopFilter.onlyToday,
-                onCheckChanged = { checked -> loopViewModel.saveFilter(loopFilter.copy(onlyToday = checked)) }
-            )
-        }
-    }
-}
+//@Composable
+//fun FilterAppIcon(
+//    modifier: Modifier = Modifier,
+//    loopViewModel: LoopViewModel,
+//) {
+//    val loopFilter by loopViewModel.loopFilter.observeAsState(LoopFilter.DEFAULT)
+//
+//    var isExpanded by remember { mutableStateOf(false) }
+//    Box(
+//        modifier = modifier.wrapContentSize(Alignment.TopEnd)
+//    ) {
+//        AppBarIcon(
+//            imageVector = Icons.Outlined.FilterList,
+//            descriptionResId = R.string.filter,
+//            onClick = {
+//                isExpanded = !isExpanded
+//                test { "isExpanded : $isExpanded" }
+//            }
+//        )
+//
+//        DropdownMenu(
+//            expanded = isExpanded,
+//            onDismissRequest = { isExpanded = false }) {
+//            CheckableMenuItem(
+//                strResId = R.string.filter_enabled,
+//                checked = loopFilter.onlyEnabled,
+//                onCheckChanged = { checked -> loopViewModel.saveFilter(loopFilter.copy(onlyEnabled = checked)) }
+//            )
+//            CheckableMenuItem(
+//                strResId = R.string.filter_progress,
+//                checked = loopFilter.onlyProgress,
+//                onCheckChanged = { checked -> loopViewModel.saveFilter(loopFilter.copy(onlyProgress = checked)) }
+//            )
+//            CheckableMenuItem(
+//                strResId = R.string.filter_today,
+//                checked = loopFilter.onlyToday,
+//                onCheckChanged = { checked -> loopViewModel.saveFilter(loopFilter.copy(onlyToday = checked)) }
+//            )
+//        }
+//    }
+//}
 
 @Composable
 fun CheckableMenuItem(

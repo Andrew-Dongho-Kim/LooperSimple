@@ -126,9 +126,12 @@ private fun ColorBox(
             .clip(RoundedCornerShape(round))
             .clickable { onColorSelected(color) }
             .padding(8.dp)
-            .drawBehind { drawCircle(Color(color)) }
             .background(
                 color = Color(color),
+                shape = CircleShape
+            )
+            .background(
+                color = MaterialTheme.colors.surface.copy(alpha = 0.3f),
                 shape = CircleShape
             )
     )
