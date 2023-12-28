@@ -30,9 +30,11 @@ import androidx.compose.material.ContentAlpha
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -56,14 +58,16 @@ import com.pnd.android.loop.util.isActive
 import com.pnd.android.loop.util.rememberDayColor
 import com.pnd.android.loop.util.textFormatter
 import com.pnd.android.loop.util.toHourMinute
-import java.time.LocalDateTime
 
 @Composable
 fun LoopCard(
     modifier: Modifier = Modifier,
     loopViewModel: LoopViewModel,
     loop: LoopVo,
+    showActiveDays: Boolean,
 ) {
+
+
     val cardShape = remember { LoopCardShape(12.dp) }
     Card(
         modifier = modifier
@@ -92,7 +96,8 @@ fun LoopCard(
                     .alpha(
                         if (loop.enabled) ContentAlpha.high else ContentAlpha.disabled
                     ),
-                loop = loop
+                loop = loop,
+                showActiveDays = showActiveDays,
             )
             LoopCardActiveEffect(
                 modifier = Modifier
@@ -111,8 +116,13 @@ private fun LoopCardActiveEffect(
     loopViewModel: LoopViewModel,
     loop: LoopVo,
 ) {
-    val localDateTime by loopViewModel.localDateTime.collectAsState(initial = LocalDateTime.now())
-    if (!loop.isActive(localDateTime = localDateTime)) return
+    var isActive by remember { mutableStateOf(false) }
+    LaunchedEffect(key1 = Unit) {
+        loopViewModel.localDateTime.collect { currTime ->
+            isActive = loop.isActive(currTime)
+        }
+    }
+    if (!isActive) return
 
     val paint = remember { Paint() }
     val pathMeasure = remember { PathMeasure() }
@@ -160,6 +170,7 @@ private fun LoopCardActiveEffect(
 private fun LoopCardContent(
     modifier: Modifier = Modifier,
     loop: LoopVo,
+    showActiveDays: Boolean,
 ) {
     Row(
         modifier = modifier,
@@ -175,6 +186,7 @@ private fun LoopCardContent(
                 .padding(top = 4.dp)
                 .weight(1f),
             loop = loop,
+            showActiveDays = showActiveDays,
         )
     }
 }
@@ -207,6 +219,7 @@ fun LoopCardColor(
 fun LoopCardBody(
     modifier: Modifier = Modifier,
     loop: LoopVo,
+    showActiveDays: Boolean,
 ) {
     Column(modifier = modifier.padding(start = 16.dp)) {
         LoopCardTitle(
@@ -229,10 +242,12 @@ fun LoopCardBody(
                 interval = loop.interval,
             )
 
-            LoopCardActiveDays(
-                modifier = Modifier.weight(1f),
-                loop = loop
-            )
+            if (showActiveDays) {
+                LoopCardActiveDays(
+                    modifier = Modifier.weight(1f),
+                    loop = loop
+                )
+            }
         }
     }
 }

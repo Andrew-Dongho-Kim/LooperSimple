@@ -1,10 +1,13 @@
 package com.pnd.android.loop.ui.input.selector
 
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -16,11 +19,11 @@ import com.pnd.android.loop.data.LoopVo
 import com.pnd.android.loop.ui.input.common.getSelectorExpandedColor
 
 enum class InputSelector {
-    NONE,
     COLOR,
     ALARM_INTERVAL,
     START_END_TIME,
     ALARMS,
+    NONE,
 }
 
 @Composable
@@ -35,15 +38,23 @@ fun Selectors(
             focusRequester.requestFocus()
         }
     }
-    val selectorExpandedColor = getSelectorExpandedColor()
+
+    val selectorHeight by animateDpAsState(
+        targetValue = if (currentSelector == InputSelector.NONE) {
+            0.dp
+        } else {
+            dimensionResource(id = R.dimen.user_input_selector_content_height)
+        },
+        label = ""
+    )
 
     val modifier = Modifier
         .fillMaxWidth()
-        .height(dimensionResource(id = R.dimen.user_input_selector_content_height))
+        .height(selectorHeight)
         .focusRequester(focusRequester)
         .focusTarget()
 
-    Surface(color = selectorExpandedColor, elevation = 3.dp) {
+    Surface(color = getSelectorExpandedColor(), elevation = 3.dp) {
         Selector(
             modifier = modifier,
             currentSelector = currentSelector,
@@ -61,9 +72,7 @@ private fun Selector(
     onLoopUpdated: (LoopVo) -> Unit,
 ) {
     when (currentSelector) {
-        InputSelector.NONE -> {
-            // do nothing
-        }
+        InputSelector.NONE -> Box(modifier = modifier)
 
         InputSelector.COLOR -> ColorSelector(
             modifier = modifier,

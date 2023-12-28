@@ -19,7 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
-import com.pnd.android.loop.common.log
 import com.pnd.android.loop.data.LoopVo
 import com.pnd.android.loop.ui.home.loop.LoopCardActiveDays
 import com.pnd.android.loop.ui.input.selector.InputSelector
@@ -41,6 +40,7 @@ fun UserInput(
     isEditing: Boolean = false,
 ) {
     var currSelector by rememberSaveable { mutableStateOf(InputSelector.NONE) }
+    var prevInputSelector by rememberSaveable { mutableStateOf(InputSelector.NONE) }
     var titleTextField by remember { mutableStateOf(TextFieldValue()) }
 
     var hasInputFocus by remember { mutableStateOf(false) }
@@ -85,8 +85,10 @@ fun UserInput(
                 scrollToBottom()
                 onLoopUpdated(LoopVo.default())
             },
-            inputSelector = currSelector,
+            prevInputSelector = prevInputSelector,
+            currInputSelector = currSelector,
             onInputSelectorChanged = { selector ->
+                prevInputSelector = currSelector
                 currSelector = if (selector == currSelector) {
                     InputSelector.NONE
                 } else {

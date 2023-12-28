@@ -9,6 +9,7 @@ import com.pnd.android.loop.data.AppDatabase
 import com.pnd.android.loop.data.LoopFilter
 import com.pnd.android.loop.data.LoopVo
 import com.pnd.android.loop.util.isActive
+import com.pnd.android.loop.util.isActiveDay
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -53,7 +54,7 @@ class LoopViewModel @Inject constructor(
     val loops: LiveData<List<LoopVo>> = loopDao.getAll()
 
     val countInActive = loops.map { loops -> loops.filter { loop -> loop.isActive() }.size }
-    val total = loops.map { it.size }
+    val total = loops.map { loops -> loops.filter { loop -> loop.isActiveDay() }.size  }
 
     fun saveFilter(loopFilter: LoopFilter) {
         coroutineScope.launch { loopFilterDao.update(loopFilter) }

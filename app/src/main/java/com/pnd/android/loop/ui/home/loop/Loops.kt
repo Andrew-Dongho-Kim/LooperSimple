@@ -1,11 +1,5 @@
 package com.pnd.android.loop.ui.home.loop
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,20 +8,15 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.ContentAlpha
 import androidx.compose.material.LocalContentAlpha
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
@@ -37,7 +26,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
-import com.pnd.android.loop.data.LoopVo
 import com.pnd.android.loop.ui.home.LoopViewModel
 import com.pnd.android.loop.util.isActiveDay
 
@@ -97,12 +85,19 @@ private fun LoopViewModel.observeSectionsAsState(): State<List<Section>> {
     return if (loops.isEmpty()) {
         remember { mutableStateOf(emptyList()) }
     } else {
-        val todaySection = remember { Section.None() }.apply {
+        val todaySection = remember {
+            Section.None(showActiveDays = false)
+        }.apply {
             items.value = loops.filter { it.isActiveDay() }
         }
 
         val title = stringResource(id = R.string.later)
-        val laterSection = remember { Section.Expandable(title) }.apply {
+        val laterSection = remember {
+            Section.Expandable(
+                title = title,
+                showActiveDays = true
+            )
+        }.apply {
             items.value = loops.filter { !it.isActiveDay() }
         }
         remember { mutableStateOf(listOf(todaySection, laterSection)) }

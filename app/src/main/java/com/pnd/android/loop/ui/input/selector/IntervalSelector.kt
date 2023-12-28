@@ -26,7 +26,6 @@ fun IntervalSelector(
             .verticalScroll(rememberScrollState())
             .semantics { contentDescription = description }
     ) {
-
         intervals.forEach { interval ->
             TextSelectorItem(
                 text = textFormatter(intervalString(interval, "#")),

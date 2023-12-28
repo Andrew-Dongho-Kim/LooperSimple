@@ -37,12 +37,12 @@ fun LazyListScope.Section(
     loopViewModel: LoopViewModel
 ) {
     when (section) {
-        is Section.None -> Section(section, loopViewModel)
-        is Section.Expandable -> Section(section, loopViewModel)
+        is Section.None -> SimpleSection(section, loopViewModel)
+        is Section.Expandable -> ExpandableSection(section, loopViewModel)
     }
 }
 
-private fun LazyListScope.Section(
+private fun LazyListScope.SimpleSection(
     section: Section.None,
     loopViewModel: LoopViewModel,
 ) {
@@ -52,11 +52,15 @@ private fun LazyListScope.Section(
         key = { loop -> loop.id },
         contentType = { ContentTypes.LOOP_CARD }
     ) { loop ->
-        LoopCard(loopViewModel = loopViewModel, loop = loop)
+        LoopCard(
+            loopViewModel = loopViewModel,
+            loop = loop,
+            showActiveDays = section.showActiveDays,
+        )
     }
 }
 
-private fun LazyListScope.Section(
+private fun LazyListScope.ExpandableSection(
     section: Section.Expandable,
     loopViewModel: LoopViewModel,
 ) {
@@ -85,7 +89,11 @@ private fun LazyListScope.Section(
             enter = fadeIn(tween(duration)) + expandVertically(tween(duration)),
             exit = fadeOut(tween(duration)) + shrinkVertically(tween(duration))
         ) {
-            LoopCard(loopViewModel = loopViewModel, loop = loop)
+            LoopCard(
+                loopViewModel = loopViewModel,
+                loop = loop,
+                showActiveDays = section.showActiveDays
+            )
         }
     }
 }
@@ -139,9 +147,11 @@ enum class ContentTypes {
 sealed class Section {
     val items = mutableStateOf<List<LoopVo>>(emptyList())
 
-    class None : Section()
+    class None(val showActiveDays: Boolean) : Section()
+
     class Expandable(
         val title: String,
+        val showActiveDays: Boolean,
     ) : Section() {
 
         val isExpanded = mutableStateOf(false)

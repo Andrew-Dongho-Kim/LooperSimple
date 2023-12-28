@@ -3,5 +3,6 @@
 
     <!-- User Input -->
     <dimen name="user_input_selector_content_height">240dp</dimen>
+    <dimen name="user_input_selector_button_size">44dp</dimen>
 
 </resources>
