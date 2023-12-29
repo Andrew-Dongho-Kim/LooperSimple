@@ -15,10 +15,8 @@ import com.pnd.android.loop.data.LoopVo.Day.Companion.SUNDAY
 import com.pnd.android.loop.data.LoopVo.Day.Companion.THURSDAY
 import com.pnd.android.loop.data.LoopVo.Day.Companion.TUESDAY
 import com.pnd.android.loop.data.LoopVo.Day.Companion.WEDNESDAY
-import com.pnd.android.loop.util.MS_1HOUR
 import com.pnd.android.loop.util.h2m2
 import com.pnd.android.loop.util.intervalString
-import com.pnd.android.loop.util.localTime
 import java.time.LocalTime
 import java.util.*
 import java.util.concurrent.TimeUnit
@@ -27,17 +25,17 @@ import java.util.concurrent.TimeUnit
 @Entity(tableName = "loop")
 data class LoopVo(
     @PrimaryKey(autoGenerate = true)
-    val id: Int = 0,
+    override val id: Int = 0,
     val color: Int = DEFAULT_COLOR,
     val title: String = "",
     val tickStart: Long = 0L,
-    val loopStart: Long = 0L,
-    val loopEnd: Long = 0L,
-    val loopActiveDays: Int = Day.EVERYDAY,
+    override val loopStart: Long = 0L,
+    override val loopEnd: Long = 0L,
+    override val loopActiveDays: Int = Day.EVERYDAY,
     val interval: Long = NO_REPEAT,
     val alarms: Int = NO_ALARMS,
-    val enabled: Boolean = true
-) {
+    override val enabled: Boolean = true
+) : LoopBase {
     fun putTo(intent: Intent) {
         intent.putExtra(EXTRA_ID, id)
         intent.putExtra(EXTRA_COLOR, color)
@@ -124,6 +122,7 @@ data class LoopVo(
             0xffcccc00.toInt(), 0xffcc9900.toInt(), 0xffcc6600.toInt(),
             0xffff0000.toInt(), 0xffff3399.toInt(), 0xffcc6699.toInt(),
         )
+
         fun default() = LoopVo(
             loopStart = TimeUnit.HOURS.toMillis(LocalTime.now().hour.toLong()),
             loopEnd = TimeUnit.HOURS.toMillis(LocalTime.now().hour.toLong() + 1),
@@ -170,13 +169,13 @@ fun LoopVo.description(context: Context) =
 @Dao
 interface LoopDao {
     @Query("SELECT * FROM loop ORDER BY loopStart ASC, loopEnd ASC")
-    fun getAll(): LiveData<List<LoopVo>>
+    fun allLoopsLiveData(): LiveData<List<LoopVo>>
 
     @Query("SELECT * FROM loop")
-    suspend fun syncGetAll(): List<LoopVo>
+    suspend fun allLoops(): List<LoopVo>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun add(vararg loops: LoopVo): List<Long>
+    suspend fun addOrUpdate(vararg loops: LoopVo): List<Long>
 
     @Query("DELETE FROM loop WHERE id = :id")
     suspend fun remove(id: Int)

@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -15,6 +14,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.pnd.android.loop.data.LoopVo
+import com.pnd.android.loop.ui.home.loop.LoopViewModel
 import com.pnd.android.loop.ui.home.loop.Loops
 import com.pnd.android.loop.ui.input.UserInput
 
@@ -44,7 +44,7 @@ fun Home(
                 onLoopUpdated = { updatedLoop ->
                     loop = updatedLoop
                 },
-                onLoopSubmitted = { newLoop -> loopViewModel.addLoop(newLoop) },
+                onLoopSubmitted = { newLoop -> loopViewModel.addOrUpdateLoop(newLoop) },
             )
         }
         HomeAppBar(

@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopVo
 import com.pnd.android.loop.ui.input.common.getSelectorExpandedColor
+import com.pnd.android.loop.util.rememberImeOpenState
 
 enum class InputSelector {
     COLOR,
@@ -39,8 +40,9 @@ fun Selectors(
         }
     }
 
+    val keyboardShown by rememberImeOpenState()
     val selectorHeight by animateDpAsState(
-        targetValue = if (currentSelector == InputSelector.NONE) {
+        targetValue = if (currentSelector == InputSelector.NONE || keyboardShown) {
             0.dp
         } else {
             dimensionResource(id = R.dimen.user_input_selector_content_height)

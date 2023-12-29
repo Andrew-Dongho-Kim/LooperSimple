@@ -35,7 +35,6 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
@@ -127,6 +126,8 @@ private fun UserInputButtonsIndicator(
     prevInputSelector: InputSelector,
     currInputSelector: InputSelector,
 ) {
+    if (currInputSelector == InputSelector.NONE) return
+
     val offsetX by animateDpAsState(
         targetValue = size * currInputSelector.ordinal,
         animationSpec = tween(
@@ -143,7 +144,6 @@ private fun UserInputButtonsIndicator(
             .offset { IntOffset(offsetX.roundToPx(), 0) }
             .size(size)
             .drawBehind {
-                if (currInputSelector == InputSelector.NONE) return@drawBehind
                 drawRoundRect(
                     color = backgroundColor,
                     cornerRadius = CornerRadius(4.dp.toPx(), 4.dp.toPx())

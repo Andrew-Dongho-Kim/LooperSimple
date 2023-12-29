@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import com.pnd.android.loop.ui.home.loop.LoopViewModel
 import com.pnd.android.loop.ui.theme.AppTheme
 import com.pnd.android.loop.util.LocalBackPressedDispatcher
 import dagger.hilt.android.AndroidEntryPoint

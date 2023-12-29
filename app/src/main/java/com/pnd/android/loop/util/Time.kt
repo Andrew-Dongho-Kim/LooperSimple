@@ -1,7 +1,6 @@
 package com.pnd.android.loop.util
 
 import android.content.Context
-import android.util.Log
 import androidx.compose.material.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -9,6 +8,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.pnd.android.loop.R
+import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopVo
 import com.pnd.android.loop.data.LoopVo.Day.Companion.EVERYDAY
 import com.pnd.android.loop.data.LoopVo.Day.Companion.FRIDAY
@@ -168,25 +168,33 @@ fun hourIn12(msTime: Long): Int {
 
 fun min(msTime: Long) = ((msTime % MS_1HOUR) / MS_1MIN).toInt()
 
-fun localTime(zoneId: ZoneId = ZoneId.systemDefault()): Long {
-    return LocalDateTime.now().atZone(zoneId).toInstant().toEpochMilli()
-}
+fun LocalDate.toMs(zoneId: ZoneId = ZoneId.systemDefault()) =
+    atStartOfDay(zoneId).toInstant().toEpochMilli()
+
 
 fun localTimeInDay() = with(LocalTime.now()) {
     hour * MS_1HOUR + minute * MS_1MIN + second
 }
 
-fun LoopVo.isActive(localDateTime: LocalDateTime = LocalDateTime.now()): Boolean {
+fun LoopBase.isPast(localDateTime: LocalDateTime = LocalDateTime.now()): Boolean {
+    val localTime = localDateTime.toLocalTime()
+    val timeInMs = TimeUnit.MILLISECONDS.convert(localTime.toNanoOfDay(), TimeUnit.NANOSECONDS)
+
+    val end = if (loopStart > loopEnd) loopEnd + MS_1DAY else loopEnd
+    return timeInMs >= end
+}
+
+fun LoopBase.isActive(localDateTime: LocalDateTime = LocalDateTime.now()): Boolean {
     return enabled &&
             isActiveDay(localDateTime = localDateTime) &&
             isActiveTime(localDateTime = localDateTime)
 }
 
-fun LoopVo.isActiveDay(localDateTime: LocalDateTime = LocalDateTime.now()): Boolean {
+fun LoopBase.isActiveDay(localDateTime: LocalDateTime = LocalDateTime.now()): Boolean {
     return loopActiveDays.isOn(day(localDateTime))
 }
 
-fun LoopVo.isActiveTime(localDateTime: LocalDateTime = LocalDateTime.now()): Boolean {
+fun LoopBase.isActiveTime(localDateTime: LocalDateTime = LocalDateTime.now()): Boolean {
     val localTime = localDateTime.toLocalTime()
     val timeInMs = TimeUnit.MILLISECONDS.convert(localTime.toNanoOfDay(), TimeUnit.NANOSECONDS)
 

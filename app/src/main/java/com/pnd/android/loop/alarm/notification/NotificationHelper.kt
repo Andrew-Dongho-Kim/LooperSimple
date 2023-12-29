@@ -22,14 +22,12 @@ class NotificationHelper @Inject constructor(
 ) {
 
     init {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                context.getString(R.string.loop),
-                NotificationManager.IMPORTANCE_LOW
-            )
-            nm.createNotificationChannel(channel)
-        }
+        val channel = NotificationChannel(
+            CHANNEL_ID,
+            context.getString(R.string.loop),
+            NotificationManager.IMPORTANCE_LOW
+        )
+        nm.createNotificationChannel(channel)
     }
 
     private fun LoopVo.pendingIntent(action: String) = PendingIntent.getBroadcast(

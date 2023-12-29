@@ -1,14 +1,10 @@
 package com.pnd.android.loop.ui.input
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material.Divider
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -18,15 +14,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.data.LoopVo
-import com.pnd.android.loop.ui.home.loop.LoopCardActiveDays
 import com.pnd.android.loop.ui.input.selector.InputSelector
 import com.pnd.android.loop.ui.input.selector.Selectors
 import com.pnd.android.loop.util.BackPressHandler
-import com.pnd.android.loop.util.h2m2
-import com.pnd.android.loop.util.intervalString
-import com.pnd.android.loop.util.textFormatter
+import com.pnd.android.loop.util.rememberImeOpenState
 import kotlinx.coroutines.launch
 
 
@@ -39,41 +31,37 @@ fun UserInput(
     onLoopSubmitted: (LoopVo) -> Unit,
     isEditing: Boolean = false,
 ) {
-    var currSelector by rememberSaveable { mutableStateOf(InputSelector.NONE) }
+    var currInputSelector by rememberSaveable { mutableStateOf(InputSelector.NONE) }
     var prevInputSelector by rememberSaveable { mutableStateOf(InputSelector.NONE) }
     var titleTextField by remember { mutableStateOf(TextFieldValue()) }
 
-    var hasInputFocus by remember { mutableStateOf(false) }
-    // Request focus to force the TextField to lose it
-    // If the selector is shown, always request focus to trigger a TextField.onFocusChange.
+    val keyboardShown by rememberImeOpenState()
     val focusRequester = FocusRequester()
+
+    SideEffect {
+        if (!keyboardShown && prevInputSelector == InputSelector.NONE) {
+            focusRequester.requestFocus()
+        }
+    }
+
     OverrideBackPress(
-        inputSelector = currSelector
+        inputSelector = currInputSelector
     ) { inputSelector ->
-        currSelector = inputSelector
+        currInputSelector = inputSelector
     }
 
 
-    val coroutineScope = rememberCoroutineScope()
-    val scrollToBottom = remember {
-        { coroutineScope.launch { lazyListState.animateScrollToItem(0) } }
-    }
     Column(modifier) {
         Divider()
-        // Used to decide if the keyboard should be shown
         UserInputText(
             textField = titleTextField,
-            hasFocus = hasInputFocus,
+            hasFocus = keyboardShown,
             onTextChanged = { textFiledValue -> titleTextField = textFiledValue }
         ) { focused ->
             if (focused) {
-                currSelector = InputSelector.NONE
-                scrollToBottom()
+                prevInputSelector = currInputSelector
+                currInputSelector = InputSelector.NONE
             }
-            hasInputFocus = focused
-        }
-        if (hasInputFocus || currSelector != InputSelector.NONE) {
-            UserInputSummary(modifier = Modifier, loopVo = loop)
         }
 
         UserInputButtons(
@@ -82,14 +70,13 @@ fun UserInput(
                 onLoopSubmitted(loop.copy(title = titleTextField.text))
 
                 titleTextField = TextFieldValue()
-                scrollToBottom()
                 onLoopUpdated(LoopVo.default())
             },
             prevInputSelector = prevInputSelector,
-            currInputSelector = currSelector,
+            currInputSelector = currInputSelector,
             onInputSelectorChanged = { selector ->
-                prevInputSelector = currSelector
-                currSelector = if (selector == currSelector) {
+                prevInputSelector = currInputSelector
+                currInputSelector = if (selector == currInputSelector) {
                     InputSelector.NONE
                 } else {
                     selector
@@ -100,38 +87,10 @@ fun UserInput(
 
         Selectors(
             focusRequester = focusRequester,
-            currentSelector = currSelector,
+            currentSelector = currInputSelector,
             loop = loop,
             onLoopUpdated = onLoopUpdated
         )
-    }
-}
-
-
-@Composable
-private fun UserInputSummary(
-    modifier: Modifier,
-    loopVo: LoopVo
-) {
-    Row(modifier.padding(start = 16.dp)) {
-        Text(
-            modifier = Modifier.width(110.dp),
-            text = "${h2m2(loopVo.loopStart)} ~ ${h2m2(loopVo.loopEnd)}",
-            style = MaterialTheme.typography.caption.copy(
-                color = MaterialTheme.colors.onSurface
-            ),
-        )
-        Text(
-            text = textFormatter(
-                intervalString(loopVo.interval)
-            ),
-            style = MaterialTheme.typography.caption.copy(
-                color = MaterialTheme.colors.onSurface
-            ),
-            modifier = Modifier.width(70.dp)
-        )
-
-        LoopCardActiveDays(loop = loopVo)
     }
 }
 

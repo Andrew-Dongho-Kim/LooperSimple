@@ -11,6 +11,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -18,17 +19,21 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Card
 import androidx.compose.material.ContentAlpha
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Done
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -40,6 +45,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.asAndroidPath
 import androidx.compose.ui.graphics.toComposePathEffect
@@ -48,13 +54,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.data.LoopVo
 import com.pnd.android.loop.data.LoopVo.Day.Companion.isOn
-import com.pnd.android.loop.ui.home.LoopViewModel
+import com.pnd.android.loop.data.LoopWithDone
 import com.pnd.android.loop.util.ABB_DAYS
 import com.pnd.android.loop.util.DAY_STRING_MAP
 import com.pnd.android.loop.util.intervalString
 import com.pnd.android.loop.util.isActive
+import com.pnd.android.loop.util.isActiveDay
+import com.pnd.android.loop.util.isPast
 import com.pnd.android.loop.util.rememberDayColor
 import com.pnd.android.loop.util.textFormatter
 import com.pnd.android.loop.util.toHourMinute
@@ -63,11 +72,9 @@ import com.pnd.android.loop.util.toHourMinute
 fun LoopCard(
     modifier: Modifier = Modifier,
     loopViewModel: LoopViewModel,
-    loop: LoopVo,
+    loop: LoopWithDone,
     showActiveDays: Boolean,
 ) {
-
-
     val cardShape = remember { LoopCardShape(12.dp) }
     Card(
         modifier = modifier
@@ -78,7 +85,7 @@ fun LoopCard(
             .fillMaxWidth()
             .clip(cardShape)
             .clickable {
-                loopViewModel.addLoop(loop.copy(enabled = !loop.enabled))
+                loopViewModel.addOrUpdateLoop(loop.copyAsLoop(enabled = !loop.enabled))
             },
         shape = cardShape,
         border = BorderStroke(
@@ -86,7 +93,7 @@ fun LoopCard(
             color = MaterialTheme.colors.onSurface.copy(alpha = 0.4f)
         )
     ) {
-        BoxWithConstraints(modifier = Modifier.wrapContentHeight()) {
+        BoxWithConstraints(modifier = Modifier.height(50.dp)) {
             LoopCardContent(
                 modifier = Modifier
                     .padding(
@@ -96,13 +103,14 @@ fun LoopCard(
                     .alpha(
                         if (loop.enabled) ContentAlpha.high else ContentAlpha.disabled
                     ),
+                loopViewModel = loopViewModel,
                 loop = loop,
                 showActiveDays = showActiveDays,
             )
             LoopCardActiveEffect(
                 modifier = Modifier
                     .width(maxWidth)
-                    .height(50.dp),
+                    .height(maxHeight),
                 loopViewModel = loopViewModel,
                 loop = loop,
             )
@@ -114,10 +122,10 @@ fun LoopCard(
 private fun LoopCardActiveEffect(
     modifier: Modifier = Modifier,
     loopViewModel: LoopViewModel,
-    loop: LoopVo,
+    loop: LoopWithDone,
 ) {
     var isActive by remember { mutableStateOf(false) }
-    LaunchedEffect(key1 = Unit) {
+    LaunchedEffect(loop, loopViewModel) {
         loopViewModel.localDateTime.collect { currTime ->
             isActive = loop.isActive(currTime)
         }
@@ -169,7 +177,8 @@ private fun LoopCardActiveEffect(
 @Composable
 private fun LoopCardContent(
     modifier: Modifier = Modifier,
-    loop: LoopVo,
+    loopViewModel: LoopViewModel,
+    loop: LoopWithDone,
     showActiveDays: Boolean,
 ) {
     Row(
@@ -185,6 +194,7 @@ private fun LoopCardContent(
             modifier = Modifier
                 .padding(top = 4.dp)
                 .weight(1f),
+            loopViewModel = loopViewModel,
             loop = loop,
             showActiveDays = showActiveDays,
         )
@@ -218,37 +228,92 @@ fun LoopCardColor(
 @Composable
 fun LoopCardBody(
     modifier: Modifier = Modifier,
-    loop: LoopVo,
+    loopViewModel: LoopViewModel,
+    loop: LoopWithDone,
     showActiveDays: Boolean,
 ) {
-    Column(modifier = modifier.padding(start = 16.dp)) {
-        LoopCardTitle(
-            title = loop.title,
-        )
+    var isPast by remember { mutableStateOf(false) }
+    LaunchedEffect(loop, loopViewModel) {
+        loopViewModel.localDateTime.collect { currTime ->
+            isPast = loop.isActiveDay(currTime) && loop.isPast(currTime)
+        }
+    }
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(top = 4.dp)
-        ) {
+    Row(
+        modifier = modifier.padding(start = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            LoopCardTitle(title = loop.title)
 
-            LoopCardStartEndTime(
-                modifier = Modifier.weight(1f),
-                loopStart = loop.loopStart,
-                loopEnd = loop.loopEnd,
-            )
+            Row(
+                modifier = Modifier.padding(top = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
 
-            LoopCardInterval(
-                modifier = Modifier.weight(1f),
-                interval = loop.interval,
-            )
-
-            if (showActiveDays) {
-                LoopCardActiveDays(
+                LoopCardStartEndTime(
                     modifier = Modifier.weight(1f),
-                    loop = loop
+                    loopStart = loop.loopStart,
+                    loopEnd = loop.loopEnd,
                 )
+
+                if (!isPast) {
+                    LoopCardInterval(
+                        modifier = Modifier.weight(1f),
+                        interval = loop.interval,
+                    )
+
+                    if (showActiveDays) {
+                        LoopCardActiveDays(
+                            modifier = Modifier.weight(1f),
+                            loop = loop
+                        )
+                    }
+                }
             }
         }
+        if (isPast && loop.enabled) {
+            LoopDoneOrNotButtons(
+                modifier = Modifier.height(36.dp),
+                onDone = { done ->
+                    loopViewModel.doneLoop(
+                        loop = loop,
+                        doneState = if (done) DoneState.DONE else DoneState.DON_T
+                    )
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun LoopDoneOrNotButtons(
+    modifier: Modifier = Modifier,
+    onDone: (done: Boolean) -> Unit
+) {
+    Row(modifier = modifier) {
+        Image(
+            modifier = Modifier
+                .clickable { onDone(true) }
+                .fillMaxHeight()
+                .aspectRatio(1f)
+                .padding(8.dp),
+            imageVector = Icons.Filled.Done,
+            colorFilter = ColorFilter.tint(MaterialTheme.colors.primary),
+            contentDescription = ""
+        )
+
+        Image(
+            modifier = Modifier
+                .padding(start = 4.dp)
+                .clickable { onDone(false) }
+                .fillMaxHeight()
+                .aspectRatio(1f)
+                .padding(8.dp),
+            imageVector = Icons.Filled.Close,
+            colorFilter = ColorFilter.tint(MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium)),
+            contentDescription = ""
+        )
     }
 }
 
@@ -302,7 +367,7 @@ private fun LoopCardStartEndTime(
 @Composable
 fun LoopCardActiveDays(
     modifier: Modifier = Modifier,
-    loop: LoopVo,
+    loop: LoopWithDone,
 ) {
     if (loop.loopActiveDays in arrayOf(
             LoopVo.Day.EVERYDAY,
@@ -325,7 +390,7 @@ fun LoopCardActiveDays(
 @Composable
 private fun LoopCardActiveDaysPronoun(
     modifier: Modifier = Modifier,
-    loop: LoopVo
+    loop: LoopWithDone
 ) {
     Text(
         modifier = modifier.padding(end = 2.dp),
@@ -339,7 +404,7 @@ private fun LoopCardActiveDaysPronoun(
 @Composable
 private fun LoopCardActiveDaysCommon(
     modifier: Modifier,
-    loop: LoopVo
+    loop: LoopWithDone
 ) {
     Row(
         modifier = modifier,

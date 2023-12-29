@@ -1,28 +1,36 @@
-package com.pnd.android.loop.ui.home
+package com.pnd.android.loop.ui.home.loop
 
+import androidx.compose.runtime.Stable
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.map
 import com.pnd.android.loop.alarm.AlarmController
 import com.pnd.android.loop.common.log
 import com.pnd.android.loop.data.AppDatabase
-import com.pnd.android.loop.data.LoopFilter
+import com.pnd.android.loop.data.LoopBase
+import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.LoopVo
 import com.pnd.android.loop.util.isActive
 import com.pnd.android.loop.util.isActiveDay
+import com.pnd.android.loop.util.toMs
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 
+@Stable
 @HiltViewModel
 class LoopViewModel @Inject constructor(
     appDb: AppDatabase,
@@ -30,9 +38,13 @@ class LoopViewModel @Inject constructor(
 ) : ViewModel() {
     private val logger = log("LoopViewModel")
 
-    private val coroutineScope = CoroutineScope(SupervisorJob())
+    private val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
+        logger.e { "coroutine exception is passed: $throwable" }
+    }
+    private val coroutineScope = CoroutineScope(SupervisorJob() + coroutineExceptionHandler)
     private val loopDao = appDb.loopDao()
-    private val loopFilterDao = appDb.loopFilterDao()
+    private val loopDonDao = appDb.loopDoneDao()
+    private val loopWithDoneDao = appDb.loopWithDoneDao()
 
     val localDate = flow {
         while (currentCoroutineContext().isActive) {
@@ -51,24 +63,21 @@ class LoopViewModel @Inject constructor(
         }
     }
 
-    val loops: LiveData<List<LoopVo>> = loopDao.getAll()
+    val loops: LiveData<List<LoopVo>> = loopDao.allLoopsLiveData()
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val loopsWithDone =
+        localDate.flatMapLatest { currDate -> loopWithDoneDao.allLoops(currDate.toMs()) }
 
     val countInActive = loops.map { loops -> loops.filter { loop -> loop.isActive() }.size }
-    val total = loops.map { loops -> loops.filter { loop -> loop.isActiveDay() }.size  }
+    val total = loops.map { loops -> loops.filter { loop -> loop.isActiveDay() }.size }
 
-    fun saveFilter(loopFilter: LoopFilter) {
-        coroutineScope.launch { loopFilterDao.update(loopFilter) }
-    }
-
-    fun addLoop(vararg loops: LoopVo) {
+    fun addOrUpdateLoop(vararg loops: LoopVo) {
         coroutineScope.launch {
-            logger.d { "Add loop" }
-            loops.forEach { logger.d { " - $it" } }
+            loopDao.addOrUpdate(*loops).forEachIndexed { index, id ->
+                val loop = loops[index].copy(id = id.toInt())
+                logger.d { "$loop is added or updated" }
 
-            loopDao.add(*loops).forEachIndexed { index, id ->
-                logger.d { "id of loop for $index is updated to $id" }
-
-                val loop = loops[index]
                 if (loop.enabled) alarmController.reserveAlarm(loop)
                 else alarmController.cancelAlarm(loop)
             }
@@ -79,6 +88,20 @@ class LoopViewModel @Inject constructor(
         coroutineScope.launch {
             alarmController.cancelAlarm(loop)
             loopDao.remove(loop.id)
+        }
+    }
+
+    fun doneLoop(
+        loop: LoopBase,
+        localDate: LocalDate = LocalDate.now(),
+        @LoopDoneVo.DoneState doneState: Int
+    ) {
+        coroutineScope.launch {
+            loopDonDao.addOrUpdate(
+                loop = loop,
+                localDate = localDate,
+                doneState = doneState
+            )
         }
     }
 

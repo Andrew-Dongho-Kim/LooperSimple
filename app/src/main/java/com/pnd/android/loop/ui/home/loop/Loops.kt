@@ -17,8 +17,8 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.State
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -26,7 +26,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
-import com.pnd.android.loop.ui.home.LoopViewModel
+import com.pnd.android.loop.data.LoopDoneVo
+import com.pnd.android.loop.data.LoopWithDone
 import com.pnd.android.loop.util.isActiveDay
 
 @Composable
@@ -80,26 +81,45 @@ fun EmptyLoops(
 
 @Composable
 private fun LoopViewModel.observeSectionsAsState(): State<List<Section>> {
-    val loops by loops.observeAsState(emptyList())
+    val loops by loopsWithDone.collectAsState(emptyList())
 
     return if (loops.isEmpty()) {
         remember { mutableStateOf(emptyList()) }
     } else {
-        val todaySection = remember {
-            Section.None(showActiveDays = false)
-        }.apply {
-            items.value = loops.filter { it.isActiveDay() }
-        }
+        val sections = listOf(
+            rememberDoneSection(loops),
+            rememberTodaySection(loops),
+            rememberLaterSection(loops)
+        )
+        remember { mutableStateOf(sections.filter { it.size > 0 }) }
+    }
+}
 
-        val title = stringResource(id = R.string.later)
-        val laterSection = remember {
-            Section.Expandable(
-                title = title,
-                showActiveDays = true
-            )
-        }.apply {
-            items.value = loops.filter { !it.isActiveDay() }
-        }
-        remember { mutableStateOf(listOf(todaySection, laterSection)) }
+@Composable
+private fun rememberDoneSection(loops: List<LoopWithDone>) = remember {
+    Section.None(showActiveDays = false)
+}.apply {
+    items.value =
+        loops.filter { it.isActiveDay() && it.done != LoopDoneVo.DoneState.NO_RESPONSE }
+}
+
+@Composable
+private fun rememberTodaySection(loops: List<LoopWithDone>) = remember {
+    Section.None(showActiveDays = false)
+}.apply {
+    items.value =
+        loops.filter { it.isActiveDay() && it.done == LoopDoneVo.DoneState.NO_RESPONSE }
+}
+
+@Composable
+private fun rememberLaterSection(loops: List<LoopWithDone>): Section {
+    val title = stringResource(id = R.string.later)
+    return remember {
+        Section.Expandable(
+            title = title,
+            showActiveDays = true
+        )
+    }.apply {
+        items.value = loops.filter { !it.isActiveDay() }
     }
 }

@@ -23,7 +23,6 @@ import com.pnd.android.loop.util.dh2m2
 import com.pnd.android.loop.util.hourIn24
 import com.pnd.android.loop.util.isActiveDay
 import com.pnd.android.loop.util.isActiveTime
-import com.pnd.android.loop.util.localTime
 import com.pnd.android.loop.util.localTimeInDay
 import com.pnd.android.loop.util.min
 import dagger.hilt.android.AndroidEntryPoint
@@ -68,7 +67,7 @@ class AlarmController @Inject constructor(
         val after = notifyAfter(loop)
         val systemElapsed = SystemClock.elapsedRealtime()
         if (!loop.enabled) {
-            coroutineScope.launch { loopDao.add(loop.copy(enabled = true)) }
+            coroutineScope.launch { loopDao.addOrUpdate(loop.copy(enabled = true)) }
         }
         if (after == NO_NOTIFY) {
             return
@@ -128,7 +127,7 @@ class AlarmController @Inject constructor(
     fun syncAlarms() {
         logger.d { "start sync" }
         coroutineScope.launch {
-            loopDao.syncGetAll().forEach { loop ->
+            loopDao.allLoops().forEach { loop ->
                 if (loop.enabled) {
                     reserveAlarm(loop = loop, showToast = false)
                 } else {
@@ -140,7 +139,7 @@ class AlarmController @Inject constructor(
 
     fun cancelAlarm(loop: LoopVo) {
         if (loop.enabled) {
-            coroutineScope.launch { loopDao.add(loop.copy(enabled = false)) }
+            coroutineScope.launch { loopDao.addOrUpdate(loop.copy(enabled = false)) }
         }
         logger.d { " - cancel id:${loop.id}, title:${loop.title}" }
 

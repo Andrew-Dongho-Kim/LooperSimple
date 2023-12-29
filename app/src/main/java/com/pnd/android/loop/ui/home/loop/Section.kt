@@ -28,8 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
-import com.pnd.android.loop.data.LoopVo
-import com.pnd.android.loop.ui.home.LoopViewModel
+import com.pnd.android.loop.data.LoopWithDone
 
 
 fun LazyListScope.Section(
@@ -141,11 +140,14 @@ private fun ExpandableHeader(
 }
 
 enum class ContentTypes {
-    EXPANDABLE_HEADER, LOOP_CARD,
+    EXPANDABLE_HEADER, LOOP_CARD, LOOP_DONE_SUMMARY_CARD
 }
 
 sealed class Section {
-    val items = mutableStateOf<List<LoopVo>>(emptyList())
+    val items = mutableStateOf<List<LoopWithDone>>(emptyList())
+
+    val size
+        get() = items.value.size
 
     class None(val showActiveDays: Boolean) : Section()
 
