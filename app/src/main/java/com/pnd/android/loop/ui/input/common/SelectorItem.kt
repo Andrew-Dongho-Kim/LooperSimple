@@ -16,6 +16,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.pnd.android.loop.ui.theme.compositeOverSurface
 
 @Composable
 fun TextSelectorItem(
@@ -29,7 +30,7 @@ fun TextSelectorItem(
         backgroundColor = if (selected) {
             colorOnSurface.copy(alpha = 0.08f)
         } else {
-            getSelectorExpandedColor()
+            compositeOverSurface()
         },
         contentColor = if (selected) {
             colorOnSurface

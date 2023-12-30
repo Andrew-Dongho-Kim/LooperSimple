@@ -10,6 +10,7 @@ import androidx.compose.material.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.pnd.android.loop.ui.theme.compositeOverSurface
 
 
 @Composable
@@ -23,7 +24,7 @@ fun InnerTabButton(
         backgroundColor = if (selected) {
             MaterialTheme.colors.onSurface.copy(alpha = 0.08f)
         } else {
-            getSelectorExpandedColor()
+            compositeOverSurface()
         },
         contentColor = if (selected) {
             MaterialTheme.colors.onSurface

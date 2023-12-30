@@ -45,7 +45,11 @@
     <string name="am">AM</string>
     <string name="pm">PM</string>
 
-    <plurals name="second">
+    <string name="hour_time">%d:00</string>
+    <string name="am_time">%d AM</string>
+    <string name="pm_time">%d PM</string>
+
+    <plurals name="second" translatable="false">
         <item quantity="zero">@string/second</item>
         <item quantity="one">@string/second</item>
         <item quantity="two">@string/seconds</item>
@@ -54,7 +58,7 @@
         <item quantity="other">@string/seconds</item>
     </plurals>
 
-    <plurals name="minute">
+    <plurals name="minute" translatable="false">
         <item quantity="zero">@string/minute</item>
         <item quantity="one">@string/minute</item>
         <item quantity="two">@string/minute</item>
@@ -63,7 +67,7 @@
         <item quantity="other">@string/minutes</item>
     </plurals>
 
-    <plurals name="hour">
+    <plurals name="hour" translatable="false">
         <item quantity="zero">@string/hour</item>
         <item quantity="one">@string/hour</item>
         <item quantity="two">@string/hours</item>
@@ -72,7 +76,7 @@
         <item quantity="other">@string/hours</item>
     </plurals>
 
-    <plurals name="day">
+    <plurals name="day" translatable="false">
         <item quantity="zero">@string/day</item>
         <item quantity="one">@string/day</item>
         <item quantity="two">@string/days</item>
@@ -81,24 +85,13 @@
         <item quantity="other">@string/days</item>
     </plurals>
 
-    <plurals name="week">
+    <plurals name="week" translatable="false">
         <item quantity="zero">@string/week</item>
         <item quantity="one">@string/week</item>
         <item quantity="two">@string/weeks</item>
         <item quantity="few">@string/weeks</item>
         <item quantity="many">@string/weeks</item>
         <item quantity="other">@string/weeks</item>
-    </plurals>
-
-    <string name="month">month</string>
-    <string name="months">months</string>
-    <plurals name="month">
-        <item quantity="zero">@string/month</item>
-        <item quantity="one">@string/month</item>
-        <item quantity="two">@string/months</item>
-        <item quantity="few">@string/months</item>
-        <item quantity="many">@string/months</item>
-        <item quantity="other">@string/months</item>
     </plurals>
 
     <string name="every">Every %s</string>

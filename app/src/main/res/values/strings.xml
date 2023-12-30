@@ -15,6 +15,7 @@
     <string name="start">Start</string>
     <string name="end">End</string>
 
+    <string name="timeline">Timeline</string>
     <string name="no_repeat">No Repeat</string>
 
     <string name="alarm_category_sounds">Sounds</string>

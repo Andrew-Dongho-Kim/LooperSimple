@@ -50,6 +50,7 @@ import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.asAndroidPath
 import androidx.compose.ui.graphics.toComposePathEffect
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
@@ -66,7 +67,7 @@ import com.pnd.android.loop.util.isActiveDay
 import com.pnd.android.loop.util.isPast
 import com.pnd.android.loop.util.rememberDayColor
 import com.pnd.android.loop.util.textFormatter
-import com.pnd.android.loop.util.toHourMinute
+import com.pnd.android.loop.util.formatHourMinute
 
 @Composable
 fun LoopCard(
@@ -340,12 +341,16 @@ private fun LoopCardInterval(
     interval: Long,
 ) {
     Text(
-        text = textFormatter(
-            intervalString(
-                interval,
-                highlight = "#",
+        text = if (interval == LoopVo.NO_REPEAT) {
+            AnnotatedString("")
+        } else {
+            textFormatter(
+                intervalString(
+                    interval,
+                    highlight = "#",
+                )
             )
-        ),
+        },
         style = MaterialTheme.typography.caption.copy(color = colorBody2Text()),
         modifier = modifier,
     )
@@ -359,7 +364,7 @@ private fun LoopCardStartEndTime(
 ) {
     Text(
         modifier = modifier,
-        text = "${loopStart.toHourMinute(false)} ~ ${loopEnd.toHourMinute(false)}",
+        text = "${loopStart.formatHourMinute(false)} ~ ${loopEnd.formatHourMinute(false)}",
         style = MaterialTheme.typography.caption.copy(color = colorBody2Text()),
     )
 }

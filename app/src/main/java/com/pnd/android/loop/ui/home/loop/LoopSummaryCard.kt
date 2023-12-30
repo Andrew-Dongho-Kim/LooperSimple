@@ -2,6 +2,7 @@ package com.pnd.android.loop.ui.home.loop
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -36,7 +37,8 @@ import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.ui.theme.RoundShapes
-import com.pnd.android.loop.util.toHourMinute
+import com.pnd.android.loop.ui.theme.compositeOverSurface
+import com.pnd.android.loop.util.formatHourMinute
 
 @Composable
 fun LoopSummaryCard(
@@ -56,40 +58,25 @@ fun LoopSummaryCard(
         }
     }
 
-    Card(
-        modifier = modifier.padding(
-            horizontal = 32.dp,
-            vertical = 12.dp
-        ),
-        border = BorderStroke(
-            width = 0.5.dp,
-            color = MaterialTheme.colors.onSurface.copy(alpha = 0.2f)
+    Column(modifier = modifier) {
+        Summary(
+            loops = loopGroup[DoneState.DONE] ?: emptyList(),
+            title = stringResource(id = R.string.done),
+            icon = Icons.Filled.Done,
+            iconColor = MaterialTheme.colors.primary,
+            onUndoDoneState = onUndoDoneState,
         )
-    ) {
-        Column(
-            modifier = Modifier.padding(
-                horizontal = 12.dp,
-                vertical = 8.dp
-            )
-        ) {
-            Summary(
-                loops = loopGroup[DoneState.DONE] ?: emptyList(),
-                title = stringResource(id = R.string.done),
-                icon = Icons.Filled.Done,
-                iconColor = MaterialTheme.colors.primary,
-                onUndoDoneState = onUndoDoneState,
-            )
 
-            Summary(
-                modifier = Modifier.padding(top = 8.dp),
-                loops = loopGroup[DoneState.DID_NOT] ?: emptyList(),
-                title = stringResource(id = R.string.didnot),
-                icon = Icons.Filled.Clear,
-                iconColor = MaterialTheme.colors.onSurface,
-                onUndoDoneState = onUndoDoneState,
-            )
-        }
+        Summary(
+            modifier = Modifier.padding(top = 8.dp),
+            loops = loopGroup[DoneState.DID_NOT] ?: emptyList(),
+            title = stringResource(id = R.string.didnot),
+            icon = Icons.Filled.Clear,
+            iconColor = MaterialTheme.colors.onSurface,
+            onUndoDoneState = onUndoDoneState,
+        )
     }
+
 }
 
 @Composable
@@ -103,18 +90,37 @@ private fun Summary(
 ) {
     if (loops.isEmpty()) return
 
-    Column(modifier = modifier) {
-        SummaryHeader(
-            title = title,
-            icon = icon,
-            iconColor = iconColor,
+    Card(
+        modifier = modifier,
+        border = BorderStroke(
+            width = 0.5.dp,
+            color = MaterialTheme.colors.onSurface.copy(alpha = 0.2f)
         )
-        loops.forEach { loop ->
-            key(loop.id) {
-                SummaryItem(
-                    loop = loop,
-                    onUndoDoneState = onUndoDoneState,
+    ) {
+        Column(
+            modifier = Modifier.padding(
+                horizontal = 12.dp,
+                vertical = 8.dp
+            )
+        ) {
+            SummaryHeader(
+                title = title,
+                icon = icon,
+                iconColor = iconColor,
+            )
+            Column(
+                modifier = Modifier.background(
+                    color = compositeOverSurface()
                 )
+            ) {
+                loops.forEach { loop ->
+                    key(loop.id) {
+                        SummaryItem(
+                            loop = loop,
+                            onUndoDoneState = onUndoDoneState,
+                        )
+                    }
+                }
             }
         }
     }
@@ -215,7 +221,7 @@ private fun SummaryItemStartAndEndTime(
 ) {
     Text(
         modifier = modifier,
-        text = "(${loopStart.toHourMinute(true)} ~ ${loopEnd.toHourMinute(true)})",
+        text = "(${loopStart.formatHourMinute(true)} ~ ${loopEnd.formatHourMinute(true)})",
         style = MaterialTheme.typography.body2.copy(
             color = MaterialTheme.colors.onSurface.copy(
                 alpha = ContentAlpha.medium

@@ -107,12 +107,24 @@ fun LocalTime.toMs() = TimeUnit.NANOSECONDS.toMillis(toNanoOfDay())
 
 
 @Composable
-fun Long.toHourMinute(withAmPm: Boolean = true): String {
-    return toLocalTime().toHourMinute(withAmPm)
+fun formatHour(hour: Int, withAmPm: Boolean = true): String {
+    return stringResource(
+        id = if (withAmPm) {
+            if (hour < 12) R.string.am_time else R.string.pm_time
+        } else {
+            R.string.hour_time
+        },
+        formatArgs = arrayOf((hour % 12).run { if (this == 0) 12 else this })
+    )
 }
 
 @Composable
-fun LocalTime.toHourMinute(withAmPm: Boolean = true): String {
+fun Long.formatHourMinute(withAmPm: Boolean = true): String {
+    return toLocalTime().formatHourMinute(withAmPm)
+}
+
+@Composable
+fun LocalTime.formatHourMinute(withAmPm: Boolean = true): String {
     val resultHour = if (withAmPm) (hour % 12).run { if (this == 0) 12 else this } else hour
 
     return stringResource(
@@ -153,8 +165,6 @@ fun day(localDateTime: LocalDateTime = LocalDateTime.now()): @LoopVo.Day Int {
         else -> throw IllegalStateException("Unknown value for day of week")
     }
 }
-
-fun isAm(msTime: Long) = ((msTime % MS_1DAY) / MS_1HOUR).toInt() < 12
 
 fun hourIn24(msTime: Long): Int {
     return (if (msTime == MS_1DAY) 24 else (msTime % MS_1DAY) / MS_1HOUR).toInt()

@@ -47,7 +47,8 @@ interface LoopWithDoneDao {
     @Query(
         "SELECT loop.id, loop.color, loop.title, loop.loopStart, loop.loopEnd, loop.loopActiveDays, loop.interval, loop.alarms, loop.enabled, loop_done.date, loop_done.done " +
                 "FROM loop LEFT JOIN loop_done " +
-                "ON loop.id = loop_done.loopId AND loop_done.date =:date"
+                "ON loop.id = loop_done.loopId AND loop_done.date =:date " +
+                "ORDER BY loop.loopStart ASC, loop.loopEnd ASC"
     )
     fun allLoops(date: Long): Flow<List<LoopWithDone>>
 }

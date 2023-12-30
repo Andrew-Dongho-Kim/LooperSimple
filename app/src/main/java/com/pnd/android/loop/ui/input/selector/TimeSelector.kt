@@ -41,7 +41,7 @@ import com.pnd.android.loop.data.LoopVo.Day.Companion.toggle
 import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.util.ABB_DAYS
 import com.pnd.android.loop.util.rememberDayColor
-import com.pnd.android.loop.util.toHourMinute
+import com.pnd.android.loop.util.formatHourMinute
 import com.pnd.android.loop.util.toLocalTime
 import com.pnd.android.loop.util.toMs
 import java.time.LocalTime
@@ -148,7 +148,7 @@ private fun TimeDisplay(
                 .clip(RoundShapes.large)
                 .clickable { isOpened = true }
                 .padding(horizontal = 24.dp, vertical = 12.dp),
-            text = selectedTime.toHourMinute(withAmPm = true),
+            text = selectedTime.formatHourMinute(withAmPm = true),
             style = MaterialTheme.typography.h6.copy(
                 color = MaterialTheme.colors.onSurface.copy(
                     alpha = ContentAlpha.medium

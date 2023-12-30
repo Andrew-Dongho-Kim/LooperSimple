@@ -16,7 +16,7 @@ import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopVo
-import com.pnd.android.loop.ui.input.common.getSelectorExpandedColor
+import com.pnd.android.loop.ui.theme.compositeOverSurface
 import com.pnd.android.loop.util.rememberImeOpenState
 
 enum class InputSelector {
@@ -56,7 +56,7 @@ fun Selectors(
         .focusRequester(focusRequester)
         .focusTarget()
 
-    Surface(color = getSelectorExpandedColor(), elevation = 3.dp) {
+    Surface(color = compositeOverSurface(), elevation = 3.dp) {
         Selector(
             modifier = modifier,
             currentSelector = currentSelector,
