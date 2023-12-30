@@ -26,8 +26,8 @@ import java.util.concurrent.TimeUnit
 data class LoopVo(
     @PrimaryKey(autoGenerate = true)
     override val id: Int = 0,
-    val color: Int = DEFAULT_COLOR,
-    val title: String = "",
+    override val color: Int = DEFAULT_COLOR,
+    override val title: String = "",
     val tickStart: Long = 0L,
     override val loopStart: Long = 0L,
     override val loopEnd: Long = 0L,

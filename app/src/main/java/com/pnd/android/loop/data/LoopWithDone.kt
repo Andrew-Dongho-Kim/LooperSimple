@@ -7,8 +7,8 @@ import kotlinx.coroutines.flow.Flow
 
 data class LoopWithDone(
     override val id: Int = 0,
-    val color: Int = LoopVo.DEFAULT_COLOR,
-    val title: String = "",
+    override val color: Int = LoopVo.DEFAULT_COLOR,
+    override val title: String = "",
     override val loopStart: Long = 0L,
     override val loopEnd: Long = 0L,
     override val loopActiveDays: Int = LoopVo.Day.EVERYDAY,

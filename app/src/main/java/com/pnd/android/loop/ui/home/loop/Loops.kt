@@ -87,17 +87,18 @@ private fun LoopViewModel.observeSectionsAsState(): State<List<Section>> {
         remember { mutableStateOf(emptyList()) }
     } else {
         val sections = listOf(
-            rememberDoneSection(loops),
             rememberTodaySection(loops),
+            rememberDoneSection(loops),
             rememberLaterSection(loops)
-        )
-        remember { mutableStateOf(sections.filter { it.size > 0 }) }
+        ).filter { it.size > 0 }
+
+        remember(sections) { mutableStateOf(sections) }
     }
 }
 
 @Composable
 private fun rememberDoneSection(loops: List<LoopWithDone>) = remember {
-    Section.None(showActiveDays = false)
+    Section.Summary()
 }.apply {
     items.value =
         loops.filter { it.isActiveDay() && it.done != LoopDoneVo.DoneState.NO_RESPONSE }
@@ -105,7 +106,7 @@ private fun rememberDoneSection(loops: List<LoopWithDone>) = remember {
 
 @Composable
 private fun rememberTodaySection(loops: List<LoopWithDone>) = remember {
-    Section.None(showActiveDays = false)
+    Section.Today(showActiveDays = false)
 }.apply {
     items.value =
         loops.filter { it.isActiveDay() && it.done == LoopDoneVo.DoneState.NO_RESPONSE }
@@ -115,7 +116,7 @@ private fun rememberTodaySection(loops: List<LoopWithDone>) = remember {
 private fun rememberLaterSection(loops: List<LoopWithDone>): Section {
     val title = stringResource(id = R.string.later)
     return remember {
-        Section.Expandable(
+        Section.Later(
             title = title,
             showActiveDays = true
         )

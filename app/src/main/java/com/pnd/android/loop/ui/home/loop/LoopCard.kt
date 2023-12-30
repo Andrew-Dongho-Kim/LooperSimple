@@ -204,7 +204,7 @@ private fun LoopCardContent(
 
 @Composable
 fun LoopCardColor(
-    modifier: Modifier,
+    modifier: Modifier = Modifier,
     color: Int
 ) {
     Box(
@@ -278,7 +278,7 @@ fun LoopCardBody(
                 onDone = { done ->
                     loopViewModel.doneLoop(
                         loop = loop,
-                        doneState = if (done) DoneState.DONE else DoneState.DON_T
+                        doneState = if (done) DoneState.DONE else DoneState.DID_NOT
                     )
                 }
             )
