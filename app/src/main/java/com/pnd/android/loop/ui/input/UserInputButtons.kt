@@ -101,19 +101,19 @@ private fun UserInputSelectorButtons(
             SelectorButton(
                 modifier = Modifier.size(buttonSize),
                 icon = Icons.TwoTone.HourglassBottom,
-                contentDescription = stringResource(id = R.string.desc_alarm_interval)
+                contentDescription = stringResource(id = R.string.desc_interval_selector)
             ) { onInputSelectorChanged(InputSelector.ALARM_INTERVAL) }
 
             SelectorButton(
                 modifier = Modifier.size(buttonSize),
                 icon = Icons.Outlined.Timelapse,
-                contentDescription = stringResource(id = R.string.desc_allowed_time)
+                contentDescription = stringResource(id = R.string.desc_time_selector)
             ) { onInputSelectorChanged(InputSelector.START_END_TIME) }
 
             SelectorButton(
                 modifier = Modifier.size(buttonSize),
                 icon = Icons.Outlined.VolumeUp,
-                contentDescription = stringResource(id = R.string.desc_notification)
+                contentDescription = stringResource(id = R.string.desc_alarm_selector)
             ) { onInputSelectorChanged(InputSelector.ALARMS) }
         }
     }

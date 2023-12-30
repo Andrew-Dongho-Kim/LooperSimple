@@ -99,9 +99,12 @@ fun LocalDate.toYearMonthDateDaysString(): String {
     )
 }
 
-fun Long.toLocalTime(): LocalTime {
-    return LocalTime.ofSecondOfDay(this / 1000)
-}
+fun Long.toLocalTime(): LocalTime = LocalTime.ofNanoOfDay(
+    TimeUnit.NANOSECONDS.convert(this, TimeUnit.MILLISECONDS)
+)
+
+fun LocalTime.toMs() = TimeUnit.NANOSECONDS.toMillis(toNanoOfDay())
+
 
 @Composable
 fun Long.toHourMinute(withAmPm: Boolean = true): String {
@@ -157,18 +160,9 @@ fun hourIn24(msTime: Long): Int {
     return (if (msTime == MS_1DAY) 24 else (msTime % MS_1DAY) / MS_1HOUR).toInt()
 }
 
-fun hourIn12(msTime: Long): Int {
-    val h = ((msTime % MS_1DAY) / MS_1HOUR).toInt()
-    return when {
-        h > 12 -> h - 12
-        h == 0 -> 12
-        else -> h
-    }
-}
-
 fun min(msTime: Long) = ((msTime % MS_1HOUR) / MS_1MIN).toInt()
 
-fun LocalDate.toMs(zoneId: ZoneId = ZoneId.systemDefault()) =
+fun LocalDate.toLocalTime(zoneId: ZoneId = ZoneId.systemDefault()) =
     atStartOfDay(zoneId).toInstant().toEpochMilli()
 
 

@@ -29,6 +29,8 @@
     <string name="nov">11월</string>
     <string name="dec">12월</string>
 
+    <string name="select_day">요일 선택</string>
+
     <string name="second">초</string>
     <string name="seconds">초</string>
     <string name="minute">분</string>

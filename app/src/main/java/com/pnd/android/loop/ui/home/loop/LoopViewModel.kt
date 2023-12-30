@@ -12,7 +12,7 @@ import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.LoopVo
 import com.pnd.android.loop.util.isActive
 import com.pnd.android.loop.util.isActiveDay
-import com.pnd.android.loop.util.toMs
+import com.pnd.android.loop.util.toLocalTime
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
@@ -67,7 +67,7 @@ class LoopViewModel @Inject constructor(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val loopsWithDone =
-        localDate.flatMapLatest { currDate -> loopWithDoneDao.allLoops(currDate.toMs()) }
+        localDate.flatMapLatest { currDate -> loopWithDoneDao.allLoops(currDate.toLocalTime()) }
 
     val countInActive = loops.map { loops -> loops.filter { loop -> loop.isActive() }.size }
     val total = loops.map { loops -> loops.filter { loop -> loop.isActiveDay() }.size }

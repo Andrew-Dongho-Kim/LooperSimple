@@ -124,8 +124,8 @@ data class LoopVo(
         )
 
         fun default() = LoopVo(
-            loopStart = TimeUnit.HOURS.toMillis(LocalTime.now().hour.toLong()),
-            loopEnd = TimeUnit.HOURS.toMillis(LocalTime.now().hour.toLong() + 1),
+            loopStart = TimeUnit.NANOSECONDS.toMillis(LocalTime.now().toNanoOfDay()),
+            loopEnd = TimeUnit.NANOSECONDS.toMillis(LocalTime.now().plusHours(1).toNanoOfDay()),
         )
 
         fun Intent.asLoop(): LoopVo {

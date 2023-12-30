@@ -26,7 +26,7 @@ fun Home(
     Box(modifier = modifier.fillMaxSize()) {
         Column {
             val lazyListState = rememberLazyListState()
-            var loop by remember { mutableStateOf(LoopVo()) }
+            var loop by remember { mutableStateOf(LoopVo.default()) }
 
             Loops(
                 modifier = Modifier

@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">LooperSimple</string>
+    <string name="app_name" translatable="false">LooperSimple</string>
 
     <string name="loop">loop</string>
     <string name="loops">%d loops</string>
@@ -7,35 +7,24 @@
 
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
+    <string name="add">Add</string>
+    <string name="edit">Edit</string>
     <string name="done">DONE</string>
     <string name="didnot">DID NOT</string>
     <string name="later">Later</string>
+    <string name="start">Start</string>
+    <string name="end">End</string>
 
-    <string name="delete_dialog_message">Delete this loop ?</string>
+    <string name="no_repeat">No Repeat</string>
 
     <string name="alarm_category_sounds">Sounds</string>
     <string name="alarm_category_vibes">Vibes</string>
 
-    <string name="no_repeat">No Repeat</string>
-
-    <string name="add">Add</string>
-    <string name="edit">Edit</string>
-    <string name="filter">Filter</string>
     <string name="about_app">About LooperSimple</string>
 
-    <string name="filter_enabled">Filter enabled</string>
-    <string name="filter_progress">Filter in progress</string>
-    <string name="filter_today">Filter today</string>
-
-    <string name="desc_allowed_time">Allowed time</string>
-    <string name="desc_alarm_interval">Alarm interval</string>
-    <string name="desc_notification">Alarm notification</string>
-
-    <string name="desc_start_time">Loop start time</string>
-    <string name="desc_end_time">Loop end time</string>
-
     <string name="desc_color_selector">Color Selector</string>
-    <string name="desc_interval_selector">Interval Selector</string>
+    <string name="desc_time_selector">Time Selector</string>
+    <string name="desc_interval_selector">Alarm Interval Selector</string>
     <string name="desc_alarm_selector">Alarm Selector</string>
 
     <string name="desc_enter_loop_title">Enter loop title</string>

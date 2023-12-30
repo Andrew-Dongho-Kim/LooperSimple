@@ -1,47 +1,50 @@
 package com.pnd.android.loop.ui.input.selector
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.ContentAlpha
-import androidx.compose.material.LocalContentAlpha
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
-import androidx.compose.material.ripple.rememberRipple
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowRightAlt
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.TimePickerState
+import androidx.compose.material3.rememberTimePickerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.focusTarget
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shadow
-import androidx.compose.ui.res.dimensionResource
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.common.log
-import com.pnd.android.loop.data.LoopVo.Day.Companion.SATURDAY
-import com.pnd.android.loop.data.LoopVo.Day.Companion.SUNDAY
 import com.pnd.android.loop.data.LoopVo.Day.Companion.fromIndex
 import com.pnd.android.loop.data.LoopVo.Day.Companion.isOn
 import com.pnd.android.loop.data.LoopVo.Day.Companion.toggle
-import com.pnd.android.loop.ui.common.pager.Pager
-import com.pnd.android.loop.ui.common.pager.PagerState
-import com.pnd.android.loop.ui.theme.Blue500
-import com.pnd.android.loop.ui.theme.PADDING_HZ_ITEM
-import com.pnd.android.loop.ui.theme.PADDING_VT_ITEM
-import com.pnd.android.loop.ui.theme.Red500
-import com.pnd.android.loop.util.*
-import kotlinx.coroutines.launch
+import com.pnd.android.loop.ui.theme.RoundShapes
+import com.pnd.android.loop.util.ABB_DAYS
+import com.pnd.android.loop.util.rememberDayColor
+import com.pnd.android.loop.util.toHourMinute
+import com.pnd.android.loop.util.toLocalTime
+import com.pnd.android.loop.util.toMs
+import java.time.LocalTime
 
 private val logger = log("TimeSelector")
 
@@ -56,61 +59,16 @@ fun StartEndTimeSelector(
     selectedDays: Int,
     onSelectedDayChanged: (Int) -> Unit
 ) {
-
     Column(
-        modifier = modifier
-//            .semantics { contentDescription = description }
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = PADDING_HZ_ITEM)
-        ) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(46.dp)
-            ) {
-                Text(
-                    modifier = Modifier.align(Alignment.Center),
-                    text = stringResource(id = R.string.desc_start_time),
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.subtitle2
-                )
-            }
-
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(46.dp)
-            ) {
-                Text(
-                    modifier = Modifier.align(Alignment.Center),
-                    text = stringResource(id = R.string.desc_end_time),
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.subtitle2
-                )
-            }
-        }
-
-        Row(
-            modifier = Modifier
-                .weight(1f)
-                .padding(bottom = PADDING_VT_ITEM)
-        ) {
-            TimeSelector(
-                modifier = Modifier.weight(1f),
-                msSelectedTime = selectedStartTime,
-                onTimeSelected = onStartTimeSelected
-            )
-
-            TimeSelector(
-                modifier = Modifier.weight(1f),
-                msSelectedTime = selectedEndTime,
-                onTimeSelected = onEndTimeSelected
-            )
-        }
-
+        StartAndEndTimeSelector(
+            selectedStartTime = selectedStartTime,
+            onStartTimeSelected = onStartTimeSelected,
+            selectedEndTime = selectedEndTime,
+            onEndTimeSelected = onEndTimeSelected
+        )
         DaySelector(
             modifier = Modifier.padding(bottom = 8.dp),
             selectedDays = selectedDays,
@@ -120,190 +78,172 @@ fun StartEndTimeSelector(
 }
 
 @Composable
+private fun StartAndEndTimeSelector(
+    modifier: Modifier = Modifier,
+    selectedStartTime: Long,
+    onStartTimeSelected: (Long) -> Unit,
+    selectedEndTime: Long,
+    onEndTimeSelected: (Long) -> Unit,
+) {
+
+    Row(
+        modifier = modifier.padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        TimeDisplay(
+            modifier = Modifier.weight(1f),
+            title = stringResource(id = R.string.start),
+            selectedTime = selectedStartTime,
+            onTimeSelected = onStartTimeSelected
+        )
+        Image(
+            imageVector = Icons.Filled.ArrowRightAlt,
+            colorFilter = ColorFilter.tint(
+                color = MaterialTheme.colors.primary
+            ),
+            contentDescription = ""
+        )
+        TimeDisplay(
+            modifier = Modifier.weight(1f),
+            title = stringResource(id = R.string.end),
+            selectedTime = selectedEndTime,
+            onTimeSelected = onEndTimeSelected
+        )
+    }
+
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TimeDisplay(
+    modifier: Modifier = Modifier,
+    title: String,
+    selectedTime: Long,
+    onTimeSelected: (Long) -> Unit,
+) {
+    var isOpened by remember { mutableStateOf(false) }
+
+    val localTime = selectedTime.toLocalTime()
+    val state = rememberTimePickerState(
+        initialHour = localTime.hour,
+        initialMinute = localTime.minute,
+        is24Hour = false
+    )
+
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.subtitle1.copy(
+                color = MaterialTheme.colors.onSurface
+            )
+        )
+
+        Text(
+            modifier = Modifier
+                .padding(top = 8.dp)
+                .wrapContentWidth(align = Alignment.CenterHorizontally)
+                .clip(RoundShapes.large)
+                .clickable { isOpened = true }
+                .padding(horizontal = 24.dp, vertical = 12.dp),
+            text = selectedTime.toHourMinute(withAmPm = true),
+            style = MaterialTheme.typography.h6.copy(
+                color = MaterialTheme.colors.onSurface.copy(
+                    alpha = ContentAlpha.medium
+                )
+            )
+        )
+    }
+
+    if (isOpened) {
+        TimePickerDialog(
+            state = state,
+            onDismiss = {
+                isOpened = false
+                onTimeSelected(LocalTime.of(state.hour, state.minute).toMs())
+            }
+        )
+    }
+
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TimePickerDialog(
+    state: TimePickerState,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(onDismissRequest = onDismiss) {
+        TimePicker(state = state)
+    }
+}
+
+@Composable
 fun DaySelector(
     modifier: Modifier = Modifier,
     selectedDays: Int,
     onSelectedDayChanged: (Int) -> Unit = {}
 ) {
-    Row(
-        modifier = modifier.padding(horizontal = PADDING_HZ_ITEM)
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        ABB_DAYS.forEachIndexed { index, dayResId ->
-            val day = fromIndex(index)
+        Text(
+            text = stringResource(id = R.string.select_day),
+            style = MaterialTheme.typography.subtitle1.copy(
+                color = MaterialTheme.colors.onSurface
+            )
+        )
 
-            val selected = selectedDays.isOn(day)
-            val selectedColor = MaterialTheme.colors.primary.copy(alpha = ContentAlpha.medium)
-
-            Box(
-                modifier = Modifier
-                    .padding(start = 5.dp, end = 5.dp)
-                    .size(30.dp)
-                    .border(
-                        BorderStroke(
-                            width = 0.5.dp,
-                            color = if (selected) selectedColor else Color.Transparent
-                        ), CircleShape
-                    )
-                    .clickable(
-                        onClick = { onSelectedDayChanged(selectedDays.toggle(day)) },
-                        enabled = true,
-                        role = Role.Button,
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = rememberRipple(bounded = false)
-                    )
-            ) {
-                Text(
-                    modifier = Modifier.align(Alignment.Center),
-                    text = stringResource(dayResId),
-                    textAlign = TextAlign.Center,
-                    color = if (selected) {
-                        selectedColor
-                    } else {
-                        when (day) {
-                            SUNDAY -> Red500
-                            SATURDAY -> Blue500
-                            else -> MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium)
-                        }
-                    },
-                    style = MaterialTheme.typography.body2
+        Row(modifier = Modifier.padding(top = 16.dp)) {
+            ABB_DAYS.forEachIndexed { index, dayResId ->
+                DateItemText(
+                    modifier = Modifier
+                        .padding(horizontal = 8.dp)
+                        .size(34.dp),
+                    day = fromIndex(index),
+                    dayResId = dayResId,
+                    selectedDays = selectedDays,
+                    onSelectedDayChanged = onSelectedDayChanged
                 )
             }
         }
     }
-}
-
-
-@Composable
-fun TimeSelector(
-    modifier: Modifier = Modifier,
-    msSelectedTime: Long,
-    onTimeSelected: (Long) -> Unit
-) {
-    var isAm by remember { mutableStateOf(isAm(msSelectedTime)) }
-    var hour by remember { mutableStateOf(hourIn12(msSelectedTime)) }
-    var min by remember { mutableStateOf(min(msSelectedTime)) }
-
-    logger.d { "Saved time in TimeSelector: ${if (isAm) "AM" else "PM"} $hour:$min" }
-
-    fun selectTime() = onTimeSelected(
-        ((if (hour == 12) 0 else hour) + if (!isAm) 12 else 0) * MS_1HOUR + min * MS_1MIN
-    )
-
-
-    Row(
-        modifier = modifier
-            .padding(horizontal = 4.dp)
-            .background(
-                color = MaterialTheme.colors.onSurface.copy(alpha = 0.04f),
-                shape = MaterialTheme.shapes.medium
-            )
-            .padding(horizontal = 5.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        TimeVerticalPager(
-            modifier = Modifier.width(50.dp),
-            items = AmPm,
-            currPage = if (isAm) 0 else 1,
-            onPageSelected = { page ->
-                isAm = page == 0
-                selectTime()
-            },
-            itemToStr = { item -> stringResource(id = item) }
-        )
-
-        TimeVerticalPager(
-            modifier = Modifier.width(60.dp),
-            items = (1..12).toList(),
-            currPage = hour - 1,
-            onPageSelected = { page ->
-                hour = page + 1
-                selectTime()
-            },
-            itemToStr = { item -> String.format("%02d", item) }
-        )
-
-        TimeVerticalPager(
-            modifier = Modifier.width(10.dp),
-            items = listOf(":"),
-            itemToStr = { item -> item }
-        )
-
-        TimeVerticalPager(
-            modifier = Modifier.width(60.dp),
-            items = (0..59).toList(),
-            currPage = min,
-            onPageSelected = { page ->
-                min = page
-                selectTime()
-            },
-            itemToStr = { item -> String.format("%02d", item) }
-        )
-    }
-
 
 }
 
 @Composable
-fun <T : Any> TimeVerticalPager(
+private fun DateItemText(
     modifier: Modifier = Modifier,
-    items: List<T>,
-    currPage: Int = 0,
-    onPageSelected: (Int) -> Unit = {},
-    itemToStr: @Composable (T) -> String
+    day: Int,
+    dayResId: Int,
+    selectedDays: Int,
+    onSelectedDayChanged: (Int) -> Unit = {}
 ) {
-    var isFirst by remember { mutableStateOf(true) }
-    val scope = rememberCoroutineScope()
-    val pagerState = remember { PagerState() }.apply {
-        this.maxPage = (items.size - 1).coerceAtLeast(0)
-        this.onPageSelected = onPageSelected
+    val selectedColor = MaterialTheme.colors.primary
+    val selected = selectedDays.isOn(day)
 
-        if (isFirst) {
-            isFirst = false
-            scope.launch { selectPage { currentPage = currPage } }
-        }
-    }
-
-    Pager(
-        modifier = modifier,
-        state = pagerState,
-        orientation = Orientation.Vertical,
-        offscreenLimit = items.size,
-        velocityFactor = 0.25f
-    ) {
-        val contentAlpha = if (page != currentPage) 0.2f else 0.9f
-        CompositionLocalProvider(LocalContentAlpha provides contentAlpha) {
-            PagerTextItem(
-                modifier = Modifier
-                    .clickable(
-                        onClick = {
-                            scope.launch {
-                                pagerState.selectPage { currentPage = page }
-                            }
-                        },
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = rememberRipple(bounded = false, radius = 24.dp)
-                    )
-                    .padding(top = 6.dp, bottom = 6.dp),
-                text = itemToStr(items[page])
-            )
-        }
-    }
-}
-
-
-@Composable
-fun PagerTextItem(
-    modifier: Modifier = Modifier,
-    text: String
-) {
     Text(
-        modifier = modifier.fillMaxWidth(),
-        text = text,
+        modifier = modifier
+            .clip(CircleShape)
+            .clickable { onSelectedDayChanged(selectedDays.toggle(day)) }
+            .border(
+                width = 0.5.dp,
+                color = if (selected) selectedColor else Color.Transparent,
+                shape = CircleShape
+            )
+            .wrapContentHeight(Alignment.CenterVertically),
+        text = stringResource(dayResId),
         textAlign = TextAlign.Center,
-        style = MaterialTheme.typography.h6.copy(
-            shadow = Shadow(blurRadius = 1f),
-            fontWeight = FontWeight.Medium
+        color = if (selected) {
+            selectedColor
+        } else {
+            rememberDayColor(day = day)
+        },
+        style = MaterialTheme.typography.subtitle1.copy(
+            textAlign = TextAlign.Center
         )
     )
 }
-
