@@ -15,6 +15,10 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.LooperSimple">
 
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-2341430172816266~9790231668"/>
+
         <!-- Profileable to enable benchmark profiling -->
         <!-- Suppress AndroidElementNotAllowed -->
         <profileable

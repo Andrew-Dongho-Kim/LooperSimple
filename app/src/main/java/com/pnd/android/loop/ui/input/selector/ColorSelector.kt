@@ -15,6 +15,7 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
@@ -101,6 +102,7 @@ private fun ColorBox(
     Box(
         modifier = modifier
             .size(32.dp)
+            .alpha(0.7f)
             .drawBehind {
                 if (isSelected) {
                     drawRoundRect(

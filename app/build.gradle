@@ -18,18 +18,24 @@ android {
 
         testInstrumentationRunner "com.pnd.android.loop.HiltJUnitRunner"
     }
+    buildFeatures {
+        buildConfig = true
+    }
 
     buildTypes {
         benchmark {
-            // duplicate any release build type settings for measurement accuracy,
-            // such as "minifyEnabled" and "proguardFiles" in this block
-
             debuggable false
             signingConfig signingConfigs.debug
+        }
+        debug {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            buildConfigField("boolean", "DEBUG", "true")
         }
         release {
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            buildConfigField("boolean", "DEBUG", "false")
         }
     }
     compileOptions {
@@ -61,6 +67,9 @@ dependencies {
 
     // Kotlin
     implementation "org.jetbrains.kotlin:kotlin-stdlib:1.9.20"
+
+    // Ads Kit
+    implementation 'com.google.android.gms:play-services-ads:22.6.0'
 
     // Compose
     implementation "androidx.compose.animation:animation:1.5.4"

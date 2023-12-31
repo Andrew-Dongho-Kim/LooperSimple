@@ -1,5 +1,6 @@
 package com.pnd.android.loop.ui.home.loop
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -49,7 +50,7 @@ fun Loops(
                 item { Spacer(modifier = Modifier.height(64.dp)) }
 
                 sections.forEach { section ->
-                    Section(
+                    section(
                         section = section,
                         loopViewModel = loopViewModel
                     )
@@ -86,14 +87,21 @@ private fun LoopViewModel.observeSectionsAsState(): State<List<Section>> {
     return if (loops.isEmpty()) {
         remember { mutableStateOf(emptyList()) }
     } else {
-        val sections = listOf(
+        val sections = mutableListOf(
             rememberTodaySection(loops),
+            rememberAdSection(),
             rememberDoneSection(loops),
             rememberLaterSection(loops)
         ).filter { it.size > 0 }
+        Log.d("TEST-DH", "Sections:$sections")
 
         remember(sections) { mutableStateOf(sections) }
     }
+}
+
+@Composable
+private fun rememberAdSection() = remember {
+    Section.Ad()
 }
 
 @Composable

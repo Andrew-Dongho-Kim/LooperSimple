@@ -11,7 +11,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.data.LoopDoneVo.DoneState.Companion.DONE
-import com.pnd.android.loop.data.LoopDoneVo.DoneState.Companion.DID_NOT
+import com.pnd.android.loop.data.LoopDoneVo.DoneState.Companion.SKIP
 import com.pnd.android.loop.data.LoopDoneVo.DoneState.Companion.NO_RESPONSE
 import java.time.LocalDate
 import java.time.ZoneId
@@ -31,11 +31,11 @@ data class LoopDoneVo(
 ) {
 
     @Target(AnnotationTarget.TYPE, AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.FUNCTION)
-    @IntDef(DONE, DID_NOT, NO_RESPONSE)
+    @IntDef(DONE, SKIP, NO_RESPONSE)
     annotation class DoneState {
         companion object {
             const val DONE = 1
-            const val DID_NOT = 2
+            const val SKIP = 2
             const val NO_RESPONSE = 0
         }
     }

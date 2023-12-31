@@ -37,24 +37,32 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.pnd.android.loop.BuildConfig
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopWithDone
+import com.pnd.android.loop.ui.common.NativeAd
 import com.pnd.android.loop.ui.home.loop.timeline.LoopTimeline
 import com.pnd.android.loop.ui.theme.elevatedSurface
 
+val HOME_NATIVE_AD_ID = if (BuildConfig.DEBUG) {
+    "ca-app-pub-3940256099942544/2247696110"
+} else {
+    "ca-app-pub-2341430172816266/9323327804"
+}
 
-fun LazyListScope.Section(
+fun LazyListScope.section(
     section: Section,
     loopViewModel: LoopViewModel
 ) {
     when (section) {
-        is Section.Today -> TodaySection(section, loopViewModel)
-        is Section.Summary -> SummarySection(section, loopViewModel)
-        is Section.Later -> LaterSection(section, loopViewModel)
+        is Section.Ad -> sectionAd(section)
+        is Section.Later -> sectionLater(section, loopViewModel)
+        is Section.Today -> sectionToday(section, loopViewModel)
+        is Section.Summary -> sectionSummary(section, loopViewModel)
     }
 }
 
-private fun LazyListScope.TodaySection(
+private fun LazyListScope.sectionToday(
     section: Section.Today,
     loopViewModel: LoopViewModel,
 ) {
@@ -82,7 +90,8 @@ private fun LazyListScope.TodaySection(
     }
 
     item(
-        contentType = ContentTypes.TOGGLE_HEADER
+        contentType = ContentTypes.TODAY_HEADER,
+        key = section.headerKey
     ) {
         TimelineHeaderButton(
             isSelected = isSelected,
@@ -146,12 +155,29 @@ private fun TimelineHeaderButton(
     }
 }
 
-private fun LazyListScope.SummarySection(
+private fun LazyListScope.sectionAd(
+    section: Section.Ad
+) {
+    item(
+        key = section.headerKey,
+        contentType = ContentTypes.AD_CARD
+    ) {
+        NativeAd(
+            modifier = Modifier.padding(
+                horizontal = 8.dp,
+                vertical = 12.dp
+            ),
+            adId = HOME_NATIVE_AD_ID
+        )
+    }
+}
+
+private fun LazyListScope.sectionSummary(
     section: Section.Summary,
     loopViewModel: LoopViewModel,
 ) {
     item(
-        key = "Summary",
+        key = section.headerKey,
         contentType = ContentTypes.LOOP_SUMMARY_CARD
     ) {
         LoopSummaryCard(
@@ -165,14 +191,14 @@ private fun LazyListScope.SummarySection(
     }
 }
 
-private fun LazyListScope.LaterSection(
+private fun LazyListScope.sectionLater(
     section: Section.Later,
     loopViewModel: LoopViewModel,
 ) {
     var isExpanded by section.isExpanded
     item(
-        key = section.title,
-        contentType = ContentTypes.EXPANDABLE_HEADER
+        key = section.headerKey,
+        contentType = ContentTypes.LATER_HEADER
     ) {
         ExpandableHeader(
             modifier = Modifier.padding(top = 8.dp),
@@ -246,28 +272,41 @@ private fun ExpandableHeader(
 }
 
 enum class ContentTypes {
-    EXPANDABLE_HEADER,
-    TOGGLE_HEADER,
+    LATER_HEADER,
+    TODAY_HEADER,
     LOOP_CARD,
-    LOOP_SUMMARY_CARD
+    LOOP_SUMMARY_CARD,
+    AD_CARD,
 }
 
-sealed class Section {
+sealed class Section(val headerKey: String) {
     val items = mutableStateOf<List<LoopWithDone>>(emptyList())
 
-    val size
+    open val size
         get() = items.value.size
 
-    class Today(val showActiveDays: Boolean) : Section() {
+    class Today(val showActiveDays: Boolean) : Section(
+        headerKey = "TodaySection"
+    ) {
         val isSelected = mutableStateOf(false)
     }
 
-    class Summary : Section()
+    class Ad : Section(
+        headerKey = "AdSection"
+    ) {
+        override val size = 1
+    }
+
+    class Summary : Section(
+        headerKey = "SummarySection"
+    )
 
     class Later(
         val title: String,
         val showActiveDays: Boolean,
-    ) : Section() {
+    ) : Section(
+        headerKey = "LaterSection"
+    ) {
 
         val isExpanded = mutableStateOf(false)
     }

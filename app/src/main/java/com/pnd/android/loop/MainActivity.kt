@@ -8,6 +8,7 @@ import androidx.compose.ui.viewinterop.AndroidViewBinding
 import androidx.core.view.WindowCompat
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
+import com.google.android.gms.ads.MobileAds
 import com.pnd.android.loop.databinding.ContentMainBinding
 import com.pnd.android.loop.ui.theme.AppTheme
 import com.pnd.android.loop.util.LocalBackPressedDispatcher
@@ -18,6 +19,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        savedInstanceState ?: MobileAds.initialize(this) { }
 
         // Turn off the decor fitting system windows, which allows us to handle insets,
         // including IME animations

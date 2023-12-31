@@ -10,7 +10,7 @@
     <string name="add">Add</string>
     <string name="edit">Edit</string>
     <string name="done">DONE</string>
-    <string name="didnot">DID NOT</string>
+    <string name="skip">SKIP</string>
     <string name="later">Later</string>
     <string name="start">Start</string>
     <string name="end">End</string>

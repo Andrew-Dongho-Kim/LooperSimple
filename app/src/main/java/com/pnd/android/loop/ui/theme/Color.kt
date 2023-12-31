@@ -39,7 +39,9 @@ val Teal200 = Color(0xFF03DAC5)
 
 @Composable
 fun compositeOverSurface(): Color {
-    return MaterialTheme.colors.compositedOnSurface(0.1f)
+    return MaterialTheme.colors.compositedOnSurface(
+        if (MaterialTheme.colors.isLight) 0.05f else 0.1f
+    )
 }
 
 /**

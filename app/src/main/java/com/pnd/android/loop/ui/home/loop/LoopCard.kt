@@ -13,7 +13,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -34,6 +33,7 @@ import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -61,13 +61,13 @@ import com.pnd.android.loop.data.LoopVo.Day.Companion.isOn
 import com.pnd.android.loop.data.LoopWithDone
 import com.pnd.android.loop.util.ABB_DAYS
 import com.pnd.android.loop.util.DAY_STRING_MAP
+import com.pnd.android.loop.util.formatHourMinute
 import com.pnd.android.loop.util.intervalString
 import com.pnd.android.loop.util.isActive
 import com.pnd.android.loop.util.isActiveDay
 import com.pnd.android.loop.util.isPast
 import com.pnd.android.loop.util.rememberDayColor
 import com.pnd.android.loop.util.textFormatter
-import com.pnd.android.loop.util.formatHourMinute
 
 @Composable
 fun LoopCard(
@@ -76,31 +76,35 @@ fun LoopCard(
     loop: LoopWithDone,
     showActiveDays: Boolean,
 ) {
-    val cardShape = remember { LoopCardShape(12.dp) }
-    Card(
-        modifier = modifier
-            .padding(
-                horizontal = 24.dp,
-                vertical = 8.dp
-            )
-            .fillMaxWidth()
-            .clip(cardShape)
-            .clickable {
-                loopViewModel.addOrUpdateLoop(loop.copyAsLoop(enabled = !loop.enabled))
-            },
-        shape = cardShape,
-        border = BorderStroke(
-            width = 0.5.dp,
-            color = MaterialTheme.colors.onSurface.copy(alpha = 0.4f)
+
+    Box(modifier = modifier) {
+        LoopCardRepeatIndicator(
+            modifier = Modifier
+                .padding(start = 30.dp, top = 6.dp)
+                .size(14.dp)
         )
-    ) {
-        BoxWithConstraints(modifier = Modifier.height(50.dp)) {
+
+        val cardShape = remember { LoopCardShape(12.dp) }
+        Card(
+            modifier = Modifier
+                .padding(
+                    horizontal = 24.dp,
+                    vertical = 8.dp
+                )
+                .fillMaxWidth()
+                .clip(cardShape)
+                .clickable {
+                    loopViewModel.addOrUpdateLoop(loop.copyAsLoop(enabled = !loop.enabled))
+                },
+            shape = cardShape,
+            border = BorderStroke(
+                width = 0.5.dp,
+                color = MaterialTheme.colors.onSurface.copy(alpha = 0.4f)
+            )
+        ) {
             LoopCardContent(
                 modifier = Modifier
-                    .padding(
-                        horizontal = 12.dp,
-                        vertical = 6.dp
-                    )
+                    .height(54.dp)
                     .alpha(
                         if (loop.enabled) ContentAlpha.high else ContentAlpha.disabled
                     ),
@@ -108,16 +112,67 @@ fun LoopCard(
                 loop = loop,
                 showActiveDays = showActiveDays,
             )
-            LoopCardActiveEffect(
-                modifier = Modifier
-                    .width(maxWidth)
-                    .height(maxHeight),
-                loopViewModel = loopViewModel,
-                loop = loop,
-            )
         }
     }
 }
+
+@Composable
+private fun LoopCardRepeatIndicator(
+    modifier: Modifier = Modifier
+) {
+    Image(
+        modifier = modifier,
+        imageVector = Icons.Filled.Refresh,
+        colorFilter = ColorFilter.tint(
+            color = MaterialTheme.colors.onSurface.copy(
+                alpha = ContentAlpha.disabled
+            )
+        ),
+        contentDescription = ""
+    )
+}
+
+@Composable
+private fun LoopCardContent(
+    modifier: Modifier = Modifier,
+    loopViewModel: LoopViewModel,
+    loop: LoopWithDone,
+    showActiveDays: Boolean,
+) {
+
+    BoxWithConstraints(modifier = modifier) {
+        Row(
+            modifier = Modifier.padding(
+                horizontal = 12.dp,
+                vertical = 6.dp
+            ),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            LoopCardColor(
+                modifier = Modifier.size(10.dp),
+                color = loop.color
+            )
+
+            LoopCardBody(
+                modifier = Modifier
+                    .padding(top = 4.dp)
+                    .weight(1f),
+                loopViewModel = loopViewModel,
+                loop = loop,
+                showActiveDays = showActiveDays,
+            )
+        }
+
+        LoopCardActiveEffect(
+            modifier = Modifier
+                .width(maxWidth)
+                .height(maxHeight),
+            loopViewModel = loopViewModel,
+            loop = loop,
+        )
+    }
+}
+
 
 @Composable
 private fun LoopCardActiveEffect(
@@ -176,51 +231,19 @@ private fun LoopCardActiveEffect(
 }
 
 @Composable
-private fun LoopCardContent(
-    modifier: Modifier = Modifier,
-    loopViewModel: LoopViewModel,
-    loop: LoopWithDone,
-    showActiveDays: Boolean,
-) {
-    Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        LoopCardColor(
-            modifier = Modifier.size(10.dp),
-            color = loop.color
-        )
-
-        LoopCardBody(
-            modifier = Modifier
-                .padding(top = 4.dp)
-                .weight(1f),
-            loopViewModel = loopViewModel,
-            loop = loop,
-            showActiveDays = showActiveDays,
-        )
-    }
-}
-
-
-@Composable
 fun LoopCardColor(
     modifier: Modifier = Modifier,
     color: Int
 ) {
     Box(
         modifier = modifier
+            .alpha(0.7f)
             .background(
                 color = Color(color),
                 shape = CircleShape
             )
             .background(
-                color = MaterialTheme.colors.surface.copy(alpha = 0.3f),
-                shape = CircleShape
-            )
-            .border(
-                width = 0.5.dp,
-                color = MaterialTheme.colors.onSurface.copy(alpha = 0.4f),
+                color = MaterialTheme.colors.surface.copy(alpha = 0.25f),
                 shape = CircleShape
             )
     )
@@ -279,7 +302,7 @@ fun LoopCardBody(
                 onDone = { done ->
                     loopViewModel.doneLoop(
                         loop = loop,
-                        doneState = if (done) DoneState.DONE else DoneState.DID_NOT
+                        doneState = if (done) DoneState.DONE else DoneState.SKIP
                     )
                 }
             )
@@ -312,7 +335,7 @@ private fun LoopDoneOrNotButtons(
                 .aspectRatio(1f)
                 .padding(8.dp),
             imageVector = Icons.Filled.Close,
-            colorFilter = ColorFilter.tint(MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium)),
+            colorFilter = ColorFilter.tint(MaterialTheme.colors.onSurface),
             contentDescription = ""
         )
     }

@@ -247,14 +247,9 @@ fun intervalString(
             R.plurals.day
         }
 
-        msTime < MS_1MONTH -> {
+        else -> {
             time = (msTime / MS_1WEEK).toInt()
             R.plurals.week
-        }
-
-        else -> {
-            time = (msTime / MS_1MONTH).toInt()
-            R.plurals.month
         }
     }
 

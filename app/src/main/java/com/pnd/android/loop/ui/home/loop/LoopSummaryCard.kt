@@ -69,8 +69,8 @@ fun LoopSummaryCard(
 
         Summary(
             modifier = Modifier.padding(top = 8.dp),
-            loops = loopGroup[DoneState.DID_NOT] ?: emptyList(),
-            title = stringResource(id = R.string.didnot),
+            loops = loopGroup[DoneState.SKIP] ?: emptyList(),
+            title = stringResource(id = R.string.skip),
             icon = Icons.Filled.Clear,
             iconColor = MaterialTheme.colors.onSurface,
             onUndoDoneState = onUndoDoneState,
@@ -104,14 +104,15 @@ private fun Summary(
             )
         ) {
             SummaryHeader(
+                modifier = Modifier.align(Alignment.CenterHorizontally),
                 title = title,
                 icon = icon,
                 iconColor = iconColor,
             )
             Column(
-                modifier = Modifier.background(
-                    color = compositeOverSurface()
-                )
+                modifier = Modifier
+                    .padding(top = 4.dp)
+                    .background(color = compositeOverSurface())
             ) {
                 loops.forEach { loop ->
                     key(loop.id) {
@@ -134,17 +135,13 @@ private fun SummaryHeader(
     iconColor: Color,
 ) {
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(bottom = 8.dp),
+        modifier = modifier.padding(bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = title,
             style = MaterialTheme.typography.subtitle2.copy(
-                color = MaterialTheme.colors.onSurface.copy(
-                    alpha = ContentAlpha.medium
-                ),
+                color = MaterialTheme.colors.onSurface,
                 fontWeight = FontWeight.Bold
             )
         )
@@ -171,13 +168,7 @@ private fun SummaryItem(
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        LoopCardColor(
-            modifier = Modifier.size(10.dp),
-            color = loop.color
-        )
-
         SummaryItemTitle(
-            modifier = Modifier.padding(start = 8.dp),
             title = loop.title
         )
 
@@ -185,6 +176,13 @@ private fun SummaryItem(
             modifier = Modifier.padding(start = 4.dp),
             loopStart = loop.loopStart,
             loopEnd = loop.loopEnd
+        )
+
+        LoopCardColor(
+            modifier = Modifier
+                .padding(start = 8.dp)
+                .size(8.dp),
+            color = loop.color
         )
 
         SummaryItemDoneStateButton(

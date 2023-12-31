@@ -59,13 +59,13 @@ val AppTypography = Typography(
         letterSpacing = 0.sp
     ),
     subtitle2 = TextStyle(
-        fontFamily = KarlaFontFamily,
+//        fontFamily = KarlaFontFamily,
         fontWeight = FontWeight.Bold,
-        fontSize = 14.sp,
+        fontSize = 15.sp,
         letterSpacing = 0.1.sp
     ),
     body1 = TextStyle(
-        fontFamily = KarlaFontFamily,
+//        fontFamily = KarlaFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 14.sp,
         letterSpacing = 0.sp,
@@ -82,7 +82,7 @@ val AppTypography = Typography(
         letterSpacing = 1.25.sp
     ),
     caption = TextStyle(
-        fontFamily = KarlaFontFamily,
+//        fontFamily = KarlaFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 11.sp,
         letterSpacing = 0.15.sp
