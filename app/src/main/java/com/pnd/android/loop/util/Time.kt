@@ -274,5 +274,3 @@ fun dh2m2(msTime: Long): String {
         String.format("%d days, %s", msTime / MS_1DAY, h2m2(msTime))
     }
 }
-
-

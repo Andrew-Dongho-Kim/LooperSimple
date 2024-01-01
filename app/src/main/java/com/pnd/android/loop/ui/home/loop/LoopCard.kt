@@ -323,7 +323,11 @@ private fun LoopDoneOrNotButtons(
                 .aspectRatio(1f)
                 .padding(8.dp),
             imageVector = Icons.Filled.Done,
-            colorFilter = ColorFilter.tint(MaterialTheme.colors.primary),
+            colorFilter = ColorFilter.tint(
+                MaterialTheme.colors.primary.copy(
+                    alpha = ContentAlpha.medium
+                )
+            ),
             contentDescription = ""
         )
 
@@ -335,7 +339,11 @@ private fun LoopDoneOrNotButtons(
                 .aspectRatio(1f)
                 .padding(8.dp),
             imageVector = Icons.Filled.Close,
-            colorFilter = ColorFilter.tint(MaterialTheme.colors.onSurface),
+            colorFilter = ColorFilter.tint(
+                MaterialTheme.colors.onSurface.copy(
+                    alpha = ContentAlpha.medium
+                )
+            ),
             contentDescription = ""
         )
     }

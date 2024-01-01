@@ -2,15 +2,15 @@ package com.pnd.android.loop.ui.home.loop
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material.Card
 import androidx.compose.material.ContentAlpha
 import androidx.compose.material.MaterialTheme
@@ -37,7 +37,6 @@ import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.ui.theme.RoundShapes
-import com.pnd.android.loop.ui.theme.compositeOverSurface
 import com.pnd.android.loop.util.formatHourMinute
 
 @Composable
@@ -110,9 +109,7 @@ private fun Summary(
                 iconColor = iconColor,
             )
             Column(
-                modifier = Modifier
-                    .padding(top = 4.dp)
-                    .background(color = compositeOverSurface())
+                modifier = Modifier.padding(top = 4.dp)
             ) {
                 loops.forEach { loop ->
                     key(loop.id) {
@@ -166,7 +163,7 @@ private fun SummaryItem(
     Row(
         modifier = modifier
             .padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         SummaryItemTitle(
             title = loop.title
@@ -180,13 +177,16 @@ private fun SummaryItem(
 
         LoopCardColor(
             modifier = Modifier
-                .padding(start = 8.dp)
+                .padding(horizontal = 8.dp)
+                .padding(end = 12.dp)
                 .size(8.dp),
             color = loop.color
         )
 
+        Spacer(modifier = Modifier.weight(1f))
+
         SummaryItemDoneStateButton(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.fillMaxSize(),
             loop = loop,
             onUndoDonState = onUndoDoneState
         )
@@ -234,26 +234,23 @@ private fun SummaryItemDoneStateButton(
     loop: LoopBase,
     onUndoDonState: (loop: LoopBase) -> Unit
 ) {
-    Box(modifier = modifier.fillMaxWidth()) {
-        Image(
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .clickable { onUndoDonState(loop) }
-                .border(
-                    width = 0.5.dp,
-                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.1f),
-                    shape = RoundShapes.small
-                )
-                .clip(shape = RoundShapes.small)
-                .padding(horizontal = 10.dp, vertical = 4.dp)
-                .size(16.dp),
-            imageVector = Icons.Filled.Refresh,
-            colorFilter = ColorFilter.tint(
-                color = MaterialTheme.colors.onSurface.copy(
-                    alpha = ContentAlpha.medium
-                )
-            ),
-            contentDescription = ""
-        )
-    }
+    Image(
+        modifier = modifier
+            .clickable { onUndoDonState(loop) }
+            .border(
+                width = 0.5.dp,
+                color = MaterialTheme.colors.onSurface.copy(alpha = 0.1f),
+                shape = RoundShapes.small
+            )
+            .clip(shape = RoundShapes.small)
+            .padding(horizontal = 10.dp, vertical = 4.dp)
+            .size(16.dp),
+        imageVector = Icons.Filled.Refresh,
+        colorFilter = ColorFilter.tint(
+            color = MaterialTheme.colors.onSurface.copy(
+                alpha = ContentAlpha.medium
+            )
+        ),
+        contentDescription = ""
+    )
 }

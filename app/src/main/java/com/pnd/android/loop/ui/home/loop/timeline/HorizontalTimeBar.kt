@@ -12,10 +12,12 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.util.formatHour
+
+
 
 
 @Composable
@@ -24,7 +26,9 @@ fun HorizontalTimeBar(
     horizontalScrollState: ScrollState,
 ) {
     Row(
-        modifier = modifier.horizontalScroll(horizontalScrollState)
+        modifier = modifier
+            .horizontalScroll(horizontalScrollState)
+            .padding(start = timelineItemWidth - timeBarFontSize / 2)
     ) {
         (1..24).forEach { hour ->
             TimeBarHeaderText(hour = hour)
@@ -35,20 +39,19 @@ fun HorizontalTimeBar(
 @Composable
 private fun TimeBarHeaderText(
     modifier: Modifier = Modifier,
-    hour:Int
+    hour: Int
 ) {
     Box(
         modifier = modifier
     ) {
         Text(
             modifier = Modifier
-                .align(Alignment.Center)
-                .width(itemGridWidth)
-                .padding(end = 4.dp),
+                .align(Alignment.CenterStart)
+                .width(timelineItemWidth),
             text = formatHour(hour = hour, withAmPm = false),
-            style = MaterialTheme.typography.caption.copy(
+            style = timeBarFontStyle.copy(
                 color = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium),
-                textAlign = TextAlign.End
+                textAlign = TextAlign.Start
             ),
             maxLines = 1,
             overflow = TextOverflow.Clip

@@ -1,6 +1,5 @@
 package com.pnd.android.loop.ui.home.loop
 
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -93,7 +92,6 @@ private fun LoopViewModel.observeSectionsAsState(): State<List<Section>> {
             rememberDoneSection(loops),
             rememberLaterSection(loops)
         ).filter { it.size > 0 }
-        Log.d("TEST-DH", "Sections:$sections")
 
         remember(sections) { mutableStateOf(sections) }
     }

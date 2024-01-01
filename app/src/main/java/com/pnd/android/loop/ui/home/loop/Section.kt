@@ -67,15 +67,16 @@ private fun LazyListScope.sectionToday(
     loopViewModel: LoopViewModel,
 ) {
     var isSelected by section.isSelected
+    val loops by section.items
 
     if (isSelected) {
         item {
             LoopTimeline(
-                loopViewModel = loopViewModel
+                loopViewModel = loopViewModel,
+                loops = loops
             )
         }
     } else {
-        val loops by section.items
         items(
             items = loops,
             key = { loop -> loop.id },

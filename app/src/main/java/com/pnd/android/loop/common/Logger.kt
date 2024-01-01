@@ -7,8 +7,6 @@ const val APP_VERSION = "1.0"
 
 fun log(tag: String) = Logger(tag)
 
-fun test(message:()->String) = Logger("TEST-DH").d(message)
-
 class Logger(val tag: String) {
     inline fun d(crossinline message: () -> String) =
         Log.d(tag, "[$PREFIX_TAG] ${message()} - AppVersion: $APP_VERSION")
