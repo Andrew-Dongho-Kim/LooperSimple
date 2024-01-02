@@ -45,9 +45,9 @@
     <string name="am">AM</string>
     <string name="pm">PM</string>
 
-    <string name="hour_time">%d:00</string>
-    <string name="am_time">%d AM</string>
-    <string name="pm_time">%d PM</string>
+    <string name="timeline_hour">%d</string>
+    <string name="timeline_am_hour">%d\nAM</string>
+    <string name="timeline_pm_hour">%d\nPM</string>
 
     <plurals name="second" translatable="false">
         <item quantity="zero">@string/second</item>

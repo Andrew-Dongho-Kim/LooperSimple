@@ -164,8 +164,10 @@ private fun SummaryItem(
         modifier = modifier
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
+
     ) {
         SummaryItemTitle(
+            modifier = Modifier.weight(1f),
             title = loop.title
         )
 
@@ -183,10 +185,9 @@ private fun SummaryItem(
             color = loop.color
         )
 
-        Spacer(modifier = Modifier.weight(1f))
+//        Spacer(modifier = Modifier.weight(1f))
 
         SummaryItemDoneStateButton(
-            modifier = Modifier.fillMaxSize(),
             loop = loop,
             onUndoDonState = onUndoDoneState
         )
@@ -222,7 +223,7 @@ private fun SummaryItemStartAndEndTime(
         text = "(${loopStart.formatHourMinute(true)} ~ ${loopEnd.formatHourMinute(true)})",
         style = MaterialTheme.typography.body2.copy(
             color = MaterialTheme.colors.onSurface.copy(
-                alpha = ContentAlpha.medium
+                alpha = ContentAlpha.disabled
             ),
         )
     )

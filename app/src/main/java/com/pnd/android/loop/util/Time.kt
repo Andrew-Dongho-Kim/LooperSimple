@@ -107,18 +107,6 @@ fun LocalTime.toMs() = TimeUnit.NANOSECONDS.toMillis(toNanoOfDay())
 
 
 @Composable
-fun formatHour(hour: Int, withAmPm: Boolean = true): String {
-    return stringResource(
-        id = if (withAmPm) {
-            if (hour < 12) R.string.am_time else R.string.pm_time
-        } else {
-            R.string.hour_time
-        },
-        formatArgs = arrayOf((hour % 12).run { if (this == 0) 12 else this })
-    )
-}
-
-@Composable
 fun Long.formatHourMinute(withAmPm: Boolean = true): String {
     return toLocalTime().formatHourMinute(withAmPm)
 }

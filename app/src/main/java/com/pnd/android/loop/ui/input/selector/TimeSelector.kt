@@ -3,12 +3,14 @@ package com.pnd.android.loop.ui.input.selector
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.ContentAlpha
 import androidx.compose.material.MaterialTheme
@@ -197,7 +199,11 @@ fun DaySelector(
             )
         )
 
-        Row(modifier = Modifier.padding(top = 16.dp)) {
+        Row(
+            modifier = Modifier
+                .padding(top = 16.dp)
+                .horizontalScroll(state = rememberScrollState())
+        ) {
             ABB_DAYS.forEachIndexed { index, dayResId ->
                 DateItemText(
                     modifier = Modifier

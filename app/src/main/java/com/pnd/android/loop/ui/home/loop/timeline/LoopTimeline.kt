@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -16,7 +17,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -29,6 +35,11 @@ import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopWithDone
 import com.pnd.android.loop.ui.home.loop.LoopViewModel
 import com.pnd.android.loop.ui.theme.RoundShapes
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import java.time.LocalTime
+import java.time.temporal.ChronoUnit
+import kotlin.math.max
 
 @Composable
 fun LoopTimeline(
@@ -57,7 +68,8 @@ private fun TimelineContent(
 ) {
     Box(modifier = modifier) {
         TimeGrid(
-            horizontalScrollState = horizontalScrollState
+            modifier = Modifier.height(timelineHeight),
+            horizontalScrollState = horizontalScrollState,
         )
         TimelineLoops(
             modifier = Modifier.align(Alignment.BottomStart),
@@ -77,13 +89,8 @@ private fun TimelineLoops(
         Column(
             modifier = Modifier
                 .background(color = MaterialTheme.colors.onSurface.copy(alpha = 0.1f))
-                .width(timelineItemWidth.times(24))
-                .fillMaxHeight()
-//            .verticalScroll(
-//                state = verticalScrollState,
-//                reverseScrolling = true
-//            ),
-            ,
+                .width(timelineWidth)
+                .fillMaxHeight(),
             verticalArrangement = Arrangement.Bottom
         ) {
             loops.forEach { loop ->
@@ -114,7 +121,7 @@ private fun TimelineLoop(
                 shape = shape
             )
             .width(loop.timelineWidth())
-            .height(timelineItemHeight)
+            .height(timelineItemHeightDp)
     )
 }
 
@@ -123,27 +130,73 @@ private fun TimeGrid(
     modifier: Modifier = Modifier,
     horizontalScrollState: ScrollState,
 ) {
-    Row(
-        modifier = modifier
-            .height(timelineHeight)
-            .horizontalScroll(horizontalScrollState)
-    ) {
-        Box(modifier = Modifier.width(timelineItemWidth.times(24))) {
-            repeat(24) { time ->
-                VerticalDivider(
-                    modifier = Modifier.offset {
-                        IntOffset(
-                            x = timelineItemWidth.times(time).roundToPx(),
-                            y = 0
-                        )
-                    },
-                    thickness = 0.5.dp,
-                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.3f)
+    BoxWithConstraints(modifier = modifier) {
+        val timeGridWidth = constraints.maxWidth
+        Row(
+            modifier = Modifier.horizontalScroll(horizontalScrollState)
+        ) {
+            Box(modifier = Modifier.width(timelineWidth)) {
+                ScrollToLocalTime(
+                    scrollState = horizontalScrollState,
+                    timeGridWidth = timeGridWidth,
                 )
+                repeat(24) { time ->
+                    VerticalDivider(
+                        modifier = Modifier.offset {
+                            IntOffset(
+                                x = timelineItemWidthDp.times(time + 1).roundToPx(),
+                                y = 0
+                            )
+                        },
+                        thickness = 0.5.dp,
+                        color = MaterialTheme.colors.onSurface.copy(alpha = 0.3f)
+                    )
+                }
+                LocalTimeVerticalLineIndicator()
             }
         }
     }
 
+}
+
+@Composable
+private fun LocalTimeVerticalLineIndicator(
+    modifier: Modifier = Modifier,
+) {
+    var localTime by remember { mutableStateOf(LocalTime.now()) }
+    LaunchedEffect(key1 = Unit) {
+        while (isActive) {
+            val next = LocalTime.of(
+                localTime.hour + if (localTime.minute >= 59) 1 else 0,
+                localTime.minute + if (localTime.minute < 59) 1 else 0
+            )
+            delay(localTime.until(next, ChronoUnit.MILLIS))
+            localTime = LocalTime.now()
+        }
+    }
+    VerticalDivider(
+        modifier = modifier.offset {
+            IntOffset(
+                x = localTime.timelineOffsetStart().roundToPx(),
+                y = 0
+            )
+        },
+        thickness = 0.5.dp,
+        color = Color.Red
+    )
+}
+
+@Composable
+private fun ScrollToLocalTime(
+    scrollState: ScrollState,
+    timeGridWidth: Int,
+) {
+    val start = timeGridWidth / 2
+    val offset = LocalTime.now().hour * timeLineItemWidthPx
+
+    LaunchedEffect(key1 = Unit) {
+        scrollState.scrollTo(max(0, (offset - start).toInt()))
+    }
 }
 
 @Composable
