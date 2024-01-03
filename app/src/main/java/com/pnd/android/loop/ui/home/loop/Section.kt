@@ -72,7 +72,6 @@ private fun LazyListScope.sectionToday(
     if (isSelected) {
         item {
             LoopTimeline(
-                loopViewModel = loopViewModel,
                 loops = loops
             )
         }

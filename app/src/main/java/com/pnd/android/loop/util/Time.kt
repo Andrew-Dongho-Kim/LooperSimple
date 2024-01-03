@@ -79,14 +79,9 @@ val DAY_STRING_MAP = mapOf(
     WEEKENDS to R.string.weekends
 )
 
-val AmPm = listOf(
-    R.string.am,
-    R.string.pm
-)
-
 
 @Composable
-fun LocalDate.toYearMonthDateDaysString(): String {
+fun LocalDate.formatYearMonthDateDays(): String {
     val args = listOf(
         "$year",
         stringResource(id = ABB_MONTHS[monthValue - 1]),
@@ -98,13 +93,6 @@ fun LocalDate.toYearMonthDateDaysString(): String {
         formatArgs = args.toTypedArray()
     )
 }
-
-fun Long.toLocalTime(): LocalTime = LocalTime.ofNanoOfDay(
-    TimeUnit.NANOSECONDS.convert(this, TimeUnit.MILLISECONDS)
-)
-
-fun LocalTime.toMs() = TimeUnit.NANOSECONDS.toMillis(toNanoOfDay())
-
 
 @Composable
 fun Long.formatHourMinute(withAmPm: Boolean = true): String {
@@ -153,6 +141,12 @@ fun day(localDateTime: LocalDateTime = LocalDateTime.now()): @LoopVo.Day Int {
         else -> throw IllegalStateException("Unknown value for day of week")
     }
 }
+
+fun Long.toLocalTime(): LocalTime = LocalTime.ofNanoOfDay(
+    TimeUnit.NANOSECONDS.convert(this, TimeUnit.MILLISECONDS)
+)
+
+fun LocalTime.toMs() = TimeUnit.NANOSECONDS.toMillis(toNanoOfDay())
 
 fun hourIn24(msTime: Long): Int {
     return (if (msTime == MS_1DAY) 24 else (msTime % MS_1DAY) / MS_1HOUR).toInt()

@@ -31,7 +31,7 @@ import com.pnd.android.loop.R
 import com.pnd.android.loop.ui.home.loop.LoopViewModel
 import com.pnd.android.loop.ui.theme.elevatedSurface
 import com.pnd.android.loop.util.textFormatter
-import com.pnd.android.loop.util.toYearMonthDateDaysString
+import com.pnd.android.loop.util.formatYearMonthDateDays
 import java.time.LocalDate
 
 @Composable
@@ -47,7 +47,7 @@ fun HomeAppBar(
             Column(modifier = Modifier.weight(1f)) {
                 val localDate by loopViewModel.localDate.collectAsState(initial = LocalDate.now())
                 Text(
-                    text = localDate.toYearMonthDateDaysString(),
+                    text = localDate.formatYearMonthDateDays(),
                     style = MaterialTheme.typography.subtitle1
                 )
 

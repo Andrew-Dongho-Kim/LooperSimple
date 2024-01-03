@@ -46,8 +46,8 @@
     <string name="pm">오후</string>
 
     <string name="timeline_hour">%d시</string>
-    <string name="timeline_am_hour">%d시\n오전</string>
-    <string name="timeline_pm_hour">%d시\n오후</string>
+    <string name="timeline_am_hour">오전 %d시</string>
+    <string name="timeline_pm_hour">오후 %d시</string>
 
 
     <string name="every">%s 마다</string>

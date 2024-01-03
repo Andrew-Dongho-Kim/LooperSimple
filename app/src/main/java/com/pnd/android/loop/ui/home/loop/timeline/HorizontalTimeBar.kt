@@ -4,8 +4,7 @@ import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.ContentAlpha
 import androidx.compose.material.MaterialTheme
@@ -17,9 +16,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import kotlin.math.ceil
 
 
@@ -29,19 +28,15 @@ fun HorizontalTimeBar(
     horizontalScrollState: ScrollState,
 ) {
     val amPmIndex by rememberAmPmDisplayIndex(scrollState = horizontalScrollState)
-    val hourTextHalfWidth = timeBarFontSizeDp(timelineHourFormat(hour = 1, withAmPm = false)) / 2
-    Row(
-        modifier = modifier
-            .horizontalScroll(horizontalScrollState)
-            .padding(start = timelineItemWidthDp - hourTextHalfWidth)
-    ) {
-        (1..24).forEach { hour ->
-            TimeBarHeaderText(
-                hour = hour,
-                withAmPm = amPmIndex.first == hour || amPmIndex.second == hour
-            )
+    Row(modifier = modifier.horizontalScroll(horizontalScrollState)) {
+        Box(modifier = Modifier.width(timelineWidth)) {
+            (1..24).forEach { hour ->
+                TimeBarHeaderText(
+                    hour = hour,
+                    withAmPm = amPmIndex.first == hour || amPmIndex.second == hour
+                )
+            }
         }
-        Spacer(modifier = Modifier.width(timelineWidthExtra))
     }
 }
 
@@ -51,14 +46,23 @@ private fun TimeBarHeaderText(
     hour: Int,
     withAmPm: Boolean,
 ) {
+    val text = timelineHourFormat(hour = hour, withAmPm = withAmPm)
+    val offset = timelineItemWidthDp.times(hour) - (timeBarTextWidth(text) / 2)
+
     Box(
         modifier = modifier
     ) {
         Text(
             modifier = Modifier
+                .offset {
+                    IntOffset(
+                        x = offset.roundToPx(),
+                        y = 0
+                    )
+                }
                 .align(Alignment.CenterStart)
                 .width(timelineItemWidthDp),
-            text = timelineHourFormat(hour = hour, withAmPm = withAmPm),
+            text = text,
             style = timeBarFontStyle.copy(
                 color = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium),
                 textAlign = TextAlign.Start
