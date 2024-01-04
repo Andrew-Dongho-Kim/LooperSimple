@@ -75,6 +75,7 @@ class UserInputState(
         mode = Mode.None
         value = LoopBase.default()
         textFieldValue = TextFieldValue()
+        setSelector(InputSelector.NONE)
     }
 
     private fun ensureMode() {
