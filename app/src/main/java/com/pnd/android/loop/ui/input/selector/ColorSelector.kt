@@ -28,7 +28,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
-import com.pnd.android.loop.data.LoopVo
+import com.pnd.android.loop.data.LoopBase
 import kotlin.math.min
 import kotlin.math.roundToInt
 
@@ -46,7 +46,7 @@ fun ColorSelector(
             .padding(top = 12.dp)
             .semantics { contentDescription = description }
     ) {
-        val colors = LoopVo.SUPPORTED_COLORS
+        val colors = LoopBase.SUPPORTED_COLORS
         val numberOfRows = (colors.size + COLOR_COLUMNS - 1) / COLOR_COLUMNS
 
         repeat(numberOfRows) { row ->
@@ -70,9 +70,9 @@ private fun ColorRows(
         modifier = modifier
             .fillMaxWidth()
             .padding(bottom = 8.dp),
-        horizontalArrangement = SpaceEvenlyStart
+        horizontalArrangement = spaceEvenlyStart
     ) {
-        val colors = LoopVo.SUPPORTED_COLORS
+        val colors = LoopBase.SUPPORTED_COLORS
         val numberOfColumns = min((colors.size - COLOR_COLUMNS * row), COLOR_COLUMNS)
 
         repeat(numberOfColumns) { column ->
@@ -141,7 +141,7 @@ private fun ColorBox(
 
 
 @Stable
-private val SpaceEvenlyStart = object : Arrangement.HorizontalOrVertical {
+private val spaceEvenlyStart = object : Arrangement.HorizontalOrVertical {
     override val spacing = 0.dp
 
     override fun Density.arrange(

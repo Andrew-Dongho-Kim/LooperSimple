@@ -25,7 +25,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.outlined.ModeEdit
 import androidx.compose.material.icons.outlined.Timelapse
-import androidx.compose.material.icons.outlined.VolumeUp
 import androidx.compose.material.icons.twotone.HourglassBottom
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -48,11 +47,8 @@ import com.pnd.android.loop.ui.theme.elevatedSurface
 @Composable
 fun UserInputButtons(
     modifier: Modifier = Modifier,
-    submitEnabled: Boolean,
+    inputState: UserInputState,
     onSubmitted: () -> Unit,
-    prevInputSelector: InputSelector,
-    currInputSelector: InputSelector,
-    onInputSelectorChanged: (InputSelector) -> Unit,
     isEditing: Boolean = false,
 ) {
     Row(
@@ -63,14 +59,12 @@ fun UserInputButtons(
         verticalAlignment = Alignment.CenterVertically
     ) {
         UserInputSelectorButtons(
-            prevInputSelector = prevInputSelector,
-            currInputSelector = currInputSelector,
-            onInputSelectorChanged = onInputSelectorChanged,
+            inputState = inputState,
         )
 
         Spacer(modifier = Modifier.weight(1f))
         UserInputSubmitButton(
-            enabled = submitEnabled,
+            enabled = !inputState.isTitleEmpty,
             onSubmitted = onSubmitted,
             isEditing = isEditing
         )
@@ -80,41 +74,32 @@ fun UserInputButtons(
 @Composable
 private fun UserInputSelectorButtons(
     modifier: Modifier = Modifier,
-    prevInputSelector: InputSelector,
-    currInputSelector: InputSelector,
-    onInputSelectorChanged: (InputSelector) -> Unit,
+    inputState: UserInputState,
 ) {
     Box(modifier = modifier) {
         val buttonSize = dimensionResource(id = R.dimen.user_input_selector_button_size)
         UserInputButtonsIndicator(
+            inputState = inputState,
             size = buttonSize,
-            prevInputSelector = prevInputSelector,
-            currInputSelector = currInputSelector,
         )
         Row {
             SelectorButton(
                 modifier = Modifier.size(buttonSize),
                 icon = Icons.Filled.FiberManualRecord,
                 contentDescription = stringResource(id = R.string.desc_color_selector)
-            ) { onInputSelectorChanged(InputSelector.COLOR) }
-
-            SelectorButton(
-                modifier = Modifier.size(buttonSize),
-                icon = Icons.TwoTone.HourglassBottom,
-                contentDescription = stringResource(id = R.string.desc_interval_selector)
-            ) { onInputSelectorChanged(InputSelector.ALARM_INTERVAL) }
+            ) { inputState.setSelector(InputSelector.COLOR) }
 
             SelectorButton(
                 modifier = Modifier.size(buttonSize),
                 icon = Icons.Outlined.Timelapse,
                 contentDescription = stringResource(id = R.string.desc_time_selector)
-            ) { onInputSelectorChanged(InputSelector.START_END_TIME) }
+            ) { inputState.setSelector(InputSelector.START_END_TIME) }
 
             SelectorButton(
                 modifier = Modifier.size(buttonSize),
-                icon = Icons.Outlined.VolumeUp,
-                contentDescription = stringResource(id = R.string.desc_alarm_selector)
-            ) { onInputSelectorChanged(InputSelector.ALARMS) }
+                icon = Icons.TwoTone.HourglassBottom,
+                contentDescription = stringResource(id = R.string.desc_interval_selector)
+            ) { inputState.setSelector(InputSelector.ALARM_INTERVAL) }
         }
     }
 }
@@ -122,16 +107,18 @@ private fun UserInputSelectorButtons(
 @Composable
 private fun UserInputButtonsIndicator(
     modifier: Modifier = Modifier,
+    inputState: UserInputState,
     size: Dp,
-    prevInputSelector: InputSelector,
-    currInputSelector: InputSelector,
 ) {
-    if (currInputSelector == InputSelector.NONE) return
+    val currSelector = inputState.currSelector
+    val prevSelector = inputState.prevSelector
+
+    if (currSelector == InputSelector.NONE) return
 
     val offsetX by animateDpAsState(
-        targetValue = size * currInputSelector.ordinal,
+        targetValue = size * currSelector.ordinal,
         animationSpec = tween(
-            durationMillis = if (prevInputSelector == InputSelector.NONE) 0 else 300,
+            durationMillis = if (prevSelector == InputSelector.NONE) 0 else 300,
             easing = LinearOutSlowInEasing,
         ),
         label = ""

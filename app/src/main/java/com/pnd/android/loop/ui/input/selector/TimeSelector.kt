@@ -37,9 +37,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.common.log
-import com.pnd.android.loop.data.LoopVo.Day.Companion.fromIndex
-import com.pnd.android.loop.data.LoopVo.Day.Companion.isOn
-import com.pnd.android.loop.data.LoopVo.Day.Companion.toggle
+import com.pnd.android.loop.data.Day.Companion.fromIndex
+import com.pnd.android.loop.data.Day.Companion.isOn
+import com.pnd.android.loop.data.Day.Companion.toggle
 import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.util.ABB_DAYS
 import com.pnd.android.loop.util.rememberDayColor

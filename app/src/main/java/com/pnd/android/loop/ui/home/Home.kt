@@ -8,15 +8,12 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import com.pnd.android.loop.data.LoopVo
+import com.pnd.android.loop.data.asLoopVo
 import com.pnd.android.loop.ui.home.loop.LoopViewModel
 import com.pnd.android.loop.ui.home.loop.Loops
 import com.pnd.android.loop.ui.input.UserInput
+import com.pnd.android.loop.ui.input.rememberUserInputState
 
 @Composable
 fun Home(
@@ -26,7 +23,7 @@ fun Home(
     Box(modifier = modifier.fillMaxSize()) {
         Column {
             val lazyListState = rememberLazyListState()
-            var loop by remember { mutableStateOf(LoopVo.default()) }
+            val inputState = rememberUserInputState()
 
             Loops(
                 modifier = Modifier
@@ -39,12 +36,9 @@ fun Home(
                 modifier = Modifier
                     .navigationBarsPadding()
                     .imePadding(),
+                inputState = inputState,
                 lazyListState = lazyListState,
-                loop = loop,
-                onLoopUpdated = { updatedLoop ->
-                    loop = updatedLoop
-                },
-                onLoopSubmitted = { newLoop -> loopViewModel.addOrUpdateLoop(newLoop) },
+                onLoopSubmitted = { newLoop -> loopViewModel.addOrUpdateLoop(newLoop.asLoopVo()) },
             )
         }
         HomeAppBar(

@@ -7,37 +7,35 @@ import kotlinx.coroutines.flow.Flow
 
 data class LoopWithDone(
     override val id: Int = 0,
-    override val color: Int = LoopVo.DEFAULT_COLOR,
-    override val title: String = "",
-    override val loopStart: Long = 0L,
-    override val loopEnd: Long = 0L,
-    override val loopActiveDays: Int = LoopVo.Day.EVERYDAY,
-    val interval: Long = LoopVo.NO_REPEAT,
+    override val color: Int,
+    override val title: String,
+    override val loopStart: Long,
+    override val loopEnd: Long,
+    override val loopActiveDays: Int,
+    override val interval: Long,
     val alarms: Int = NO_ALARMS,
-    override val enabled: Boolean = true,
+    override val enabled: Boolean,
     val date: Long = 0L,
     @LoopDoneVo.DoneState val done: Int = LoopDoneVo.DoneState.NO_RESPONSE,
 ) : LoopBase {
-    fun copyAsLoop(
-        id: Int = this.id,
-        color: Int = this.color,
-        title: String = this.title,
-        loopStart: Long = this.loopStart,
-        loopEnd: Long = this.loopEnd,
-        loopActiveDays: Int = this.loopActiveDays,
-        interval: Long = this.interval,
-        alarms: Int = this.alarms,
-        enabled: Boolean = this.enabled
-    ) = LoopVo(
+    override fun copy(
+        id: Int,
+        title: String,
+        color: Int,
+        loopStart: Long,
+        loopEnd: Long,
+        loopActiveDays: Int,
+        interval: Long,
+        enabled: Boolean
+    ): LoopBase = LoopWithDone(
         id = id,
-        color = color,
         title = title,
+        color = color,
         loopStart = loopStart,
         loopEnd = loopEnd,
         loopActiveDays = loopActiveDays,
         interval = interval,
-        alarms = alarms,
-        enabled = enabled
+        enabled = enabled,
     )
 }
 

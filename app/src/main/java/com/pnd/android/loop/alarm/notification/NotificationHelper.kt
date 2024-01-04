@@ -5,11 +5,12 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.pnd.android.loop.R
 import com.pnd.android.loop.alarm.AlarmController
+import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopVo
+import com.pnd.android.loop.data.putTo
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 
@@ -40,7 +41,7 @@ class NotificationHelper @Inject constructor(
         PendingIntent.FLAG_UPDATE_CURRENT
     )
 
-    fun notify(loop: LoopVo) {
+    fun notify(loop: LoopBase) {
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_app)
             .setContentTitle(loop.title)
@@ -54,7 +55,7 @@ class NotificationHelper @Inject constructor(
         nm.notify(loop.id, builder.build())
     }
 
-    fun cancel(loop: LoopVo) {
+    fun cancel(loop: LoopBase) {
         nm.cancel(loop.id)
     }
 }

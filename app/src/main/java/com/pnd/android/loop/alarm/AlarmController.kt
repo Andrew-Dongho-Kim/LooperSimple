@@ -5,19 +5,20 @@ import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.os.SystemClock
-import android.os.VibrationEffect
-import android.os.Vibrator
 import android.widget.Toast
 import androidx.annotation.VisibleForTesting
 import com.pnd.android.loop.alarm.notification.NotificationHelper
 import com.pnd.android.loop.common.log
 import com.pnd.android.loop.data.AppDatabase
+import com.pnd.android.loop.data.Day
+import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopVo
-import com.pnd.android.loop.data.LoopVo.Companion.NO_REPEAT
-import com.pnd.android.loop.data.LoopVo.Companion.asLoop
+import com.pnd.android.loop.data.NO_REPEAT
+import com.pnd.android.loop.data.asLoop
+import com.pnd.android.loop.data.asLoopVo
 import com.pnd.android.loop.data.description
+import com.pnd.android.loop.data.putTo
 import com.pnd.android.loop.util.day
 import com.pnd.android.loop.util.dh2m2
 import com.pnd.android.loop.util.hourIn24
@@ -47,7 +48,7 @@ class AlarmController @Inject constructor(
     private val loopDao = appDb.loopDao()
 
     @VisibleForTesting
-    fun notifyAfter(loop: LoopVo): Long {
+    fun notifyAfter(loop: LoopBase): Long {
         val curr = localTimeInDay()
 
         val loopStart = loop.loopStart
@@ -61,13 +62,13 @@ class AlarmController @Inject constructor(
     }
 
     fun reserveAlarm(
-        loop: LoopVo,
+        loop: LoopBase,
         showToast: Boolean = true
     ) {
         val after = notifyAfter(loop)
         val systemElapsed = SystemClock.elapsedRealtime()
         if (!loop.enabled) {
-            coroutineScope.launch { loopDao.addOrUpdate(loop.copy(enabled = true)) }
+            coroutineScope.launch { loopDao.addOrUpdate(loop.asLoopVo(enabled = true)) }
         }
         if (after == NO_NOTIFY) {
             return
@@ -107,23 +108,6 @@ class AlarmController @Inject constructor(
         }
     }
 
-    fun vibe() {
-        val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator?
-        val msTime = 10L
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            vibrator!!.vibrate(
-                VibrationEffect.createOneShot(
-                    msTime,
-                    VibrationEffect.DEFAULT_AMPLITUDE
-                )
-            )
-        } else {
-            vibrator!!.vibrate(msTime)
-        }
-    }
-
-
     fun syncAlarms() {
         logger.d { "start sync" }
         coroutineScope.launch {
@@ -137,9 +121,9 @@ class AlarmController @Inject constructor(
         }
     }
 
-    fun cancelAlarm(loop: LoopVo) {
+    fun cancelAlarm(loop: LoopBase) {
         if (loop.enabled) {
-            coroutineScope.launch { loopDao.addOrUpdate(loop.copy(enabled = false)) }
+            coroutineScope.launch { loopDao.addOrUpdate(loop.asLoopVo(enabled = false)) }
         }
         logger.d { " - cancel id:${loop.id}, title:${loop.title}" }
 
@@ -197,7 +181,6 @@ class AlarmController @Inject constructor(
             val isAllowedDay = loop.isActiveDay()
             val isAllowedTime = loop.isActiveTime()
             if (isAllowedDay && isAllowedTime) {
-                alarmPlayer.play(AlarmCategory.alarm(loop.alarms))
                 notificationHelper.notify(loop)
             }
 
@@ -205,7 +188,7 @@ class AlarmController @Inject constructor(
                 """ -->
                 |Received alarm id:${loop.id} 
                 | title:${loop.title},
-                | today:${LoopVo.Day.toString(today)},
+                | today:${Day.toString(today)},
                 | isAllowedDay:$isAllowedDay, 
                 | isAllowedTime:$isAllowedTime""".trimMargin()
             }

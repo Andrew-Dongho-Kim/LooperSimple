@@ -55,10 +55,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import com.pnd.android.loop.data.Day
+import com.pnd.android.loop.data.Day.Companion.isOn
+import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo.DoneState
-import com.pnd.android.loop.data.LoopVo
-import com.pnd.android.loop.data.LoopVo.Day.Companion.isOn
-import com.pnd.android.loop.data.LoopWithDone
+import com.pnd.android.loop.data.NO_REPEAT
+import com.pnd.android.loop.data.asLoopVo
 import com.pnd.android.loop.util.ABB_DAYS
 import com.pnd.android.loop.util.DAY_STRING_MAP
 import com.pnd.android.loop.util.formatHourMinute
@@ -73,7 +75,7 @@ import com.pnd.android.loop.util.textFormatter
 fun LoopCard(
     modifier: Modifier = Modifier,
     loopViewModel: LoopViewModel,
-    loop: LoopWithDone,
+    loop: LoopBase,
     showActiveDays: Boolean,
 ) {
 
@@ -94,7 +96,7 @@ fun LoopCard(
                 .fillMaxWidth()
                 .clip(cardShape)
                 .clickable {
-                    loopViewModel.addOrUpdateLoop(loop.copyAsLoop(enabled = !loop.enabled))
+                    loopViewModel.addOrUpdateLoop(loop.asLoopVo(enabled = !loop.enabled))
                 },
             shape = cardShape,
             border = BorderStroke(
@@ -136,7 +138,7 @@ private fun LoopCardRepeatIndicator(
 private fun LoopCardContent(
     modifier: Modifier = Modifier,
     loopViewModel: LoopViewModel,
-    loop: LoopWithDone,
+    loop: LoopBase,
     showActiveDays: Boolean,
 ) {
 
@@ -178,7 +180,7 @@ private fun LoopCardContent(
 private fun LoopCardActiveEffect(
     modifier: Modifier = Modifier,
     loopViewModel: LoopViewModel,
-    loop: LoopWithDone,
+    loop: LoopBase,
 ) {
     var isActive by remember { mutableStateOf(false) }
     LaunchedEffect(loop, loopViewModel) {
@@ -253,7 +255,7 @@ fun LoopCardColor(
 fun LoopCardBody(
     modifier: Modifier = Modifier,
     loopViewModel: LoopViewModel,
-    loop: LoopWithDone,
+    loop: LoopBase,
     showActiveDays: Boolean,
 ) {
     var isPast by remember { mutableStateOf(false) }
@@ -372,7 +374,7 @@ private fun LoopCardInterval(
     interval: Long,
 ) {
     Text(
-        text = if (interval == LoopVo.NO_REPEAT) {
+        text = if (interval == NO_REPEAT) {
             AnnotatedString("")
         } else {
             textFormatter(
@@ -403,12 +405,12 @@ private fun LoopCardStartEndTime(
 @Composable
 fun LoopCardActiveDays(
     modifier: Modifier = Modifier,
-    loop: LoopWithDone,
+    loop: LoopBase,
 ) {
     if (loop.loopActiveDays in arrayOf(
-            LoopVo.Day.EVERYDAY,
-            LoopVo.Day.WEEKDAYS,
-            LoopVo.Day.WEEKENDS
+            Day.EVERYDAY,
+            Day.WEEKDAYS,
+            Day.WEEKENDS
         )
     ) {
         LoopCardActiveDaysPronoun(
@@ -426,7 +428,7 @@ fun LoopCardActiveDays(
 @Composable
 private fun LoopCardActiveDaysPronoun(
     modifier: Modifier = Modifier,
-    loop: LoopWithDone
+    loop: LoopBase
 ) {
     Text(
         modifier = modifier.padding(end = 2.dp),
@@ -440,14 +442,14 @@ private fun LoopCardActiveDaysPronoun(
 @Composable
 private fun LoopCardActiveDaysCommon(
     modifier: Modifier,
-    loop: LoopWithDone
+    loop: LoopBase
 ) {
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.Bottom
     ) {
         ABB_DAYS.forEachIndexed { index, dayResId ->
-            val day = LoopVo.Day.fromIndex(index)
+            val day = Day.fromIndex(index)
             val selected = loop.loopActiveDays.isOn(day)
 
             ActiveDayText(

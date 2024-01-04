@@ -15,7 +15,7 @@ import androidx.compose.ui.focus.focusTarget
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
-import com.pnd.android.loop.data.LoopVo
+import com.pnd.android.loop.ui.input.UserInputState
 import com.pnd.android.loop.ui.theme.compositeOverSurface
 import com.pnd.android.loop.util.rememberImeOpenState
 
@@ -23,26 +23,24 @@ enum class InputSelector {
     COLOR,
     ALARM_INTERVAL,
     START_END_TIME,
-    ALARMS,
     NONE,
 }
 
 @Composable
 fun Selectors(
+    inputState: UserInputState,
     focusRequester: FocusRequester,
-    currentSelector: InputSelector,
-    loop: LoopVo,
-    onLoopUpdated: (LoopVo) -> Unit,
 ) {
+    val currSelector = inputState.currSelector
     SideEffect {
-        if (currentSelector != InputSelector.NONE) {
+        if (currSelector != InputSelector.NONE) {
             focusRequester.requestFocus()
         }
     }
 
     val keyboardShown by rememberImeOpenState()
     val selectorHeight by animateDpAsState(
-        targetValue = if (currentSelector == InputSelector.NONE || keyboardShown) {
+        targetValue = if (currSelector == InputSelector.NONE || keyboardShown) {
             0.dp
         } else {
             dimensionResource(id = R.dimen.user_input_selector_content_height)
@@ -59,9 +57,7 @@ fun Selectors(
     Surface(color = compositeOverSurface(), elevation = 3.dp) {
         Selector(
             modifier = modifier,
-            currentSelector = currentSelector,
-            loop = loop,
-            onLoopUpdated = onLoopUpdated
+            inputState = inputState,
         )
     }
 }
@@ -69,39 +65,32 @@ fun Selectors(
 @Composable
 private fun Selector(
     modifier: Modifier = Modifier,
-    currentSelector: InputSelector,
-    loop: LoopVo,
-    onLoopUpdated: (LoopVo) -> Unit,
+    inputState: UserInputState,
 ) {
-    when (currentSelector) {
+    val loop = inputState.value
+    when (inputState.currSelector) {
         InputSelector.NONE -> Box(modifier = modifier)
 
         InputSelector.COLOR -> ColorSelector(
             modifier = modifier,
             selectedColor = loop.color,
-            onColorSelected = { onLoopUpdated(loop.copy(color = it)) },
+            onColorSelected = { inputState.update(color = it) },
         )
 
         InputSelector.ALARM_INTERVAL -> IntervalSelector(
             modifier = modifier,
             selectedInterval = loop.interval,
-            onIntervalSelected = { onLoopUpdated(loop.copy(interval = it)) }
+            onIntervalSelected = { inputState.update(interval = it) }
         )
 
         InputSelector.START_END_TIME -> StartEndTimeSelector(
             modifier = modifier,
             selectedStartTime = loop.loopStart,
-            onStartTimeSelected = { onLoopUpdated(loop.copy(loopStart = it)) },
+            onStartTimeSelected = { inputState.update(loopStart = it) },
             selectedEndTime = loop.loopEnd,
-            onEndTimeSelected = { onLoopUpdated(loop.copy(loopEnd = it)) },
+            onEndTimeSelected = { inputState.update(loopEnd = it) },
             selectedDays = loop.loopActiveDays,
-            onSelectedDayChanged = { onLoopUpdated(loop.copy(loopActiveDays = it)) }
-        )
-
-        InputSelector.ALARMS -> AlarmSelector(
-            modifier = modifier,
-            selectedAlarm = loop.alarms,
-            onAlarmSelected = { onLoopUpdated(loop.copy(alarms = it)) }
+            onSelectedDayChanged = { inputState.update(loopActiveDays = it) }
         )
     }
 }

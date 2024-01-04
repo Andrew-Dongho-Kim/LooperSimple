@@ -8,19 +8,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.pnd.android.loop.R
+import com.pnd.android.loop.data.Day
+import com.pnd.android.loop.data.Day.Companion.EVERYDAY
+import com.pnd.android.loop.data.Day.Companion.FRIDAY
+import com.pnd.android.loop.data.Day.Companion.MONDAY
+import com.pnd.android.loop.data.Day.Companion.SATURDAY
+import com.pnd.android.loop.data.Day.Companion.SUNDAY
+import com.pnd.android.loop.data.Day.Companion.THURSDAY
+import com.pnd.android.loop.data.Day.Companion.TUESDAY
+import com.pnd.android.loop.data.Day.Companion.WEDNESDAY
+import com.pnd.android.loop.data.Day.Companion.WEEKDAYS
+import com.pnd.android.loop.data.Day.Companion.WEEKENDS
+import com.pnd.android.loop.data.Day.Companion.isOn
 import com.pnd.android.loop.data.LoopBase
-import com.pnd.android.loop.data.LoopVo
-import com.pnd.android.loop.data.LoopVo.Day.Companion.EVERYDAY
-import com.pnd.android.loop.data.LoopVo.Day.Companion.FRIDAY
-import com.pnd.android.loop.data.LoopVo.Day.Companion.MONDAY
-import com.pnd.android.loop.data.LoopVo.Day.Companion.SATURDAY
-import com.pnd.android.loop.data.LoopVo.Day.Companion.SUNDAY
-import com.pnd.android.loop.data.LoopVo.Day.Companion.THURSDAY
-import com.pnd.android.loop.data.LoopVo.Day.Companion.TUESDAY
-import com.pnd.android.loop.data.LoopVo.Day.Companion.WEDNESDAY
-import com.pnd.android.loop.data.LoopVo.Day.Companion.WEEKDAYS
-import com.pnd.android.loop.data.LoopVo.Day.Companion.WEEKENDS
-import com.pnd.android.loop.data.LoopVo.Day.Companion.isOn
 import com.pnd.android.loop.ui.theme.Blue500
 import com.pnd.android.loop.ui.theme.Red500
 import java.time.DayOfWeek
@@ -30,13 +30,11 @@ import java.time.LocalTime
 import java.time.ZoneId
 import java.util.concurrent.TimeUnit
 
-
 val MS_1SEC = TimeUnit.SECONDS.toMillis(1)
 val MS_1MIN = TimeUnit.MINUTES.toMillis(1)
 val MS_1HOUR = TimeUnit.HOURS.toMillis(1)
 val MS_1DAY = TimeUnit.DAYS.toMillis(1)
 val MS_1WEEK = TimeUnit.DAYS.toMillis(7)
-val MS_1MONTH = TimeUnit.DAYS.toMillis(7 * 4)
 
 val ABB_MONTHS = arrayOf(
     R.string.jan,
@@ -128,7 +126,7 @@ fun rememberDayColor(day: Int): Color {
     }
 }
 
-fun day(localDateTime: LocalDateTime = LocalDateTime.now()): @LoopVo.Day Int {
+fun day(localDateTime: LocalDateTime = LocalDateTime.now()): @Day Int {
     val localDate = localDateTime.toLocalDate()
     return when (localDate.dayOfWeek) {
         DayOfWeek.SUNDAY -> SUNDAY
