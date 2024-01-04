@@ -1,4 +1,4 @@
-package com.pnd.android.loop.ui.input
+package com.pnd.android.loop.ui.home.loop.input
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth

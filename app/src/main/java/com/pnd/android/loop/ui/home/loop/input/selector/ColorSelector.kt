@@ -1,4 +1,4 @@
-package com.pnd.android.loop.ui.input.selector
+package com.pnd.android.loop.ui.home.loop.input.selector
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable

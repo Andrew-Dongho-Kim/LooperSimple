@@ -1,4 +1,4 @@
-package com.pnd.android.loop.ui.input
+package com.pnd.android.loop.ui.home.loop.input
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
@@ -11,7 +11,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.asLoop
 import com.pnd.android.loop.data.putTo
-import com.pnd.android.loop.ui.input.selector.InputSelector
+import com.pnd.android.loop.ui.home.loop.input.selector.InputSelector
 
 @Stable
 class UserInputState(

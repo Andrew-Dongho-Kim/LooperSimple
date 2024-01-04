@@ -12,8 +12,8 @@ import androidx.compose.ui.Modifier
 import com.pnd.android.loop.data.asLoopVo
 import com.pnd.android.loop.ui.home.loop.LoopViewModel
 import com.pnd.android.loop.ui.home.loop.Loops
-import com.pnd.android.loop.ui.input.UserInput
-import com.pnd.android.loop.ui.input.rememberUserInputState
+import com.pnd.android.loop.ui.home.loop.input.UserInput
+import com.pnd.android.loop.ui.home.loop.input.rememberUserInputState
 
 @Composable
 fun Home(
