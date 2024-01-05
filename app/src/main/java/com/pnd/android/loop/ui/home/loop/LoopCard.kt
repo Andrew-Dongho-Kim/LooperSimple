@@ -3,6 +3,7 @@ package com.pnd.android.loop.ui.home.loop
 import android.graphics.Path
 import android.graphics.PathDashPathEffect
 import android.graphics.PathMeasure
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -48,6 +49,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.asAndroidPath
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toComposePathEffect
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -61,6 +63,7 @@ import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.data.NO_REPEAT
 import com.pnd.android.loop.data.asLoopVo
+import com.pnd.android.loop.data.isMock
 import com.pnd.android.loop.util.ABB_DAYS
 import com.pnd.android.loop.util.DAY_STRING_MAP
 import com.pnd.android.loop.util.formatHourMinute
@@ -78,8 +81,18 @@ fun LoopCard(
     loop: LoopBase,
     showActiveDays: Boolean,
 ) {
+    val isMock = loop.isMock()
+    val animateAlpha = animateCardAlphaWithMock(loopBase = loop)
 
-    Box(modifier = modifier) {
+    val primary = MaterialTheme.colors.primary.copy(alpha = ContentAlpha.medium)
+    val surface = MaterialTheme.colors.onSurface.copy(alpha = 0.4f)
+    val border = remember(isMock, loop.color) {
+        BorderStroke(
+            width = if (isMock) 1.dp else 0.5.dp,
+            color = if (isMock) primary else surface
+        )
+    }
+    Box(modifier = modifier.graphicsLayer { this.alpha = animateAlpha }) {
         LoopCardRepeatIndicator(
             modifier = Modifier
                 .padding(start = 30.dp, top = 6.dp)
@@ -99,10 +112,7 @@ fun LoopCard(
                     loopViewModel.addOrUpdateLoop(loop.asLoopVo(enabled = !loop.enabled))
                 },
             shape = cardShape,
-            border = BorderStroke(
-                width = 0.5.dp,
-                color = MaterialTheme.colors.onSurface.copy(alpha = 0.4f)
-            )
+            border = border
         ) {
             LoopCardContent(
                 modifier = Modifier
@@ -112,7 +122,7 @@ fun LoopCard(
                     ),
                 loopViewModel = loopViewModel,
                 loop = loop,
-                showActiveDays = showActiveDays,
+                showActiveDays = showActiveDays || isMock,
             )
         }
     }
@@ -182,6 +192,8 @@ private fun LoopCardActiveEffect(
     loopViewModel: LoopViewModel,
     loop: LoopBase,
 ) {
+    if (loop.isMock()) return
+
     var isActive by remember { mutableStateOf(false) }
     LaunchedEffect(loop, loopViewModel) {
         loopViewModel.localDateTime.collect { currTime ->
@@ -503,4 +515,27 @@ private fun colorBody1Text(): Color {
 @Composable
 private fun colorBody2Text(): Color {
     return MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium)
+}
+
+
+@Composable
+private fun animateCardAlphaWithMock(loopBase: LoopBase): Float {
+    if (!loopBase.isMock()) {
+        return 1f
+    }
+    val transition = rememberInfiniteTransition("CreateLoopTransitions")
+    val alpha by transition.animateFloat(
+        initialValue = 1.0f,
+        targetValue = 0.3f,
+        animationSpec = infiniteRepeatable(
+            tween(
+                durationMillis = 1_500,
+                easing = LinearEasing
+            ),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "AlphaAnimForCreateLoop",
+    )
+
+    return alpha
 }

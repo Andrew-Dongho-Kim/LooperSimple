@@ -26,17 +26,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
+import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.LoopWithDone
+import com.pnd.android.loop.ui.home.loop.input.UserInputState
 import com.pnd.android.loop.util.isActiveDay
 
 @Composable
 fun Loops(
     modifier: Modifier = Modifier,
+    inputState: UserInputState,
     lazyListState: LazyListState,
     loopViewModel: LoopViewModel,
 ) {
-    val sections by loopViewModel.observeSectionsAsState()
+    val sections by loopViewModel.observeSectionsAsState(inputState)
 
     Box(modifier = modifier.background(MaterialTheme.colors.onSurface.copy(alpha = 0.02f))) {
         if (sections.isEmpty()) {
@@ -80,14 +83,16 @@ fun EmptyLoops(
 }
 
 @Composable
-private fun LoopViewModel.observeSectionsAsState(): State<List<Section>> {
+private fun LoopViewModel.observeSectionsAsState(
+    inputState: UserInputState,
+): State<List<Section>> {
     val loops by loopsWithDone.collectAsState(emptyList())
 
     return if (loops.isEmpty()) {
         remember { mutableStateOf(emptyList()) }
     } else {
         val sections = mutableListOf(
-            rememberTodaySection(loops),
+            rememberTodaySection(loops, inputState),
             rememberAdSection(),
             rememberDoneSection(loops),
             rememberLaterSection(loops)
@@ -111,11 +116,23 @@ private fun rememberDoneSection(loops: List<LoopWithDone>) = remember {
 }
 
 @Composable
-private fun rememberTodaySection(loops: List<LoopWithDone>) = remember {
-    Section.Today(showActiveDays = false)
-}.apply {
-    items.value =
-        loops.filter { it.isActiveDay() && it.done == LoopDoneVo.DoneState.NO_RESPONSE }
+private fun rememberTodaySection(
+    loops: List<LoopWithDone>,
+    inputState: UserInputState,
+): Section {
+    val filtered = loops.filter {
+        it.isActiveDay() && it.done == LoopDoneVo.DoneState.NO_RESPONSE
+    }
+    val resultLoops = mutableListOf<LoopBase>(*filtered.toTypedArray())
+    if (inputState.mode == UserInputState.Mode.New) {
+        resultLoops.add(0, inputState.value)
+    }
+
+    return remember {
+        Section.Today(showActiveDays = false)
+    }.apply {
+        items.value = resultLoops
+    }
 }
 
 @Composable

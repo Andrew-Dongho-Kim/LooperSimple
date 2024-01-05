@@ -29,6 +29,7 @@ fun Home(
                 modifier = Modifier
                     .weight(1f)
                     .statusBarsPadding(),
+                inputState = inputState,
                 lazyListState = lazyListState,
                 loopViewModel = loopViewModel,
             )

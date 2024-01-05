@@ -30,7 +30,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.data.LoopBase
-import com.pnd.android.loop.data.LoopWithDone
 import com.pnd.android.loop.ui.common.VerticalDashedDivider
 import com.pnd.android.loop.ui.common.VerticalDivider
 import com.pnd.android.loop.ui.theme.RoundShapes
@@ -40,7 +39,7 @@ import kotlin.math.max
 @Composable
 fun LoopTimeline(
     modifier: Modifier = Modifier,
-    loops: List<LoopWithDone>,
+    loops: List<LoopBase>,
 ) {
     val horizontalScrollState = rememberScrollState()
     Column(modifier = modifier) {
@@ -61,7 +60,7 @@ fun LoopTimeline(
 private fun TimeGrid(
     modifier: Modifier = Modifier,
     horizontalScrollState: ScrollState,
-    loops: List<LoopWithDone>,
+    loops: List<LoopBase>,
 ) {
     BoxWithConstraints(modifier = modifier) {
         ScrollToLocalTime(
@@ -80,7 +79,7 @@ private fun TimeGrid(
 private fun TimeGridContent(
     modifier: Modifier = Modifier,
     horizontalScrollState: ScrollState,
-    loops: List<LoopWithDone>
+    loops: List<LoopBase>
 ) {
     Row(
         modifier = modifier.horizontalScroll(horizontalScrollState)
@@ -111,7 +110,7 @@ private fun TimeGridContent(
 @Composable
 private fun TimelineLoops(
     modifier: Modifier = Modifier,
-    loops: List<LoopWithDone>
+    loops: List<LoopBase>
 ) {
     val slots = rememberTimelineSlots(loops = loops)
     Column(

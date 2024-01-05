@@ -15,16 +15,11 @@ import androidx.compose.ui.focus.focusTarget
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
+import com.pnd.android.loop.ui.home.loop.input.InputSelector
 import com.pnd.android.loop.ui.home.loop.input.UserInputState
 import com.pnd.android.loop.ui.theme.compositeOverSurface
 import com.pnd.android.loop.util.rememberImeOpenState
 
-enum class InputSelector {
-    COLOR,
-    ALARM_INTERVAL,
-    START_END_TIME,
-    NONE,
-}
 
 @Composable
 fun Selectors(

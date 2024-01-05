@@ -6,13 +6,14 @@ import androidx.compose.material.Divider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import com.pnd.android.loop.data.LoopBase
-import com.pnd.android.loop.ui.home.loop.input.selector.InputSelector
 import com.pnd.android.loop.ui.home.loop.input.selector.Selectors
 import com.pnd.android.loop.util.BackPressHandler
 import com.pnd.android.loop.util.rememberImeOpenState
+import kotlinx.coroutines.launch
 
 
 @Composable
@@ -26,9 +27,13 @@ fun UserInput(
     val keyboardShown by rememberImeOpenState()
     val focusRequester = FocusRequester()
 
+    val coroutineScope = rememberCoroutineScope()
     SideEffect {
         if (!keyboardShown && inputState.prevSelector == InputSelector.NONE) {
             focusRequester.requestFocus()
+        }
+        if (inputState.mode == UserInputState.Mode.New) {
+            coroutineScope.launch { lazyListState.animateScrollToItem(0) }
         }
     }
 

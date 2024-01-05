@@ -7,6 +7,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -39,7 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.BuildConfig
 import com.pnd.android.loop.R
-import com.pnd.android.loop.data.LoopWithDone
+import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.ui.common.NativeAd
 import com.pnd.android.loop.ui.home.loop.timeline.LoopTimeline
 import com.pnd.android.loop.ui.theme.elevatedSurface
@@ -62,6 +63,7 @@ fun LazyListScope.section(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 private fun LazyListScope.sectionToday(
     section: Section.Today,
     loopViewModel: LoopViewModel,
@@ -82,6 +84,7 @@ private fun LazyListScope.sectionToday(
             contentType = { ContentTypes.LOOP_CARD }
         ) { loop ->
             LoopCard(
+                modifier = Modifier.animateItemPlacement(),
                 loopViewModel = loopViewModel,
                 loop = loop,
                 showActiveDays = section.showActiveDays,
@@ -280,7 +283,7 @@ enum class ContentTypes {
 }
 
 sealed class Section(val headerKey: String) {
-    val items = mutableStateOf<List<LoopWithDone>>(emptyList())
+    val items = mutableStateOf<List<LoopBase>>(emptyList())
 
     open val size
         get() = items.value.size

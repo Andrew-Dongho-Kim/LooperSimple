@@ -11,14 +11,13 @@ import androidx.compose.ui.text.input.TextFieldValue
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.asLoop
 import com.pnd.android.loop.data.putTo
-import com.pnd.android.loop.ui.home.loop.input.selector.InputSelector
 
 @Stable
 class UserInputState(
     prevSelector: InputSelector = InputSelector.NONE,
     currSelector: InputSelector = InputSelector.NONE,
     mode: Mode = Mode.None,
-    value: LoopBase = LoopBase.default()
+    value: LoopBase = LoopBase.default(isMock = true)
 ) {
     enum class Mode { None, New, Edit }
 
@@ -59,6 +58,7 @@ class UserInputState(
             enabled = enabled
         )
         textFieldValue = title
+        ensureState()
     }
 
     fun setSelector(selector: InputSelector) {
@@ -68,21 +68,26 @@ class UserInputState(
         } else {
             selector
         }
-        ensureMode()
+        ensureState()
     }
 
     fun reset() {
         mode = Mode.None
-        value = LoopBase.default()
+        value = LoopBase.default(isMock = true)
         textFieldValue = TextFieldValue()
-        setSelector(InputSelector.NONE)
+        prevSelector = currSelector
+        currSelector = InputSelector.NONE
     }
 
-    private fun ensureMode() {
-        if (mode == Mode.None) return
-
-        if (currSelector == InputSelector.NONE && isTitleEmpty) {
-            reset()
+    private fun ensureState() {
+        if (currSelector == InputSelector.NONE) {
+            if (isTitleEmpty) {
+                reset()
+            } else {
+                mode = Mode.New
+            }
+        } else if (mode == Mode.None) {
+            mode = Mode.New
         }
     }
 
@@ -106,7 +111,7 @@ class UserInputState(
                     prevSelector = InputSelector.valueOf(map[STATE_PREV_SELECTOR] as String),
                     currSelector = InputSelector.valueOf(map[STATE_CURR_SELECTOR] as String),
                     mode = Mode.valueOf(map[STATE_MODE] as String),
-                    value = map.asLoop()
+                    value = map.asLoop(isMock = true)
                 )
             }
         )
@@ -116,4 +121,11 @@ class UserInputState(
 @Composable
 fun rememberUserInputState() = rememberSaveable(saver = UserInputState.Saver) {
     UserInputState()
+}
+
+enum class InputSelector {
+    COLOR,
+    START_END_TIME,
+    ALARM_INTERVAL,
+    NONE,
 }

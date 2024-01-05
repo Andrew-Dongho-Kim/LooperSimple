@@ -19,7 +19,6 @@ import com.pnd.android.loop.util.intervalString
 import java.time.LocalTime
 import java.util.concurrent.TimeUnit
 
-
 const val NO_REPEAT = 0L
 private const val DEFAULT_TITLE = ""
 private const val DEFAULT_COLOR = 0xff000099.toInt()
@@ -42,7 +41,6 @@ interface LoopBase {
     val loopActiveDays: Int
     val interval: Long
     val enabled: Boolean
-
     fun copy(
         id: Int = this.id,
         title: String = this.title,
@@ -55,7 +53,7 @@ interface LoopBase {
     ): LoopBase
 
     companion object {
-        fun default(): LoopBase = LoopBaseImpl()
+        fun default(isMock: Boolean = false): LoopBase = LoopImpl(isMock = isMock)
 
         val SUPPORTED_COLORS = listOf(
             DEFAULT_COLOR, 0xff0000cc.toInt(), 0xff3333ff.toInt(),
@@ -69,7 +67,7 @@ interface LoopBase {
     }
 }
 
-private class LoopBaseImpl(
+private class LoopImpl(
     override val id: Int = 0,
     override val title: String = DEFAULT_TITLE,
     override val color: Int = DEFAULT_COLOR,
@@ -78,7 +76,9 @@ private class LoopBaseImpl(
     override val loopActiveDays: Int = DEFAULT_ACTIVE_DAYS,
     override val interval: Long = DEFAULT_INTERVAL,
     override val enabled: Boolean = DEFAULT_ENABLED,
+    val isMock: Boolean = false,
 ) : LoopBase {
+
     override fun copy(
         id: Int,
         title: String,
@@ -88,7 +88,7 @@ private class LoopBaseImpl(
         loopActiveDays: Int,
         interval: Long,
         enabled: Boolean
-    ): LoopBase = LoopBaseImpl(
+    ): LoopBase = LoopImpl(
         id = id,
         title = title,
         color = color,
@@ -97,9 +97,11 @@ private class LoopBaseImpl(
         loopActiveDays = loopActiveDays,
         interval = interval,
         enabled = enabled,
+        isMock = isMock
     )
 }
 
+fun LoopBase.isMock() = (this as? LoopImpl)?.isMock ?: false
 
 fun LoopBase.putTo(intent: Intent) {
     intent.putExtra(EXTRA_ID, id)
@@ -113,7 +115,7 @@ fun LoopBase.putTo(intent: Intent) {
 }
 
 fun Intent.asLoop(): LoopBase {
-    return LoopBaseImpl(
+    return LoopImpl(
         id = getIntExtra(EXTRA_ID, 0),
         title = getStringExtra(EXTRA_TITLE) ?: DEFAULT_TITLE,
         color = getIntExtra(EXTRA_COLOR, DEFAULT_COLOR),
@@ -136,8 +138,8 @@ fun LoopBase.putTo(map: MutableMap<String, Any?>) {
     map[EXTRA_LOOP_ENABLED] = enabled
 }
 
-fun Map<String, Any?>.asLoop(): LoopBase {
-    return LoopBaseImpl(
+fun Map<String, Any?>.asLoop(isMock: Boolean = false): LoopBase {
+    return LoopImpl(
         id = getOrDefault(EXTRA_ID, 0) as Int,
         title = getOrDefault(EXTRA_TITLE, DEFAULT_TITLE) as String,
         color = getOrDefault(EXTRA_COLOR, DEFAULT_COLOR) as Int,
@@ -145,7 +147,8 @@ fun Map<String, Any?>.asLoop(): LoopBase {
         loopEnd = getOrDefault(EXTRA_LOOP_END, defaultLoopEnd) as Long,
         loopActiveDays = getOrDefault(EXTRA_LOOP_ACTIVE_DAYS, DEFAULT_ACTIVE_DAYS) as Int,
         interval = getOrDefault(EXTRA_LOOP_INTERVAL, DEFAULT_INTERVAL) as Long,
-        enabled = getOrDefault(EXTRA_LOOP_ENABLED, DEFAULT_ENABLED) as Boolean
+        enabled = getOrDefault(EXTRA_LOOP_ENABLED, DEFAULT_ENABLED) as Boolean,
+        isMock = isMock,
     )
 }
 
