@@ -51,7 +51,7 @@ fun LoopCardWithOption(
                         horizontal = 36.dp,
                     )
                     .fillMaxWidth()
-                    .height(42.dp),
+                    .height(46.dp),
                 color = Color(loop.color),
                 onEdit = {
                     coroutineScope.launch { swipeState.animateTo(0) }

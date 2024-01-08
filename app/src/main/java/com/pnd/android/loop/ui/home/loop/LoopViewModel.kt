@@ -69,7 +69,9 @@ class LoopViewModel @Inject constructor(
     val loopsWithDone =
         localDate.flatMapLatest { currDate -> loopWithDoneDao.allLoops(currDate.toLocalTime()) }
 
-    val countInActive = loops.map { loops -> loops.filter { loop -> loop.isActive() }.size }
+    val activeLoops = loops.map { loops -> loops.filter { loop -> loop.isActive() } }
+
+    val countInActive = activeLoops.map { it.size }
     val total = loops.map { loops -> loops.filter { loop -> loop.isActiveDay() }.size }
 
     fun addOrUpdateLoop(vararg loops: LoopVo) {
