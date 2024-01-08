@@ -3,7 +3,6 @@ package com.pnd.android.loop.ui.home.loop
 import android.graphics.Path
 import android.graphics.PathDashPathEffect
 import android.graphics.PathMeasure
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -93,11 +92,11 @@ fun LoopCard(
         )
     }
     Box(modifier = modifier.graphicsLayer { this.alpha = animateAlpha }) {
-        LoopCardRepeatIndicator(
-            modifier = Modifier
-                .padding(start = 30.dp, top = 6.dp)
-                .size(14.dp)
-        )
+//        LoopCardTag(
+//            modifier = Modifier
+//                .padding(start = 30.dp, top = 6.dp)
+//                .size(14.dp)
+//        )
 
         val cardShape = remember { LoopCardShape(12.dp) }
         Card(
@@ -129,7 +128,7 @@ fun LoopCard(
 }
 
 @Composable
-private fun LoopCardRepeatIndicator(
+private fun LoopCardTag(
     modifier: Modifier = Modifier
 ) {
     Image(

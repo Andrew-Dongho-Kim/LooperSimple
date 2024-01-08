@@ -37,12 +37,7 @@ fun UserInput(
         }
     }
 
-    OverrideBackPress(
-        inputSelector = inputState.currSelector
-    ) { inputSelector ->
-        inputState.setSelector(inputSelector)
-    }
-
+    OverrideBackPress(inputState = inputState)
 
     Column(modifier) {
         Divider()
@@ -75,15 +70,14 @@ fun UserInput(
 
 @Composable
 private fun OverrideBackPress(
-    inputSelector: InputSelector,
-    onInputSelectorChanged: (InputSelector) -> Unit,
+    inputState: UserInputState,
 ) {
-    if (inputSelector != InputSelector.NONE) {
-        BackPressHandler(
-            onBackPressed = {
-                onInputSelectorChanged(InputSelector.NONE)
-            }
-        )
+    if (inputState.currSelector != InputSelector.NONE) {
+        BackPressHandler {
+            inputState.setSelector(InputSelector.NONE)
+        }
+    } else if (inputState.mode != UserInputState.Mode.None) {
+        BackPressHandler { inputState.reset() }
     }
 }
 

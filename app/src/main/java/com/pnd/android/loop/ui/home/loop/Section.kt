@@ -83,7 +83,7 @@ private fun LazyListScope.sectionToday(
             key = { loop -> loop.id },
             contentType = { ContentTypes.LOOP_CARD }
         ) { loop ->
-            LoopCard(
+            LoopCardWithOption(
                 modifier = Modifier.animateItemPlacement(),
                 loopViewModel = loopViewModel,
                 loop = loop,
@@ -223,7 +223,7 @@ private fun LazyListScope.sectionLater(
             enter = fadeIn(tween(duration)) + expandVertically(tween(duration)),
             exit = fadeOut(tween(duration)) + shrinkVertically(tween(duration))
         ) {
-            LoopCard(
+            LoopCardWithOption(
                 loopViewModel = loopViewModel,
                 loop = loop,
                 showActiveDays = section.showActiveDays

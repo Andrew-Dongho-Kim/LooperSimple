@@ -103,6 +103,7 @@ private fun Summary(
             SummaryHeader(
                 modifier = Modifier.align(Alignment.CenterHorizontally),
                 title = title,
+                itemCount = loops.size,
                 icon = icon,
                 iconColor = iconColor,
             )
@@ -126,6 +127,7 @@ private fun Summary(
 private fun SummaryHeader(
     modifier: Modifier = Modifier,
     title: String,
+    itemCount: Int,
     icon: ImageVector,
     iconColor: Color,
 ) {
@@ -134,7 +136,7 @@ private fun SummaryHeader(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = title,
+            text = "($itemCount) $title",
             style = MaterialTheme.typography.subtitle2.copy(
                 color = MaterialTheme.colors.onSurface,
                 fontWeight = FontWeight.Bold
@@ -163,7 +165,7 @@ private fun SummaryItem(
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
 
-    ) {
+        ) {
         SummaryItemTitle(
             modifier = Modifier.weight(1f),
             title = loop.title
@@ -182,8 +184,6 @@ private fun SummaryItem(
                 .size(8.dp),
             color = loop.color
         )
-
-//        Spacer(modifier = Modifier.weight(1f))
 
         SummaryItemDoneStateButton(
             loop = loop,

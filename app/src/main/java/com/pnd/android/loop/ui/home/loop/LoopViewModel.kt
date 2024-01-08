@@ -84,7 +84,7 @@ class LoopViewModel @Inject constructor(
         }
     }
 
-    fun removeLoop(loop: LoopVo) {
+    fun removeLoop(loop: LoopBase) {
         coroutineScope.launch {
             alarmController.cancelAlarm(loop)
             loopDao.remove(loop.id)

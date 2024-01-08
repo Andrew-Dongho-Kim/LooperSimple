@@ -38,36 +38,51 @@ class LoopCardShape(size: Dp) : Shape {
                 right = radius * 2f,
                 bottom = radius
             ),
-            startAngleDegrees = 90.0f,
-            sweepAngleDegrees = -90.0f,
+            startAngleDegrees = 90f,
+            sweepAngleDegrees = -90f,
             forceMoveTo = false
         )
-        lineTo(x = size.width - radius, y = 0f)
+        lineTo(x = size.width - 2 * radius, y = 0f)
+
         // Top right arc
         arcTo(
             rect = Rect(
                 left = size.width - radius * 2f,
-                top = 0f,
+                top = -radius,
                 right = size.width,
-                bottom = radius * 2f
+                bottom = radius
             ),
-            startAngleDegrees = 270f,
-            sweepAngleDegrees = 90f,
+            startAngleDegrees = 180f,
+            sweepAngleDegrees = -90f,
             forceMoveTo = false
         )
-        lineTo(x = size.width, y = size.height - radius)
+
+        // Center right arc
+        arcTo(
+            rect = Rect(
+                left = size.width - 2 * radius,
+                top = radius,
+                right = size.width,
+                bottom = size.height - radius,
+            ),
+            startAngleDegrees = 270f,
+            sweepAngleDegrees = 180f,
+            forceMoveTo = false
+        )
+
         // Bottom right arc
         arcTo(
             rect = Rect(
-                left = size.width - radius * 2f,
-                top = size.height - radius * 2f,
+                left = size.width - 2 * radius,
+                top = size.height - radius,
                 right = size.width,
-                bottom = size.height
+                bottom = size.height + radius
             ),
-            startAngleDegrees = 0f,
-            sweepAngleDegrees = 90.0f,
+            startAngleDegrees = 270f,
+            sweepAngleDegrees = -90f,
             forceMoveTo = false
         )
+
         lineTo(x = radius * 2f, y = size.height)
         // Bottom left arc
         arcTo(
@@ -77,8 +92,8 @@ class LoopCardShape(size: Dp) : Shape {
                 right = radius * 2f,
                 bottom = size.height + radius
             ),
-            startAngleDegrees = 0.0f,
-            sweepAngleDegrees = -90.0f,
+            startAngleDegrees = 0f,
+            sweepAngleDegrees = -90f,
             forceMoveTo = false
         )
         // Center left arc
@@ -90,7 +105,7 @@ class LoopCardShape(size: Dp) : Shape {
                 bottom = size.height - radius
             ),
             startAngleDegrees = 90f,
-            sweepAngleDegrees = 180.0f,
+            sweepAngleDegrees = 180f,
             forceMoveTo = false
         )
         close()
