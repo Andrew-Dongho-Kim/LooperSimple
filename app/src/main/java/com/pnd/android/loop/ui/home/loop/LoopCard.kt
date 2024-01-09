@@ -61,8 +61,10 @@ import com.pnd.android.loop.data.Day.Companion.isOn
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.data.NO_REPEAT
+import com.pnd.android.loop.data.TimeStat
 import com.pnd.android.loop.data.asLoopVo
 import com.pnd.android.loop.data.isMock
+import com.pnd.android.loop.data.timeStatAsFlow
 import com.pnd.android.loop.util.ABB_DAYS
 import com.pnd.android.loop.util.DAY_STRING_MAP
 import com.pnd.android.loop.util.formatHourMinute
@@ -72,6 +74,7 @@ import com.pnd.android.loop.util.isActiveDay
 import com.pnd.android.loop.util.isPast
 import com.pnd.android.loop.util.rememberDayColor
 import com.pnd.android.loop.util.textFormatter
+import kotlinx.coroutines.flow.collectIndexed
 
 @Composable
 fun LoopCard(
@@ -269,11 +272,9 @@ fun LoopCardBody(
     loop: LoopBase,
     showActiveDays: Boolean,
 ) {
-    var isPast by remember { mutableStateOf(false) }
-    LaunchedEffect(loop, loopViewModel) {
-        loopViewModel.localDateTime.collect { currTime ->
-            isPast = loop.isActiveDay(currTime) && loop.isPast(currTime)
-        }
+    var timeStat by remember { mutableStateOf<TimeStat?>(null) }
+    LaunchedEffect(loop) {
+        loop.timeStatAsFlow().collect { timeStat = it }
     }
 
     Row(
@@ -294,7 +295,7 @@ fun LoopCardBody(
                     loopEnd = loop.loopEnd,
                 )
 
-                if (!isPast) {
+                if (timeStat?.isPast() == false) {
                     LoopCardInterval(
                         modifier = Modifier.weight(1f),
                         interval = loop.interval,
@@ -309,7 +310,7 @@ fun LoopCardBody(
                 }
             }
         }
-        if (isPast && loop.enabled) {
+        if (loop.enabled && timeStat?.isPast() == true) {
             LoopDoneOrNotButtons(
                 modifier = Modifier.height(36.dp),
                 onDone = { done ->
@@ -317,7 +318,7 @@ fun LoopCardBody(
                         loop = loop,
                         doneState = if (done) DoneState.DONE else DoneState.SKIP
                     )
-                }
+                },
             )
         }
     }
@@ -326,8 +327,9 @@ fun LoopCardBody(
 @Composable
 private fun LoopDoneOrNotButtons(
     modifier: Modifier = Modifier,
-    onDone: (done: Boolean) -> Unit
+    onDone: (done: Boolean) -> Unit,
 ) {
+
     Row(modifier = modifier) {
         Image(
             modifier = Modifier
