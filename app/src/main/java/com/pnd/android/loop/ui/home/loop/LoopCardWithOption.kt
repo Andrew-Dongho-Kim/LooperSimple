@@ -1,5 +1,6 @@
 package com.pnd.android.loop.ui.home.loop
 
+import android.util.Log
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.Orientation
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.SwipeProgress
 import androidx.compose.material.rememberSwipeableState
 import androidx.compose.material.swipeable
 import androidx.compose.runtime.Composable
@@ -46,12 +48,16 @@ fun LoopCardWithOption(
             LoopOptions(
                 modifier = Modifier
                     .align(Alignment.CenterStart)
+                    .graphicsLayer {
+                        val fraction = swipeState.progress.absFraction()
+                        alpha = 0.3f * (1 - fraction) + fraction * 1.0f
+                    }
                     .padding(
                         vertical = 8.dp,
                         horizontal = 36.dp,
                     )
                     .fillMaxWidth()
-                    .height(46.dp),
+                    .height(42.dp),
                 color = Color(loop.color),
                 onEdit = {
                     coroutineScope.launch { swipeState.animateTo(0) }
@@ -72,13 +78,19 @@ fun LoopCardWithOption(
                     state = swipeState,
                     anchors = mapOf(0f to 0, (constraints.maxWidth * 0.4f) to 1),
                     orientation = Orientation.Horizontal
-                )
-                .graphicsLayer {
-
-                },
+                ),
             loopViewModel = loopViewModel,
             loop = loop,
             showActiveDays = showActiveDays
         )
+    }
+}
+
+@OptIn(ExperimentalMaterialApi::class)
+private fun SwipeProgress<Int>.absFraction(): Float {
+    return if (from == 1) {
+        if (fraction == 1f) 1f else 1 - fraction
+    } else {
+        if (fraction == 1f) 0f else fraction
     }
 }

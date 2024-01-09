@@ -45,7 +45,7 @@ fun LoopOptions(
     Row(
         modifier = modifier
             .background(
-                color = color.copy(alpha = 0.2f),
+                color = color.copy(alpha = 0.3f),
                 shape = RoundShapes.large
             )
             .clip(

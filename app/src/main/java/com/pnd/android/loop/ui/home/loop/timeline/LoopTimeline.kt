@@ -1,8 +1,15 @@
 package com.pnd.android.loop.ui.home.loop.timeline
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,10 +33,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.data.LoopBase
+import com.pnd.android.loop.data.isMock
 import com.pnd.android.loop.ui.common.VerticalDashedDivider
 import com.pnd.android.loop.ui.common.VerticalDivider
 import com.pnd.android.loop.ui.theme.RoundShapes
@@ -136,12 +146,14 @@ private fun TimelineLoop(
     modifier: Modifier = Modifier,
     loop: LoopBase
 ) {
+    val alpha = animateCardAlphaWithMock(loopBase = loop)
     val shape = RoundShapes.small
     Box(
         modifier = modifier
             .alpha(0.7f)
             .padding(start = loop.timelineOffsetStart())
             .padding(1.dp)
+            .graphicsLayer { this.alpha = alpha }
             .background(
                 color = Color(loop.color),
                 shape = shape
@@ -157,6 +169,7 @@ private fun TimelineLoop(
             )
             .width(loop.timelineWidth())
             .height(timelineItemHeightDp)
+            .clickable { }
     ) {
         Text(
             modifier = Modifier
@@ -165,7 +178,8 @@ private fun TimelineLoop(
             text = loop.title,
             overflow = TextOverflow.Ellipsis,
             style = MaterialTheme.typography.caption.copy(
-                color = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium)
+                color = MaterialTheme.colors.onSurface,
+                fontWeight = FontWeight.Normal
             )
         )
     }
@@ -220,6 +234,28 @@ private fun isIntersect(slot: List<LoopBase>, another: LoopBase): Boolean {
         if (loop.loopStart < another.loopEnd && another.loopEnd <= loop.loopEnd) return true
     }
     return false
+}
+
+@Composable
+private fun animateCardAlphaWithMock(loopBase: LoopBase): Float {
+    if (!loopBase.isMock()) {
+        return 1f
+    }
+    val transition = rememberInfiniteTransition("CreateLoopTransitions")
+    val alpha by transition.animateFloat(
+        initialValue = 1.0f,
+        targetValue = 0.3f,
+        animationSpec = infiniteRepeatable(
+            tween(
+                durationMillis = 1_500,
+                easing = LinearEasing
+            ),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "AlphaAnimForCreateLoop",
+    )
+
+    return alpha
 }
 
 

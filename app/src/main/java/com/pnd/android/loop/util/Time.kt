@@ -160,6 +160,9 @@ fun localTimeInDay() = with(LocalTime.now()) {
     hour * MS_1HOUR + minute * MS_1MIN + second
 }
 
+@Composable
+fun LoopBase.formatStartEndTime() = "${loopStart.formatHourMinute(false)} ~ ${loopEnd.formatHourMinute(false)}"
+
 fun LoopBase.isPast(localDateTime: LocalDateTime = LocalDateTime.now()): Boolean {
     val localTime = localDateTime.toLocalTime()
     val timeInMs = TimeUnit.MILLISECONDS.convert(localTime.toNanoOfDay(), TimeUnit.NANOSECONDS)
