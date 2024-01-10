@@ -40,7 +40,7 @@ typealias SymbolAnnotation = Pair<AnnotatedString, StringAnnotation?>
  * @return AnnotatedString with annotations used inside the ClickableText wrapper
  */
 @Composable
-fun textFormatter(
+fun annotatedString(
     text: String
 ): AnnotatedString {
     val tokens = symbolPattern.findAll(text)

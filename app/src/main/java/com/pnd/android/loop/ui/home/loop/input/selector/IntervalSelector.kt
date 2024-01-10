@@ -10,7 +10,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.pnd.android.loop.R
 import com.pnd.android.loop.util.intervalString
-import com.pnd.android.loop.util.textFormatter
+import com.pnd.android.loop.util.annotatedString
 import java.util.concurrent.TimeUnit
 
 @Composable
@@ -27,7 +27,7 @@ fun IntervalSelector(
     ) {
         intervals.forEach { interval ->
             TextSelectorItem(
-                text = textFormatter(intervalString(interval, "#")),
+                text = annotatedString(intervalString(interval, "#")),
                 selected = selectedInterval == interval,
                 onClick = { onIntervalSelected(interval) }
             )

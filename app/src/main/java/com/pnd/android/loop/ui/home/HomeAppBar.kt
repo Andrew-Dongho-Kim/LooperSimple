@@ -30,7 +30,7 @@ import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.ui.home.loop.LoopViewModel
 import com.pnd.android.loop.ui.theme.elevatedSurface
-import com.pnd.android.loop.util.textFormatter
+import com.pnd.android.loop.util.annotatedString
 import com.pnd.android.loop.util.formatYearMonthDateDays
 import java.time.LocalDate
 
@@ -53,7 +53,7 @@ fun HomeAppBar(
 
                 CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.medium) {
                     Text(
-                        text = textFormatter(
+                        text = annotatedString(
                             "#${countInProgress.value ?: 0}/${
                                 stringResource(
                                     R.string.loops,

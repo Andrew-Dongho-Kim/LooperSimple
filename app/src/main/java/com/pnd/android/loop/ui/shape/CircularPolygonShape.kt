@@ -1,4 +1,4 @@
-package com.pnd.android.loop.ui.home.loop
+package com.pnd.android.loop.ui.shape
 
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.ui.geometry.Rect
@@ -10,7 +10,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 
-class LoopCardShape(size: Dp) : Shape {
+class CircularPolygonShape(size: Dp) : Shape {
     private val cornerRadius = CornerSize(size)
 
     override fun createOutline(

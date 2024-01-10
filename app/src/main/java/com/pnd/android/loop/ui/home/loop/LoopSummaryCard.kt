@@ -25,7 +25,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -34,6 +36,8 @@ import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.data.LoopWithDone
+import com.pnd.android.loop.ui.common.isLargeScreen
+import com.pnd.android.loop.ui.shape.CutShape
 import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.util.formatHourMinute
 
@@ -56,9 +60,22 @@ fun LoopSummaryCard(
     }
 
     Column(modifier = modifier) {
+        val doneList = loopGroup[DoneState.DONE] ?: emptyList()
+        val skipList = loopGroup[DoneState.SKIP] ?: emptyList()
+
+        val hasDone = doneList.isNotEmpty()
+        val hasSkip = skipList.isNotEmpty()
         Summary(
-            loops = loopGroup[DoneState.DONE] ?: emptyList(),
+            loops = doneList,
             title = stringResource(id = R.string.done),
+            shape = remember(hasSkip) {
+                CutShape(
+                    topLeft = 24.dp,
+                    topRight = 24.dp,
+                    bottomLeft = if (!hasSkip) 24.dp else 0.dp,
+                    bottomRight = if (!hasSkip) 24.dp else 0.dp,
+                )
+            },
             icon = Icons.Filled.Done,
             iconColor = MaterialTheme.colors.primary,
             onUndoDoneState = onUndoDoneState,
@@ -66,8 +83,16 @@ fun LoopSummaryCard(
 
         Summary(
             modifier = Modifier.padding(top = 8.dp),
-            loops = loopGroup[DoneState.SKIP] ?: emptyList(),
+            loops = skipList,
             title = stringResource(id = R.string.skip),
+            shape = remember(hasDone) {
+                CutShape(
+                    topLeft = if (!hasDone) 24.dp else 0.dp,
+                    topRight = if (!hasDone) 24.dp else 0.dp,
+                    bottomLeft = 24.dp,
+                    bottomRight = 24.dp,
+                )
+            },
             icon = Icons.Filled.Clear,
             iconColor = MaterialTheme.colors.onSurface,
             onUndoDoneState = onUndoDoneState,
@@ -81,6 +106,7 @@ private fun Summary(
     modifier: Modifier = Modifier,
     loops: List<LoopBase>,
     title: String,
+    shape: Shape,
     icon: ImageVector,
     iconColor: Color,
     onUndoDoneState: (loop: LoopBase) -> Unit,
@@ -89,9 +115,10 @@ private fun Summary(
 
     Card(
         modifier = modifier,
+        shape = shape,
         border = BorderStroke(
             width = 0.5.dp,
-            color = MaterialTheme.colors.onSurface.copy(alpha = 0.2f)
+            color = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.disabled)
         )
     ) {
         Column(
@@ -171,11 +198,13 @@ private fun SummaryItem(
             title = loop.title
         )
 
-        SummaryItemStartAndEndTime(
-            modifier = Modifier.padding(start = 4.dp),
-            loopStart = loop.loopStart,
-            loopEnd = loop.loopEnd
-        )
+        if (LocalConfiguration.current.isLargeScreen()) {
+            SummaryItemStartAndEndTime(
+                modifier = Modifier.padding(start = 4.dp),
+                loopStart = loop.loopStart,
+                loopEnd = loop.loopEnd
+            )
+        }
 
         LoopCardColor(
             modifier = Modifier

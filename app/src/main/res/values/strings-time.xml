@@ -103,4 +103,11 @@
     <string name="format_hour_minute_24">%02d:%02d</string>
     <string name="format_am_hour_minute">%02d:%02d AM</string>
     <string name="format_pm_hour_minute">%02d:%02d PM</string>
+
+    <string name="time_stat_before_start_hours">In #%d hrs</string>
+    <string name="time_stat_before_start_mins">In #%d min</string>
+    <string name="time_stat_before_start_soon">#Soon</string>
+
+    <string name="time_stat_remain_hours">#%d hrs left</string>
+    <string name="time_stat_remain_mins">#%d min left</string>
 </resources>

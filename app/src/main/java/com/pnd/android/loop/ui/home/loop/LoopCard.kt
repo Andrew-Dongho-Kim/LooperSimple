@@ -50,6 +50,7 @@ import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.asAndroidPath
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toComposePathEffect
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -65,16 +66,14 @@ import com.pnd.android.loop.data.TimeStat
 import com.pnd.android.loop.data.asLoopVo
 import com.pnd.android.loop.data.isMock
 import com.pnd.android.loop.data.timeStatAsFlow
+import com.pnd.android.loop.ui.shape.CircularPolygonShape
 import com.pnd.android.loop.util.ABB_DAYS
 import com.pnd.android.loop.util.DAY_STRING_MAP
-import com.pnd.android.loop.util.formatHourMinute
+import com.pnd.android.loop.util.formatStartEndTime
 import com.pnd.android.loop.util.intervalString
 import com.pnd.android.loop.util.isActive
-import com.pnd.android.loop.util.isActiveDay
-import com.pnd.android.loop.util.isPast
 import com.pnd.android.loop.util.rememberDayColor
-import com.pnd.android.loop.util.textFormatter
-import kotlinx.coroutines.flow.collectIndexed
+import com.pnd.android.loop.util.annotatedString
 
 @Composable
 fun LoopCard(
@@ -101,7 +100,7 @@ fun LoopCard(
 //                .size(14.dp)
 //        )
 
-        val cardShape = remember { LoopCardShape(12.dp) }
+        val cardShape = remember { CircularPolygonShape(12.dp) }
         Card(
             modifier = Modifier
                 .padding(
@@ -206,7 +205,7 @@ private fun LoopCardActiveEffect(
 
     val paint = remember { Paint() }
     val pathMeasure = remember { PathMeasure() }
-    val cardShape = remember { LoopCardShape(12.dp) }
+    val cardShape = remember { CircularPolygonShape(12.dp) }
 
     val infiniteTransition = rememberInfiniteTransition(label = "")
     val phase by infiniteTransition.animateFloat(
@@ -272,7 +271,7 @@ fun LoopCardBody(
     loop: LoopBase,
     showActiveDays: Boolean,
 ) {
-    var timeStat by remember { mutableStateOf<TimeStat?>(null) }
+    var timeStat by remember { mutableStateOf<TimeStat>(TimeStat.NotToday) }
     LaunchedEffect(loop) {
         loop.timeStatAsFlow().collect { timeStat = it }
     }
@@ -291,11 +290,11 @@ fun LoopCardBody(
 
                 LoopCardStartEndTime(
                     modifier = Modifier.weight(1f),
-                    loopStart = loop.loopStart,
-                    loopEnd = loop.loopEnd,
+                    loop = loop,
+                    timeStat = timeStat,
                 )
 
-                if (timeStat?.isPast() == false) {
+                if (!timeStat.isPast()) {
                     LoopCardInterval(
                         modifier = Modifier.weight(1f),
                         interval = loop.interval,
@@ -310,7 +309,7 @@ fun LoopCardBody(
                 }
             }
         }
-        if (loop.enabled && timeStat?.isPast() == true) {
+        if (loop.enabled && timeStat.isPast()) {
             LoopDoneOrNotButtons(
                 modifier = Modifier.height(36.dp),
                 onDone = { done ->
@@ -390,7 +389,7 @@ private fun LoopCardInterval(
         text = if (interval == NO_REPEAT) {
             AnnotatedString("")
         } else {
-            textFormatter(
+            annotatedString(
                 intervalString(
                     interval,
                     highlight = "#",
@@ -405,12 +404,21 @@ private fun LoopCardInterval(
 @Composable
 private fun LoopCardStartEndTime(
     modifier: Modifier,
-    loopStart: Long,
-    loopEnd: Long,
+    loop: LoopBase,
+    timeStat: TimeStat
 ) {
+    val timeText = if (
+        !loop.isMock() &&
+        (timeStat.isPast() || timeStat.isNotToday())
+    ) {
+        annotatedString(loop.formatStartEndTime())
+    } else {
+        annotatedString(timeStat.asString(LocalContext.current, true))
+    }
+
     Text(
         modifier = modifier,
-        text = "${loopStart.formatHourMinute(false)} ~ ${loopEnd.formatHourMinute(false)}",
+        text = timeText,
         style = MaterialTheme.typography.caption.copy(color = colorBody2Text()),
     )
 }
