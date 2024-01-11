@@ -67,13 +67,17 @@ import com.pnd.android.loop.data.asLoopVo
 import com.pnd.android.loop.data.isMock
 import com.pnd.android.loop.data.timeStatAsFlow
 import com.pnd.android.loop.ui.shape.CircularPolygonShape
+import com.pnd.android.loop.ui.theme.AppColor
+import com.pnd.android.loop.ui.theme.onSurface
+import com.pnd.android.loop.ui.theme.primary
+import com.pnd.android.loop.ui.theme.surface
 import com.pnd.android.loop.util.ABB_DAYS
 import com.pnd.android.loop.util.DAY_STRING_MAP
+import com.pnd.android.loop.util.annotatedString
 import com.pnd.android.loop.util.formatStartEndTime
 import com.pnd.android.loop.util.intervalString
 import com.pnd.android.loop.util.isActive
 import com.pnd.android.loop.util.rememberDayColor
-import com.pnd.android.loop.util.annotatedString
 
 @Composable
 fun LoopCard(
@@ -85,8 +89,8 @@ fun LoopCard(
     val isMock = loop.isMock()
     val animateAlpha = animateCardAlphaWithMock(loopBase = loop)
 
-    val primary = MaterialTheme.colors.primary.copy(alpha = ContentAlpha.medium)
-    val surface = MaterialTheme.colors.onSurface.copy(alpha = 0.4f)
+    val primary = AppColor.primary.copy(alpha = ContentAlpha.medium)
+    val surface = AppColor.onSurface.copy(alpha = 0.4f)
     val border = remember(isMock, loop.color) {
         BorderStroke(
             width = if (isMock) 1.dp else 0.5.dp,
@@ -137,7 +141,7 @@ private fun LoopCardTag(
         modifier = modifier,
         imageVector = Icons.Filled.Refresh,
         colorFilter = ColorFilter.tint(
-            color = MaterialTheme.colors.onSurface.copy(
+            color = AppColor.onSurface.copy(
                 alpha = ContentAlpha.disabled
             )
         ),
@@ -258,7 +262,7 @@ fun LoopCardColor(
                 shape = CircleShape
             )
             .background(
-                color = MaterialTheme.colors.surface.copy(alpha = 0.25f),
+                color = AppColor.surface.copy(alpha = 0.25f),
                 shape = CircleShape
             )
     )
@@ -338,7 +342,7 @@ private fun LoopDoneOrNotButtons(
                 .padding(8.dp),
             imageVector = Icons.Filled.Done,
             colorFilter = ColorFilter.tint(
-                MaterialTheme.colors.primary.copy(
+                AppColor.primary.copy(
                     alpha = ContentAlpha.medium
                 )
             ),
@@ -354,7 +358,7 @@ private fun LoopDoneOrNotButtons(
                 .padding(8.dp),
             imageVector = Icons.Filled.Close,
             colorFilter = ColorFilter.tint(
-                MaterialTheme.colors.onSurface.copy(
+                AppColor.onSurface.copy(
                     alpha = ContentAlpha.medium
                 )
             ),
@@ -455,7 +459,7 @@ private fun LoopCardActiveDaysPronoun(
         modifier = modifier.padding(end = 2.dp),
         text = stringResource(DAY_STRING_MAP[loop.loopActiveDays]!!),
         style = MaterialTheme.typography.caption.copy(
-            color = MaterialTheme.colors.primary
+            color = AppColor.primary
         )
     )
 }
@@ -494,7 +498,7 @@ private fun ActiveDayText(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        val color = MaterialTheme.colors.primary
+        val color = AppColor.primary
         if (selected) {
             Canvas(modifier = Modifier.padding(bottom = 2.dp)) {
                 drawCircle(
@@ -518,12 +522,12 @@ private fun ActiveDayText(
 
 @Composable
 private fun colorBody1Text(): Color {
-    return MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.high)
+    return AppColor.onSurface.copy(alpha = ContentAlpha.high)
 }
 
 @Composable
 private fun colorBody2Text(): Color {
-    return MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium)
+    return AppColor.onSurface.copy(alpha = ContentAlpha.medium)
 }
 
 

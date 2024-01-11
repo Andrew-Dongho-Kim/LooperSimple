@@ -38,7 +38,10 @@ import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.data.LoopWithDone
 import com.pnd.android.loop.ui.common.isLargeScreen
 import com.pnd.android.loop.ui.shape.CutShape
+import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.RoundShapes
+import com.pnd.android.loop.ui.theme.onSurface
+import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.util.formatHourMinute
 
 @Composable
@@ -71,13 +74,13 @@ fun LoopSummaryCard(
             shape = remember(hasSkip) {
                 CutShape(
                     topLeft = 24.dp,
-                    topRight = 24.dp,
-                    bottomLeft = if (!hasSkip) 24.dp else 0.dp,
+                    topRight = 0.dp,
+                    bottomLeft = 0.dp,
                     bottomRight = if (!hasSkip) 24.dp else 0.dp,
                 )
             },
             icon = Icons.Filled.Done,
-            iconColor = MaterialTheme.colors.primary,
+            iconColor = AppColor.primary,
             onUndoDoneState = onUndoDoneState,
         )
 
@@ -88,13 +91,13 @@ fun LoopSummaryCard(
             shape = remember(hasDone) {
                 CutShape(
                     topLeft = if (!hasDone) 24.dp else 0.dp,
-                    topRight = if (!hasDone) 24.dp else 0.dp,
-                    bottomLeft = 24.dp,
+                    topRight = 0.dp,
+                    bottomLeft = 0.dp,
                     bottomRight = 24.dp,
                 )
             },
             icon = Icons.Filled.Clear,
-            iconColor = MaterialTheme.colors.onSurface,
+            iconColor = AppColor.onSurface,
             onUndoDoneState = onUndoDoneState,
         )
     }
@@ -118,7 +121,7 @@ private fun Summary(
         shape = shape,
         border = BorderStroke(
             width = 0.5.dp,
-            color = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.disabled)
+            color = AppColor.onSurface.copy(alpha = ContentAlpha.disabled)
         )
     ) {
         Column(
@@ -165,7 +168,7 @@ private fun SummaryHeader(
         Text(
             text = "($itemCount) $title",
             style = MaterialTheme.typography.subtitle2.copy(
-                color = MaterialTheme.colors.onSurface,
+                color = AppColor.onSurface,
                 fontWeight = FontWeight.Bold
             )
         )
@@ -230,7 +233,7 @@ private fun SummaryItemTitle(
         modifier = modifier,
         text = title,
         style = MaterialTheme.typography.body1.copy(
-            color = MaterialTheme.colors.onSurface.copy(
+            color = AppColor.onSurface.copy(
                 alpha = ContentAlpha.medium
             ),
         ),
@@ -249,7 +252,7 @@ private fun SummaryItemStartAndEndTime(
         modifier = modifier,
         text = "(${loopStart.formatHourMinute(true)} ~ ${loopEnd.formatHourMinute(true)})",
         style = MaterialTheme.typography.body2.copy(
-            color = MaterialTheme.colors.onSurface.copy(
+            color = AppColor.onSurface.copy(
                 alpha = ContentAlpha.disabled
             ),
         )
@@ -267,7 +270,7 @@ private fun SummaryItemDoneStateButton(
             .clickable { onUndoDonState(loop) }
             .border(
                 width = 0.5.dp,
-                color = MaterialTheme.colors.onSurface.copy(alpha = 0.1f),
+                color = AppColor.onSurface.copy(alpha = 0.1f),
                 shape = RoundShapes.small
             )
             .clip(shape = RoundShapes.small)
@@ -275,7 +278,7 @@ private fun SummaryItemDoneStateButton(
             .size(16.dp),
         imageVector = Icons.Filled.Refresh,
         colorFilter = ColorFilter.tint(
-            color = MaterialTheme.colors.onSurface.copy(
+            color = AppColor.onSurface.copy(
                 alpha = ContentAlpha.medium
             )
         ),

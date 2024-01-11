@@ -41,7 +41,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
+import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.elevatedSurface
+import com.pnd.android.loop.ui.theme.onSurface
+import com.pnd.android.loop.ui.theme.surface
 
 @Composable
 fun UserInputButtons(
@@ -124,7 +127,7 @@ private fun UserInputButtonsIndicator(
     )
 
     val backgroundColor = MaterialTheme.colors.elevatedSurface(3.dp)
-    val borderColor = MaterialTheme.colors.onSurface.copy(alpha = 0.3f)
+    val borderColor = AppColor.onSurface.copy(alpha = 0.3f)
     Box(
         modifier = modifier
             .offset { IntOffset(offsetX.roundToPx(), 0) }
@@ -157,7 +160,7 @@ private fun SelectorButton(
     ) {
         Icon(
             imageVector = icon,
-            tint = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium),
+            tint = AppColor.onSurface.copy(alpha = ContentAlpha.medium),
             contentDescription = contentDescription
         )
     }
@@ -176,13 +179,13 @@ private fun UserInputSubmitButton(
         onClick = { onSubmitted() },
         shape = CircleShape,
         colors = ButtonDefaults.buttonColors(
-            disabledBackgroundColor = MaterialTheme.colors.surface,
-            disabledContentColor = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium),
+            disabledBackgroundColor = AppColor.surface,
+            disabledContentColor = AppColor.onSurface.copy(alpha = ContentAlpha.disabled),
             contentColor = Color.White
         ),
         border = BorderStroke(
             width = 1.dp,
-            color = MaterialTheme.colors.onSurface.copy(alpha = 0.12f)
+            color = AppColor.onSurface.copy(alpha = 0.12f)
         ),
         contentPadding = PaddingValues(0.dp)
     ) {

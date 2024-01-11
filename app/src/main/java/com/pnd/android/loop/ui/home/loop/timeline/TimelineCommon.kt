@@ -55,6 +55,7 @@ fun timeBarTextWidth(text: String) = measureTextWidth(text, timeBarFontStyle)
 fun LocalTime.timelineOffsetStart() =
     timelineItemWidthDp.times(hour + (minute / 60f))
 
+
 fun LoopBase.timelineOffsetStart() =
     loopStart.toLocalTime().timelineOffsetStart()
 

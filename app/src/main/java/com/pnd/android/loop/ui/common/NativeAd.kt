@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.ContentAlpha
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Card
@@ -38,7 +37,9 @@ import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.VideoOptions
 import com.google.android.gms.ads.nativead.NativeAdOptions
 import com.pnd.android.loop.databinding.LoopNativeAdLayoutBinding
+import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.RoundShapes
+import com.pnd.android.loop.ui.theme.onSurface
 
 private enum class LoadState {
     READY, LOADING, FAILED, FINISHED
@@ -83,7 +84,7 @@ fun NativeAd(
             },
         border = BorderStroke(
             width = 0.5.dp,
-            color = MaterialTheme.colors.onSurface.copy(alpha = 0.2f)
+            color = AppColor.onSurface.copy(alpha = 0.2f)
         )
     ) {
         Column {
@@ -117,7 +118,7 @@ private fun ExpandableImage(
                 .graphicsLayer { rotationX = if (isExpanded) 180f else 0f },
             imageVector = Icons.Filled.KeyboardArrowDown,
             colorFilter = ColorFilter.tint(
-                color = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.disabled)
+                color = AppColor.onSurface.copy(alpha = ContentAlpha.disabled)
             ),
             contentDescription = ""
         )

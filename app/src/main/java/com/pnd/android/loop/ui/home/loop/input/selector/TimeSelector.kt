@@ -39,7 +39,10 @@ import com.pnd.android.loop.R
 import com.pnd.android.loop.data.Day.Companion.fromIndex
 import com.pnd.android.loop.data.Day.Companion.isOn
 import com.pnd.android.loop.data.Day.Companion.toggle
+import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.RoundShapes
+import com.pnd.android.loop.ui.theme.onSurface
+import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.util.ABB_DAYS
 import com.pnd.android.loop.util.formatHourMinute
 import com.pnd.android.loop.util.rememberDayColor
@@ -97,7 +100,7 @@ private fun StartAndEndTimeSelector(
         Image(
             imageVector = Icons.Filled.ArrowRightAlt,
             colorFilter = ColorFilter.tint(
-                color = MaterialTheme.colors.primary
+                color = AppColor.primary
             ),
             contentDescription = ""
         )
@@ -135,7 +138,7 @@ private fun TimeDisplay(
         Text(
             text = title,
             style = MaterialTheme.typography.subtitle1.copy(
-                color = MaterialTheme.colors.onSurface
+                color = AppColor.onSurface
             )
         )
 
@@ -148,7 +151,7 @@ private fun TimeDisplay(
                 .padding(horizontal = 24.dp, vertical = 12.dp),
             text = selectedTime.formatHourMinute(withAmPm = true),
             style = MaterialTheme.typography.h6.copy(
-                color = MaterialTheme.colors.onSurface.copy(
+                color = AppColor.onSurface.copy(
                     alpha = ContentAlpha.medium
                 )
             )
@@ -191,7 +194,7 @@ fun DaySelector(
         Text(
             text = stringResource(id = R.string.select_day),
             style = MaterialTheme.typography.subtitle1.copy(
-                color = MaterialTheme.colors.onSurface
+                color = AppColor.onSurface
             )
         )
 
@@ -224,7 +227,7 @@ private fun DateItemText(
     selectedDays: Int,
     onSelectedDayChanged: (Int) -> Unit = {}
 ) {
-    val selectedColor = MaterialTheme.colors.primary
+    val selectedColor = AppColor.primary
     val selected = selectedDays.isOn(day)
 
     Text(

@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.Modifier
@@ -29,6 +28,9 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
+import com.pnd.android.loop.ui.theme.AppColor
+import com.pnd.android.loop.ui.theme.onSurface
+import com.pnd.android.loop.ui.theme.surface
 import kotlin.math.min
 import kotlin.math.roundToInt
 
@@ -96,8 +98,8 @@ private fun ColorBox(
     isSelected: Boolean,
     onColorSelected: (Int) -> Unit,
 ) {
-    val background = MaterialTheme.colors.onSurface.copy(alpha = 0.08f)
-    val border = MaterialTheme.colors.onSurface.copy(alpha = 0.3f)
+    val background = AppColor.onSurface.copy(alpha = 0.08f)
+    val border = AppColor.onSurface.copy(alpha = 0.3f)
     val round = 8.dp
     Box(
         modifier = modifier
@@ -133,7 +135,7 @@ private fun ColorBox(
                 shape = CircleShape
             )
             .background(
-                color = MaterialTheme.colors.surface.copy(alpha = 0.3f),
+                color = AppColor.surface.copy(alpha = 0.3f),
                 shape = CircleShape
             )
     )

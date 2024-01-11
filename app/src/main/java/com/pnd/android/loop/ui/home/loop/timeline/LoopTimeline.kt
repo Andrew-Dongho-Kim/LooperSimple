@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material.ContentAlpha
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -42,7 +41,11 @@ import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.isMock
 import com.pnd.android.loop.ui.common.VerticalDashedDivider
 import com.pnd.android.loop.ui.common.VerticalDivider
+import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.RoundShapes
+import com.pnd.android.loop.ui.theme.WineRed
+import com.pnd.android.loop.ui.theme.onSurface
+import com.pnd.android.loop.ui.theme.surface
 import java.time.LocalTime
 import kotlin.math.max
 
@@ -104,7 +107,7 @@ private fun TimeGridContent(
                         )
                     },
                     thickness = 0.5.dp,
-                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.3f)
+                    color = AppColor.onSurface.copy(alpha = 0.3f)
                 )
             }
             TimelineLoops(
@@ -125,7 +128,7 @@ private fun TimelineLoops(
     val slots = rememberTimelineSlots(loops = loops)
     Column(
         modifier = modifier
-            .background(color = MaterialTheme.colors.onSurface.copy(alpha = 0.1f))
+            .background(color = AppColor.onSurface.copy(alpha = 0.1f))
             .width(timelineWidth),
         verticalArrangement = Arrangement.Bottom
     ) {
@@ -159,12 +162,12 @@ private fun TimelineLoop(
                 shape = shape
             )
             .background(
-                color = MaterialTheme.colors.surface.copy(alpha = 0.25f),
+                color = AppColor.surface.copy(alpha = 0.25f),
                 shape = shape
             )
             .border(
                 width = 0.5.dp,
-                color = MaterialTheme.colors.onSurface.copy(alpha = 0.2f),
+                color = AppColor.onSurface.copy(alpha = 0.2f),
                 shape = shape
             )
             .width(loop.timelineWidth())
@@ -178,7 +181,7 @@ private fun TimelineLoop(
             text = loop.title,
             overflow = TextOverflow.Ellipsis,
             style = MaterialTheme.typography.caption.copy(
-                color = MaterialTheme.colors.onSurface,
+                color = AppColor.onSurface,
                 fontWeight = FontWeight.Normal
             )
         )
@@ -198,7 +201,7 @@ private fun LocalTimeVerticalLineIndicator(
                 y = 0
             )
         },
-        color = Color.Red
+        color = WineRed
     )
 }
 

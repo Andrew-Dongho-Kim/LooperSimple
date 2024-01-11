@@ -43,7 +43,10 @@ import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.ui.common.NativeAd
 import com.pnd.android.loop.ui.home.loop.timeline.LoopTimeline
+import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.elevatedSurface
+import com.pnd.android.loop.ui.theme.onSurface
+import com.pnd.android.loop.ui.theme.primary
 
 val HOME_NATIVE_AD_ID = if (BuildConfig.DEBUG) {
     "ca-app-pub-3940256099942544/2247696110"
@@ -111,7 +114,7 @@ private fun TimelineHeaderButton(
 ) {
     Box(modifier = modifier.fillMaxWidth()) {
         val backgroundColor = MaterialTheme.colors.elevatedSurface(3.dp)
-        val borderColor = MaterialTheme.colors.onSurface.copy(alpha = 0.2f)
+        val borderColor = AppColor.onSurface.copy(alpha = 0.2f)
         Row(
             modifier = Modifier
                 .align(Alignment.CenterEnd)
@@ -132,8 +135,8 @@ private fun TimelineHeaderButton(
                 }
                 .padding(horizontal = 12.dp, vertical = 8.dp),
         ) {
-            val normalColor = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium)
-            val selectedColor = MaterialTheme.colors.primary
+            val normalColor = AppColor.onSurface.copy(alpha = ContentAlpha.medium)
+            val selectedColor = AppColor.primary
             val contentColor = if (isSelected) selectedColor else normalColor
             Text(
                 text = stringResource(R.string.timeline),
@@ -251,7 +254,7 @@ private fun ExpandableHeader(
         Text(
             text = headText,
             style = MaterialTheme.typography.subtitle2.copy(
-                color = MaterialTheme.colors.onSurface,
+                color = AppColor.onSurface,
             )
         )
 
@@ -268,7 +271,7 @@ private fun ExpandableHeader(
                 rotationX = rotation
             },
             imageVector = Icons.Rounded.ExpandMore,
-            colorFilter = ColorFilter.tint(color = MaterialTheme.colors.onSurface),
+            colorFilter = ColorFilter.tint(color = AppColor.onSurface),
             contentDescription = ""
         )
     }

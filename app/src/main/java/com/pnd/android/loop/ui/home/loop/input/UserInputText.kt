@@ -21,6 +21,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
+import com.pnd.android.loop.ui.theme.AppColor
+import com.pnd.android.loop.ui.theme.onSurface
 
 
 @Composable
@@ -72,8 +74,8 @@ private fun UserInputTextField(
             imeAction = ImeAction.Send
         ),
         maxLines = 1,
-        cursorBrush = SolidColor(MaterialTheme.colors.onSurface),
-        textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colors.onSurface)
+        cursorBrush = SolidColor(AppColor.onSurface),
+        textStyle = LocalTextStyle.current.copy(color = AppColor.onSurface)
     )
 }
 
@@ -85,7 +87,7 @@ private fun EmptyTextField(
         modifier = modifier.padding(start = 16.dp),
         text = stringResource(R.string.desc_enter_loop_title),
         style = MaterialTheme.typography.body1.copy(
-            color = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.disabled)
+            color = AppColor.onSurface.copy(alpha = ContentAlpha.disabled)
         )
     )
 }

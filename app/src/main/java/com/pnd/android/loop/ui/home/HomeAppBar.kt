@@ -29,7 +29,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.ui.home.loop.LoopViewModel
+import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.elevatedSurface
+import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.util.annotatedString
 import com.pnd.android.loop.util.formatYearMonthDateDays
 import java.time.LocalDate
@@ -102,7 +104,7 @@ private fun AppBar(
             modifier = modifier,
             backgroundColor = Color.Transparent,
             elevation = 0.dp, // No shadow needed
-            contentColor = MaterialTheme.colors.onSurface,
+            contentColor = AppColor.onSurface,
             actions = actions,
             title = { Row { title() } },
         )

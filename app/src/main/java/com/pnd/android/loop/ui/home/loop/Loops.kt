@@ -30,6 +30,9 @@ import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.LoopWithDone
 import com.pnd.android.loop.ui.home.loop.input.UserInputState
+import com.pnd.android.loop.ui.theme.AppColor
+import com.pnd.android.loop.ui.theme.background
+import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.util.isActiveDay
 
 @Composable
@@ -41,7 +44,7 @@ fun Loops(
 ) {
     val sections by loopViewModel.observeSectionsAsState(inputState)
 
-    Box(modifier = modifier.background(MaterialTheme.colors.onSurface.copy(alpha = 0.02f))) {
+    Box(modifier = modifier.background(AppColor.background)) {
         if (sections.isEmpty()) {
             EmptyLoops(modifier = Modifier.fillMaxSize())
         } else {
@@ -75,7 +78,7 @@ fun EmptyLoops(
             Text(
                 text = stringResource(R.string.desc_no_loops),
                 style = MaterialTheme.typography.subtitle1.copy(
-                    color = MaterialTheme.colors.onSurface
+                    color = AppColor.onSurface
                 )
             )
         }

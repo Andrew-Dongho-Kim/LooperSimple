@@ -1,7 +1,6 @@
 package com.pnd.android.loop.util
 
 import android.content.Context
-import androidx.compose.material.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
@@ -21,8 +20,10 @@ import com.pnd.android.loop.data.Day.Companion.WEEKDAYS
 import com.pnd.android.loop.data.Day.Companion.WEEKENDS
 import com.pnd.android.loop.data.Day.Companion.isOn
 import com.pnd.android.loop.data.LoopBase
+import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.Blue500
 import com.pnd.android.loop.ui.theme.Red500
+import com.pnd.android.loop.ui.theme.onSurface
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -116,7 +117,7 @@ fun LocalTime.formatHourMinute(withAmPm: Boolean = true): String {
 
 @Composable
 fun rememberDayColor(day: Int): Color {
-    val commonColor = MaterialTheme.colors.onSurface
+    val commonColor = AppColor.onSurface
     return remember(day) {
         when (day) {
             SUNDAY -> Red500
@@ -161,7 +162,8 @@ fun localTimeInDay() = with(LocalTime.now()) {
 }
 
 @Composable
-fun LoopBase.formatStartEndTime() = "${loopStart.formatHourMinute(false)} ~ ${loopEnd.formatHourMinute(false)}"
+fun LoopBase.formatStartEndTime() =
+    "${loopStart.formatHourMinute(false)} ~ ${loopEnd.formatHourMinute(false)}"
 
 fun LoopBase.isPast(localDateTime: LocalDateTime = LocalDateTime.now()): Boolean {
     val localTime = localDateTime.toLocalTime()

@@ -32,7 +32,9 @@ import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
+import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.RoundShapes
+import com.pnd.android.loop.ui.theme.onSurface
 
 @Composable
 fun LoopOptions(
@@ -86,7 +88,7 @@ private fun OptionIcon(
         modifier = modifier.clickable(onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        val color = MaterialTheme.colors.onSurface.copy(alpha = ContentAlpha.medium)
+        val color = AppColor.onSurface.copy(alpha = ContentAlpha.medium)
         Icon(
             modifier = Modifier
                 .padding(horizontal = 16.dp)
@@ -99,7 +101,7 @@ private fun OptionIcon(
         Text(
             text = text,
             style = MaterialTheme.typography.caption.copy(
-                color = MaterialTheme.colors.onSurface //.copy(alpha = ContentAlpha.medium)
+                color = AppColor.onSurface //.copy(alpha = ContentAlpha.medium)
             )
         )
     }
