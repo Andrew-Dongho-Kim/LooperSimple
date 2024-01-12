@@ -28,7 +28,7 @@ import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
-import com.pnd.android.loop.data.LoopWithDone
+import com.pnd.android.loop.data.doneState
 import com.pnd.android.loop.ui.home.loop.input.UserInputState
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.background
@@ -43,6 +43,7 @@ fun Loops(
     loopViewModel: LoopViewModel,
 ) {
     val sections by loopViewModel.observeSectionsAsState(inputState)
+    val onEdit = remember { { loop: LoopBase -> inputState.edit(loop) } }
 
     Box(modifier = modifier.background(AppColor.background)) {
         if (sections.isEmpty()) {
@@ -57,7 +58,8 @@ fun Loops(
                 sections.forEach { section ->
                     section(
                         section = section,
-                        loopViewModel = loopViewModel
+                        loopViewModel = loopViewModel,
+                        onEdit = onEdit,
                     )
                 }
             }
@@ -94,11 +96,18 @@ private fun LoopViewModel.observeSectionsAsState(
     return if (loops.isEmpty()) {
         remember { mutableStateOf(emptyList()) }
     } else {
+        val resultLoops = ArrayList<LoopBase>(loops)
+        if (inputState.mode == UserInputState.Mode.Edit) {
+            val edited = inputState.value
+            val index = resultLoops.indexOfFirst { it.id == edited.id }
+            resultLoops[index] = inputState.value
+        }
+
         val sections = mutableListOf(
-            rememberTodaySection(loops, inputState),
+            rememberTodaySection(resultLoops, inputState),
             rememberAdSection(),
-            rememberDoneSection(loops),
-            rememberLaterSection(loops)
+            rememberDoneSection(resultLoops),
+            rememberLaterSection(resultLoops)
         ).filter { it.size > 0 }
 
         remember(sections) { mutableStateOf(sections) }
@@ -111,22 +120,23 @@ private fun rememberAdSection() = remember {
 }
 
 @Composable
-private fun rememberDoneSection(loops: List<LoopWithDone>) = remember {
+private fun rememberDoneSection(loops: List<LoopBase>) = remember {
     Section.Summary()
 }.apply {
     items.value =
-        loops.filter { it.isActiveDay() && it.done != LoopDoneVo.DoneState.NO_RESPONSE }
+        loops.filter { it.isActiveDay() && it.doneState != LoopDoneVo.DoneState.NO_RESPONSE }
 }
 
 @Composable
 private fun rememberTodaySection(
-    loops: List<LoopWithDone>,
+    loops: List<LoopBase>,
     inputState: UserInputState,
 ): Section {
     val filtered = loops.filter {
-        it.isActiveDay() && it.done == LoopDoneVo.DoneState.NO_RESPONSE
+        it.isActiveDay() && it.doneState == LoopDoneVo.DoneState.NO_RESPONSE
     }
-    val resultLoops = mutableListOf<LoopBase>(*filtered.toTypedArray())
+
+    val resultLoops = mutableListOf(*filtered.toTypedArray())
     if (inputState.mode == UserInputState.Mode.New) {
         resultLoops.add(0, inputState.value)
     }
@@ -139,7 +149,7 @@ private fun rememberTodaySection(
 }
 
 @Composable
-private fun rememberLaterSection(loops: List<LoopWithDone>): Section {
+private fun rememberLaterSection(loops: List<LoopBase>): Section {
     val title = stringResource(id = R.string.later)
     return remember {
         Section.Later(

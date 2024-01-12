@@ -39,7 +39,9 @@ fun Home(
                     .imePadding(),
                 inputState = inputState,
                 lazyListState = lazyListState,
-                onLoopSubmitted = { newLoop -> loopViewModel.addOrUpdateLoop(newLoop.asLoopVo()) },
+                onLoopSubmitted = { newLoop ->
+                    loopViewModel.addOrUpdateLoop(newLoop.asLoopVo())
+                }
             )
         }
         HomeAppBar(

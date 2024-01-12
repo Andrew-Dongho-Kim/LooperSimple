@@ -39,6 +39,14 @@ class UserInputState(
     val isTitleEmpty
         get() = textFieldValue.text.isEmpty()
 
+    private var hasTextFieldFocused by mutableStateOf(false)
+
+    fun edit(value: LoopBase) {
+        mode = Mode.Edit
+        this.value = value.copy()
+        textFieldValue = TextFieldValue(text = value.title)
+    }
+
     fun update(
         title: TextFieldValue = this.textFieldValue,
         color: Int = value.color,
@@ -61,6 +69,11 @@ class UserInputState(
         ensureState()
     }
 
+    fun setTextFieldFocused(focused: Boolean) {
+        hasTextFieldFocused = focused
+        ensureState()
+    }
+
     fun setSelector(selector: InputSelector) {
         prevSelector = currSelector
         currSelector = if (selector == currSelector) {
@@ -71,19 +84,21 @@ class UserInputState(
         ensureState()
     }
 
-    fun reset() {
+    fun reset(withValue: Boolean = true) {
         mode = Mode.None
-        value = LoopBase.default(isMock = true)
-        textFieldValue = TextFieldValue()
         prevSelector = currSelector
         currSelector = InputSelector.NONE
+
+        if (withValue) value = LoopBase.default(isMock = true)
+        textFieldValue = TextFieldValue(value.title)
     }
 
     private fun ensureState() {
         if (currSelector == InputSelector.NONE) {
-            if (isTitleEmpty) {
-                reset()
-            } else {
+            if (isTitleEmpty && !hasTextFieldFocused) {
+                if (mode == Mode.New) reset(withValue = false)
+
+            } else if (mode == Mode.None) {
                 mode = Mode.New
             }
         } else if (mode == Mode.None) {
@@ -111,7 +126,7 @@ class UserInputState(
                     prevSelector = InputSelector.valueOf(map[STATE_PREV_SELECTOR] as String),
                     currSelector = InputSelector.valueOf(map[STATE_CURR_SELECTOR] as String),
                     mode = Mode.valueOf(map[STATE_MODE] as String),
-                    value = map.asLoop(isMock = true)
+                    value = map.asLoop()
                 )
             }
         )

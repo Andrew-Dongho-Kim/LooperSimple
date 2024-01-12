@@ -51,7 +51,6 @@ fun UserInputButtons(
     modifier: Modifier = Modifier,
     inputState: UserInputState,
     onSubmitted: () -> Unit,
-    isEditing: Boolean = false,
 ) {
     Row(
         modifier = modifier
@@ -68,7 +67,7 @@ fun UserInputButtons(
         UserInputSubmitButton(
             enabled = !inputState.isTitleEmpty,
             onSubmitted = onSubmitted,
-            isEditing = isEditing
+            isEditing = inputState.mode == UserInputState.Mode.Edit
         )
     }
 }

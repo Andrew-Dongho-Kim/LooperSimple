@@ -113,7 +113,7 @@ fun LoopCard(
                 )
                 .fillMaxWidth()
                 .clip(cardShape)
-                .clickable {
+                .clickable(enabled = !loop.isMock()) {
                     loopViewModel.addOrUpdateLoop(loop.asLoopVo(enabled = !loop.enabled))
                 },
             shape = cardShape,

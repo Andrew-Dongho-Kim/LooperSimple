@@ -1,6 +1,5 @@
 package com.pnd.android.loop.ui.home.loop
 
-import android.util.Log
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.Orientation
@@ -32,6 +31,7 @@ fun LoopCardWithOption(
     modifier: Modifier = Modifier,
     loopViewModel: LoopViewModel,
     loop: LoopBase,
+    onEdit: (LoopBase) -> Unit,
     showActiveDays: Boolean
 ) {
     BoxWithConstraints(modifier = modifier) {
@@ -60,6 +60,7 @@ fun LoopCardWithOption(
                     .height(42.dp),
                 color = Color(loop.color),
                 onEdit = {
+                    onEdit(loop)
                     coroutineScope.launch { swipeState.animateTo(0) }
                 },
                 onDelete = { loopViewModel.removeLoop(loop) }
@@ -77,7 +78,8 @@ fun LoopCardWithOption(
                 .swipeable(
                     state = swipeState,
                     anchors = mapOf(0f to 0, (constraints.maxWidth * 0.4f) to 1),
-                    orientation = Orientation.Horizontal
+                    orientation = Orientation.Horizontal,
+                    enabled = !loop.isMock()
                 ),
             loopViewModel = loopViewModel,
             loop = loop,

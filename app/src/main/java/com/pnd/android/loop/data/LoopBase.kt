@@ -25,6 +25,7 @@ private const val DEFAULT_COLOR = 0xff000099.toInt()
 private const val DEFAULT_ACTIVE_DAYS = EVERYDAY
 private const val DEFAULT_INTERVAL = NO_REPEAT
 private const val DEFAULT_ENABLED = true
+private const val DEFAULT_IS_MOCK = false
 private val defaultLoopStart
     get() = TimeUnit.NANOSECONDS.toMillis(LocalTime.now().toNanoOfDay())
 
@@ -112,6 +113,7 @@ fun LoopBase.putTo(intent: Intent) {
     intent.putExtra(EXTRA_LOOP_ACTIVE_DAYS, loopActiveDays)
     intent.putExtra(EXTRA_LOOP_INTERVAL, interval)
     intent.putExtra(EXTRA_LOOP_ENABLED, enabled)
+    intent.putExtra(EXTRA_LOOP_IS_MOCK, isMock())
 }
 
 fun Intent.asLoop(): LoopBase {
@@ -123,7 +125,8 @@ fun Intent.asLoop(): LoopBase {
         loopEnd = getLongExtra(EXTRA_LOOP_END, defaultLoopEnd),
         loopActiveDays = getIntExtra(EXTRA_LOOP_ACTIVE_DAYS, DEFAULT_ACTIVE_DAYS),
         interval = getLongExtra(EXTRA_LOOP_INTERVAL, DEFAULT_INTERVAL),
-        enabled = getBooleanExtra(EXTRA_LOOP_ENABLED, DEFAULT_ENABLED)
+        enabled = getBooleanExtra(EXTRA_LOOP_ENABLED, DEFAULT_ENABLED),
+        isMock = getBooleanExtra(EXTRA_LOOP_IS_MOCK, DEFAULT_IS_MOCK),
     )
 }
 
@@ -136,9 +139,10 @@ fun LoopBase.putTo(map: MutableMap<String, Any?>) {
     map[EXTRA_LOOP_ACTIVE_DAYS] = loopActiveDays
     map[EXTRA_LOOP_INTERVAL] = interval
     map[EXTRA_LOOP_ENABLED] = enabled
+    map[EXTRA_LOOP_IS_MOCK] = isMock()
 }
 
-fun Map<String, Any?>.asLoop(isMock: Boolean = false): LoopBase {
+fun Map<String, Any?>.asLoop(): LoopBase {
     return LoopImpl(
         id = getOrDefault(EXTRA_ID, 0) as Int,
         title = getOrDefault(EXTRA_TITLE, DEFAULT_TITLE) as String,
@@ -148,7 +152,7 @@ fun Map<String, Any?>.asLoop(isMock: Boolean = false): LoopBase {
         loopActiveDays = getOrDefault(EXTRA_LOOP_ACTIVE_DAYS, DEFAULT_ACTIVE_DAYS) as Int,
         interval = getOrDefault(EXTRA_LOOP_INTERVAL, DEFAULT_INTERVAL) as Long,
         enabled = getOrDefault(EXTRA_LOOP_ENABLED, DEFAULT_ENABLED) as Boolean,
-        isMock = isMock,
+        isMock = getOrDefault(EXTRA_LOOP_IS_MOCK, DEFAULT_IS_MOCK) as Boolean,
     )
 }
 
@@ -237,3 +241,4 @@ private const val EXTRA_LOOP_END = "extra_loop_allowed_end"
 private const val EXTRA_LOOP_ACTIVE_DAYS = "extra_loop_active_days"
 private const val EXTRA_LOOP_INTERVAL = "extra_loop_interval"
 private const val EXTRA_LOOP_ENABLED = "extra_loop_enabled"
+private const val EXTRA_LOOP_IS_MOCK = "extra_loop_is_mock"

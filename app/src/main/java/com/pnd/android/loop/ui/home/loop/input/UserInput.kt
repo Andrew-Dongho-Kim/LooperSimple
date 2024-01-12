@@ -22,16 +22,14 @@ fun UserInput(
     inputState: UserInputState,
     lazyListState: LazyListState,
     onLoopSubmitted: (LoopBase) -> Unit,
-    isEditing: Boolean = false,
 ) {
     val keyboardShown by rememberImeOpenState()
     val focusRequester = FocusRequester()
 
     val coroutineScope = rememberCoroutineScope()
     SideEffect {
-        if (!keyboardShown && inputState.prevSelector == InputSelector.NONE) {
-            focusRequester.requestFocus()
-        }
+        if (!keyboardShown) focusRequester.requestFocus()
+
         if (inputState.mode == UserInputState.Mode.New) {
             coroutineScope.launch { lazyListState.animateScrollToItem(0) }
         }
@@ -46,6 +44,7 @@ fun UserInput(
             hasFocus = keyboardShown,
             onTextChanged = { textFiledValue -> inputState.update(title = textFiledValue) },
             onTextFieldFocused = { focused ->
+                inputState.setTextFieldFocused(focused)
                 if (focused) {
                     inputState.setSelector(InputSelector.NONE)
                 }
@@ -58,7 +57,6 @@ fun UserInput(
                 onLoopSubmitted(inputState.value)
                 inputState.reset()
             },
-            isEditing = isEditing
         )
 
         Selectors(

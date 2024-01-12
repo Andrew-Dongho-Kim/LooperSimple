@@ -119,7 +119,7 @@ private fun BoxScope.LocalTimeIndicator(
                 },
             text = text,
             style = timeBarFontStyle.copy(
-                color = WineRed,
+                color = WineRed.copy(alpha = ContentAlpha.medium),
             )
         )
     }

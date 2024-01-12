@@ -36,6 +36,8 @@ data class LoopWithDone(
         loopActiveDays = loopActiveDays,
         interval = interval,
         enabled = enabled,
+        date = this.date,
+        done = this.done,
     )
 }
 
@@ -50,3 +52,5 @@ interface LoopWithDoneDao {
     )
     fun allLoops(date: Long): Flow<List<LoopWithDone>>
 }
+
+val LoopBase.doneState get() = (this as? LoopWithDone)?.done

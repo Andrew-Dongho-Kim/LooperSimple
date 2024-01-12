@@ -56,13 +56,27 @@ val HOME_NATIVE_AD_ID = if (BuildConfig.DEBUG) {
 
 fun LazyListScope.section(
     section: Section,
-    loopViewModel: LoopViewModel
+    loopViewModel: LoopViewModel,
+    onEdit: (LoopBase) -> Unit,
 ) {
     when (section) {
-        is Section.Ad -> sectionAd(section)
-        is Section.Later -> sectionLater(section, loopViewModel)
-        is Section.Today -> sectionToday(section, loopViewModel)
-        is Section.Summary -> sectionSummary(section, loopViewModel)
+        is Section.Ad -> sectionAd(section = section)
+        is Section.Later -> sectionLater(
+            section = section,
+            loopViewModel = loopViewModel,
+            onEdit = onEdit,
+        )
+
+        is Section.Today -> sectionToday(
+            section = section,
+            loopViewModel = loopViewModel,
+            onEdit = onEdit,
+        )
+
+        is Section.Summary -> sectionSummary(
+            section = section,
+            loopViewModel = loopViewModel
+        )
     }
 }
 
@@ -70,6 +84,7 @@ fun LazyListScope.section(
 private fun LazyListScope.sectionToday(
     section: Section.Today,
     loopViewModel: LoopViewModel,
+    onEdit: (LoopBase) -> Unit,
 ) {
     var isSelected by section.isSelected
     val loops by section.items
@@ -90,6 +105,7 @@ private fun LazyListScope.sectionToday(
                 modifier = Modifier.animateItemPlacement(),
                 loopViewModel = loopViewModel,
                 loop = loop,
+                onEdit = onEdit,
                 showActiveDays = section.showActiveDays,
             )
         }
@@ -200,6 +216,7 @@ private fun LazyListScope.sectionSummary(
 private fun LazyListScope.sectionLater(
     section: Section.Later,
     loopViewModel: LoopViewModel,
+    onEdit: (LoopBase) -> Unit,
 ) {
     var isExpanded by section.isExpanded
     item(
@@ -229,6 +246,7 @@ private fun LazyListScope.sectionLater(
             LoopCardWithOption(
                 loopViewModel = loopViewModel,
                 loop = loop,
+                onEdit = onEdit,
                 showActiveDays = section.showActiveDays
             )
         }
