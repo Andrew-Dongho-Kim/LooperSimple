@@ -5,7 +5,6 @@ import android.app.NotificationManager
 import android.content.Context
 import android.media.AudioManager
 import androidx.room.Room
-import com.pnd.android.loop.alarm.AlarmPlayer
 import com.pnd.android.loop.alarm.notification.NotificationHelper
 import com.pnd.android.loop.data.AppDatabase
 import dagger.Module
@@ -39,14 +38,6 @@ class AppModule {
     @Provides
     fun provideAlarmManager(@ApplicationContext context: Context): AlarmManager {
         return context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-    }
-
-    @Provides
-    fun provideAlarmPlayer(
-        @ApplicationContext context: Context,
-        audioManager: AudioManager
-    ): AlarmPlayer {
-        return AlarmPlayer(context, audioManager = audioManager)
     }
 
     @Provides

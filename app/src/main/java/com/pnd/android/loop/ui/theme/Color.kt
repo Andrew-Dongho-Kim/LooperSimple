@@ -8,7 +8,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.unit.Dp
 
-object AppColor
+
 
 val Yellow400 = Color(0xFFF6E547)
 val Yellow600 = Color(0xFFF5CF1B)
@@ -66,7 +66,7 @@ fun Colors.elevatedSurface(elevation: Dp): Color {
     ) ?: this.surface
 }
 
-
+object AppColor
 val AppColor.primary
     @Composable get() = MaterialTheme.colors.primary
 val AppColor.background

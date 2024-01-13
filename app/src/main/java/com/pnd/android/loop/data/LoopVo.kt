@@ -8,19 +8,21 @@ import java.util.*
 
 @Immutable
 @Entity(tableName = "loop")
-data class LoopVo(
+data class LoopVo @JvmOverloads constructor(
     @PrimaryKey(autoGenerate = true)
-    override val id: Int = 0,
+    override val id: Int,
     override val title: String,
     override val color: Int,
-    val tickStart: Long = 0L,
+    val tickStart: Long,
     override val loopStart: Long,
     override val loopEnd: Long,
     override val loopActiveDays: Int,
     override val interval: Long,
-    val alarms: Int = NO_ALARMS,
+    val alarms: Int,
     override val enabled: Boolean,
+    @Ignore override val isMock: Boolean = false,
 ) : LoopBase {
+
     override fun copy(
         id: Int,
         title: String,
@@ -29,7 +31,8 @@ data class LoopVo(
         loopEnd: Long,
         loopActiveDays: Int,
         interval: Long,
-        enabled: Boolean
+        enabled: Boolean,
+        isMock: Boolean,
     ): LoopBase = LoopVo(
         id = id,
         title = title,
@@ -39,6 +42,10 @@ data class LoopVo(
         loopActiveDays = loopActiveDays,
         interval = interval,
         enabled = enabled,
+        isMock = isMock,
+        // TO BE REMOVED
+        tickStart = 0L,
+        alarms = NO_ALARMS,
     )
 }
 
@@ -59,7 +66,10 @@ fun LoopBase.asLoopVo(
     loopEnd = loopEnd,
     loopActiveDays = loopActiveDays,
     interval = interval,
-    enabled = enabled
+    enabled = enabled,
+    // To be removed,
+    tickStart = 0L,
+    alarms = NO_ALARMS
 )
 
 

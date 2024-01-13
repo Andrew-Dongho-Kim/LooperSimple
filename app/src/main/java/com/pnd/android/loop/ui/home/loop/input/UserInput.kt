@@ -21,6 +21,7 @@ fun UserInput(
     modifier: Modifier = Modifier,
     inputState: UserInputState,
     lazyListState: LazyListState,
+    onEnsureLoop: suspend (LoopBase) -> Boolean,
     onLoopSubmitted: (LoopBase) -> Unit,
 ) {
     val keyboardShown by rememberImeOpenState()
@@ -54,8 +55,13 @@ fun UserInput(
         UserInputButtons(
             inputState = inputState,
             onSubmitted = {
-                onLoopSubmitted(inputState.value)
-                inputState.reset()
+                coroutineScope.launch {
+                    val loop = inputState.value
+                    if (onEnsureLoop(loop)) {
+                        onLoopSubmitted(loop)
+                        inputState.reset()
+                    }
+                }
             },
         )
 

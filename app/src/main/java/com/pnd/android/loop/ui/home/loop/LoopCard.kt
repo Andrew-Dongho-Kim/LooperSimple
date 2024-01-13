@@ -64,7 +64,6 @@ import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.data.NO_REPEAT
 import com.pnd.android.loop.data.TimeStat
 import com.pnd.android.loop.data.asLoopVo
-import com.pnd.android.loop.data.isMock
 import com.pnd.android.loop.data.timeStatAsFlow
 import com.pnd.android.loop.ui.shape.CircularPolygonShape
 import com.pnd.android.loop.ui.theme.AppColor
@@ -86,7 +85,7 @@ fun LoopCard(
     loop: LoopBase,
     showActiveDays: Boolean,
 ) {
-    val isMock = loop.isMock()
+    val isMock = loop.isMock
     val animateAlpha = animateCardAlphaWithMock(loopBase = loop)
 
     val primary = AppColor.primary.copy(alpha = ContentAlpha.medium)
@@ -113,7 +112,7 @@ fun LoopCard(
                 )
                 .fillMaxWidth()
                 .clip(cardShape)
-                .clickable(enabled = !loop.isMock()) {
+                .clickable(enabled = !loop.isMock) {
                     loopViewModel.addOrUpdateLoop(loop.asLoopVo(enabled = !loop.enabled))
                 },
             shape = cardShape,
@@ -197,7 +196,7 @@ private fun LoopCardActiveEffect(
     loopViewModel: LoopViewModel,
     loop: LoopBase,
 ) {
-    if (loop.isMock()) return
+    if (loop.isMock) return
 
     var isActive by remember { mutableStateOf(false) }
     LaunchedEffect(loop, loopViewModel) {
@@ -412,7 +411,7 @@ private fun LoopCardStartEndTime(
     timeStat: TimeStat
 ) {
     val timeText = if (
-        !loop.isMock() &&
+        !loop.isMock &&
         (timeStat.isPast() || timeStat.isNotToday())
     ) {
         annotatedString(loop.formatStartEndTime())
@@ -533,7 +532,7 @@ private fun colorBody2Text(): Color {
 
 @Composable
 private fun animateCardAlphaWithMock(loopBase: LoopBase): Float {
-    if (!loopBase.isMock()) {
+    if (!loopBase.isMock) {
         return 1f
     }
     val transition = rememberInfiniteTransition("CreateLoopTransitions")

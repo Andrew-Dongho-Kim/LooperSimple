@@ -42,6 +42,7 @@ interface LoopBase {
     val loopActiveDays: Int
     val interval: Long
     val enabled: Boolean
+    val isMock: Boolean
     fun copy(
         id: Int = this.id,
         title: String = this.title,
@@ -51,6 +52,7 @@ interface LoopBase {
         loopActiveDays: Int = this.loopActiveDays,
         interval: Long = this.interval,
         enabled: Boolean = this.enabled,
+        isMock: Boolean = false,
     ): LoopBase
 
     companion object {
@@ -77,7 +79,7 @@ private class LoopImpl(
     override val loopActiveDays: Int = DEFAULT_ACTIVE_DAYS,
     override val interval: Long = DEFAULT_INTERVAL,
     override val enabled: Boolean = DEFAULT_ENABLED,
-    val isMock: Boolean = false,
+    override val isMock: Boolean = DEFAULT_IS_MOCK,
 ) : LoopBase {
 
     override fun copy(
@@ -88,7 +90,8 @@ private class LoopImpl(
         loopEnd: Long,
         loopActiveDays: Int,
         interval: Long,
-        enabled: Boolean
+        enabled: Boolean,
+        isMock: Boolean,
     ): LoopBase = LoopImpl(
         id = id,
         title = title,
@@ -102,8 +105,6 @@ private class LoopImpl(
     )
 }
 
-fun LoopBase.isMock() = (this as? LoopImpl)?.isMock ?: false
-
 fun LoopBase.putTo(intent: Intent) {
     intent.putExtra(EXTRA_ID, id)
     intent.putExtra(EXTRA_COLOR, color)
@@ -113,7 +114,7 @@ fun LoopBase.putTo(intent: Intent) {
     intent.putExtra(EXTRA_LOOP_ACTIVE_DAYS, loopActiveDays)
     intent.putExtra(EXTRA_LOOP_INTERVAL, interval)
     intent.putExtra(EXTRA_LOOP_ENABLED, enabled)
-    intent.putExtra(EXTRA_LOOP_IS_MOCK, isMock())
+    intent.putExtra(EXTRA_LOOP_IS_MOCK, isMock)
 }
 
 fun Intent.asLoop(): LoopBase {
@@ -139,7 +140,7 @@ fun LoopBase.putTo(map: MutableMap<String, Any?>) {
     map[EXTRA_LOOP_ACTIVE_DAYS] = loopActiveDays
     map[EXTRA_LOOP_INTERVAL] = interval
     map[EXTRA_LOOP_ENABLED] = enabled
-    map[EXTRA_LOOP_IS_MOCK] = isMock()
+    map[EXTRA_LOOP_IS_MOCK] = isMock
 }
 
 fun Map<String, Any?>.asLoop(): LoopBase {
@@ -216,7 +217,7 @@ annotation class Day {
 
         fun Int.isOn(@Day day: Int) = (this and day) == day
         fun Int.set(@Day day: Int) = this or day
-        fun Int.unset(@Day day: Int) = this and day.inv()
+        private fun Int.unset(@Day day: Int) = this and day.inv()
         fun Int.toggle(@Day day: Int) = if (isOn(day)) unset(day) else set(day)
         fun description(days: Int): String {
             val sb = StringBuilder()

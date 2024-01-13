@@ -13,7 +13,7 @@ import com.pnd.android.loop.ui.home.Home
 import com.pnd.android.loop.ui.home.loop.LoopViewModel
 
 sealed class Screen(val route: String) {
-    fun NavHostController.navigateTo(screen: Screen) = this.navigate(route)
+    fun NavHostController.navigateTo(screen: Screen) = this.navigate(screen.route)
 
     data object Home : Screen("home")
     data object ActivePage : Screen("activePage")

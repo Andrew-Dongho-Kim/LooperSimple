@@ -43,7 +43,7 @@ class UserInputState(
 
     fun edit(value: LoopBase) {
         mode = Mode.Edit
-        this.value = value.copy()
+        this.value = value.copy(isMock = true)
         textFieldValue = TextFieldValue(text = value.title)
     }
 
@@ -63,7 +63,8 @@ class UserInputState(
             loopEnd = loopEnd,
             loopActiveDays = loopActiveDays,
             interval = interval,
-            enabled = enabled
+            enabled = enabled,
+            isMock = value.isMock,
         )
         textFieldValue = title
         ensureState()

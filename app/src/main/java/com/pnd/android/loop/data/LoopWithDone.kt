@@ -1,23 +1,24 @@
 package com.pnd.android.loop.data
 
 import androidx.room.Dao
+import androidx.room.Ignore
 import androidx.room.Query
-import com.pnd.android.loop.alarm.NO_ALARMS
 import kotlinx.coroutines.flow.Flow
 
-data class LoopWithDone(
-    override val id: Int = 0,
+data class LoopWithDone @JvmOverloads constructor(
+    override val id: Int,
     override val color: Int,
     override val title: String,
     override val loopStart: Long,
     override val loopEnd: Long,
     override val loopActiveDays: Int,
     override val interval: Long,
-    val alarms: Int = NO_ALARMS,
     override val enabled: Boolean,
-    val date: Long = 0L,
-    @LoopDoneVo.DoneState val done: Int = LoopDoneVo.DoneState.NO_RESPONSE,
+    val date: Long,
+    @LoopDoneVo.DoneState val done: Int,
+    @Ignore override val isMock: Boolean = false,
 ) : LoopBase {
+
     override fun copy(
         id: Int,
         title: String,
@@ -26,7 +27,8 @@ data class LoopWithDone(
         loopEnd: Long,
         loopActiveDays: Int,
         interval: Long,
-        enabled: Boolean
+        enabled: Boolean,
+        isMock: Boolean,
     ): LoopBase = LoopWithDone(
         id = id,
         title = title,
@@ -38,6 +40,7 @@ data class LoopWithDone(
         enabled = enabled,
         date = this.date,
         done = this.done,
+        isMock = isMock,
     )
 }
 

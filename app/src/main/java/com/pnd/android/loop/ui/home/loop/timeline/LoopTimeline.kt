@@ -38,7 +38,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.data.LoopBase
-import com.pnd.android.loop.data.isMock
 import com.pnd.android.loop.ui.common.VerticalDashedDivider
 import com.pnd.android.loop.ui.common.VerticalDivider
 import com.pnd.android.loop.ui.theme.AppColor
@@ -241,7 +240,7 @@ private fun isIntersect(slot: List<LoopBase>, another: LoopBase): Boolean {
 
 @Composable
 private fun animateCardAlphaWithMock(loopBase: LoopBase): Float {
-    if (!loopBase.isMock()) {
+    if (!loopBase.isMock) {
         return 1f
     }
     val transition = rememberInfiniteTransition("CreateLoopTransitions")

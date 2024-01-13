@@ -30,7 +30,8 @@
     <string name="desc_time_selector">Time Selector</string>
     <string name="desc_interval_selector">Alarm Interval Selector</string>
     <string name="desc_alarm_selector">Alarm Selector</string>
-
     <string name="desc_enter_loop_title">Enter loop title</string>
+
+    <string name="warning_enter_characters_other_than_sapces">Please also enter characters other than spaces.</string>
 
 </resources>

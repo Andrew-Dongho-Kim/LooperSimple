@@ -29,7 +29,7 @@
     <string name="desc_time_selector">시간 선택</string>
     <string name="desc_interval_selector">알람 간격 선택</string>
     <string name="desc_alarm_selector">알람선택</string>
-
     <string name="desc_enter_loop_title">루프 이름을 입력하세요</string>
 
+    <string name="warning_enter_characters_other_than_sapces">공백 이외의 문자도 입력해주세요.</string>
 </resources>

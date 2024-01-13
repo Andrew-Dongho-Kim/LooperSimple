@@ -6,14 +6,12 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.SystemClock
-import android.widget.Toast
 import androidx.annotation.VisibleForTesting
 import com.pnd.android.loop.alarm.notification.NotificationHelper
 import com.pnd.android.loop.common.log
 import com.pnd.android.loop.data.AppDatabase
 import com.pnd.android.loop.data.Day
 import com.pnd.android.loop.data.LoopBase
-import com.pnd.android.loop.data.LoopVo
 import com.pnd.android.loop.data.NO_REPEAT
 import com.pnd.android.loop.data.asLoop
 import com.pnd.android.loop.data.asLoopVo
@@ -21,15 +19,12 @@ import com.pnd.android.loop.data.description
 import com.pnd.android.loop.data.putTo
 import com.pnd.android.loop.util.day
 import com.pnd.android.loop.util.dh2m2
-import com.pnd.android.loop.util.hourIn24
 import com.pnd.android.loop.util.isActiveDay
 import com.pnd.android.loop.util.isActiveTime
 import com.pnd.android.loop.util.localTimeInDay
-import com.pnd.android.loop.util.min
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -62,8 +57,7 @@ class AlarmController @Inject constructor(
     }
 
     fun reserveAlarm(
-        loop: LoopBase,
-        showToast: Boolean = true
+        loop: LoopBase
     ) {
         val after = notifyAfter(loop)
         val systemElapsed = SystemClock.elapsedRealtime()
@@ -97,15 +91,6 @@ class AlarmController @Inject constructor(
             systemElapsed + after,
             pendingIntent
         )
-
-        if (showToast) {
-            coroutineScope.launch(Dispatchers.Main) {
-                Toast.makeText(
-                    context, "${hourIn24(after)}시간 ${min(after)}분 후에 알람이 울립니다.",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-        }
     }
 
     fun syncAlarms() {
@@ -113,7 +98,7 @@ class AlarmController @Inject constructor(
         coroutineScope.launch {
             loopDao.allLoops().forEach { loop ->
                 if (loop.enabled) {
-                    reserveAlarm(loop = loop, showToast = false)
+                    reserveAlarm(loop = loop)
                 } else {
                     cancelAlarm(loop)
                 }
@@ -149,9 +134,6 @@ class AlarmController @Inject constructor(
         lateinit var alarmController: AlarmController
 
         @Inject
-        lateinit var alarmPlayer: AlarmPlayer
-
-        @Inject
         lateinit var notificationHelper: NotificationHelper
 
         override fun onReceive(context: Context, intent: Intent) {
@@ -174,7 +156,7 @@ class AlarmController @Inject constructor(
             val loop = intent.asLoop()
 
             if (loop.interval != NO_REPEAT) {
-                alarmController.reserveAlarm(loop = loop, showToast = false)
+                alarmController.reserveAlarm(loop = loop)
             }
 
             val today = day()
@@ -194,6 +176,7 @@ class AlarmController @Inject constructor(
             }
         }
     }
+
 
     companion object {
         private const val EXTRA_RESERVED_TIME = "loop_reserved_time"

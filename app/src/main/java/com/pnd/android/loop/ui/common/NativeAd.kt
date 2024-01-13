@@ -132,6 +132,7 @@ private fun NativeAdContent(
     isExpanded: Boolean,
     onLoadStateChanged: (LoadState) -> Unit
 ) {
+
     AndroidViewBinding(
         modifier = modifier,
         factory = { inflater, parent, attachToParent ->
@@ -181,7 +182,6 @@ private fun NativeAdContent(
 
                 adLoader.loadAd(AdRequest.Builder().build())
             }
-
         }
     ) {
         adMedia.visibility = if (isExpanded) View.VISIBLE else View.GONE

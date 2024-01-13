@@ -21,7 +21,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.data.LoopBase
-import com.pnd.android.loop.data.isMock
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -44,7 +43,7 @@ fun LoopCardWithOption(
         )
 
         val coroutineScope = rememberCoroutineScope()
-        if (!loop.isMock()) {
+        if (!loop.isMock) {
             LoopOptions(
                 modifier = Modifier
                     .align(Alignment.CenterStart)
@@ -79,7 +78,7 @@ fun LoopCardWithOption(
                     state = swipeState,
                     anchors = mapOf(0f to 0, (constraints.maxWidth * 0.4f) to 1),
                     orientation = Orientation.Horizontal,
-                    enabled = !loop.isMock()
+                    enabled = !loop.isMock
                 ),
             loopViewModel = loopViewModel,
             loop = loop,
