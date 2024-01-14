@@ -9,6 +9,7 @@ data class LoopWithDone @JvmOverloads constructor(
     override val id: Int,
     override val color: Int,
     override val title: String,
+    override val created: Long,
     override val loopStart: Long,
     override val loopEnd: Long,
     override val loopActiveDays: Int,
@@ -19,10 +20,11 @@ data class LoopWithDone @JvmOverloads constructor(
     @Ignore override val isMock: Boolean = false,
 ) : LoopBase {
 
-    override fun copy(
+    override fun copyAs(
         id: Int,
         title: String,
         color: Int,
+        created: Long,
         loopStart: Long,
         loopEnd: Long,
         loopActiveDays: Int,
@@ -33,6 +35,7 @@ data class LoopWithDone @JvmOverloads constructor(
         id = id,
         title = title,
         color = color,
+        created = created,
         loopStart = loopStart,
         loopEnd = loopEnd,
         loopActiveDays = loopActiveDays,
@@ -48,10 +51,10 @@ data class LoopWithDone @JvmOverloads constructor(
 interface LoopWithDoneDao {
 
     @Query(
-        "SELECT loop.id, loop.color, loop.title, loop.loopStart, loop.loopEnd, loop.loopActiveDays, loop.interval, loop.alarms, loop.enabled, loop_done.date, loop_done.done " +
+        "SELECT loop.id, loop.color, loop.title, loop.created, loop.loopStart, loop.loopEnd, loop.loopActiveDays, loop.interval, loop.enabled, loop_done.date, loop_done.done " +
                 "FROM loop LEFT JOIN loop_done " +
                 "ON loop.id = loop_done.loopId AND loop_done.date =:date " +
-                "ORDER BY loop.loopStart ASC, loop.loopEnd ASC"
+                "ORDER BY loop.loopStart ASC, loop.loopEnd ASC, loop.title ASC"
     )
     fun allLoops(date: Long): Flow<List<LoopWithDone>>
 }

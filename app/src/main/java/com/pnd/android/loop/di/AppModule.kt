@@ -7,6 +7,7 @@ import android.media.AudioManager
 import androidx.room.Room
 import com.pnd.android.loop.alarm.notification.NotificationHelper
 import com.pnd.android.loop.data.AppDatabase
+import com.pnd.android.loop.data.MIGRATION_1_2
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -23,7 +24,7 @@ class AppModule {
         context,
         AppDatabase::class.java,
         "app_db"
-    ).build()
+    ).addMigrations(MIGRATION_1_2).build()
 
     @Provides
     fun provideAudioManager(@ApplicationContext context: Context): AudioManager {

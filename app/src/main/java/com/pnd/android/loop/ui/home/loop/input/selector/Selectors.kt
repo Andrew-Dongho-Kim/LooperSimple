@@ -49,9 +49,12 @@ fun Selectors(
         .focusRequester(focusRequester)
         .focusTarget()
 
-    Surface(color = compositeOverSurface(), elevation = 3.dp) {
+    Surface(
+        modifier = modifier,
+        color = compositeOverSurface(),
+        elevation = 3.dp
+    ) {
         Selector(
-            modifier = modifier,
             inputState = inputState,
         )
     }

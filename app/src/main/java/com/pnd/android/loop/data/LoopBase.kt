@@ -16,6 +16,8 @@ import com.pnd.android.loop.data.Day.Companion.WEEKDAYS
 import com.pnd.android.loop.data.Day.Companion.WEEKENDS
 import com.pnd.android.loop.util.h2m2
 import com.pnd.android.loop.util.intervalString
+import com.pnd.android.loop.util.toMs
+import java.time.LocalDateTime
 import java.time.LocalTime
 import java.util.concurrent.TimeUnit
 
@@ -26,6 +28,9 @@ private const val DEFAULT_ACTIVE_DAYS = EVERYDAY
 private const val DEFAULT_INTERVAL = NO_REPEAT
 private const val DEFAULT_ENABLED = true
 private const val DEFAULT_IS_MOCK = false
+
+private val defaultCreated
+    get() = LocalDateTime.now().toMs()
 private val defaultLoopStart
     get() = TimeUnit.NANOSECONDS.toMillis(LocalTime.now().toNanoOfDay())
 
@@ -37,16 +42,18 @@ interface LoopBase {
     val id: Int
     val title: String
     val color: Int
+    val created: Long
     val loopStart: Long
     val loopEnd: Long
     val loopActiveDays: Int
     val interval: Long
     val enabled: Boolean
     val isMock: Boolean
-    fun copy(
+    fun copyAs(
         id: Int = this.id,
         title: String = this.title,
         color: Int = this.color,
+        created: Long = this.created,
         loopStart: Long = this.loopStart,
         loopEnd: Long = this.loopEnd,
         loopActiveDays: Int = this.loopActiveDays,
@@ -74,6 +81,7 @@ private class LoopImpl(
     override val id: Int = 0,
     override val title: String = DEFAULT_TITLE,
     override val color: Int = DEFAULT_COLOR,
+    override val created: Long = defaultCreated,
     override val loopStart: Long = defaultLoopStart,
     override val loopEnd: Long = defaultLoopEnd,
     override val loopActiveDays: Int = DEFAULT_ACTIVE_DAYS,
@@ -82,10 +90,11 @@ private class LoopImpl(
     override val isMock: Boolean = DEFAULT_IS_MOCK,
 ) : LoopBase {
 
-    override fun copy(
+    override fun copyAs(
         id: Int,
         title: String,
         color: Int,
+        created: Long,
         loopStart: Long,
         loopEnd: Long,
         loopActiveDays: Int,
@@ -96,6 +105,7 @@ private class LoopImpl(
         id = id,
         title = title,
         color = color,
+        created = created,
         loopStart = loopStart,
         loopEnd = loopEnd,
         loopActiveDays = loopActiveDays,
@@ -109,6 +119,7 @@ fun LoopBase.putTo(intent: Intent) {
     intent.putExtra(EXTRA_ID, id)
     intent.putExtra(EXTRA_COLOR, color)
     intent.putExtra(EXTRA_TITLE, title)
+    intent.putExtra(EXTRA_LOOP_CREATED, created)
     intent.putExtra(EXTRA_LOOP_START, loopStart)
     intent.putExtra(EXTRA_LOOP_END, loopEnd)
     intent.putExtra(EXTRA_LOOP_ACTIVE_DAYS, loopActiveDays)
@@ -122,6 +133,7 @@ fun Intent.asLoop(): LoopBase {
         id = getIntExtra(EXTRA_ID, 0),
         title = getStringExtra(EXTRA_TITLE) ?: DEFAULT_TITLE,
         color = getIntExtra(EXTRA_COLOR, DEFAULT_COLOR),
+        created = getLongExtra(EXTRA_LOOP_CREATED, defaultCreated),
         loopStart = getLongExtra(EXTRA_LOOP_START, defaultLoopStart),
         loopEnd = getLongExtra(EXTRA_LOOP_END, defaultLoopEnd),
         loopActiveDays = getIntExtra(EXTRA_LOOP_ACTIVE_DAYS, DEFAULT_ACTIVE_DAYS),
@@ -135,6 +147,7 @@ fun LoopBase.putTo(map: MutableMap<String, Any?>) {
     map[EXTRA_ID] = id
     map[EXTRA_TITLE] = title
     map[EXTRA_COLOR] = color
+    map[EXTRA_LOOP_CREATED] = created
     map[EXTRA_LOOP_START] = loopStart
     map[EXTRA_LOOP_END] = loopEnd
     map[EXTRA_LOOP_ACTIVE_DAYS] = loopActiveDays
@@ -148,6 +161,7 @@ fun Map<String, Any?>.asLoop(): LoopBase {
         id = getOrDefault(EXTRA_ID, 0) as Int,
         title = getOrDefault(EXTRA_TITLE, DEFAULT_TITLE) as String,
         color = getOrDefault(EXTRA_COLOR, DEFAULT_COLOR) as Int,
+        created = getOrDefault(EXTRA_LOOP_CREATED, defaultCreated) as Long,
         loopStart = getOrDefault(EXTRA_LOOP_START, defaultLoopStart) as Long,
         loopEnd = getOrDefault(EXTRA_LOOP_END, defaultLoopEnd) as Long,
         loopActiveDays = getOrDefault(EXTRA_LOOP_ACTIVE_DAYS, DEFAULT_ACTIVE_DAYS) as Int,
@@ -237,8 +251,9 @@ annotation class Day {
 private const val EXTRA_ID = "extra_loop_id"
 private const val EXTRA_COLOR = "extra_loop_color"
 private const val EXTRA_TITLE = "extra_loop_title"
-private const val EXTRA_LOOP_START = "extra_loop_allowed_start"
-private const val EXTRA_LOOP_END = "extra_loop_allowed_end"
+private const val EXTRA_LOOP_CREATED = "extra_loop_created"
+private const val EXTRA_LOOP_START = "extra_loop_start"
+private const val EXTRA_LOOP_END = "extra_loop_end"
 private const val EXTRA_LOOP_ACTIVE_DAYS = "extra_loop_active_days"
 private const val EXTRA_LOOP_INTERVAL = "extra_loop_interval"
 private const val EXTRA_LOOP_ENABLED = "extra_loop_enabled"

@@ -24,12 +24,14 @@ import com.pnd.android.loop.data.LoopBase
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
+
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun LoopCardWithOption(
     modifier: Modifier = Modifier,
     loopViewModel: LoopViewModel,
     loop: LoopBase,
+    onNavigateToDetailPage: (LoopBase) -> Unit,
     onEdit: (LoopBase) -> Unit,
     showActiveDays: Boolean
 ) {
@@ -82,6 +84,7 @@ fun LoopCardWithOption(
                 ),
             loopViewModel = loopViewModel,
             loop = loop,
+            onNavigateToDetailPage = onNavigateToDetailPage,
             showActiveDays = showActiveDays
         )
     }

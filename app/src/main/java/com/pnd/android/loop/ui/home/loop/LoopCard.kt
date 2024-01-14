@@ -63,7 +63,6 @@ import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.data.NO_REPEAT
 import com.pnd.android.loop.data.TimeStat
-import com.pnd.android.loop.data.asLoopVo
 import com.pnd.android.loop.data.timeStatAsFlow
 import com.pnd.android.loop.ui.shape.CircularPolygonShape
 import com.pnd.android.loop.ui.theme.AppColor
@@ -78,11 +77,14 @@ import com.pnd.android.loop.util.intervalString
 import com.pnd.android.loop.util.isActive
 import com.pnd.android.loop.util.rememberDayColor
 
+private const val ACTIVE_EFFECT_SEGMENTS = 10f
+
 @Composable
 fun LoopCard(
     modifier: Modifier = Modifier,
     loopViewModel: LoopViewModel,
     loop: LoopBase,
+    onNavigateToDetailPage: (LoopBase) -> Unit,
     showActiveDays: Boolean,
 ) {
     val isMock = loop.isMock
@@ -113,7 +115,7 @@ fun LoopCard(
                 .fillMaxWidth()
                 .clip(cardShape)
                 .clickable(enabled = !loop.isMock) {
-                    loopViewModel.addOrUpdateLoop(loop.asLoopVo(enabled = !loop.enabled))
+                    onNavigateToDetailPage(loop)
                 },
             shape = cardShape,
             border = border
@@ -236,7 +238,7 @@ private fun LoopCardActiveEffect(
             Path().apply {
                 addCircle(0f, 0f, 3.dp.toPx(), Path.Direction.CW)
             },
-            pathMeasure.length / 5f,
+            pathMeasure.length / ACTIVE_EFFECT_SEGMENTS,
             phase * pathMeasure.length,
             PathDashPathEffect.Style.MORPH
         ).toComposePathEffect()

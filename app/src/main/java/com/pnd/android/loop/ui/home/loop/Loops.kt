@@ -4,10 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material.ContentAlpha
@@ -24,7 +22,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
@@ -41,6 +38,7 @@ fun Loops(
     inputState: UserInputState,
     lazyListState: LazyListState,
     loopViewModel: LoopViewModel,
+    onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
     val sections by loopViewModel.observeSectionsAsState(inputState)
     val onEdit = remember { { loop: LoopBase -> inputState.edit(loop) } }
@@ -53,12 +51,11 @@ fun Loops(
                 modifier = Modifier.fillMaxWidth(),
                 state = lazyListState,
             ) {
-                item { Spacer(modifier = Modifier.height(64.dp)) }
-
                 sections.forEach { section ->
                     section(
                         section = section,
                         loopViewModel = loopViewModel,
+                        onNavigateToDetailPage = onNavigateToDetailPage,
                         onEdit = onEdit,
                     )
                 }

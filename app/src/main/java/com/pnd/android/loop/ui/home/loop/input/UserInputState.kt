@@ -43,7 +43,7 @@ class UserInputState(
 
     fun edit(value: LoopBase) {
         mode = Mode.Edit
-        this.value = value.copy(isMock = true)
+        this.value = value.copyAs(isMock = true)
         textFieldValue = TextFieldValue(text = value.title)
     }
 
@@ -56,7 +56,7 @@ class UserInputState(
         interval: Long = value.interval,
         enabled: Boolean = value.enabled,
     ) {
-        value = value.copy(
+        value = value.copyAs(
             title = title.text,
             color = color,
             loopStart = loopStart,

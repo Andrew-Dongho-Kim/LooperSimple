@@ -52,6 +52,7 @@ import kotlin.math.max
 fun LoopTimeline(
     modifier: Modifier = Modifier,
     loops: List<LoopBase>,
+    onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
     val horizontalScrollState = rememberScrollState()
     Column(modifier = modifier) {
@@ -59,6 +60,7 @@ fun LoopTimeline(
             modifier = Modifier.height(timelineHeight),
             horizontalScrollState = horizontalScrollState,
             loops = loops,
+            onNavigateToDetailPage = onNavigateToDetailPage,
         )
         HorizontalTimeBar(
             modifier = Modifier.padding(top = 4.dp),
@@ -73,6 +75,7 @@ private fun TimeGrid(
     modifier: Modifier = Modifier,
     horizontalScrollState: ScrollState,
     loops: List<LoopBase>,
+    onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
     BoxWithConstraints(modifier = modifier) {
         ScrollToLocalTime(
@@ -82,7 +85,8 @@ private fun TimeGrid(
 
         TimeGridContent(
             horizontalScrollState = horizontalScrollState,
-            loops = loops
+            loops = loops,
+            onNavigateToDetailPage = onNavigateToDetailPage,
         )
     }
 }
@@ -91,7 +95,8 @@ private fun TimeGrid(
 private fun TimeGridContent(
     modifier: Modifier = Modifier,
     horizontalScrollState: ScrollState,
-    loops: List<LoopBase>
+    loops: List<LoopBase>,
+    onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
     Row(
         modifier = modifier.horizontalScroll(horizontalScrollState)
@@ -112,6 +117,7 @@ private fun TimeGridContent(
             TimelineLoops(
                 modifier = Modifier.align(Alignment.BottomStart),
                 loops = loops,
+                onNavigateToDetailPage = onNavigateToDetailPage,
             )
             LocalTimeVerticalLineIndicator()
         }
@@ -122,7 +128,8 @@ private fun TimeGridContent(
 @Composable
 private fun TimelineLoops(
     modifier: Modifier = Modifier,
-    loops: List<LoopBase>
+    loops: List<LoopBase>,
+    onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
     val slots = rememberTimelineSlots(loops = loops)
     Column(
@@ -135,7 +142,10 @@ private fun TimelineLoops(
             Box(modifier = Modifier.height(timelineItemHeightDp)) {
                 slot.forEach { loop ->
                     key(loop.id) {
-                        TimelineLoop(loop = loop)
+                        TimelineLoop(
+                            loop = loop,
+                            onNavigateToDetailPage = onNavigateToDetailPage,
+                        )
                     }
                 }
             }
@@ -146,7 +156,8 @@ private fun TimelineLoops(
 @Composable
 private fun TimelineLoop(
     modifier: Modifier = Modifier,
-    loop: LoopBase
+    loop: LoopBase,
+    onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
     val alpha = animateCardAlphaWithMock(loopBase = loop)
     val shape = RoundShapes.small
@@ -171,7 +182,7 @@ private fun TimelineLoop(
             )
             .width(loop.timelineWidth())
             .height(timelineItemHeightDp)
-            .clickable { }
+            .clickable { onNavigateToDetailPage(loop) }
     ) {
         Text(
             modifier = Modifier

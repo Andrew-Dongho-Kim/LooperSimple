@@ -25,6 +25,7 @@ import com.pnd.android.loop.ui.theme.Blue500
 import com.pnd.android.loop.ui.theme.Red500
 import com.pnd.android.loop.ui.theme.onSurface
 import java.time.DayOfWeek
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -141,17 +142,20 @@ fun day(localDateTime: LocalDateTime = LocalDateTime.now()): @Day Int {
     }
 }
 
+fun Long.toLocalDate(zoneId: ZoneId = ZoneId.systemDefault()): LocalDate =
+    Instant.ofEpochMilli(this).atZone(zoneId).toLocalDate()
+
 fun Long.toLocalTime(): LocalTime = LocalTime.ofNanoOfDay(
     TimeUnit.NANOSECONDS.convert(this, TimeUnit.MILLISECONDS)
 )
 
+fun LocalDateTime.toMs(zoneId: ZoneId = ZoneId.systemDefault()) =
+    atZone(zoneId).toInstant().toEpochMilli()
+
+fun LocalDate.toMs(zoneId: ZoneId = ZoneId.systemDefault()) =
+    atStartOfDay(zoneId).toInstant().toEpochMilli()
+
 fun LocalTime.toMs() = TimeUnit.NANOSECONDS.toMillis(toNanoOfDay())
-
-fun hourIn24(msTime: Long): Int {
-    return (if (msTime == MS_1DAY) 24 else (msTime % MS_1DAY) / MS_1HOUR).toInt()
-}
-
-fun min(msTime: Long) = ((msTime % MS_1HOUR) / MS_1MIN).toInt()
 
 fun LocalDate.toLocalTime(zoneId: ZoneId = ZoneId.systemDefault()) =
     atStartOfDay(zoneId).toInstant().toEpochMilli()

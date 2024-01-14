@@ -19,10 +19,11 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.ContentAlpha
 import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material3.Text
+import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,6 +45,7 @@ import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.ui.common.NativeAd
 import com.pnd.android.loop.ui.home.loop.timeline.LoopTimeline
 import com.pnd.android.loop.ui.theme.AppColor
+import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.elevatedSurface
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
@@ -57,6 +59,7 @@ val HOME_NATIVE_AD_ID = if (BuildConfig.DEBUG) {
 fun LazyListScope.section(
     section: Section,
     loopViewModel: LoopViewModel,
+    onNavigateToDetailPage: (LoopBase) -> Unit,
     onEdit: (LoopBase) -> Unit,
 ) {
     when (section) {
@@ -64,18 +67,21 @@ fun LazyListScope.section(
         is Section.Later -> sectionLater(
             section = section,
             loopViewModel = loopViewModel,
+            onNavigateToDetailPage = onNavigateToDetailPage,
             onEdit = onEdit,
         )
 
         is Section.Today -> sectionToday(
             section = section,
             loopViewModel = loopViewModel,
+            onNavigateToDetailPage = onNavigateToDetailPage,
             onEdit = onEdit,
         )
 
         is Section.Summary -> sectionSummary(
             section = section,
-            loopViewModel = loopViewModel
+            loopViewModel = loopViewModel,
+            onNavigateToDetailPage = onNavigateToDetailPage,
         )
     }
 }
@@ -84,6 +90,7 @@ fun LazyListScope.section(
 private fun LazyListScope.sectionToday(
     section: Section.Today,
     loopViewModel: LoopViewModel,
+    onNavigateToDetailPage: (LoopBase) -> Unit,
     onEdit: (LoopBase) -> Unit,
 ) {
     var isSelected by section.isSelected
@@ -92,7 +99,8 @@ private fun LazyListScope.sectionToday(
     if (isSelected) {
         item {
             LoopTimeline(
-                loops = loops
+                loops = loops,
+                onNavigateToDetailPage = onNavigateToDetailPage,
             )
         }
     } else {
@@ -105,6 +113,7 @@ private fun LazyListScope.sectionToday(
                 modifier = Modifier.animateItemPlacement(),
                 loopViewModel = loopViewModel,
                 loop = loop,
+                onNavigateToDetailPage = onNavigateToDetailPage,
                 onEdit = onEdit,
                 showActiveDays = section.showActiveDays,
             )
@@ -156,7 +165,7 @@ private fun TimelineHeaderButton(
             val contentColor = if (isSelected) selectedColor else normalColor
             Text(
                 text = stringResource(R.string.timeline),
-                style = MaterialTheme.typography.body1.copy(
+                style = AppTypography.body1.copy(
                     color = contentColor,
                     fontWeight = FontWeight.Bold,
                     fontStyle = FontStyle.Italic
@@ -197,6 +206,7 @@ private fun LazyListScope.sectionAd(
 private fun LazyListScope.sectionSummary(
     section: Section.Summary,
     loopViewModel: LoopViewModel,
+    onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
     item(
         key = section.headerKey,
@@ -204,7 +214,7 @@ private fun LazyListScope.sectionSummary(
     ) {
         LoopSummaryCard(
             modifier = Modifier.padding(
-                horizontal = 8.dp,
+                horizontal = 12.dp,
                 vertical = 12.dp
             ),
             section = section,
@@ -216,6 +226,7 @@ private fun LazyListScope.sectionSummary(
 private fun LazyListScope.sectionLater(
     section: Section.Later,
     loopViewModel: LoopViewModel,
+    onNavigateToDetailPage: (LoopBase) -> Unit,
     onEdit: (LoopBase) -> Unit,
 ) {
     var isExpanded by section.isExpanded
@@ -246,6 +257,7 @@ private fun LazyListScope.sectionLater(
             LoopCardWithOption(
                 loopViewModel = loopViewModel,
                 loop = loop,
+                onNavigateToDetailPage = onNavigateToDetailPage,
                 onEdit = onEdit,
                 showActiveDays = section.showActiveDays
             )
@@ -271,7 +283,7 @@ private fun ExpandableHeader(
 
         Text(
             text = headText,
-            style = MaterialTheme.typography.subtitle2.copy(
+            style = AppTypography.subtitle2.copy(
                 color = AppColor.onSurface,
             )
         )

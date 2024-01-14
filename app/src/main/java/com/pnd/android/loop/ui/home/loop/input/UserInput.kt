@@ -81,7 +81,9 @@ private fun OverrideBackPress(
             inputState.setSelector(InputSelector.NONE)
         }
     } else if (inputState.mode != UserInputState.Mode.None) {
-        BackPressHandler { inputState.reset() }
+        BackPressHandler {
+            inputState.reset()
+        }
     }
 }
 

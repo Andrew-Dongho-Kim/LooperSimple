@@ -92,8 +92,12 @@ private suspend fun FlowCollector<TimeStat>.before(
     val now = LocalTime.now()
     val afterMs = now.until(startTime, ChronoUnit.MILLIS)
 
-    emit(TimeStat.BeforeStart(afterMs.toLocalTime()))
-    delay(MS_1MIN + (afterMs % MS_1MIN))
+    if (afterMs > 0) {
+        emit(TimeStat.BeforeStart(afterMs.toLocalTime()))
+        delay(MS_1MIN + (afterMs % MS_1MIN))
+    } else {
+        delay(1000)
+    }
 }
 
 private suspend fun FlowCollector<TimeStat>.inProgress(
@@ -105,6 +109,8 @@ private suspend fun FlowCollector<TimeStat>.inProgress(
     if (remainMs > 0) {
         emit(TimeStat.InProgress(remainMs.toLocalTime()))
         delay(MS_1MIN + (remainMs % MS_1MIN))
+    } else {
+        delay(1000)
     }
 }
 

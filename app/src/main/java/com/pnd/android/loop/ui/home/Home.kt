@@ -1,6 +1,7 @@
 package com.pnd.android.loop.ui.home
 
 import android.content.Context
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -31,16 +32,27 @@ import com.pnd.android.loop.ui.home.loop.LoopViewModel
 import com.pnd.android.loop.ui.home.loop.Loops
 import com.pnd.android.loop.ui.home.loop.input.UserInput
 import com.pnd.android.loop.ui.home.loop.input.rememberUserInputState
+import com.pnd.android.loop.ui.theme.AppColor
+import com.pnd.android.loop.ui.theme.surface
 
 @Composable
 fun Home(
     modifier: Modifier = Modifier,
     loopViewModel: LoopViewModel,
+    onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
     val snackBarHostState = remember { SnackbarHostState() }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        topBar = {
+            HomeAppBar(
+                modifier = Modifier
+                    .background(color = AppColor.surface)
+                    .statusBarsPadding(),
+                loopViewModel = loopViewModel,
+            )
+        },
         snackbarHost = {
             SnackbarHost(
                 modifier = Modifier
@@ -54,7 +66,6 @@ fun Home(
         contentColor = Color.Transparent,
         contentWindowInsets = ScaffoldDefaults
             .contentWindowInsets
-            .exclude(WindowInsets.statusBars)
             .exclude(WindowInsets.navigationBars)
             .exclude(WindowInsets.ime),
     )
@@ -63,6 +74,7 @@ fun Home(
             modifier = Modifier.padding(contentPadding),
             snackBarHostState = snackBarHostState,
             loopViewModel = loopViewModel,
+            onNavigateToDetailPage = onNavigateToDetailPage,
         )
     }
 }
@@ -72,41 +84,37 @@ private fun HomeContent(
     modifier: Modifier,
     snackBarHostState: SnackbarHostState,
     loopViewModel: LoopViewModel,
+    onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
-    Box(modifier = modifier) {
-        Column {
-            val lazyListState = rememberLazyListState()
-            val inputState = rememberUserInputState()
 
-            Loops(
-                modifier = Modifier
-                    .weight(1f)
-                    .statusBarsPadding(),
-                inputState = inputState,
-                lazyListState = lazyListState,
-                loopViewModel = loopViewModel,
-            )
+    Column(modifier = modifier) {
+        val lazyListState = rememberLazyListState()
+        val inputState = rememberUserInputState()
 
-            val context = LocalContext.current
-            UserInput(
-                modifier = Modifier
-                    .navigationBarsPadding()
-                    .imePadding(),
-                inputState = inputState,
-                lazyListState = lazyListState,
-                onEnsureLoop = { loop ->
-                    ensureLoop(
-                        context = context,
-                        loop = loop,
-                        hostState = snackBarHostState
-                    )
-                },
-                onLoopSubmitted = { newLoop -> loopViewModel.addOrUpdateLoop(newLoop.asLoopVo()) }
-            )
-        }
-        HomeAppBar(
-            modifier = Modifier.statusBarsPadding(),
+        Loops(
+            modifier = Modifier.weight(1f),
+            inputState = inputState,
+            lazyListState = lazyListState,
             loopViewModel = loopViewModel,
+            onNavigateToDetailPage = onNavigateToDetailPage,
+        )
+
+        val context = LocalContext.current
+        UserInput(
+            modifier = Modifier
+                .background(color = AppColor.surface)
+                .navigationBarsPadding()
+                .imePadding(),
+            inputState = inputState,
+            lazyListState = lazyListState,
+            onEnsureLoop = { loop ->
+                ensureLoop(
+                    context = context,
+                    loop = loop,
+                    hostState = snackBarHostState
+                )
+            },
+            onLoopSubmitted = { newLoop -> loopViewModel.addOrUpdateLoop(newLoop.asLoopVo()) }
         )
     }
 }

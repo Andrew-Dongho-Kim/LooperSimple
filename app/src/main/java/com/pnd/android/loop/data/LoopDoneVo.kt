@@ -11,8 +11,8 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.data.LoopDoneVo.DoneState.Companion.DONE
-import com.pnd.android.loop.data.LoopDoneVo.DoneState.Companion.SKIP
 import com.pnd.android.loop.data.LoopDoneVo.DoneState.Companion.NO_RESPONSE
+import com.pnd.android.loop.data.LoopDoneVo.DoneState.Companion.SKIP
 import java.time.LocalDate
 import java.time.ZoneId
 
@@ -21,7 +21,11 @@ import java.time.ZoneId
     tableName = "loop_done",
     primaryKeys = ["loopId", "date"],
     foreignKeys = [
-        ForeignKey(entity = LoopVo::class, parentColumns = ["id"], childColumns = ["loopId"])
+        ForeignKey(
+            entity = LoopVo::class,
+            parentColumns = ["id"],
+            childColumns = ["loopId"]
+        )
     ]
 )
 data class LoopDoneVo(
@@ -45,7 +49,17 @@ data class LoopDoneVo(
 interface LoopDoneDao {
 
     @Query("SELECT * FROM loop_done WHERE loopId=:loopId AND date=:date LIMIT 1")
-    fun getDoneState(loopId: Long, date: Long): LiveData<LoopDoneVo>
+    fun liveDataDoneState(
+        loopId: Long,
+        date: Long
+    ): LiveData<LoopDoneVo>
+
+    @Query("SELECT * FROM loop_done WHERE loopId=:loopId AND :from <= date AND date <= :to")
+    suspend fun doneStates(
+        loopId: Long,
+        from: Long,
+        to: Long
+    ): List<LoopDoneVo>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun addOrUpdate(doneVo: LoopDoneVo)
