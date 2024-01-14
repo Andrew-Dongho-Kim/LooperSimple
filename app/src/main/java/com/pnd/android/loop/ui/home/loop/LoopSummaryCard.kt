@@ -49,6 +49,7 @@ fun LoopSummaryCard(
     modifier: Modifier = Modifier,
     section: Section,
     loopViewModel: LoopViewModel,
+    onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
     val loops by section.items
     val loopGroup = loops.groupBy { (it as LoopWithDone).done }
@@ -81,6 +82,7 @@ fun LoopSummaryCard(
             },
             icon = Icons.Filled.Done,
             iconColor = AppColor.primary,
+            onNavigateToDetailPage = onNavigateToDetailPage,
             onUndoDoneState = onUndoDoneState,
         )
 
@@ -98,6 +100,7 @@ fun LoopSummaryCard(
             },
             icon = Icons.Filled.Clear,
             iconColor = AppColor.onSurface,
+            onNavigateToDetailPage = onNavigateToDetailPage,
             onUndoDoneState = onUndoDoneState,
         )
     }
@@ -112,6 +115,7 @@ private fun Summary(
     shape: Shape,
     icon: ImageVector,
     iconColor: Color,
+    onNavigateToDetailPage: (LoopBase) -> Unit,
     onUndoDoneState: (loop: LoopBase) -> Unit,
 ) {
     if (loops.isEmpty()) return
@@ -144,6 +148,7 @@ private fun Summary(
                     key(loop.id) {
                         SummaryItem(
                             loop = loop,
+                            onNavigateToDetailPage = onNavigateToDetailPage,
                             onUndoDoneState = onUndoDoneState,
                         )
                     }
@@ -188,11 +193,13 @@ private fun SummaryHeader(
 private fun SummaryItem(
     modifier: Modifier = Modifier,
     loop: LoopBase,
+    onNavigateToDetailPage: (LoopBase) -> Unit,
     onUndoDoneState: (loop: LoopBase) -> Unit,
 ) {
     Row(
         modifier = modifier
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .clickable { onNavigateToDetailPage(loop) },
         verticalAlignment = Alignment.CenterVertically,
 
         ) {

@@ -219,6 +219,7 @@ private fun LazyListScope.sectionSummary(
             ),
             section = section,
             loopViewModel = loopViewModel,
+            onNavigateToDetailPage = onNavigateToDetailPage
         )
     }
 }
