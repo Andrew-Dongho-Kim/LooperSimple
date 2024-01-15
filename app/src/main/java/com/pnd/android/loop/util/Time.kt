@@ -128,18 +128,19 @@ fun rememberDayColor(day: Int): Color {
     }
 }
 
-fun day(localDateTime: LocalDateTime = LocalDateTime.now()): @Day Int {
-    val localDate = localDateTime.toLocalDate()
-    return when (localDate.dayOfWeek) {
-        DayOfWeek.SUNDAY -> SUNDAY
-        DayOfWeek.MONDAY -> MONDAY
-        DayOfWeek.TUESDAY -> TUESDAY
-        DayOfWeek.WEDNESDAY -> WEDNESDAY
-        DayOfWeek.THURSDAY -> THURSDAY
-        DayOfWeek.FRIDAY -> FRIDAY
-        DayOfWeek.SATURDAY -> SATURDAY
-        else -> throw IllegalStateException("Unknown value for day of week")
-    }
+fun day(localDateTime: LocalDateTime = LocalDateTime.now()): @Day Int =
+    day(localDateTime.toLocalDate())
+
+
+fun day(localDate: LocalDate = LocalDate.now()): @Day Int = when (localDate.dayOfWeek) {
+    DayOfWeek.SUNDAY -> SUNDAY
+    DayOfWeek.MONDAY -> MONDAY
+    DayOfWeek.TUESDAY -> TUESDAY
+    DayOfWeek.WEDNESDAY -> WEDNESDAY
+    DayOfWeek.THURSDAY -> THURSDAY
+    DayOfWeek.FRIDAY -> FRIDAY
+    DayOfWeek.SATURDAY -> SATURDAY
+    else -> throw IllegalStateException("Unknown value for day of week")
 }
 
 fun Long.toLocalDate(zoneId: ZoneId = ZoneId.systemDefault()): LocalDate =
@@ -160,10 +161,6 @@ fun LocalTime.toMs() = TimeUnit.NANOSECONDS.toMillis(toNanoOfDay())
 fun LocalDate.toLocalTime(zoneId: ZoneId = ZoneId.systemDefault()) =
     atStartOfDay(zoneId).toInstant().toEpochMilli()
 
-
-fun localTimeInDay() = with(LocalTime.now()) {
-    hour * MS_1HOUR + minute * MS_1MIN + second
-}
 
 @Composable
 fun LoopBase.formatStartEndTime() =

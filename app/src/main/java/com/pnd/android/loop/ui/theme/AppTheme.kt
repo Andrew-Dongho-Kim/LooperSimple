@@ -25,13 +25,13 @@ private val lightColorPalette = lightColors(
     secondary = Yellow700,
     secondaryVariant = Yellow800,
     surface = White99,
-    background = Grey95,
+    background = White99,
+    error = Red800,
 
     onPrimary = Color.White,
     onSecondary = Color.Black,
-    onSurface = Color(0xff010101),
-    onBackground = Color.Black,
-    error = Red800,
+    onSurface = Black99,
+    onBackground = Black99,
     onError = Color.White
 )
 

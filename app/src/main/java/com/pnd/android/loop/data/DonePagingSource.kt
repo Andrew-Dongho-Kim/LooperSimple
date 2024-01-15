@@ -5,6 +5,7 @@ import androidx.paging.PagingState
 import com.pnd.android.loop.common.Logger
 import com.pnd.android.loop.util.toLocalDate
 import com.pnd.android.loop.util.toMs
+import java.time.DayOfWeek
 import java.time.LocalDate
 
 class DonePagingSource(
@@ -20,7 +21,12 @@ class DonePagingSource(
 
     private lateinit var loop: LoopBase
     private val created by lazy { loop.created.toLocalDate() }
-    private val min by lazy { created.minusMonths(3).withDayOfMonth(1) }
+    private val min by lazy {
+        var dateTime = created.minusMonths(3).withDayOfMonth(1)
+        while (dateTime.dayOfWeek != DayOfWeek.SUNDAY)
+            dateTime = dateTime.minusDays(1)
+        dateTime
+    }
 
     override fun getRefreshKey(
         state: PagingState<LocalDate, LoopDoneVo>
@@ -37,7 +43,7 @@ class DonePagingSource(
     ): LoadResult<LocalDate, LoopDoneVo> {
         return try {
             initIfNeed()
-            val curr = params.key ?: LocalDate.now()
+            val curr = params.key ?: LocalDate.now().plusDays(1)
             val prev = prevKey(curr, pageSize)
             val next = nextKey(curr, pageSize)
 
@@ -55,7 +61,6 @@ class DonePagingSource(
 
     private suspend fun load(curr: LocalDate, next: LocalDate?): List<LoopDoneVo> {
         next ?: return emptyList()
-
 
         val doneStates = loopDoneDao.doneStates(
             loopId = loopId.toLong(),
@@ -98,10 +103,10 @@ class DonePagingSource(
     }
 
     private fun nextKey(curr: LocalDate, loadSize: Int): LocalDate? {
-        val now = LocalDate.now()
-        if (curr == now) return null
+        val tomorrow = LocalDate.now().plusDays(1)
+        if (curr == tomorrow) return null
 
         val nextKey = curr.plusDays(loadSize.toLong())
-        return if (nextKey < now) nextKey else now
+        return if (nextKey < tomorrow) nextKey else tomorrow
     }
 }

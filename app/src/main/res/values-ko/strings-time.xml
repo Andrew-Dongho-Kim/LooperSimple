@@ -39,6 +39,7 @@
     <string name="hours">시간</string>
     <string name="day">일</string>
     <string name="days">일</string>
+    <string name="n_days">%d 일째</string>
     <string name="week">주</string>
     <string name="weeks">주</string>
 

@@ -1,21 +1,29 @@
 package com.pnd.android.loop.ui.detail
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridItemScope
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.material.ContentAlpha
 import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Circle
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -25,10 +33,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
+import com.pnd.android.loop.R
+import com.pnd.android.loop.data.Day
+import com.pnd.android.loop.data.Day.Companion.isOn
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.ui.theme.AppColor
@@ -36,7 +50,12 @@ import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.surface
+import com.pnd.android.loop.util.ABB_DAYS
+import com.pnd.android.loop.util.day
+import com.pnd.android.loop.util.formatYearMonthDateDays
+import com.pnd.android.loop.util.rememberDayColor
 import com.pnd.android.loop.util.toLocalDate
+import java.time.LocalDate
 
 @Composable
 fun DetailPage(
@@ -75,14 +94,60 @@ private fun DetailPageContent(
     detailViewModel: LoopDetailViewModel,
     loop: LoopBase,
 ) {
-    DoneHistoryGrid(
+    Column(
         modifier = modifier
-            .padding(horizontal = 12.dp, vertical = 12.dp)
+            .padding(horizontal = 16.dp, vertical = 12.dp)
             .fillMaxWidth()
-            .height(224.dp),
-        detailViewModel = detailViewModel,
-        loop = loop,
-    )
+    ) {
+        LoopCreatedDate(
+            modifier = Modifier.padding(top = 8.dp),
+            created = loop.created
+        )
+        DoneHistoryGrid(
+            modifier = modifier
+                .padding(top = 8.dp)
+                .fillMaxWidth()
+                .height(224.dp),
+            detailViewModel = detailViewModel,
+            loop = loop,
+        )
+    }
+}
+
+@Composable
+private fun LoopCreatedDate(
+    modifier: Modifier = Modifier,
+    created: Long,
+) {
+    val createdDate = created.toLocalDate()
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            modifier = Modifier,
+            text = stringResource(id = R.string.created_date) + " : ",
+            style = AppTypography.subtitle1.copy(
+                color = AppColor.onSurface
+            )
+        )
+
+        Text(
+            modifier = Modifier.weight(1f),
+            text = createdDate.formatYearMonthDateDays(),
+            style = AppTypography.body1.copy(
+                color = AppColor.onSurface
+            )
+        )
+
+        Text(
+            modifier = Modifier,
+            text = stringResource(id = R.string.n_days, createdDate.until(LocalDate.now()).days),
+            style = AppTypography.body1.copy(
+                color = AppColor.onSurface
+            )
+        )
+    }
 }
 
 @Composable
@@ -94,22 +159,49 @@ private fun DoneHistoryGrid(
     val doneHistory = detailViewModel.donePager.collectAsLazyPagingItems()
 
     val lazyGridState = rememberLazyGridState()
-    LazyHorizontalGrid(
-        modifier = modifier,
-        state = lazyGridState,
-        rows = GridCells.Fixed(7)
-    ) {
-        item(contentType = "DayHeader") {
-
+    Row(modifier = modifier) {
+        LazyHorizontalGrid(
+            modifier = Modifier.weight(1f),
+            state = lazyGridState,
+            rows = GridCells.Fixed(7)
+        ) {
+            items(
+                lazyPagingItems = doneHistory,
+                key = { item -> item.date }
+            ) { item ->
+                DoneHistoryItem(
+                    modifier = Modifier.size(32.dp),
+                    doneVo = item,
+                    color = Color(loop.color).copy(alpha = 0.7f),
+                    activeDays = loop.loopActiveDays
+                )
+            }
         }
-        items(
-            lazyPagingItems = doneHistory,
-            key = { item -> item.date }
-        ) { item ->
-            DoneHistoryItem(
-                modifier = Modifier.size(32.dp),
-                doneVo = item,
-                color = Color(loop.color),
+        DoneHistoryDayHeader(
+            modifier = Modifier.padding(start = 6.dp)
+        )
+    }
+
+}
+
+@Composable
+private fun DoneHistoryDayHeader(
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.fillMaxHeight(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        ABB_DAYS.forEachIndexed { index, dayResId ->
+            val day = Day.fromIndex(index)
+            Text(
+                modifier = Modifier
+                    .weight(1f)
+                    .wrapContentHeight(align = Alignment.CenterVertically),
+                text = stringResource(id = dayResId),
+                style = AppTypography.body1.copy(
+                    color = rememberDayColor(day = day)
+                )
             )
         }
     }
@@ -119,36 +211,53 @@ private fun DoneHistoryGrid(
 private fun DoneHistoryItem(
     modifier: Modifier = Modifier,
     doneVo: LoopDoneVo,
-    color: Color
+    color: Color,
+    activeDays: Int
 ) {
     val localDate = remember(doneVo.date) { doneVo.date.toLocalDate() }
-    val shape = RoundShapes.small
+    val firstDateOfMonth = localDate.dayOfMonth == 1
+    val isActive = activeDays.isOn(day(doneVo.date.toLocalDate()))
 
+    val shape = RoundShapes.small
     Box(
         modifier = modifier
             .padding(1.dp)
             .clip(shape = shape)
-            .alpha(0.7f)
             .background(
-                color = if (doneVo.done == LoopDoneVo.DoneState.DONE) color else Color.Transparent,
-                shape = shape
-            )
-            .background(
-                color = AppColor.surface.copy(alpha = 0.3f),
-                shape = shape
+                color = if (firstDateOfMonth) AppColor.onSurface.copy(alpha = 0.1f) else Color.Transparent
             )
             .border(
                 width = 0.5.dp,
-                color = color,
+                color = AppColor.onSurface.copy(alpha = 0.2f),
                 shape = shape
             )
+            .alpha(if (isActive) 1.0f else 0.3f)
     ) {
-        val date = localDate.dayOfMonth
+
+        if (doneVo.done != LoopDoneVo.DoneState.NO_RESPONSE) {
+            Image(
+                modifier = Modifier.align(Alignment.Center),
+                imageVector = when {
+                    doneVo.isDone() -> Icons.Outlined.Circle
+                    else -> Icons.Outlined.Close
+                },
+                colorFilter = ColorFilter.tint(
+                    if (doneVo.isDone()) {
+                        color
+                    } else {
+                        AppColor.onSurface.copy(alpha = ContentAlpha.disabled)
+                    }
+                ),
+                contentDescription = null
+            )
+        }
+
         Text(
             modifier = Modifier.align(Alignment.Center),
-            text = if (date == 1) "${localDate.month.value}/$date" else "$date",
+            text = if (firstDateOfMonth) "${localDate.month.value}/1" else "${localDate.dayOfMonth}",
             style = AppTypography.caption.copy(
-                color = AppColor.onSurface
+                color = AppColor.onSurface,
+                fontWeight = FontWeight.Normal
             )
         )
     }

@@ -21,12 +21,14 @@ import com.pnd.android.loop.util.day
 import com.pnd.android.loop.util.dh2m2
 import com.pnd.android.loop.util.isActiveDay
 import com.pnd.android.loop.util.isActiveTime
-import com.pnd.android.loop.util.localTimeInDay
+import com.pnd.android.loop.util.toMs
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.LocalTime
 import javax.inject.Inject
 
 private const val TAG = "AlarmController"
@@ -44,7 +46,7 @@ class AlarmController @Inject constructor(
 
     @VisibleForTesting
     fun notifyAfter(loop: LoopBase): Long {
-        val curr = localTimeInDay()
+        val curr = LocalTime.now().toMs()
 
         val loopStart = loop.loopStart
         return if (loopStart > curr) {
@@ -159,7 +161,7 @@ class AlarmController @Inject constructor(
                 alarmController.reserveAlarm(loop = loop)
             }
 
-            val today = day()
+            val today = day(LocalDate.now())
             val isAllowedDay = loop.isActiveDay()
             val isAllowedTime = loop.isActiveTime()
             if (isAllowedDay && isAllowedTime) {

@@ -53,7 +53,7 @@ val BlueGrey80 = Color(0xFFC6C5D0)
 val BlueGrey90 = Color(0xFFE2E1EC)
 
 val White99 = Color(0xfffafafa)
-
+val Black99 = Color(0xff010101)
 
 
 

@@ -15,6 +15,8 @@
     <string name="start">시작</string>
     <string name="end">종료</string>
 
+    <string name="created_date">생성일</string>
+
     <string name="delete_confirm_message">이 루프를 삭제하시겠습니까?</string>
 
     <string name="timeline">타임라인</string>

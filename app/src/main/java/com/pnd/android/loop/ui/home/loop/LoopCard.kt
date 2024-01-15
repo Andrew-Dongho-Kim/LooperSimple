@@ -77,7 +77,7 @@ import com.pnd.android.loop.util.intervalString
 import com.pnd.android.loop.util.isActive
 import com.pnd.android.loop.util.rememberDayColor
 
-private const val ACTIVE_EFFECT_SEGMENTS = 10f
+private const val ACTIVE_EFFECT_SEGMENTS = 11f
 
 @Composable
 fun LoopCard(

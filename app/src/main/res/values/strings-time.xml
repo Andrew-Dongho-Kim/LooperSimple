@@ -39,6 +39,7 @@
     <string name="hours">hours</string>
     <string name="day">day</string>
     <string name="days">days</string>
+    <string name="n_days">%d days</string>
     <string name="week">week</string>
     <string name="weeks">weeks</string>
 

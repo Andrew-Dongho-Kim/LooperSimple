@@ -33,6 +33,9 @@ data class LoopDoneVo(
     val date: Long,
     val done: Int = NO_RESPONSE
 ) {
+    fun isDone() = done == DONE
+
+    fun isSkip() = done == SKIP
 
     @Target(AnnotationTarget.TYPE, AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.FUNCTION)
     @IntDef(DONE, SKIP, NO_RESPONSE)

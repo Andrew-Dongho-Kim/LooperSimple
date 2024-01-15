@@ -7,6 +7,7 @@ import androidx.compose.material.icons.outlined.ArrowBackIos
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.navigation.compose.rememberNavController
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.ui.common.AppBar
@@ -35,7 +36,8 @@ fun DetailAppBar(
             AppBarIcon(
                 imageVector = Icons.Outlined.ArrowBackIos,
                 color = AppColor.onSurface.copy(alpha = ContentAlpha.medium),
-                descriptionResId = R.string.about_app
+                descriptionResId = R.string.about_app,
+                onClick = { }
             )
         }
 
