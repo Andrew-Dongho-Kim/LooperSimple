@@ -53,7 +53,6 @@ import com.pnd.android.loop.ui.theme.surface
 import com.pnd.android.loop.util.ABB_DAYS
 import com.pnd.android.loop.util.day
 import com.pnd.android.loop.util.formatYearMonthDateDays
-import com.pnd.android.loop.util.rememberDayColor
 import com.pnd.android.loop.util.toLocalDate
 import java.time.LocalDate
 
@@ -200,7 +199,7 @@ private fun DoneHistoryDayHeader(
                     .wrapContentHeight(align = Alignment.CenterVertically),
                 text = stringResource(id = dayResId),
                 style = AppTypography.body1.copy(
-                    color = rememberDayColor(day = day)
+                    color = AppColor.onSurface
                 )
             )
         }

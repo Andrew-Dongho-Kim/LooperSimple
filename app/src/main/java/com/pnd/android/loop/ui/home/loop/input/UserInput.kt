@@ -13,9 +13,7 @@ import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.ui.home.loop.input.selector.Selectors
 import com.pnd.android.loop.util.BackPressHandler
 import com.pnd.android.loop.util.rememberImeOpenState
-import com.pnd.android.loop.util.toMs
 import kotlinx.coroutines.launch
-import java.time.LocalDateTime
 
 
 @Composable
@@ -60,7 +58,7 @@ fun UserInput(
                 coroutineScope.launch {
                     val loop = inputState.value
                     if (onEnsureLoop(loop)) {
-                        onLoopSubmitted(loop.copyAs(created = LocalDateTime.now().toMs()))
+                        onLoopSubmitted(loop)
                         inputState.reset()
                     }
                 }

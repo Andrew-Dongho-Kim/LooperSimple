@@ -2,7 +2,6 @@ package com.pnd.android.loop.ui.home
 
 import android.content.Context
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.exclude
@@ -12,7 +11,6 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Scaffold
@@ -34,6 +32,8 @@ import com.pnd.android.loop.ui.home.loop.input.UserInput
 import com.pnd.android.loop.ui.home.loop.input.rememberUserInputState
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.surface
+import com.pnd.android.loop.util.toMs
+import java.time.LocalDateTime
 
 @Composable
 fun Home(
@@ -114,7 +114,17 @@ private fun HomeContent(
                     hostState = snackBarHostState
                 )
             },
-            onLoopSubmitted = { newLoop -> loopViewModel.addOrUpdateLoop(newLoop.asLoopVo()) }
+            onLoopSubmitted = { newLoop ->
+                loopViewModel.addOrUpdateLoop(
+                    newLoop.asLoopVo(
+                        created = if (newLoop.created == 0L) {
+                            LocalDateTime.now().toMs()
+                        } else {
+                            newLoop.created
+                        }
+                    )
+                )
+            }
         )
     }
 }
