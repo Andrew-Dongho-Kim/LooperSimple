@@ -65,6 +65,13 @@
     <string name="time_stat_before_start_mins">#%d 분 후</string>
     <string name="time_stat_before_start_soon">#곧</string>
 
+    <string name="time_stat_full_before_start_hours">#%d 시간 후 시작</string>
+    <string name="time_stat_full_before_start_mins">#%d 분 후 시작</string>
+    <string name="time_stat_full_before_start_soon">#곧 시작</string>
+
     <string name="time_stat_remain_hours">#%d 시간 남음</string>
     <string name="time_stat_remain_mins">#%d 분 남음</string>
+
+    <string name="time_stat_full_remain_hours">#%d 시간 남음</string>
+    <string name="time_stat_full_remain_mins">#%d 분 남음</string>
 </resources>

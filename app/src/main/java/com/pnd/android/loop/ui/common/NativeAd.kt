@@ -2,9 +2,6 @@ package com.pnd.android.loop.ui.common
 
 import android.view.View
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -19,9 +16,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Card
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,51 +28,22 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidViewBinding
-import com.google.android.gms.ads.AdListener
-import com.google.android.gms.ads.AdLoader
-import com.google.android.gms.ads.AdRequest
-import com.google.android.gms.ads.LoadAdError
-import com.google.android.gms.ads.VideoOptions
-import com.google.android.gms.ads.nativead.NativeAdOptions
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pnd.android.loop.databinding.LoopNativeAdLayoutBinding
 import com.pnd.android.loop.ui.theme.AppColor
+import com.pnd.android.loop.ui.theme.Black99
 import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.onSurface
 
-private enum class LoadState {
-    READY, LOADING, FAILED, FINISHED
-}
-
-const val ANIMATION_DURATION = 500
-
 @Composable
-fun NativeAd(
+fun ExpandableNativeAd(
     modifier: Modifier = Modifier,
     adId: String
 ) {
-    var isExpanded by remember { mutableStateOf(false) }
-    var loadState by remember { mutableStateOf(LoadState.READY) }
-
-    val alpha by animateFloatAsState(
-        targetValue = if (loadState == LoadState.FINISHED) 1f else 0f,
-        animationSpec = tween(
-            durationMillis = ANIMATION_DURATION,
-            easing = FastOutSlowInEasing
-        ),
-        label = "cardAlpha"
-    )
-
+    var isExpanded by rememberSaveable { mutableStateOf(false) }
     Card(
-        modifier = if (loadState == LoadState.FINISHED) {
-            modifier.animateContentSize(
-                animationSpec = tween(
-                    durationMillis = ANIMATION_DURATION,
-                    easing = FastOutSlowInEasing
-                )
-            )
-        } else {
-            modifier.height(0.dp)
-        }
+        modifier = modifier
+            .animateContentSize()
             .clip(shape = RoundShapes.medium)
             .clickable {
                 isExpanded = !isExpanded
@@ -91,7 +60,6 @@ fun NativeAd(
             NativeAdContent(
                 adId = adId,
                 isExpanded = isExpanded,
-                onLoadStateChanged = { state -> loadState = state }
             )
 
             ExpandableImage(
@@ -118,7 +86,7 @@ private fun ExpandableImage(
                 .graphicsLayer { rotationX = if (isExpanded) 180f else 0f },
             imageVector = Icons.Filled.KeyboardArrowDown,
             colorFilter = ColorFilter.tint(
-                color = AppColor.onSurface.copy(alpha = ContentAlpha.disabled)
+                color = Black99.copy(alpha = ContentAlpha.medium)
             ),
             contentDescription = ""
         )
@@ -129,14 +97,16 @@ private fun ExpandableImage(
 private fun NativeAdContent(
     modifier: Modifier = Modifier,
     adId: String,
-    isExpanded: Boolean,
-    onLoadStateChanged: (LoadState) -> Unit
+    isExpanded: Boolean
 ) {
+    val adViewModel = viewModel<AdViewModel>()
+    LaunchedEffect(key1 = adId) {
+        adViewModel.loadAd(adId)
+    }
 
     AndroidViewBinding(
         modifier = modifier,
         factory = { inflater, parent, attachToParent ->
-            onLoadStateChanged(LoadState.LOADING)
             LoopNativeAdLayoutBinding.inflate(inflater, parent, attachToParent).apply {
                 val adView = root.apply {
                     advertiserView = adAdvertiser
@@ -149,41 +119,23 @@ private fun NativeAdContent(
                     storeView = adStore
                     mediaView = adMedia
                 }
-                adView.visibility = View.GONE
                 adMedia.visibility = View.GONE
-
-                val adLoader = AdLoader.Builder(
-                    adView.context,
-                    adId
-                ).forNativeAd { nativeAd ->
-                    nativeAd.advertiser?.let { advertiser -> adAdvertiser.text = advertiser }
-                    nativeAd.body?.let { body -> adBody.text = body }
-                    nativeAd.callToAction?.let { cta -> adCallToAction.text = cta }
-                    nativeAd.headline?.let { headline -> adHeadline.text = headline }
-                    nativeAd.icon?.let { icon -> adAppIcon.setImageDrawable(icon.drawable) }
-                    nativeAd.price?.let { price -> adPrice.text = price }
-                    nativeAd.starRating?.let { rating -> adStars.rating = rating.toFloat() }
-                    nativeAd.store?.let { store -> adStore.text = store }
-                    nativeAd.mediaContent?.let { media -> adMedia.mediaContent = media }
-
-                    adView.visibility = View.VISIBLE
-                    adView.setNativeAd(nativeAd)
-                    onLoadStateChanged(LoadState.FINISHED)
-                }.withNativeAdOptions(
-                    NativeAdOptions.Builder()
-                        .setVideoOptions(VideoOptions.Builder().setStartMuted(true).build())
-                        .setRequestCustomMuteThisAd(true)
-                        .build()
-                ).withAdListener(object : AdListener() {
-                    override fun onAdFailedToLoad(error: LoadAdError) {
-                        onLoadStateChanged(LoadState.FAILED)
-                    }
-                }).build()
-
-                adLoader.loadAd(AdRequest.Builder().build())
+                adViewModel.nativeAd?.let { adView.setNativeAd(it) }
             }
         }
     ) {
+        adViewModel.nativeAd?.let { nativeAd ->
+            root.setNativeAd(nativeAd)
+            nativeAd.advertiser?.let { advertiser -> adAdvertiser.text = advertiser }
+            nativeAd.body?.let { body -> adBody.text = body }
+            nativeAd.callToAction?.let { cta -> adCallToAction.text = cta }
+            nativeAd.headline?.let { headline -> adHeadline.text = headline }
+            nativeAd.icon?.let { icon -> adAppIcon.setImageDrawable(icon.drawable) }
+            nativeAd.price?.let { price -> adPrice.text = price }
+            nativeAd.starRating?.let { rating -> adStars.rating = rating.toFloat() }
+            nativeAd.store?.let { store -> adStore.text = store }
+            nativeAd.mediaContent?.let { media -> adMedia.mediaContent = media }
+        }
         adMedia.visibility = if (isExpanded) View.VISIBLE else View.GONE
     }
 }

@@ -42,7 +42,7 @@ import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.BuildConfig
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
-import com.pnd.android.loop.ui.common.NativeAd
+import com.pnd.android.loop.ui.common.ExpandableNativeAd
 import com.pnd.android.loop.ui.home.loop.timeline.LoopTimeline
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
@@ -195,7 +195,7 @@ private fun LazyListScope.sectionAd(
         key = section.headerKey,
         contentType = ContentTypes.AD_CARD
     ) {
-        NativeAd(
+        ExpandableNativeAd(
             modifier = Modifier.padding(
                 horizontal = 8.dp,
                 vertical = 12.dp

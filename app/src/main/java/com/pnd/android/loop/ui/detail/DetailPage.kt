@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -25,36 +26,52 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
+import com.pnd.android.loop.BuildConfig
 import com.pnd.android.loop.R
-import com.pnd.android.loop.data.Day
 import com.pnd.android.loop.data.Day.Companion.isOn
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
+import com.pnd.android.loop.data.TimeStat
+import com.pnd.android.loop.data.timeStatAsFlow
+import com.pnd.android.loop.ui.common.ExpandableNativeAd
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.surface
 import com.pnd.android.loop.util.ABB_DAYS
+import com.pnd.android.loop.util.annotatedString
 import com.pnd.android.loop.util.day
+import com.pnd.android.loop.util.formatHourMinute
 import com.pnd.android.loop.util.formatYearMonthDateDays
 import com.pnd.android.loop.util.toLocalDate
 import java.time.LocalDate
+
+private val DETAIL_AD_ID = if (BuildConfig.DEBUG) {
+    "ca-app-pub-3940256099942544/2247696110"
+} else {
+    "ca-app-pub-2341430172816266/1226053779"
+}
+
 
 @Composable
 fun DetailPage(
@@ -98,17 +115,25 @@ private fun DetailPageContent(
             .padding(horizontal = 16.dp, vertical = 12.dp)
             .fillMaxWidth()
     ) {
+        LoopStartAndEndTime(
+            modifier = Modifier.padding(top = 16.dp),
+            loop = loop
+        )
         LoopCreatedDate(
-            modifier = Modifier.padding(top = 8.dp),
+            modifier = Modifier.padding(top = 12.dp),
             created = loop.created
         )
         DoneHistoryGrid(
             modifier = modifier
-                .padding(top = 8.dp)
+                .padding(top = 12.dp)
                 .fillMaxWidth()
                 .height(224.dp),
             detailViewModel = detailViewModel,
             loop = loop,
+        )
+        ExpandableNativeAd(
+            modifier = Modifier.padding(top = 16.dp),
+            adId = DETAIL_AD_ID
         )
     }
 }
@@ -118,7 +143,7 @@ private fun LoopCreatedDate(
     modifier: Modifier = Modifier,
     created: Long,
 ) {
-    val createdDate = created.toLocalDate()
+    val createdDate = remember(created) { created.toLocalDate().plusDays(1L) }
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically
@@ -126,7 +151,7 @@ private fun LoopCreatedDate(
         Text(
             modifier = Modifier,
             text = stringResource(id = R.string.created_date) + " : ",
-            style = AppTypography.subtitle1.copy(
+            style = AppTypography.h6.copy(
                 color = AppColor.onSurface
             )
         )
@@ -146,6 +171,65 @@ private fun LoopCreatedDate(
                 color = AppColor.onSurface
             )
         )
+    }
+}
+
+@Composable
+private fun LoopStartAndEndTime(
+    modifier: Modifier = Modifier,
+    loop: LoopBase
+) {
+    var timeStat by remember { mutableStateOf<TimeStat>(TimeStat.NotToday) }
+    LaunchedEffect(loop) {
+        loop.timeStatAsFlow().collect { timeStat = it }
+    }
+
+    Column(modifier = modifier) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(id = R.string.start) + " : ",
+                style = AppTypography.h6.copy(
+                    color = AppColor.onSurface
+                )
+            )
+            Text(
+                text = loop.loopStart.formatHourMinute(),
+                style = AppTypography.body1.copy(
+                    color = AppColor.onSurface
+                )
+            )
+            Spacer(
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = annotatedString(timeStat.asString(LocalContext.current, false)),
+                style = AppTypography.body1.copy(
+                    color = AppColor.onSurface
+                )
+            )
+        }
+        Row(
+            modifier = Modifier
+                .padding(top = 4.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(id = R.string.end) + " : ",
+                style = AppTypography.h6.copy(
+                    color = AppColor.onSurface
+                )
+            )
+            Text(
+                text = loop.loopEnd.formatHourMinute(),
+                style = AppTypography.body1.copy(
+                    color = AppColor.onSurface
+                )
+            )
+        }
     }
 }
 
@@ -191,8 +275,7 @@ private fun DoneHistoryDayHeader(
         modifier = modifier.fillMaxHeight(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        ABB_DAYS.forEachIndexed { index, dayResId ->
-            val day = Day.fromIndex(index)
+        ABB_DAYS.forEach { dayResId ->
             Text(
                 modifier = Modifier
                     .weight(1f)

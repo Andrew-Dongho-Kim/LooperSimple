@@ -28,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -58,6 +59,8 @@ fun TimelineItem(
     onEdit: (LoopBase) -> Unit,
     onDelete: (LoopBase) -> Unit,
 ) {
+    var isTooltipShown by rememberSaveable { mutableStateOf(false) }
+
     Tooltip(
         modifier = modifier,
         anchorContent = { anchorModifier ->
@@ -69,11 +72,22 @@ fun TimelineItem(
         tooltipContent = {
             LoopDetailAndOption(
                 loop = loop,
-                onNavigateToDetailPage = onNavigateToDetailPage,
-                onEdit = onEdit,
-                onDelete = onDelete,
+                onNavigateToDetailPage = { loop ->
+                    onNavigateToDetailPage(loop)
+                    isTooltipShown = false
+                },
+                onEdit = { loop ->
+                    onEdit(loop)
+                    isTooltipShown = false
+                },
+                onDelete = { loop ->
+                    onDelete(loop)
+                    isTooltipShown = false
+                },
             )
         },
+        isShown = isTooltipShown,
+        onShown = { shown -> isTooltipShown = shown }
     )
 }
 

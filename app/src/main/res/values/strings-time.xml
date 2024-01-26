@@ -109,6 +109,13 @@
     <string name="time_stat_before_start_mins">In #%d min</string>
     <string name="time_stat_before_start_soon">#Soon</string>
 
+    <string name="time_stat_full_before_start_hours">Start In #%d hours</string>
+    <string name="time_stat_full_before_start_mins">Start In #%d minutes</string>
+    <string name="time_stat_full_before_start_soon">Start #Soon</string>
+
     <string name="time_stat_remain_hours">#%d hrs left</string>
     <string name="time_stat_remain_mins">#%d min left</string>
+
+    <string name="time_stat_full_remain_hours">#%d hours left</string>
+    <string name="time_stat_full_remain_mins">#%d minutes left</string>
 </resources>

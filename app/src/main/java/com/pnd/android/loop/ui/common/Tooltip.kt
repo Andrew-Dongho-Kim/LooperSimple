@@ -50,8 +50,10 @@ fun Tooltip(
     tooltipContent: @Composable () -> Unit,
     tooltipBackground: Color = AppColor.surface,
     tooltipBorderColor: Color = AppColor.onSurface.copy(alpha = 0.5f),
+    isShown: Boolean = false,
+    onShown: (Boolean) -> Unit,
 ) {
-    var isShown by rememberSaveable { mutableStateOf(false) }
+
     var position by remember { mutableStateOf(TooltipPosition()) }
 
     anchorContent(
@@ -59,7 +61,7 @@ fun Tooltip(
             .clickable(
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() },
-                onClick = { isShown = !isShown }
+                onClick = { onShown(!isShown) }
             )
             .onGloballyPositioned { coordinates ->
                 position = calculateTooltipPopupPosition(coordinates)
@@ -72,7 +74,7 @@ fun Tooltip(
             position = position,
             backgroundColor = tooltipBackground,
             borderColor = tooltipBorderColor,
-            onDismissRequest = { isShown = !isShown },
+            onDismissRequest = { onShown(!isShown) },
         ) {
             tooltipContent()
         }

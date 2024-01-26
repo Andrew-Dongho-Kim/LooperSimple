@@ -32,7 +32,13 @@ sealed class TimeStat {
             context.getString(R.string.time_stat_before_start_soon)
         }
 
-        private fun full(context: Context) = ""
+        private fun full(context: Context) = if (time.hour > 0) {
+            context.getString(R.string.time_stat_full_before_start_hours, time.hour)
+        } else if (time.minute > 0) {
+            context.getString(R.string.time_stat_full_before_start_mins, time.minute)
+        } else {
+            context.getString(R.string.time_stat_full_before_start_soon)
+        }
     }
 
     class InProgress(val remain: LocalTime) : TimeStat() {
@@ -46,7 +52,11 @@ sealed class TimeStat {
             context.getString(R.string.time_stat_remain_mins, remain.minute)
         }
 
-        private fun full(context: Context) = ""
+        private fun full(context: Context) = if (remain.hour > 0) {
+            context.getString(R.string.time_stat_full_remain_hours, remain.hour)
+        } else {
+            context.getString(R.string.time_stat_full_remain_mins, remain.minute)
+        }
     }
 
     data object Finished : TimeStat()
