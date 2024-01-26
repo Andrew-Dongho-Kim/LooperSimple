@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.ui.common.VerticalDashedDivider
 import com.pnd.android.loop.ui.common.VerticalDivider
+import com.pnd.android.loop.ui.home.loop.LoopViewModel
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.WineRed
 import com.pnd.android.loop.ui.theme.onSurface
@@ -34,16 +35,21 @@ import kotlin.math.max
 @Composable
 fun LoopTimeline(
     modifier: Modifier = Modifier,
+    loopViewModel: LoopViewModel,
     loops: List<LoopBase>,
     onNavigateToDetailPage: (LoopBase) -> Unit,
+    onEdit: (LoopBase) -> Unit,
 ) {
     val horizontalScrollState = rememberScrollState()
+
     Column(modifier = modifier) {
         TimeGrid(
             modifier = Modifier.height(timelineHeight),
             horizontalScrollState = horizontalScrollState,
+            loopViewModel = loopViewModel,
             loops = loops,
             onNavigateToDetailPage = onNavigateToDetailPage,
+            onEdit = onEdit,
         )
         HorizontalTimeBar(
             modifier = Modifier.padding(top = 4.dp),
@@ -57,8 +63,10 @@ fun LoopTimeline(
 private fun TimeGrid(
     modifier: Modifier = Modifier,
     horizontalScrollState: ScrollState,
+    loopViewModel: LoopViewModel,
     loops: List<LoopBase>,
     onNavigateToDetailPage: (LoopBase) -> Unit,
+    onEdit: (LoopBase) -> Unit,
 ) {
     BoxWithConstraints(modifier = modifier) {
         ScrollToLocalTime(
@@ -68,8 +76,10 @@ private fun TimeGrid(
 
         TimeGridContent(
             horizontalScrollState = horizontalScrollState,
+            loopViewModel = loopViewModel,
             loops = loops,
             onNavigateToDetailPage = onNavigateToDetailPage,
+            onEdit = onEdit,
         )
     }
 }
@@ -78,8 +88,10 @@ private fun TimeGrid(
 private fun TimeGridContent(
     modifier: Modifier = Modifier,
     horizontalScrollState: ScrollState,
+    loopViewModel: LoopViewModel,
     loops: List<LoopBase>,
     onNavigateToDetailPage: (LoopBase) -> Unit,
+    onEdit: (LoopBase) -> Unit,
 ) {
     Row(
         modifier = modifier.horizontalScroll(horizontalScrollState)
@@ -99,8 +111,10 @@ private fun TimeGridContent(
             }
             TimelineLoops(
                 modifier = Modifier.align(Alignment.BottomStart),
+                loopViewModel = loopViewModel,
                 loops = loops,
                 onNavigateToDetailPage = onNavigateToDetailPage,
+                onEdit = onEdit,
             )
             LocalTimeVerticalLineIndicator()
         }
@@ -111,8 +125,10 @@ private fun TimeGridContent(
 @Composable
 private fun TimelineLoops(
     modifier: Modifier = Modifier,
+    loopViewModel: LoopViewModel,
     loops: List<LoopBase>,
     onNavigateToDetailPage: (LoopBase) -> Unit,
+    onEdit: (LoopBase) -> Unit,
 ) {
     val slots = rememberTimelineSlots(loops = loops)
     Column(
@@ -126,8 +142,13 @@ private fun TimelineLoops(
                 slot.forEach { loop ->
                     key(loop.id) {
                         TimelineItem(
+                            modifier = Modifier.offset {
+                                IntOffset(x = loop.timelineOffsetStart().roundToPx(), y = 0)
+                            },
                             loop = loop,
                             onNavigateToDetailPage = onNavigateToDetailPage,
+                            onEdit = onEdit,
+                            onDelete = { loop -> loopViewModel.removeLoop(loop) }
                         )
                     }
                 }
@@ -185,7 +206,6 @@ private fun isIntersect(slot: List<LoopBase>, another: LoopBase): Boolean {
     }
     return false
 }
-
 
 
 private const val MAX_TIME_SLOTS = 5

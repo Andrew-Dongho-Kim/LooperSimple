@@ -106,34 +106,3 @@ private fun OptionIcon(
         )
     }
 }
-
-@Composable
-fun DeleteDialog(
-    modifier: Modifier = Modifier,
-    onDelete: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    AlertDialog(
-        modifier = modifier,
-        onDismissRequest = onDismiss,
-        text = {
-            Text(
-                text = stringResource(id = R.string.delete_confirm_message),
-                style = MaterialTheme.typography.body1
-            )
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(text = stringResource(id = R.string.cancel))
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = {
-                onDelete()
-                onDismiss()
-            }) {
-                Text(text = stringResource(id = R.string.ok))
-            }
-        }
-    )
-}

@@ -19,6 +19,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -138,7 +139,7 @@ private fun rememberTodaySection(
         resultLoops.add(0, inputState.value)
     }
 
-    return remember {
+    return rememberSaveable(saver = Section.Today.Saver) {
         Section.Today(showActiveDays = false)
     }.apply {
         items.value = resultLoops
@@ -148,7 +149,7 @@ private fun rememberTodaySection(
 @Composable
 private fun rememberLaterSection(loops: List<LoopBase>): Section {
     val title = stringResource(id = R.string.later)
-    return remember {
+    return rememberSaveable(saver = Section.Later.Saver) {
         Section.Later(
             title = title,
             showActiveDays = true

@@ -26,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -98,8 +99,10 @@ private fun LazyListScope.sectionToday(
     if (isSelected) {
         item {
             LoopTimeline(
+                loopViewModel = loopViewModel,
                 loops = loops,
                 onNavigateToDetailPage = onNavigateToDetailPage,
+                onEdit = onEdit,
             )
         }
     } else {
@@ -321,10 +324,30 @@ sealed class Section(val headerKey: String) {
     open val size
         get() = items.value.size
 
-    class Today(val showActiveDays: Boolean) : Section(
+    class Today(
+        val showActiveDays: Boolean,
+        isSelected: Boolean = false
+    ) : Section(
         headerKey = "TodaySection"
     ) {
-        val isSelected = mutableStateOf(false)
+        val isSelected = mutableStateOf(isSelected)
+
+        companion object {
+            val Saver = listSaver(
+                save = {
+                    listOf(
+                        it.showActiveDays,
+                        it.isSelected.value
+                    )
+                },
+                restore = { list ->
+                    Today(
+                        showActiveDays = list[0],
+                        isSelected = list[1]
+                    )
+                }
+            )
+        }
     }
 
     class Ad : Section(
@@ -340,10 +363,30 @@ sealed class Section(val headerKey: String) {
     class Later(
         val title: String,
         val showActiveDays: Boolean,
+        isExpanded: Boolean = false
     ) : Section(
         headerKey = "LaterSection"
     ) {
 
-        val isExpanded = mutableStateOf(false)
+        val isExpanded = mutableStateOf(isExpanded)
+
+        companion object {
+            val Saver = listSaver(
+                save = {
+                    listOf(
+                        it.title,
+                        it.showActiveDays,
+                        it.isExpanded.value,
+                    )
+                },
+                restore = { list ->
+                    Later(
+                        title = list[0] as String,
+                        showActiveDays = list[1] as Boolean,
+                        isExpanded = list[2] as Boolean,
+                    )
+                }
+            )
+        }
     }
 }

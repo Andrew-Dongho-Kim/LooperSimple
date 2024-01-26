@@ -62,11 +62,12 @@ sealed class TimeStat {
 }
 
 fun LoopBase.timeStatAsFlow() = flow {
-    val now = LocalTime.now()
     val startTime = loopStart.toLocalTime()
     val endTime = loopEnd.toLocalTime()
 
     while (currentCoroutineContext().isActive) {
+        val now = LocalTime.now()
+
         when {
             !isActiveDay() -> none()
             now.isAfter(endTime) -> after(title = title)

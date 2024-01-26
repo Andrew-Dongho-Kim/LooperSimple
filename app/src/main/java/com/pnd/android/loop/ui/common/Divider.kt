@@ -38,9 +38,9 @@ fun VerticalDivider(
 @Composable
 fun DashedDivider(
     modifier: Modifier = Modifier,
-    dashWidth: Dp,
-    dashHeight: Dp,
-    gapWidth: Dp,
+    dashWidth: Dp = 0.5.dp,
+    dashHeight: Dp = 0.5.dp,
+    gapWidth: Dp = 0.5.dp,
     color: Color,
 ) {
     Canvas(modifier) {
