@@ -299,7 +299,7 @@ fun LoopCardBody(
                     timeStat = timeStat,
                 )
 
-                if (!timeStat.isPast()) {
+                if (loop.isMock || !timeStat.isPast()) {
                     LoopCardInterval(
                         modifier = Modifier.weight(1f),
                         interval = loop.interval,
@@ -314,7 +314,7 @@ fun LoopCardBody(
                 }
             }
         }
-        if (loop.enabled && timeStat.isPast()) {
+        if (loop.enabled && !loop.isMock && timeStat.isPast()) {
             LoopDoneOrNotButtons(
                 modifier = Modifier.height(36.dp),
                 onDone = { done ->
@@ -413,12 +413,12 @@ private fun LoopCardStartEndTime(
     timeStat: TimeStat
 ) {
     val timeText = if (
-        !loop.isMock &&
+        loop.isMock ||
         (timeStat.isPast() || timeStat.isNotToday())
     ) {
         annotatedString(loop.formatStartEndTime())
     } else {
-        annotatedString(timeStat.asString(LocalContext.current, true))
+        annotatedString(timeStat.asString(LocalContext.current, false))
     }
 
     Text(

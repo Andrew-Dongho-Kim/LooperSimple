@@ -56,7 +56,15 @@ interface LoopWithDoneDao {
                 "ON loop.id = loop_done.loopId AND loop_done.date =:date " +
                 "ORDER BY loop.loopStart ASC, loop.loopEnd ASC, loop.title ASC"
     )
-    fun allLoops(date: Long): Flow<List<LoopWithDone>>
+    fun flowAllLoops(date: Long): Flow<List<LoopWithDone>>
+
+    @Query(
+        "SELECT loop.id, loop.color, loop.title, loop.created, loop.loopStart, loop.loopEnd, loop.loopActiveDays, loop.interval, loop.enabled, loop_done.date, loop_done.done " +
+                "FROM loop LEFT JOIN loop_done " +
+                "ON loop.id = loop_done.loopId AND loop_done.date =:date " +
+                "ORDER BY loop.loopStart ASC, loop.loopEnd ASC, loop.title ASC"
+    )
+    suspend fun allLoops(date:Long):List<LoopWithDone>
 }
 
 val LoopBase.doneState get() = (this as? LoopWithDone)?.done

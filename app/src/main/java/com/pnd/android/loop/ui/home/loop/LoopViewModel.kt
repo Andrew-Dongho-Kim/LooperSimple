@@ -67,7 +67,7 @@ class LoopViewModel @Inject constructor(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val loopsWithDone =
-        localDate.flatMapLatest { currDate -> loopWithDoneDao.allLoops(currDate.toLocalTime()) }
+        localDate.flatMapLatest { currDate -> loopWithDoneDao.flowAllLoops(currDate.toLocalTime()) }
 
     val activeLoops = loops.map { loops -> loops.filter { loop -> loop.isActive() } }
 

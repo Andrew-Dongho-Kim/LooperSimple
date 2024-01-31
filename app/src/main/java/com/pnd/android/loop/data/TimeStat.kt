@@ -41,7 +41,7 @@ sealed class TimeStat {
         }
     }
 
-    class InProgress(val remain: LocalTime) : TimeStat() {
+    class InProgress(private val remain: LocalTime) : TimeStat() {
         override fun asString(context: Context, isAbb: Boolean): String {
             return if (isAbb) abb(context) else full(context)
         }
