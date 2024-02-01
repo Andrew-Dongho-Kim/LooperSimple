@@ -21,9 +21,9 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.data.LoopBase
+import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
-
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable

@@ -16,7 +16,7 @@ import androidx.compose.material.ContentAlpha
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowRightAlt
+import androidx.compose.material.icons.automirrored.filled.ArrowRightAlt
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TimePicker
@@ -98,7 +98,7 @@ private fun StartAndEndTimeSelector(
             onTimeSelected = onStartTimeSelected
         )
         Image(
-            imageVector = Icons.Filled.ArrowRightAlt,
+            imageVector = Icons.AutoMirrored.Filled.ArrowRightAlt,
             colorFilter = ColorFilter.tint(
                 color = AppColor.primary
             ),

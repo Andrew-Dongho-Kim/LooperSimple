@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.ui.common.VerticalDashedDivider
 import com.pnd.android.loop.ui.common.VerticalDivider
-import com.pnd.android.loop.ui.home.loop.LoopViewModel
+import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.WineRed
 import com.pnd.android.loop.ui.theme.onSurface

@@ -3,11 +3,10 @@ package com.pnd.android.loop.ui.detail
 import androidx.compose.material.ContentAlpha
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ArrowBackIos
+import androidx.compose.material.icons.automirrored.outlined.ArrowBackIos
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.navigation.compose.rememberNavController
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.ui.common.AppBar
@@ -34,7 +33,7 @@ fun DetailAppBar(
         },
         navigationIcon = {
             AppBarIcon(
-                imageVector = Icons.Outlined.ArrowBackIos,
+                imageVector = Icons.AutoMirrored.Outlined.ArrowBackIos,
                 color = AppColor.onSurface.copy(alpha = ContentAlpha.medium),
                 descriptionResId = R.string.about_app,
                 onClick = { }

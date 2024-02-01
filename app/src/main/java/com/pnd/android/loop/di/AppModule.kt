@@ -5,9 +5,11 @@ import android.app.NotificationManager
 import android.content.Context
 import android.media.AudioManager
 import androidx.room.Room
+import com.pnd.android.loop.alarm.AlarmController
 import com.pnd.android.loop.alarm.notification.NotificationHelper
 import com.pnd.android.loop.data.AppDatabase
 import com.pnd.android.loop.data.MIGRATION_1_2
+import com.pnd.android.loop.ui.home.loop.viewmodel.LoopRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -47,6 +49,17 @@ class AppModule {
         nm: NotificationManager
     ): NotificationHelper {
         return NotificationHelper(context, nm)
+    }
+
+    @Provides
+    fun provideLoopRepository(
+        appDb: AppDatabase,
+        alarmController: AlarmController,
+    ): LoopRepository {
+        return LoopRepository(
+            appDb = appDb,
+            alarmController = alarmController
+        )
     }
 
 }

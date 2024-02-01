@@ -95,24 +95,31 @@ fun LocalDate.formatYearMonthDateDays(): String {
 }
 
 @Composable
-fun Long.formatHourMinute(withAmPm: Boolean = true): String {
-    return toLocalTime().formatHourMinute(withAmPm)
+fun Long.formatHourMinute(
+    context: Context = LocalContext.current,
+    withAmPm: Boolean = true
+): String {
+    return toLocalTime().formatHourMinute(
+        context = context,
+        withAmPm = withAmPm
+    )
 }
 
 @Composable
-fun LocalTime.formatHourMinute(withAmPm: Boolean = true): String {
+fun LocalTime.formatHourMinute(
+    context: Context = LocalContext.current,
+    withAmPm: Boolean = true
+): String {
     val resultHour = if (withAmPm) (hour % 12).run { if (this == 0) 12 else this } else hour
 
-    return stringResource(
-        id = if (withAmPm) {
+    return context.getString(
+        if (withAmPm) {
             if (hour < 12) R.string.format_am_hour_minute else R.string.format_pm_hour_minute
         } else {
             R.string.format_hour_minute_24
         },
-        formatArgs = arrayOf(
-            resultHour,
-            minute
-        )
+        resultHour,
+        minute
     )
 }
 
@@ -163,8 +170,18 @@ fun LocalDate.toLocalTime(zoneId: ZoneId = ZoneId.systemDefault()) =
 
 
 @Composable
-fun LoopBase.formatStartEndTime() =
-    "${loopStart.formatHourMinute(false)} ~ ${loopEnd.formatHourMinute(false)}"
+fun LoopBase.formatStartEndTime(context: Context = LocalContext.current) =
+    "${
+        loopStart.formatHourMinute(
+            context = context,
+            withAmPm = false
+        )
+    } ~ ${
+        loopEnd.formatHourMinute(
+            context = context,
+            withAmPm = false
+        )
+    }"
 
 fun LoopBase.isPast(localDateTime: LocalDateTime = LocalDateTime.now()): Boolean {
     val localTime = localDateTime.toLocalTime()

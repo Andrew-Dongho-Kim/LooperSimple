@@ -13,7 +13,7 @@ import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.ui.active.ActivePage
 import com.pnd.android.loop.ui.detail.DetailPage
 import com.pnd.android.loop.ui.home.Home
-import com.pnd.android.loop.ui.home.loop.LoopViewModel
+import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
 
 sealed class Screen(val route: String) {
 

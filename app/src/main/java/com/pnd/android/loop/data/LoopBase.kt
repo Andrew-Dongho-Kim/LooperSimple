@@ -160,12 +160,12 @@ fun Map<String, Any?>.asLoop(): LoopBase {
     return LoopImpl(
         id = getOrDefault(EXTRA_ID, 0) as Int,
         title = getOrDefault(EXTRA_TITLE, DEFAULT_TITLE) as String,
-        color = getOrDefault(EXTRA_COLOR, DEFAULT_COLOR) as Int,
-        created = getOrDefault(EXTRA_LOOP_CREATED, defaultCreated) as Long,
-        loopStart = getOrDefault(EXTRA_LOOP_START, defaultLoopStart) as Long,
-        loopEnd = getOrDefault(EXTRA_LOOP_END, defaultLoopEnd) as Long,
-        loopActiveDays = getOrDefault(EXTRA_LOOP_ACTIVE_DAYS, DEFAULT_ACTIVE_DAYS) as Int,
-        interval = getOrDefault(EXTRA_LOOP_INTERVAL, DEFAULT_INTERVAL) as Long,
+        color = (getOrDefault(EXTRA_COLOR, DEFAULT_COLOR) as Number).toInt(),
+        created = (getOrDefault(EXTRA_LOOP_CREATED, defaultCreated) as Number).toLong(),
+        loopStart = (getOrDefault(EXTRA_LOOP_START, defaultLoopStart) as Number).toLong(),
+        loopEnd = (getOrDefault(EXTRA_LOOP_END, defaultLoopEnd) as Number).toLong(),
+        loopActiveDays = (getOrDefault(EXTRA_LOOP_ACTIVE_DAYS, DEFAULT_ACTIVE_DAYS) as Number).toInt(),
+        interval = (getOrDefault(EXTRA_LOOP_INTERVAL, DEFAULT_INTERVAL) as Number).toLong(),
         enabled = getOrDefault(EXTRA_LOOP_ENABLED, DEFAULT_ENABLED) as Boolean,
         isMock = getOrDefault(EXTRA_LOOP_IS_MOCK, DEFAULT_IS_MOCK) as Boolean,
     )

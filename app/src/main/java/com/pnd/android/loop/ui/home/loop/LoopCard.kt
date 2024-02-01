@@ -33,7 +33,6 @@ import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Done
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -64,6 +63,7 @@ import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.data.NO_REPEAT
 import com.pnd.android.loop.data.TimeStat
 import com.pnd.android.loop.data.timeStatAsFlow
+import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.shape.CircularPolygonShape
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.onSurface
@@ -132,22 +132,6 @@ fun LoopCard(
             )
         }
     }
-}
-
-@Composable
-private fun LoopCardTag(
-    modifier: Modifier = Modifier
-) {
-    Image(
-        modifier = modifier,
-        imageVector = Icons.Filled.Refresh,
-        colorFilter = ColorFilter.tint(
-            color = AppColor.onSurface.copy(
-                alpha = ContentAlpha.disabled
-            )
-        ),
-        contentDescription = ""
-    )
 }
 
 @Composable

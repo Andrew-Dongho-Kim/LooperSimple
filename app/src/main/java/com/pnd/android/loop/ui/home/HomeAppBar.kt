@@ -9,13 +9,12 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.pnd.android.loop.R
 import com.pnd.android.loop.ui.common.AppBar
 import com.pnd.android.loop.ui.common.AppBarIcon
-import com.pnd.android.loop.ui.home.loop.LoopViewModel
+import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.onSurface
@@ -28,8 +27,8 @@ fun HomeAppBar(
     modifier: Modifier = Modifier,
     loopViewModel: LoopViewModel,
 ) {
-    val totalLoops = loopViewModel.total.observeAsState()
-    val countInProgress = loopViewModel.countInActive.observeAsState()
+    val totalLoops = loopViewModel.total.collectAsState(initial = 0)
+    val countInProgress = loopViewModel.countInActive.collectAsState(initial = 0)
     AppBar(
         modifier = modifier,
         title = {
@@ -42,10 +41,10 @@ fun HomeAppBar(
 
                 Text(
                     text = annotatedString(
-                        "#${countInProgress.value ?: 0}/${
+                        "#${countInProgress.value}/${
                             stringResource(
                                 R.string.loops,
-                                totalLoops.value ?: 0
+                                totalLoops.value
                             )
                         }"
                     ),

@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Icon
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -17,7 +16,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.ui.theme.AppColor
-import com.pnd.android.loop.ui.theme.elevatedSurface
 import com.pnd.android.loop.ui.theme.onSurface
 
 
@@ -28,13 +26,6 @@ fun AppBar(
     title: @Composable RowScope.() -> Unit,
     actions: @Composable RowScope.() -> Unit = {}
 ) {
-    // This bar is translucent but elevation overlays are not applied to translucent colors.
-    // Instead we manually calculate the elevated surface color from the opaque color,
-    // then apply our alpha.
-    //
-    // We set the background on the Column rather than the TopAppBar,
-    // so that the background is drawn behind any padding set on the app bar (i.e. status bar).
-    val backgroundColor = MaterialTheme.colors.elevatedSurface(3.dp)
     Column(
         modifier = modifier,
     ) {

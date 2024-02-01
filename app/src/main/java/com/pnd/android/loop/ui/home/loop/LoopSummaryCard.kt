@@ -37,6 +37,7 @@ import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.data.LoopWithDone
 import com.pnd.android.loop.ui.common.isLargeScreen
+import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.shape.CutShape
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.RoundShapes
@@ -257,7 +258,11 @@ private fun SummaryItemStartAndEndTime(
 ) {
     Text(
         modifier = modifier,
-        text = "(${loopStart.formatHourMinute(true)} ~ ${loopEnd.formatHourMinute(true)})",
+        text = "(${loopStart.formatHourMinute(withAmPm = true)} ~ ${
+            loopEnd.formatHourMinute(
+                withAmPm = true
+            )
+        })",
         style = MaterialTheme.typography.body2.copy(
             color = AppColor.onSurface.copy(
                 alpha = ContentAlpha.disabled

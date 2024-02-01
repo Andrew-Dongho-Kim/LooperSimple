@@ -1,26 +1,23 @@
-package com.pnd.android.loop.ui.home.loop
+package com.pnd.android.loop.ui.home.loop.viewmodel
 
+import android.app.Application
 import androidx.compose.runtime.Stable
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.map
-import com.pnd.android.loop.alarm.AlarmController
+import com.pnd.android.loop.appwidget.enqueueUpdateWidget
 import com.pnd.android.loop.common.log
-import com.pnd.android.loop.data.AppDatabase
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.LoopVo
 import com.pnd.android.loop.util.isActive
 import com.pnd.android.loop.util.isActiveDay
-import com.pnd.android.loop.util.toLocalTime
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -33,8 +30,8 @@ import javax.inject.Inject
 @Stable
 @HiltViewModel
 class LoopViewModel @Inject constructor(
-    appDb: AppDatabase,
-    private val alarmController: AlarmController,
+    private val application: Application,
+    private val loopRepository: LoopRepository,
 ) : ViewModel() {
     private val logger = log("LoopViewModel")
 
@@ -42,20 +39,9 @@ class LoopViewModel @Inject constructor(
         logger.e { "coroutine exception is passed: $throwable" }
     }
     private val coroutineScope = CoroutineScope(SupervisorJob() + coroutineExceptionHandler)
-    private val loopDao = appDb.loopDao()
-    private val loopDonDao = appDb.loopDoneDao()
-    private val loopWithDoneDao = appDb.loopWithDoneDao()
 
-    val localDate = flow {
-        while (currentCoroutineContext().isActive) {
-            val now = LocalDateTime.now()
-            emit(now.toLocalDate())
 
-            val delayInMs = now.toLocalTime().until(LocalTime.MAX, ChronoUnit.MILLIS)
-            delay(delayInMs)
-        }
-    }
-
+    val localDate = loopRepository.localDate
     val localDateTime = flow {
         while (currentCoroutineContext().isActive) {
             emit(LocalDateTime.now())
@@ -63,33 +49,22 @@ class LoopViewModel @Inject constructor(
         }
     }
 
-    val loops: LiveData<List<LoopVo>> = loopDao.allLoopsLiveData()
+    val loopsWithDone = loopRepository.loopsWithDone
+    val countInActive = loopRepository.countInActive
+    val total = loopRepository.total
 
-    @OptIn(ExperimentalCoroutinesApi::class)
-    val loopsWithDone =
-        localDate.flatMapLatest { currDate -> loopWithDoneDao.flowAllLoops(currDate.toLocalTime()) }
-
-    val activeLoops = loops.map { loops -> loops.filter { loop -> loop.isActive() } }
-
-    val countInActive = activeLoops.map { it.size }
-    val total = loops.map { loops -> loops.filter { loop -> loop.isActiveDay() }.size }
 
     fun addOrUpdateLoop(vararg loops: LoopVo) {
         coroutineScope.launch {
-            loopDao.addOrUpdate(*loops).forEachIndexed { index, id ->
-                val loop = loops[index].copy(id = id.toInt())
-                logger.d { "$loop is added or updated" }
-
-                if (loop.enabled) alarmController.reserveAlarm(loop)
-                else alarmController.cancelAlarm(loop)
-            }
+            loopRepository.addOrUpdateLoop(*loops)
+            enqueueUpdateWidget(application)
         }
     }
 
     fun removeLoop(loop: LoopBase) {
         coroutineScope.launch {
-            alarmController.cancelAlarm(loop)
-            loopDao.remove(loop.id)
+            loopRepository.removeLoop(loop)
+            enqueueUpdateWidget(application)
         }
     }
 
@@ -99,13 +74,17 @@ class LoopViewModel @Inject constructor(
         @LoopDoneVo.DoneState doneState: Int
     ) {
         coroutineScope.launch {
-            loopDonDao.addOrUpdate(
+            loopRepository.doneLoop(
                 loop = loop,
                 localDate = localDate,
-                doneState = doneState
+                doneState = doneState,
             )
+            enqueueUpdateWidget(application)
         }
     }
 
-    fun syncAlarms() = alarmController.syncAlarms()
+    fun syncAlarms() {
+        loopRepository.syncAlarms()
+        enqueueUpdateWidget(application)
+    }
 }

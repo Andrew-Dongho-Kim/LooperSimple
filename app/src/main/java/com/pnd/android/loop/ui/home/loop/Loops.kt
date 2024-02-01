@@ -28,6 +28,7 @@ import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.doneState
 import com.pnd.android.loop.ui.home.loop.input.UserInputState
+import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.background
 import com.pnd.android.loop.ui.theme.onSurface

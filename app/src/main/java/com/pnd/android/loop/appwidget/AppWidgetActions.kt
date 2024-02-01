@@ -7,15 +7,19 @@ import androidx.glance.appwidget.action.ActionCallback
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 
+fun enqueueUpdateWidget(context: Context) {
+    val request = OneTimeWorkRequestBuilder<AppWidgetUpdateWorker>()
+        .build()
+
+    WorkManager.getInstance(context).enqueue(request)
+}
+
 class AppWidgetRefreshAction : ActionCallback {
     override suspend fun onAction(
         context: Context,
         glanceId: GlanceId,
         parameters: ActionParameters
     ) {
-        val request = OneTimeWorkRequestBuilder<AppWidgetUpdateWorker>()
-            .build()
-
-        WorkManager.getInstance(context).enqueue(request)
+        enqueueUpdateWidget(context)
     }
 }

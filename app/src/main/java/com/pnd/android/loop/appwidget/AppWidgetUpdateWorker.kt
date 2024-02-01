@@ -45,21 +45,24 @@ class AppWidgetUpdateWorker @AssistedInject constructor(
         context: Context,
         loops: List<LoopBase>
     ) {
+        val jsonArray = JSONArray()
+        loops.forEach { loop ->
+            val map = mutableMapOf<String, Any?>()
+            loop.putTo(map)
+
+            jsonArray.put(JSONObject(map))
+        }
+        logger.d { "updateWidget:$jsonArray" }
+
+        val widget = AppWidget()
         GlanceAppWidgetManager(context).getGlanceIds(AppWidget::class.java).forEach { glanceId ->
             updateAppWidgetState(
                 context = context,
                 glanceId = glanceId
             ) { prefs ->
-
-                val jsonArray = JSONArray()
-                loops.forEach { loop ->
-                    val map = mutableMapOf<String, Any?>()
-                    loop.putTo(map)
-
-                    jsonArray.put(JSONObject(map))
-                }
-                prefs[KEY_LOOPS_JSON] = "$jsonArray"
-                logger.d { "updateWidget:$jsonArray" }
+                prefs[KEY_LOOPS_JSON] = "{ \"list\": $jsonArray }"
+                widget.update(context, glanceId)
+                logger.d { "updateWidget[$glanceId]" }
             }
         }
     }

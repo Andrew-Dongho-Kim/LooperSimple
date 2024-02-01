@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.asLoopVo
-import com.pnd.android.loop.ui.home.loop.LoopViewModel
+import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.home.loop.Loops
 import com.pnd.android.loop.ui.home.loop.input.UserInput
 import com.pnd.android.loop.ui.home.loop.input.rememberUserInputState
