@@ -8,7 +8,7 @@ import android.content.Intent
 import android.os.SystemClock
 import androidx.annotation.VisibleForTesting
 import com.pnd.android.loop.alarm.notification.NotificationHelper
-import com.pnd.android.loop.appwidget.enqueueUpdateWidget
+import com.pnd.android.loop.appwidget.AppWidgetUpdateWorker
 import com.pnd.android.loop.common.log
 import com.pnd.android.loop.data.AppDatabase
 import com.pnd.android.loop.data.Day
@@ -169,7 +169,7 @@ class AlarmController @Inject constructor(
                 notificationHelper.notify(loop)
             }
 
-            enqueueUpdateWidget(context)
+            AppWidgetUpdateWorker.updateWidget(context)
             logger.d {
                 """ -->
                 |Received alarm id:${loop.id} 

@@ -26,7 +26,9 @@ class AppModule {
         context,
         AppDatabase::class.java,
         "app_db"
-    ).addMigrations(MIGRATION_1_2).build()
+    ).addMigrations(MIGRATION_1_2)
+        .enableMultiInstanceInvalidation()
+        .build()
 
     @Provides
     fun provideAudioManager(@ApplicationContext context: Context): AudioManager {

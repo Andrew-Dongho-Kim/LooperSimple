@@ -8,12 +8,17 @@ import androidx.appcompat.content.res.AppCompatResources
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.glance.ColorFilter
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.Image
 import androidx.glance.ImageProvider
 import androidx.glance.LocalContext
+import androidx.glance.action.actionParametersOf
+import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.SizeMode
@@ -32,15 +37,19 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.pnd.android.loop.MainActivity
 import com.pnd.android.loop.R
 import com.pnd.android.loop.common.Logger
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.asLoop
 import com.pnd.android.loop.ui.theme.AppColor
+import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.ui.theme.surface
 import com.pnd.android.loop.util.formatHourMinute
 import com.pnd.android.loop.util.isPast
+import com.pnd.android.loop.util.toMs
+import java.time.LocalTime
 
 private val logger = Logger("AppWidget")
 
@@ -72,6 +81,9 @@ class AppWidget : GlanceAppWidget() {
             logger.e { "Parse failed:$jsonLoops, exception:$e" }
             AppWidgetData.EMPTY
         }
+
+        val revision = currentState(KEY_REVISION)
+        logger.d { "AppWidget updated revision:$revision" }
         if (jsonLoops.isNullOrEmpty()) {
             RefreshLayout()
         } else {
@@ -103,25 +115,31 @@ class AppWidget : GlanceAppWidget() {
         loops: List<LoopBase>
     ) {
         if (loops.isEmpty()) {
-            Text(
-                modifier = modifier,
-                text = stringResourceGlide(resId = R.string.desc_no_loops)
-            )
+            Box(
+                modifier = modifier
+                    .fillMaxSize()
+                    .background(AppColor.surface.copy(alpha = 0.7f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(text = stringResourceGlide(resId = R.string.desc_no_loops))
+            }
+
         } else {
             val loop = pickOneLoop(loops)
             Column(
                 modifier = modifier
                     .fillMaxSize()
-                    .background(AppColor.surface),
-
-                ) {
+                    .background(AppColor.surface.copy(alpha = 0.7f))
+                    .clickable(actionStartActivity<MainActivity>()),
+            ) {
                 Text(
                     modifier = GlanceModifier.padding(
                         top = 12.dp,
                         start = 4.dp,
                         end = 4.dp
                     ),
-                    text = loop.title
+                    text = loop.toStartOrEndTime(),
+                    style = TextStyle(color = ColorProvider(AppColor.primary.copy(alpha = 0.8f)))
                 )
                 Text(
                     modifier = GlanceModifier.padding(
@@ -129,8 +147,11 @@ class AppWidget : GlanceAppWidget() {
                         start = 4.dp,
                         end = 4.dp
                     ),
-                    text = " ~ ${loop.loopEnd.formatHourMinute(context = LocalContext.current)}",
-                    style = TextStyle(color = ColorProvider(AppColor.primary))
+                    text = loop.title,
+                    style = TextStyle(
+                        color = ColorProvider(AppColor.onSurface.copy(alpha = 0.8f)),
+                        fontSize = 14.sp
+                    )
                 )
 
                 if (loop.isPast()) {
@@ -139,13 +160,26 @@ class AppWidget : GlanceAppWidget() {
                         verticalAlignment = Alignment.Vertical.CenterVertically
                     ) {
                         Image(
-                            modifier = GlanceModifier.padding(start = 4.dp),
+                            modifier = GlanceModifier.padding(start = 4.dp)
+                                .clickable(
+                                    actionRunCallback<AppWidgetDoneAction>(
+                                        parameters = actionParametersOf(ACTION_PARAMS_LOOP_ID to loop.id)
+                                    )
+                                ),
                             provider = ImageProvider(vectorToBitmap(resId = R.drawable.done)),
+                            colorFilter = ColorFilter.tint(ColorProvider(AppColor.primary.copy(alpha = 0.8f))),
                             contentDescription = ""
                         )
+
                         Image(
-                            modifier = GlanceModifier.padding(start = 12.dp),
+                            modifier = GlanceModifier.padding(start = 12.dp)
+                                .clickable(
+                                    actionRunCallback<AppWidgetSkipAction>(
+                                        parameters = actionParametersOf(ACTION_PARAMS_LOOP_ID to loop.id)
+                                    )
+                                ),
                             provider = ImageProvider(vectorToBitmap(resId = R.drawable.skip)),
+                            colorFilter = ColorFilter.tint(ColorProvider(AppColor.onSurface.copy(alpha = 0.8f))),
                             contentDescription = ""
                         )
                     }
@@ -154,8 +188,23 @@ class AppWidget : GlanceAppWidget() {
         }
     }
 
+
     private fun pickOneLoop(loops: List<LoopBase>): LoopBase {
-        return loops.minBy { it.loopEnd }
+        val now = LocalTime.now().toMs()
+        val endedLoop = loops.minBy { it.loopEnd }
+        return if (endedLoop.loopEnd <= now) endedLoop else loops.minBy { it.loopStart }
+    }
+
+    @Composable
+    private fun LoopBase.toStartOrEndTime(): String {
+        val now = LocalTime.now().toMs()
+
+        return if (now < loopStart) {
+            "${loopStart.formatHourMinute(context = LocalContext.current)} ~"
+        } else {
+            " ~ ${loopEnd.formatHourMinute(context = LocalContext.current)}"
+        }
+
     }
 
     @Composable
@@ -180,7 +229,9 @@ class AppWidget : GlanceAppWidget() {
         lateinit var list: List<Map<String, Any>>
 
         companion object {
-            val EMPTY = AppWidgetData().apply { list = emptyList() }
+            val EMPTY = AppWidgetData().apply {
+                list = emptyList()
+            }
         }
     }
 
@@ -190,5 +241,6 @@ class AppWidget : GlanceAppWidget() {
         private val SIZE_100_200 = DpSize(100.dp, 200.dp)
 
         val KEY_LOOPS_JSON = stringPreferencesKey("key_loops_json")
+        val KEY_REVISION = longPreferencesKey("key_revision")
     }
 }

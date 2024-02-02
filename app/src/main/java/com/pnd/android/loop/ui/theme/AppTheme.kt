@@ -13,7 +13,7 @@ private val darkColorPalette = darkColors(
     onPrimary = Color(0xfffafafa),
     secondary = Yellow600,
     onSecondary = Color.Black,
-    onSurface = Color(0xfffafafa),
+    onSurface = AppColor.onSurfaceDark,
     onBackground = Color(0xfffafafa),
     error = Red300,
     onError = Color.Black
@@ -30,7 +30,7 @@ private val lightColorPalette = lightColors(
 
     onPrimary = Color.White,
     onSecondary = Color.Black,
-    onSurface = Black99,
+    onSurface = AppColor.onSurfaceLight,
     onBackground = Black99,
     onError = Color.White
 )

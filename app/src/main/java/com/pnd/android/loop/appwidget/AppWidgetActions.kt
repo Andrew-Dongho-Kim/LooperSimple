@@ -3,16 +3,12 @@ package com.pnd.android.loop.appwidget
 import android.content.Context
 import androidx.glance.GlanceId
 import androidx.glance.action.ActionParameters
+import androidx.glance.action.actionParametersOf
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 
-fun enqueueUpdateWidget(context: Context) {
-    val request = OneTimeWorkRequestBuilder<AppWidgetUpdateWorker>()
-        .build()
-
-    WorkManager.getInstance(context).enqueue(request)
-}
+val ACTION_PARAMS_LOOP_ID = ActionParameters.Key<Int>("params_loop_id")
 
 class AppWidgetRefreshAction : ActionCallback {
     override suspend fun onAction(
@@ -20,6 +16,32 @@ class AppWidgetRefreshAction : ActionCallback {
         glanceId: GlanceId,
         parameters: ActionParameters
     ) {
-        enqueueUpdateWidget(context)
+        AppWidgetUpdateWorker.updateWidget(context)
+    }
+}
+
+class AppWidgetDoneAction: ActionCallback {
+    override suspend fun onAction(
+        context: Context,
+        glanceId: GlanceId,
+        parameters: ActionParameters
+    ) {
+        AppWidgetUpdateWorker.doneLoop(
+            context = context,
+            loopId = parameters[ACTION_PARAMS_LOOP_ID] ?: -1
+        )
+    }
+}
+
+class AppWidgetSkipAction:ActionCallback {
+    override suspend fun onAction(
+        context: Context,
+        glanceId: GlanceId,
+        parameters: ActionParameters
+    ) {
+        AppWidgetUpdateWorker.skipLoop(
+            context = context,
+            loopId = parameters[ACTION_PARAMS_LOOP_ID] ?: -1
+        )
     }
 }

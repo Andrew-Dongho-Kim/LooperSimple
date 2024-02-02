@@ -9,6 +9,6 @@ class AppWidgetReceiver : GlanceAppWidgetReceiver() {
         get() = AppWidget()
 
     override fun onEnabled(context: Context) {
-        enqueueUpdateWidget(context)
+        AppWidgetUpdateWorker.updateWidget(context)
     }
 }

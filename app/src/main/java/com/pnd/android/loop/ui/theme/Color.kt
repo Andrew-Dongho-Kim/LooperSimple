@@ -8,9 +8,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.unit.Dp
 
-
-
-
 val Blue10 = Color(0xFF000F5E)
 val Blue20 = Color(0xFF001E92)
 val Blue30 = Color(0xFF002ECC)
@@ -54,7 +51,6 @@ val BlueGrey90 = Color(0xFFE2E1EC)
 
 val White99 = Color(0xfffafafa)
 val Black99 = Color(0xff010101)
-
 
 
 val Yellow400 = Color(0xFFF6E547)
@@ -114,11 +110,15 @@ fun Colors.elevatedSurface(elevation: Dp): Color {
 }
 
 object AppColor
+
 val AppColor.primary
     @Composable get() = MaterialTheme.colors.primary
 val AppColor.background
     @Composable get() = MaterialTheme.colors.background //onSurface.copy(alpha = 0.02f)
 val AppColor.surface
     @Composable get() = MaterialTheme.colors.surface
+
+val AppColor.onSurfaceLight get() = Black99
+val AppColor.onSurfaceDark get() = White99
 val AppColor.onSurface
     @Composable get() = MaterialTheme.colors.onSurface

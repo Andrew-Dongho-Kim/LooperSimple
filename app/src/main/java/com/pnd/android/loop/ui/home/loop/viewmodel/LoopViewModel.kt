@@ -2,16 +2,12 @@ package com.pnd.android.loop.ui.home.loop.viewmodel
 
 import android.app.Application
 import androidx.compose.runtime.Stable
-import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.map
-import com.pnd.android.loop.appwidget.enqueueUpdateWidget
+import com.pnd.android.loop.appwidget.AppWidgetUpdateWorker
 import com.pnd.android.loop.common.log
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.LoopVo
-import com.pnd.android.loop.util.isActive
-import com.pnd.android.loop.util.isActiveDay
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
@@ -23,8 +19,6 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.LocalTime
-import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 
 @Stable
@@ -57,14 +51,14 @@ class LoopViewModel @Inject constructor(
     fun addOrUpdateLoop(vararg loops: LoopVo) {
         coroutineScope.launch {
             loopRepository.addOrUpdateLoop(*loops)
-            enqueueUpdateWidget(application)
+            AppWidgetUpdateWorker.updateWidget(application)
         }
     }
 
     fun removeLoop(loop: LoopBase) {
         coroutineScope.launch {
             loopRepository.removeLoop(loop)
-            enqueueUpdateWidget(application)
+            AppWidgetUpdateWorker.updateWidget(application)
         }
     }
 
@@ -79,12 +73,12 @@ class LoopViewModel @Inject constructor(
                 localDate = localDate,
                 doneState = doneState,
             )
-            enqueueUpdateWidget(application)
+            AppWidgetUpdateWorker.updateWidget(application)
         }
     }
 
     fun syncAlarms() {
         loopRepository.syncAlarms()
-        enqueueUpdateWidget(application)
+        AppWidgetUpdateWorker.updateWidget(application)
     }
 }
