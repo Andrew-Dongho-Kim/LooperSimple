@@ -1,6 +1,5 @@
 package com.pnd.android.loop.ui.home.loop
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -8,7 +7,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.Card
 import androidx.compose.material.ContentAlpha
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
@@ -25,7 +23,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
@@ -38,7 +35,6 @@ import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.data.LoopWithDone
 import com.pnd.android.loop.ui.common.isLargeScreen
 import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
-import com.pnd.android.loop.ui.shape.CutShape
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.onSurface
@@ -68,19 +64,9 @@ fun LoopSummaryCard(
         val doneList = loopGroup[DoneState.DONE] ?: emptyList()
         val skipList = loopGroup[DoneState.SKIP] ?: emptyList()
 
-        val hasDone = doneList.isNotEmpty()
-        val hasSkip = skipList.isNotEmpty()
         Summary(
             loops = doneList,
             title = stringResource(id = R.string.done),
-            shape = remember(hasSkip) {
-                CutShape(
-                    topLeft = 24.dp,
-                    topRight = 0.dp,
-                    bottomLeft = 0.dp,
-                    bottomRight = if (!hasSkip) 24.dp else 0.dp,
-                )
-            },
             icon = Icons.Filled.Done,
             iconColor = AppColor.primary,
             onNavigateToDetailPage = onNavigateToDetailPage,
@@ -88,17 +74,9 @@ fun LoopSummaryCard(
         )
 
         Summary(
-            modifier = Modifier.padding(top = 8.dp),
+            modifier = Modifier.padding(top = 12.dp),
             loops = skipList,
             title = stringResource(id = R.string.skip),
-            shape = remember(hasDone) {
-                CutShape(
-                    topLeft = if (!hasDone) 24.dp else 0.dp,
-                    topRight = 0.dp,
-                    bottomLeft = 0.dp,
-                    bottomRight = 24.dp,
-                )
-            },
             icon = Icons.Filled.Clear,
             iconColor = AppColor.onSurface,
             onNavigateToDetailPage = onNavigateToDetailPage,
@@ -113,7 +91,6 @@ private fun Summary(
     modifier: Modifier = Modifier,
     loops: List<LoopBase>,
     title: String,
-    shape: Shape,
     icon: ImageVector,
     iconColor: Color,
     onNavigateToDetailPage: (LoopBase) -> Unit,
@@ -121,42 +98,34 @@ private fun Summary(
 ) {
     if (loops.isEmpty()) return
 
-    Card(
-        modifier = modifier,
-        shape = shape,
-        border = BorderStroke(
-            width = 0.5.dp,
-            color = AppColor.onSurface.copy(alpha = ContentAlpha.disabled)
+    Column(
+        modifier = modifier.padding(
+            horizontal = 12.dp,
+            vertical = 8.dp
         )
     ) {
+        SummaryHeader(
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+            title = title,
+            itemCount = loops.size,
+            icon = icon,
+            iconColor = iconColor,
+        )
         Column(
-            modifier = Modifier.padding(
-                horizontal = 12.dp,
-                vertical = 8.dp
-            )
+            modifier = Modifier.padding(top = 4.dp)
         ) {
-            SummaryHeader(
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-                title = title,
-                itemCount = loops.size,
-                icon = icon,
-                iconColor = iconColor,
-            )
-            Column(
-                modifier = Modifier.padding(top = 4.dp)
-            ) {
-                loops.forEach { loop ->
-                    key(loop.id) {
-                        SummaryItem(
-                            loop = loop,
-                            onNavigateToDetailPage = onNavigateToDetailPage,
-                            onUndoDoneState = onUndoDoneState,
-                        )
-                    }
+            loops.forEach { loop ->
+                key(loop.id) {
+                    SummaryItem(
+                        loop = loop,
+                        onNavigateToDetailPage = onNavigateToDetailPage,
+                        onUndoDoneState = onUndoDoneState,
+                    )
                 }
             }
         }
     }
+
 }
 
 @Composable
@@ -173,7 +142,7 @@ private fun SummaryHeader(
     ) {
         Text(
             text = "($itemCount) $title",
-            style = MaterialTheme.typography.subtitle2.copy(
+            style = MaterialTheme.typography.subtitle1.copy(
                 color = AppColor.onSurface,
                 fontWeight = FontWeight.Bold
             )

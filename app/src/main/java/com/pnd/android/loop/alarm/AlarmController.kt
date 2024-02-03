@@ -32,15 +32,13 @@ import java.time.LocalDate
 import java.time.LocalTime
 import javax.inject.Inject
 
-private const val TAG = "AlarmController"
-
 
 class AlarmController @Inject constructor(
     @ApplicationContext private val context: Context,
     private val alarmManager: AlarmManager,
     appDb: AppDatabase
 ) {
-    private val logger = log(TAG)
+    private val logger = log("AlarmController")
 
     private val coroutineScope = CoroutineScope(SupervisorJob())
     private val loopDao = appDb.loopDao()
@@ -131,7 +129,7 @@ class AlarmController @Inject constructor(
     @AndroidEntryPoint
     class AlarmReceiver : BroadcastReceiver() {
 
-        private val logger = log(TAG)
+        private val logger = log("AlarmReceiver")
 
         @Inject
         lateinit var alarmController: AlarmController

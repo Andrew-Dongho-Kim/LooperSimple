@@ -1,7 +1,10 @@
 package com.pnd.android.loop.ui.common
 
 import android.view.View
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -40,37 +43,52 @@ fun ExpandableNativeAd(
     modifier: Modifier = Modifier,
     adId: String
 ) {
+    val adViewModel = viewModel<AdViewModel>()
     var isExpanded by rememberSaveable { mutableStateOf(false) }
-    Card(
-        modifier = modifier
-            .animateContentSize()
-            .clip(shape = RoundShapes.medium)
-            .clickable {
-                isExpanded = !isExpanded
-            }
-            .graphicsLayer {
-                this.alpha = alpha
-            },
-        border = BorderStroke(
-            width = 0.5.dp,
-            color = AppColor.onSurface.copy(alpha = 0.2f)
-        )
-    ) {
-        Column {
-            NativeAdContent(
-                adId = adId,
-                isExpanded = isExpanded,
-            )
 
-            ExpandableImage(
-                modifier = Modifier
-                    .padding(top = 8.dp)
-                    .fillMaxWidth()
-                    .height(24.dp),
-                isExpanded = isExpanded,
+    LaunchedEffect(key1 = adId) {
+        adViewModel.loadAd(adId)
+    }
+
+    AnimatedVisibility(
+        modifier = modifier,
+        visible = adViewModel.nativeAd != null,
+        enter = fadeIn() + slideInVertically()
+    ) {
+        Card(
+            modifier = Modifier
+                .animateContentSize()
+                .clip(shape = RoundShapes.medium)
+                .clickable {
+                    isExpanded = !isExpanded
+                }
+                .graphicsLayer {
+                    this.alpha = alpha
+                },
+            border = BorderStroke(
+                width = 0.5.dp,
+                color = AppColor.onSurface.copy(alpha = 0.2f)
             )
+        ) {
+            Column {
+                NativeAdContent(
+                    adViewModel = adViewModel,
+                    adId = adId,
+                    isExpanded = isExpanded,
+                )
+
+                ExpandableImage(
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                        .fillMaxWidth()
+                        .height(24.dp),
+                    isExpanded = isExpanded,
+                )
+            }
         }
     }
+
+
 }
 
 @Composable
@@ -96,14 +114,10 @@ private fun ExpandableImage(
 @Composable
 private fun NativeAdContent(
     modifier: Modifier = Modifier,
+    adViewModel: AdViewModel,
     adId: String,
     isExpanded: Boolean
 ) {
-    val adViewModel = viewModel<AdViewModel>()
-    LaunchedEffect(key1 = adId) {
-        adViewModel.loadAd(adId)
-    }
-
     AndroidViewBinding(
         modifier = modifier,
         factory = { inflater, parent, attachToParent ->
