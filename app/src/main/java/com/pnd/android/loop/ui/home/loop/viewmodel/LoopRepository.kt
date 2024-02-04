@@ -54,7 +54,7 @@ class LoopRepository @Inject constructor(
     }.map { loops ->
         loops.filter { loop ->
             loop.isActiveDay(LocalDate.now().minusDays(1)) &&
-            loop.doneState == LoopDoneVo.DoneState.NO_RESPONSE
+                    loop.doneState == LoopDoneVo.DoneState.NO_RESPONSE
         }
     }
 

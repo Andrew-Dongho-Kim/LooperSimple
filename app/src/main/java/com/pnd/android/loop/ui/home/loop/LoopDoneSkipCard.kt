@@ -276,6 +276,6 @@ private fun SummaryItemDoneStateButton(
                 alpha = ContentAlpha.medium
             )
         ),
-        contentDescription = ""
+        contentDescription = stringResource(R.string.restore)
     )
 }

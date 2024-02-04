@@ -10,16 +10,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.ContentAlpha
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -39,7 +35,6 @@ import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.error
 import com.pnd.android.loop.ui.theme.onSurface
-import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.util.annotatedString
 import java.time.LocalDate
 
@@ -69,8 +64,9 @@ fun LoopYesterdayCard(
         )
 
         if (isExpanded) {
-            loops.forEach { loop ->
+            loops.forEachIndexed { index, loop ->
                 LoopYesterdayItem(
+                    modifier = if (index == 0) Modifier.padding(top = 12.dp) else Modifier,
                     loop = loop,
                     onDone = { done ->
                         loopViewModel.doneLoop(
@@ -128,7 +124,7 @@ private fun LoopYesterdayHeader(
 }
 
 @Composable
-fun LoopYesterdayItem(
+private fun LoopYesterdayItem(
     modifier: Modifier = Modifier,
     loop: LoopBase,
     onDone: (Boolean) -> Unit,
@@ -162,39 +158,4 @@ private fun LoopTitle(
             color = AppColor.onSurface.copy(alpha = ContentAlpha.medium)
         )
     )
-}
-
-@Composable
-private fun LoopDoneOrSkip(
-    modifier: Modifier = Modifier,
-    onDone: (Boolean) -> Unit
-) {
-    Row(modifier = modifier) {
-        Image(
-            modifier = Modifier
-                .clickable { onDone(true) }
-                .fillMaxHeight()
-                .aspectRatio(1f)
-                .padding(8.dp),
-            imageVector = Icons.Filled.Done,
-            colorFilter = ColorFilter.tint(
-                AppColor.primary.copy(alpha = ContentAlpha.medium)
-            ),
-            contentDescription = stringResource(id = R.string.done)
-        )
-
-        Image(
-            modifier = Modifier
-                .padding(start = 4.dp)
-                .clickable { onDone(false) }
-                .fillMaxHeight()
-                .aspectRatio(1f)
-                .padding(8.dp),
-            imageVector = Icons.Filled.Close,
-            colorFilter = ColorFilter.tint(
-                AppColor.onSurface.copy(alpha = ContentAlpha.medium)
-            ),
-            contentDescription = stringResource(id = R.string.skip)
-        )
-    }
 }

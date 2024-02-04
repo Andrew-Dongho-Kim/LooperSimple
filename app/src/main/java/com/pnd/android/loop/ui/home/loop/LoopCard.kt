@@ -320,7 +320,7 @@ fun LoopCardBody(
 }
 
 @Composable
-private fun LoopDoneOrSkip(
+fun LoopDoneOrSkip(
     modifier: Modifier = Modifier,
     onDone: (done: Boolean) -> Unit,
 ) {
