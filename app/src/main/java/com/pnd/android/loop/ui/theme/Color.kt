@@ -113,6 +113,8 @@ object AppColor
 
 val AppColor.primary
     @Composable get() = MaterialTheme.colors.primary
+val AppColor.error
+    @Composable get() = MaterialTheme.colors.error
 val AppColor.background
     @Composable get() = MaterialTheme.colors.background //onSurface.copy(alpha = 0.02f)
 val AppColor.surface

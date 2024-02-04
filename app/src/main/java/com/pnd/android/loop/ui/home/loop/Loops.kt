@@ -41,6 +41,7 @@ fun Loops(
     lazyListState: LazyListState,
     loopViewModel: LoopViewModel,
     onNavigateToDetailPage: (LoopBase) -> Unit,
+    onNavigateToHistoryPage: () -> Unit,
 ) {
     val sections by loopViewModel.observeSectionsAsState(inputState)
     val onEdit = remember { { loop: LoopBase -> inputState.edit(loop) } }
@@ -58,6 +59,7 @@ fun Loops(
                         section = section,
                         loopViewModel = loopViewModel,
                         onNavigateToDetailPage = onNavigateToDetailPage,
+                        onNavigateToHistoryPage = onNavigateToHistoryPage,
                         onEdit = onEdit,
                     )
                 }
@@ -90,7 +92,8 @@ fun EmptyLoops(
 private fun LoopViewModel.observeSectionsAsState(
     inputState: UserInputState,
 ): State<List<Section>> {
-    val loops by loopsWithDone.collectAsState(emptyList())
+    val loops by loopsWithDoneToday.collectAsState(emptyList())
+    val yesterdayLoops by loopsNoResponseYesterday.collectAsState(initial = emptyList())
 
     return if (loops.isEmpty()) {
         remember { mutableStateOf(emptyList()) }
@@ -104,6 +107,7 @@ private fun LoopViewModel.observeSectionsAsState(
 
         val sections = mutableListOf(
             rememberTodaySection(resultLoops, inputState),
+            rememberYesterdaySection(yesterdayLoops),
             rememberAdSection(),
             rememberDoneSection(resultLoops),
             rememberLaterSection(resultLoops)
@@ -114,16 +118,14 @@ private fun LoopViewModel.observeSectionsAsState(
 }
 
 @Composable
-private fun rememberAdSection() = remember {
-    Section.Ad()
-}
-
-@Composable
-private fun rememberDoneSection(loops: List<LoopBase>) = remember {
-    Section.Summary()
-}.apply {
-    items.value =
-        loops.filter { it.isActiveDay() && it.doneState != LoopDoneVo.DoneState.NO_RESPONSE }
+private fun rememberYesterdaySection(
+    loops: List<LoopBase>,
+): Section {
+    return rememberSaveable(saver = Section.Yesterday.Saver) {
+        Section.Yesterday()
+    }.apply {
+        items.value = loops
+    }
 }
 
 @Composable
@@ -145,6 +147,17 @@ private fun rememberTodaySection(
     }.apply {
         items.value = resultLoops
     }
+}
+
+@Composable
+private fun rememberAdSection() = remember { Section.Ad() }
+
+@Composable
+private fun rememberDoneSection(loops: List<LoopBase>) = remember {
+    Section.DoneSkip()
+}.apply {
+    items.value =
+        loops.filter { it.isActiveDay() && it.doneState != LoopDoneVo.DoneState.NO_RESPONSE }
 }
 
 @Composable

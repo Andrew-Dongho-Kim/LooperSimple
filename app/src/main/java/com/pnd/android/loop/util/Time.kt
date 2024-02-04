@@ -135,10 +135,6 @@ fun rememberDayColor(day: Int): Color {
     }
 }
 
-fun day(localDateTime: LocalDateTime = LocalDateTime.now()): @Day Int =
-    day(localDateTime.toLocalDate())
-
-
 fun day(localDate: LocalDate = LocalDate.now()): @Day Int = when (localDate.dayOfWeek) {
     DayOfWeek.SUNDAY -> SUNDAY
     DayOfWeek.MONDAY -> MONDAY
@@ -193,12 +189,12 @@ fun LoopBase.isPast(localDateTime: LocalDateTime = LocalDateTime.now()): Boolean
 
 fun LoopBase.isActive(localDateTime: LocalDateTime = LocalDateTime.now()): Boolean {
     return enabled &&
-            isActiveDay(localDateTime = localDateTime) &&
+            isActiveDay(localDate = localDateTime.toLocalDate()) &&
             isActiveTime(localDateTime = localDateTime)
 }
 
-fun LoopBase.isActiveDay(localDateTime: LocalDateTime = LocalDateTime.now()): Boolean {
-    return loopActiveDays.isOn(day(localDateTime))
+fun LoopBase.isActiveDay(localDate: LocalDate = LocalDate.now()): Boolean {
+    return loopActiveDays.isOn(day(localDate))
 }
 
 fun LoopBase.isActiveTime(localDateTime: LocalDateTime = LocalDateTime.now()): Boolean {

@@ -64,7 +64,7 @@ interface LoopWithDoneDao {
                 "ON loop.id = loop_done.loopId AND loop_done.date =:date " +
                 "ORDER BY loop.loopStart ASC, loop.loopEnd ASC, loop.title ASC"
     )
-    suspend fun allLoops(date:Long):List<LoopWithDone>
+    suspend fun allLoops(date: Long): List<LoopWithDone>
 }
 
 val LoopBase.doneState get() = (this as? LoopWithDone)?.done

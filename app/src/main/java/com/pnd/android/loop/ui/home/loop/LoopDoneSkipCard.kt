@@ -42,11 +42,12 @@ import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.util.formatHourMinute
 
 @Composable
-fun LoopSummaryCard(
+fun LoopDoneSkipCard(
     modifier: Modifier = Modifier,
     section: Section,
     loopViewModel: LoopViewModel,
     onNavigateToDetailPage: (LoopBase) -> Unit,
+    onNavigateToHistoryPage: () -> Unit,
 ) {
     val loops by section.items
     val loopGroup = loops.groupBy { (it as LoopWithDone).done }
@@ -70,6 +71,7 @@ fun LoopSummaryCard(
             icon = Icons.Filled.Done,
             iconColor = AppColor.primary,
             onNavigateToDetailPage = onNavigateToDetailPage,
+            onNavigateToHistoryPage = onNavigateToHistoryPage,
             onUndoDoneState = onUndoDoneState,
         )
 
@@ -80,6 +82,7 @@ fun LoopSummaryCard(
             icon = Icons.Filled.Clear,
             iconColor = AppColor.onSurface,
             onNavigateToDetailPage = onNavigateToDetailPage,
+            onNavigateToHistoryPage = onNavigateToHistoryPage,
             onUndoDoneState = onUndoDoneState,
         )
     }
@@ -94,6 +97,7 @@ private fun Summary(
     icon: ImageVector,
     iconColor: Color,
     onNavigateToDetailPage: (LoopBase) -> Unit,
+    onNavigateToHistoryPage: () -> Unit,
     onUndoDoneState: (loop: LoopBase) -> Unit,
 ) {
     if (loops.isEmpty()) return
@@ -110,6 +114,7 @@ private fun Summary(
             itemCount = loops.size,
             icon = icon,
             iconColor = iconColor,
+            onNavigateToHistoryPage = onNavigateToHistoryPage,
         )
         Column(
             modifier = Modifier.padding(top = 4.dp)
@@ -135,9 +140,19 @@ private fun SummaryHeader(
     itemCount: Int,
     icon: ImageVector,
     iconColor: Color,
+    onNavigateToHistoryPage: () -> Unit
 ) {
     Row(
-        modifier = modifier.padding(bottom = 8.dp),
+        modifier = modifier
+            .padding(bottom = 8.dp)
+            .border(
+                width = 0.5.dp,
+                color = AppColor.onSurface.copy(alpha = 0.1f),
+                shape = RoundShapes.medium
+            )
+            .clip(RoundShapes.medium)
+            .clickable(onClick = onNavigateToHistoryPage)
+            .padding(vertical = 6.dp, horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
@@ -168,7 +183,7 @@ private fun SummaryItem(
 ) {
     Row(
         modifier = modifier
-            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .padding(horizontal = 16.dp, vertical = 10.dp)
             .clickable { onNavigateToDetailPage(loop) },
         verticalAlignment = Alignment.CenterVertically,
 
@@ -210,9 +225,7 @@ private fun SummaryItemTitle(
         modifier = modifier,
         text = title,
         style = MaterialTheme.typography.body1.copy(
-            color = AppColor.onSurface.copy(
-                alpha = ContentAlpha.medium
-            ),
+            color = AppColor.onSurface,
         ),
         maxLines = 1,
         overflow = TextOverflow.Ellipsis

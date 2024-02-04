@@ -6,7 +6,9 @@ import com.pnd.android.loop.data.AppDatabase
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.LoopVo
+import com.pnd.android.loop.data.doneState
 import com.pnd.android.loop.util.isActive
+import com.pnd.android.loop.util.isActiveDay
 import com.pnd.android.loop.util.toLocalTime
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.currentCoroutineContext
@@ -42,12 +44,23 @@ class LoopRepository @Inject constructor(
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val loopsWithDone =
-        localDate.flatMapLatest { currDate -> loopWithDoneDao.flowAllLoops(currDate.toLocalTime()) }
+    val loopsWithDoneToday = localDate.flatMapLatest { currDate ->
+        loopWithDoneDao.flowAllLoops(currDate.toLocalTime())
+    }
 
-    val activeLoops = loopsWithDone.map { loops -> loops.filter { loop -> loop.isActive() } }
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val loopsNoResponseYesterday = localDate.flatMapLatest { currDate ->
+        loopWithDoneDao.flowAllLoops(currDate.minusDays(1).toLocalTime())
+    }.map { loops ->
+        loops.filter { loop ->
+            loop.isActiveDay(LocalDate.now().minusDays(1)) &&
+            loop.doneState == LoopDoneVo.DoneState.NO_RESPONSE
+        }
+    }
+
+    val activeLoops = loopsWithDoneToday.map { loops -> loops.filter { loop -> loop.isActive() } }
     val countInActive = activeLoops.map { it.size }
-    val total = loopsWithDone.map { it.size }
+    val total = loopsWithDoneToday.map { it.size }
 
     fun syncAlarms() = alarmController.syncAlarms()
 

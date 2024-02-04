@@ -26,10 +26,10 @@ import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.asLoopVo
-import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.home.loop.Loops
 import com.pnd.android.loop.ui.home.loop.input.UserInput
 import com.pnd.android.loop.ui.home.loop.input.rememberUserInputState
+import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.surface
 import com.pnd.android.loop.util.toMs
@@ -40,6 +40,7 @@ fun Home(
     modifier: Modifier = Modifier,
     loopViewModel: LoopViewModel,
     onNavigateToDetailPage: (LoopBase) -> Unit,
+    onNavigateToHistoryPage: () -> Unit,
 ) {
     val snackBarHostState = remember { SnackbarHostState() }
 
@@ -75,6 +76,7 @@ fun Home(
             snackBarHostState = snackBarHostState,
             loopViewModel = loopViewModel,
             onNavigateToDetailPage = onNavigateToDetailPage,
+            onNavigateToHistoryPage = onNavigateToHistoryPage,
         )
     }
 }
@@ -85,6 +87,7 @@ private fun HomeContent(
     snackBarHostState: SnackbarHostState,
     loopViewModel: LoopViewModel,
     onNavigateToDetailPage: (LoopBase) -> Unit,
+    onNavigateToHistoryPage: () -> Unit,
 ) {
 
     Column(modifier = modifier) {
@@ -97,6 +100,7 @@ private fun HomeContent(
             lazyListState = lazyListState,
             loopViewModel = loopViewModel,
             onNavigateToDetailPage = onNavigateToDetailPage,
+            onNavigateToHistoryPage = onNavigateToHistoryPage,
         )
 
         val context = LocalContext.current

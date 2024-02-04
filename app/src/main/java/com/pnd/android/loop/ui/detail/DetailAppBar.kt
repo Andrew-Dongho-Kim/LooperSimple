@@ -18,7 +18,8 @@ import com.pnd.android.loop.ui.theme.onSurface
 @Composable
 fun DetailAppBar(
     modifier: Modifier = Modifier,
-    loop: LoopBase
+    loop: LoopBase,
+    onNavigateUp: () -> Unit,
 ) {
     AppBar(
         modifier = modifier,
@@ -36,7 +37,7 @@ fun DetailAppBar(
                 imageVector = Icons.AutoMirrored.Outlined.ArrowBackIos,
                 color = AppColor.onSurface.copy(alpha = ContentAlpha.medium),
                 descriptionResId = R.string.about_app,
-                onClick = { }
+                onClick = onNavigateUp
             )
         }
 

@@ -12,6 +12,7 @@ import androidx.navigation.navArgument
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.ui.active.ActivePage
 import com.pnd.android.loop.ui.detail.DetailPage
+import com.pnd.android.loop.ui.history.HistoryPage
 import com.pnd.android.loop.ui.home.Home
 import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
 
@@ -31,6 +32,8 @@ sealed class Screen(val route: String) {
             navController.navigate("detail/${loop.id}")
         }
     }
+
+    data object HistoryPage : Screen("history")
 
     companion object {
         const val ARGS_ID = "id"
@@ -60,6 +63,9 @@ fun AppNavHost(
                         navController = navController,
                         loop = loop,
                     )
+                },
+                onNavigateToHistoryPage = {
+                    navController.navigate(Screen.HistoryPage)
                 }
             )
         }
@@ -73,7 +79,15 @@ fun AppNavHost(
             route = Screen.DetailPage.route,
             arguments = Screen.DetailPage.arguments,
         ) {
-            DetailPage()
+            DetailPage(
+                onNavigateUp = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Screen.HistoryPage.route
+        ) {
+            HistoryPage()
         }
     }
 

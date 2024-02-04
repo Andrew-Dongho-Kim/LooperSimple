@@ -61,17 +61,10 @@ fun LazyListScope.section(
     section: Section,
     loopViewModel: LoopViewModel,
     onNavigateToDetailPage: (LoopBase) -> Unit,
+    onNavigateToHistoryPage: () -> Unit,
     onEdit: (LoopBase) -> Unit,
 ) {
     when (section) {
-        is Section.Ad -> sectionAd(section = section)
-        is Section.Later -> sectionLater(
-            section = section,
-            loopViewModel = loopViewModel,
-            onNavigateToDetailPage = onNavigateToDetailPage,
-            onEdit = onEdit,
-        )
-
         is Section.Today -> sectionToday(
             section = section,
             loopViewModel = loopViewModel,
@@ -79,13 +72,47 @@ fun LazyListScope.section(
             onEdit = onEdit,
         )
 
-        is Section.Summary -> sectionSummary(
+        is Section.Yesterday -> sectionYesterday(
+            section = section,
+            loopViewModel = loopViewModel,
+        )
+
+        is Section.Ad -> sectionAd(section = section)
+
+        is Section.DoneSkip -> sectionDoneSkip(
             section = section,
             loopViewModel = loopViewModel,
             onNavigateToDetailPage = onNavigateToDetailPage,
+            onNavigateToHistoryPage = onNavigateToHistoryPage
+        )
+
+        is Section.Later -> sectionLater(
+            section = section,
+            loopViewModel = loopViewModel,
+            onNavigateToDetailPage = onNavigateToDetailPage,
+            onEdit = onEdit,
         )
     }
 }
+
+private fun LazyListScope.sectionYesterday(
+    section: Section.Yesterday,
+    loopViewModel: LoopViewModel,
+) {
+    val loops by section.items
+    if (loops.isEmpty()) return
+
+    var isExpanded by section.isExpanded
+    item {
+        LoopYesterdayCard(
+            loopViewModel = loopViewModel,
+            loops = loops,
+            isExpanded = isExpanded,
+            onExpandChanged = { isExpanded = it }
+        )
+    }
+}
+
 
 @OptIn(ExperimentalFoundationApi::class)
 private fun LazyListScope.sectionToday(
@@ -206,23 +233,24 @@ private fun LazyListScope.sectionAd(
     }
 }
 
-private fun LazyListScope.sectionSummary(
-    section: Section.Summary,
+private fun LazyListScope.sectionDoneSkip(
+    section: Section.DoneSkip,
     loopViewModel: LoopViewModel,
     onNavigateToDetailPage: (LoopBase) -> Unit,
+    onNavigateToHistoryPage: () -> Unit,
 ) {
     item(
         key = section.headerKey,
         contentType = ContentTypes.LOOP_SUMMARY_CARD
     ) {
-        LoopSummaryCard(
+        LoopDoneSkipCard(
             modifier = Modifier.padding(
-                horizontal = 12.dp,
                 vertical = 12.dp
             ),
             section = section,
             loopViewModel = loopViewModel,
-            onNavigateToDetailPage = onNavigateToDetailPage
+            onNavigateToDetailPage = onNavigateToDetailPage,
+            onNavigateToHistoryPage = onNavigateToHistoryPage,
         )
     }
 }
@@ -325,6 +353,29 @@ sealed class Section(val headerKey: String) {
     open val size
         get() = items.value.size
 
+    class Yesterday(
+        isSelected: Boolean = false
+    ) : Section(
+        headerKey = "YesterdaySection",
+    ) {
+        val isExpanded = mutableStateOf(isSelected)
+
+        companion object {
+            val Saver = listSaver(
+                save = {
+                    listOf(
+                        it.isExpanded.value
+                    )
+                },
+                restore = { list ->
+                    Yesterday(
+                        isSelected = list[0]
+                    )
+                }
+            )
+        }
+    }
+
     class Today(
         val showActiveDays: Boolean,
         isSelected: Boolean = false
@@ -357,8 +408,8 @@ sealed class Section(val headerKey: String) {
         override val size = 1
     }
 
-    class Summary : Section(
-        headerKey = "SummarySection"
+    class DoneSkip : Section(
+        headerKey = "DoneSkipSection"
     )
 
     class Later(

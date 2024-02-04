@@ -76,7 +76,8 @@ private val DETAIL_AD_ID = if (BuildConfig.DEBUG) {
 @Composable
 fun DetailPage(
     modifier: Modifier = Modifier,
-    detailViewModel: LoopDetailViewModel = hiltViewModel()
+    detailViewModel: LoopDetailViewModel = hiltViewModel(),
+    onNavigateUp: () -> Unit,
 ) {
     val loop by detailViewModel.loop.collectAsState(LoopBase.default())
     Scaffold(
@@ -91,6 +92,7 @@ fun DetailPage(
                     )
                     .statusBarsPadding(),
                 loop = loop,
+                onNavigateUp = onNavigateUp
             )
         }
     )
@@ -206,7 +208,7 @@ private fun LoopStartAndEndTime(
             )
             Text(
                 text = annotatedString(timeStat.asString(LocalContext.current, false)),
-                style = AppTypography.body1.copy(
+                style = AppTypography.subtitle1.copy(
                     color = AppColor.onSurface
                 )
             )
@@ -334,15 +336,35 @@ private fun DoneHistoryItem(
             )
         }
 
-        Text(
+        DoneHistoryItemText(
             modifier = Modifier.align(Alignment.Center),
-            text = if (firstDateOfMonth) "${localDate.month.value}/1" else "${localDate.dayOfMonth}",
-            style = AppTypography.caption.copy(
-                color = AppColor.onSurface,
-                fontWeight = FontWeight.Normal
-            )
+            localDate = localDate,
         )
     }
+}
+
+@Composable
+private fun DoneHistoryItemText(
+    modifier: Modifier = Modifier,
+    localDate: LocalDate,
+) {
+    val now = LocalDate.now()
+    val firstDateOfMonth = localDate.dayOfMonth == 1
+
+    val text = when {
+        now == localDate -> stringResource(id = R.string.today)
+        firstDateOfMonth -> "${localDate.month.value}/1"
+        else -> "${localDate.dayOfMonth}"
+    }
+
+    Text(
+        modifier = modifier,
+        text = text,
+        style = AppTypography.caption.copy(
+            color = AppColor.onSurface,
+            fontWeight = FontWeight.Normal
+        )
+    )
 }
 
 fun <T : Any> LazyGridScope.items(

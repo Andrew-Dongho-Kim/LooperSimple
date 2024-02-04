@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.ContentAlpha
 import androidx.compose.material.MaterialTheme
@@ -145,13 +144,13 @@ private fun LoopDetailAndOption(
     Column {
         Text(
             modifier = Modifier
-                .padding(top = 4.dp)
-                .padding(horizontal = 6.dp),
+                .padding(top = 8.dp)
+                .padding(horizontal = 12.dp),
             text = loop.title,
             style = AppTypography.body1.copy(color = AppColor.onSurface)
         )
         LoopOptions(
-            modifier = modifier.padding(top = 4.dp),
+            modifier = modifier.padding(top = 8.dp),
             loop = loop,
             onNavigateToDetailPage = onNavigateToDetailPage,
             onEdit = onEdit,
@@ -189,13 +188,11 @@ private fun LoopOptions(
             onClick = { onEdit(loop) }
         )
         LoopOptionButton(
-            modifier = Modifier.padding(start = 4.dp),
             imageVector = Icons.Outlined.Delete,
             contentDescription = stringResource(id = R.string.delete),
             onClick = { showDeleteDialog = true }
         )
         LoopOptionButton(
-            modifier = Modifier.padding(start = 4.dp),
             imageVector = Icons.Outlined.MoreVert,
             onClick = { onNavigateToDetailPage(loop) }
         )
@@ -220,7 +217,9 @@ private fun LoopOptionButton(
         modifier = modifier
             .clickable(onClick = onClick)
             .padding(all = 4.dp)
-            .size(20.dp),
+            .padding(horizontal = 4.dp)
+            .width(28.dp)
+            .height(20.dp),
         imageVector = imageVector,
         colorFilter = ColorFilter.tint(AppColor.onSurface.copy(alpha = ContentAlpha.medium)),
         contentDescription = contentDescription

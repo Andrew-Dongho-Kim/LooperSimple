@@ -13,6 +13,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -56,6 +57,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import com.pnd.android.loop.R
 import com.pnd.android.loop.data.Day
 import com.pnd.android.loop.data.Day.Companion.isOn
 import com.pnd.android.loop.data.LoopBase
@@ -250,6 +252,11 @@ fun LoopCardColor(
                 color = AppColor.surface.copy(alpha = 0.25f),
                 shape = CircleShape
             )
+            .border(
+                width = 0.5.dp,
+                color = AppColor.onSurface.copy(alpha = 0.2f),
+                shape = CircleShape
+            )
     )
 }
 
@@ -299,7 +306,7 @@ fun LoopCardBody(
             }
         }
         if (loop.enabled && !loop.isMock && timeStat.isPast()) {
-            LoopDoneOrNotButtons(
+            LoopDoneOrSkip(
                 modifier = Modifier.height(36.dp),
                 onDone = { done ->
                     loopViewModel.doneLoop(
@@ -313,7 +320,7 @@ fun LoopCardBody(
 }
 
 @Composable
-private fun LoopDoneOrNotButtons(
+private fun LoopDoneOrSkip(
     modifier: Modifier = Modifier,
     onDone: (done: Boolean) -> Unit,
 ) {
@@ -327,11 +334,9 @@ private fun LoopDoneOrNotButtons(
                 .padding(8.dp),
             imageVector = Icons.Filled.Done,
             colorFilter = ColorFilter.tint(
-                AppColor.primary.copy(
-                    alpha = ContentAlpha.medium
-                )
+                AppColor.primary.copy(alpha = ContentAlpha.medium)
             ),
-            contentDescription = ""
+            contentDescription = stringResource(id = R.string.done)
         )
 
         Image(
@@ -347,7 +352,7 @@ private fun LoopDoneOrNotButtons(
                     alpha = ContentAlpha.medium
                 )
             ),
-            contentDescription = ""
+            contentDescription = stringResource(id = R.string.skip)
         )
     }
 }
