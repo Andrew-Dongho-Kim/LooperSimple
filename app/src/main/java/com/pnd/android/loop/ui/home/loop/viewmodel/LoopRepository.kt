@@ -45,7 +45,7 @@ class LoopRepository @Inject constructor(
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val loopsWithDoneToday = localDate.flatMapLatest { currDate ->
+    val loopsWithDoneAll = localDate.flatMapLatest { currDate ->
         loopWithDoneDao.flowAllLoops(currDate.toLocalTime())
     }
 
@@ -55,14 +55,14 @@ class LoopRepository @Inject constructor(
     }.map { loops ->
         loops.filter { loop ->
             loop.created.toLocalDate().isBefore(LocalDate.now()) &&
-            loop.isActiveDay(LocalDate.now().minusDays(1)) &&
-            loop.doneState == LoopDoneVo.DoneState.NO_RESPONSE
+                    loop.isActiveDay(LocalDate.now().minusDays(1)) &&
+                    loop.doneState == LoopDoneVo.DoneState.NO_RESPONSE
         }
     }
 
-    val activeLoops = loopsWithDoneToday.map { loops -> loops.filter { loop -> loop.isActive() } }
+    val activeLoops = loopsWithDoneAll.map { loops -> loops.filter { loop -> loop.isActive() } }
     val countInActive = activeLoops.map { it.size }
-    val total = loopsWithDoneToday.map { it.size }
+    val total = loopsWithDoneAll.map { loops -> loops.filter { loop -> loop.isActiveDay() }.size }
 
     fun syncAlarms() = alarmController.syncAlarms()
 
