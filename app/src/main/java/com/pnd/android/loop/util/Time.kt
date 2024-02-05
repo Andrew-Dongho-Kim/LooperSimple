@@ -146,6 +146,9 @@ fun day(localDate: LocalDate = LocalDate.now()): @Day Int = when (localDate.dayO
     else -> throw IllegalStateException("Unknown value for day of week")
 }
 
+fun Long.toLocalDateTime(zoneId: ZoneId = ZoneId.systemDefault()):LocalDateTime =
+    Instant.ofEpochMilli(this).atZone(zoneId).toLocalDateTime()
+
 fun Long.toLocalDate(zoneId: ZoneId = ZoneId.systemDefault()): LocalDate =
     Instant.ofEpochMilli(this).atZone(zoneId).toLocalDate()
 

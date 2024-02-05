@@ -1,5 +1,12 @@
 package com.pnd.android.loop.ui
 
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavBackStackEntry
@@ -78,6 +85,10 @@ fun AppNavHost(
         composable(
             route = Screen.DetailPage.route,
             arguments = Screen.DetailPage.arguments,
+            enterTransition = { scaleIntoContainer() },
+            exitTransition = { scaleOutOfContainer(INWARDS) },
+            popEnterTransition = { scaleIntoContainer(OUTWARDS) },
+            popExitTransition = { scaleOutOfContainer() }
         ) {
             DetailPage(
                 onNavigateUp = { navController.popBackStack() }
@@ -85,10 +96,36 @@ fun AppNavHost(
         }
 
         composable(
-            route = Screen.HistoryPage.route
+            route = Screen.HistoryPage.route,
+            enterTransition = { scaleIntoContainer() },
+            exitTransition = { scaleOutOfContainer(INWARDS) },
+            popEnterTransition = { scaleIntoContainer(OUTWARDS) },
+            popExitTransition = { scaleOutOfContainer() }
         ) {
             HistoryPage()
         }
     }
+}
 
+private const val INWARDS = 0
+private const val OUTWARDS = 1
+private fun scaleIntoContainer(
+    direction: Int = INWARDS,
+    initialScale: Float = if (direction == OUTWARDS) 0.9f else 1.1f
+): EnterTransition {
+    return scaleIn(
+        animationSpec = tween(700),
+        initialScale = initialScale
+    ) + fadeIn(animationSpec = tween(700))
+}
+
+private fun scaleOutOfContainer(
+    direction: Int = OUTWARDS,
+    targetScale: Float = if (direction == INWARDS) 0.9f else 1.1f
+): ExitTransition {
+    return scaleOut(
+        animationSpec = tween(
+            durationMillis = 700,
+        ), targetScale = targetScale
+    ) + fadeOut(tween(700))
 }

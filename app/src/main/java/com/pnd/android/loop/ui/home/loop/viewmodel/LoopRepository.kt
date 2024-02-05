@@ -9,6 +9,7 @@ import com.pnd.android.loop.data.LoopVo
 import com.pnd.android.loop.data.doneState
 import com.pnd.android.loop.util.isActive
 import com.pnd.android.loop.util.isActiveDay
+import com.pnd.android.loop.util.toLocalDate
 import com.pnd.android.loop.util.toLocalTime
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.currentCoroutineContext
@@ -53,8 +54,9 @@ class LoopRepository @Inject constructor(
         loopWithDoneDao.flowAllLoops(currDate.minusDays(1).toLocalTime())
     }.map { loops ->
         loops.filter { loop ->
+            loop.created.toLocalDate().isBefore(LocalDate.now()) &&
             loop.isActiveDay(LocalDate.now().minusDays(1)) &&
-                    loop.doneState == LoopDoneVo.DoneState.NO_RESPONSE
+            loop.doneState == LoopDoneVo.DoneState.NO_RESPONSE
         }
     }
 

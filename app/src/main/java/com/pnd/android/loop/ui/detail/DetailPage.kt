@@ -64,6 +64,7 @@ import com.pnd.android.loop.util.day
 import com.pnd.android.loop.util.formatHourMinute
 import com.pnd.android.loop.util.formatYearMonthDateDays
 import com.pnd.android.loop.util.toLocalDate
+import com.pnd.android.loop.util.toLocalDateTime
 import java.time.LocalDate
 
 private val DETAIL_AD_ID = if (BuildConfig.DEBUG) {
@@ -145,7 +146,7 @@ private fun LoopCreatedDate(
     modifier: Modifier = Modifier,
     created: Long,
 ) {
-    val createdDate = remember(created) { created.toLocalDate().plusDays(1L) }
+    val createdDate = remember(created) { created.toLocalDate() }
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically
@@ -168,7 +169,10 @@ private fun LoopCreatedDate(
 
         Text(
             modifier = Modifier,
-            text = stringResource(id = R.string.n_days, createdDate.until(LocalDate.now()).days),
+            text = stringResource(
+                id = R.string.n_days,
+                LocalDate.now().toEpochDay() - createdDate.toEpochDay() + 1
+            ),
             style = AppTypography.body1.copy(
                 color = AppColor.onSurface
             )
@@ -208,7 +212,7 @@ private fun LoopStartAndEndTime(
             )
             Text(
                 text = annotatedString(timeStat.asString(LocalContext.current, false)),
-                style = AppTypography.subtitle1.copy(
+                style = AppTypography.h5.copy(
                     color = AppColor.onSurface
                 )
             )
@@ -256,6 +260,7 @@ private fun DoneHistoryGrid(
             ) { item ->
                 DoneHistoryItem(
                     modifier = Modifier.size(32.dp),
+                    created = loop.created,
                     doneVo = item,
                     color = Color(loop.color).copy(alpha = 0.7f),
                     activeDays = loop.loopActiveDays
@@ -294,6 +299,7 @@ private fun DoneHistoryDayHeader(
 @Composable
 private fun DoneHistoryItem(
     modifier: Modifier = Modifier,
+    created: Long,
     doneVo: LoopDoneVo,
     color: Color,
     activeDays: Int
@@ -336,8 +342,10 @@ private fun DoneHistoryItem(
             )
         }
 
+        val createdDate = remember(created) { created.toLocalDate() }
         DoneHistoryItemText(
             modifier = Modifier.align(Alignment.Center),
+            createdDate = createdDate,
             localDate = localDate,
         )
     }
@@ -346,13 +354,16 @@ private fun DoneHistoryItem(
 @Composable
 private fun DoneHistoryItemText(
     modifier: Modifier = Modifier,
+    createdDate: LocalDate,
     localDate: LocalDate,
 ) {
     val now = LocalDate.now()
     val firstDateOfMonth = localDate.dayOfMonth == 1
 
+
     val text = when {
         now == localDate -> stringResource(id = R.string.today)
+        localDate == createdDate -> stringResource(id = R.string.start)
         firstDateOfMonth -> "${localDate.month.value}/1"
         else -> "${localDate.dayOfMonth}"
     }

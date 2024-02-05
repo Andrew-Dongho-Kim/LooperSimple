@@ -43,7 +43,7 @@ class NotificationHelper @Inject constructor(
 
     fun notify(loop: LoopBase) {
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_app)
+            .setSmallIcon(R.drawable.app_icon)
             .setContentTitle(loop.title)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
