@@ -43,7 +43,7 @@ class LoopViewModel @Inject constructor(
         }
     }
 
-    val loopsNoResponseYesterday = loopRepository.loopsNoResponseYesterday
+    val loopsNoResponseYesterday = loopRepository.loopsNoResponseY esterday
     val loopsWithDoneToday = loopRepository.loopsWithDoneAll
     val countInActive = loopRepository.countInActive
     val total = loopRepository.total

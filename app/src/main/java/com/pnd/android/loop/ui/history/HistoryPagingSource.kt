@@ -2,12 +2,35 @@ package com.pnd.android.loop.ui.history
 
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
+import com.pnd.android.loop.common.Logger
+import com.pnd.android.loop.data.AppDatabase
+import com.pnd.android.loop.data.Day.Companion.isOn
 import com.pnd.android.loop.data.LoopBase
+import com.pnd.android.loop.data.LoopDoneVo
+import com.pnd.android.loop.data.LoopWithDone
+import com.pnd.android.loop.data.toLoopWithDone
+import com.pnd.android.loop.util.dayForLoop
+import com.pnd.android.loop.util.toLocalDate
+import com.pnd.android.loop.util.toMs
+import java.time.DayOfWeek
 import java.time.LocalDate
 
-class HistoryPagingSource : PagingSource<LocalDate, List<LoopBase>>() {
+class HistoryPagingSource(
+    appDb: AppDatabase,
+    private val pageSize: Int,
+) : PagingSource<LocalDate, List<LoopWithDone>>() {
 
-    override fun getRefreshKey(state: PagingState<LocalDate, List<LoopBase>>): LocalDate? {
+    private val logger = Logger("HistoryPagingSource")
+
+    private val loopDao = appDb.loopDao()
+    private val loopDoneDao = appDb.loopDoneDao()
+
+    private lateinit var minDate: LocalDate
+    private val maxDate = LocalDate.now().plusDays(1L)
+
+    private val loopsByDayOfWeek = mutableMapOf<DayOfWeek, List<LoopBase>>()
+
+    override fun getRefreshKey(state: PagingState<LocalDate, List<LoopWithDone>>): LocalDate? {
         return state.anchorPosition?.let { anchorPosition ->
             val closestPage = state.closestPageToPosition(anchorPosition)
             closestPage?.prevKey?.plusDays(state.config.pageSize.toLong())
@@ -15,7 +38,88 @@ class HistoryPagingSource : PagingSource<LocalDate, List<LoopBase>>() {
         }
     }
 
-    override suspend fun load(params: LoadParams<LocalDate>): LoadResult<LocalDate, List<LoopBase>> {
-        TODO("Not yet implemented")
+    override suspend fun load(
+        params: LoadParams<LocalDate>
+    ): LoadResult<LocalDate, List<LoopWithDone>> {
+        return try {
+            init()
+            val curr = params.key ?: LocalDate.now().plusDays(1)
+            val prev = prevKey(curr, pageSize)
+            val next = nextKey(curr, pageSize)
+            val data = load(prev, curr)
+            logger.d { "load[${data.size}] ($prev ~ $curr], next:$next" }
+
+            LoadResult.Page(
+                data = data,
+                prevKey = prev,
+                nextKey = next,
+            )
+        } catch (e: Exception) {
+            logger.e { "error:$e" }
+            LoadResult.Error(e)
+        }
+    }
+
+    private suspend fun load(
+        prev: LocalDate?,
+        curr: LocalDate
+    ): List<List<LoopWithDone>> {
+        val from = prev ?: return emptyList()
+
+        val results = mutableListOf<List<LoopWithDone>>()
+        var date = from
+        while (date.isBefore(curr)) {
+            val loops = loopsByDayOfWeek[date.dayOfWeek]
+            if (loops.isNullOrEmpty()) {
+                date = date.plusDays(1)
+                continue
+            }
+
+            results.add(
+                loops.map { loop ->
+                    val doneVo = loopDoneDao.doneState(
+                        loopId = loop.id,
+                        date = date.toMs()
+                    )
+                    loop.toLoopWithDone(
+                        doneVo = doneVo ?: LoopDoneVo(
+                            loopId = loop.id,
+                            done = LoopDoneVo.DoneState.NO_RESPONSE,
+                            date = date.toMs()
+                        )
+                    )
+                }
+            )
+            date = date.plusDays(1)
+        }
+        return results
+    }
+
+    private suspend fun init() {
+        if (loopsByDayOfWeek.isNotEmpty()) return
+
+        val allLoops = loopDao.allLoops()
+        minDate = allLoops.minOf { it.created }.toLocalDate()
+
+        for (day in DayOfWeek.values()) {
+            loopsByDayOfWeek[day] = allLoops.filter {
+                it.loopActiveDays.isOn(dayForLoop(day))
+            }
+        }
+        logger.d { "init loopsByDayOfWeek:$loopsByDayOfWeek" }
+    }
+
+    private fun prevKey(curr: LocalDate, loadSize: Int): LocalDate? {
+        if (curr == minDate) return null
+
+        val prevKey = curr.minusDays(loadSize.toLong())
+        return if (prevKey > minDate) prevKey else minDate
+    }
+
+    private fun nextKey(curr: LocalDate, loadSize: Int): LocalDate? {
+        if (curr == maxDate) return null
+
+        val nextKey = curr.plusDays(loadSize.toLong())
+        return if (nextKey < maxDate) nextKey else maxDate
     }
 }

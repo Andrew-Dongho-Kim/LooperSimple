@@ -18,7 +18,7 @@ import com.pnd.android.loop.data.asLoop
 import com.pnd.android.loop.data.asLoopVo
 import com.pnd.android.loop.data.description
 import com.pnd.android.loop.data.putTo
-import com.pnd.android.loop.util.day
+import com.pnd.android.loop.util.dayForLoop
 import com.pnd.android.loop.util.dh2m2
 import com.pnd.android.loop.util.isActiveDay
 import com.pnd.android.loop.util.isActiveTime
@@ -160,7 +160,7 @@ class AlarmController @Inject constructor(
                 alarmController.reserveAlarm(loop = loop)
             }
 
-            val today = day(LocalDate.now())
+            val today = dayForLoop(LocalDate.now())
             val isAllowedDay = loop.isActiveDay()
             val isAllowedTime = loop.isActiveTime()
             if (isAllowedDay && isAllowedTime) {

@@ -2,7 +2,6 @@ package com.pnd.android.loop.data
 
 import androidx.annotation.IntDef
 import androidx.compose.runtime.Immutable
-import androidx.lifecycle.LiveData
 import androidx.room.Dao
 import androidx.room.Entity
 import androidx.room.ForeignKey
@@ -52,14 +51,14 @@ data class LoopDoneVo(
 interface LoopDoneDao {
 
     @Query("SELECT * FROM loop_done WHERE loopId=:loopId AND date=:date LIMIT 1")
-    fun liveDataDoneState(
-        loopId: Long,
+    suspend fun doneState(
+        loopId: Int,
         date: Long
-    ): LiveData<LoopDoneVo>
+    ): LoopDoneVo?
 
     @Query("SELECT * FROM loop_done WHERE loopId=:loopId AND :from <= date AND date <= :to")
     suspend fun doneStates(
-        loopId: Long,
+        loopId: Int,
         from: Long,
         to: Long
     ): List<LoopDoneVo>

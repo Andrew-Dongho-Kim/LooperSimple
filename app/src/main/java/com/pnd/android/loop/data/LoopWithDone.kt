@@ -47,6 +47,23 @@ data class LoopWithDone @JvmOverloads constructor(
     )
 }
 
+fun LoopBase.toLoopWithDone(
+    doneVo: LoopDoneVo
+) = LoopWithDone(
+    id = id,
+    title = title,
+    color = color,
+    created = created,
+    loopStart = loopStart,
+    loopEnd = loopEnd,
+    loopActiveDays = loopActiveDays,
+    interval = interval,
+    enabled = enabled,
+    date = doneVo.date,
+    done = doneVo.done,
+    isMock = isMock
+)
+
 @Dao
 interface LoopWithDoneDao {
 

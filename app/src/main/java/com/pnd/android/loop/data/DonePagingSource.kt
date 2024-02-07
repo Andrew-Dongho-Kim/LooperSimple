@@ -65,17 +65,20 @@ class DonePagingSource(
         }
     }
 
-    private suspend fun load(prev: LocalDate?, curr: LocalDate): List<LoopDoneVo> {
-        val prev = prev ?: return emptyList()
+    private suspend fun load(
+        prev: LocalDate?,
+        curr: LocalDate
+    ): List<LoopDoneVo> {
+        val from = prev ?: return emptyList()
 
         val doneStates = loopDoneDao.doneStates(
-            loopId = loopId.toLong(),
-            from = prev.toMs(),
+            loopId = loopId,
+            from = from.toMs(),
             to = curr.toMs()
         )
 
         val result = mutableListOf<LoopDoneVo>()
-        var date = prev
+        var date = from
         var index = 0
         while (date.isBefore(curr)) {
             result.add(

@@ -2,22 +2,25 @@ package com.pnd.android.loop.ui.home.loop
 
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.gestures.AnchoredDraggableState
+import androidx.compose.foundation.gestures.DraggableAnchors
 import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.anchoredDraggable
+import androidx.compose.foundation.gestures.animateTo
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.SwipeProgress
-import androidx.compose.material.rememberSwipeableState
-import androidx.compose.material.swipeable
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.data.LoopBase
@@ -25,7 +28,9 @@ import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
-@OptIn(ExperimentalMaterialApi::class)
+private enum class DragAnchors { Start, Center, End }
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun LoopCardWithOption(
     modifier: Modifier = Modifier,
@@ -36,13 +41,23 @@ fun LoopCardWithOption(
     showActiveDays: Boolean
 ) {
     BoxWithConstraints(modifier = modifier) {
-        val swipeState = rememberSwipeableState(
-            initialValue = 0,
-            animationSpec = tween(
-                durationMillis = 100,
-                easing = FastOutSlowInEasing,
+        val density = LocalDensity.current
+        val state = remember {
+            AnchoredDraggableState(
+                initialValue = DragAnchors.Center,
+                anchors = DraggableAnchors {
+                    DragAnchors.Start at -constraints.maxWidth * 0.3f
+                    DragAnchors.Center at 0f
+                    DragAnchors.End at constraints.maxWidth * 0.3f
+                },
+                positionalThreshold = { distance -> distance * 0.5f },
+                velocityThreshold = { with(density) { 125.dp.toPx() } },
+                animationSpec = tween(
+                    durationMillis = 100,
+                    easing = FastOutSlowInEasing
+                )
             )
-        )
+        }
 
         val coroutineScope = rememberCoroutineScope()
         if (!loop.isMock) {
@@ -50,7 +65,7 @@ fun LoopCardWithOption(
                 modifier = Modifier
                     .align(Alignment.CenterStart)
                     .graphicsLayer {
-                        val fraction = swipeState.progress.absFraction()
+                        val fraction = state.absFraction()
                         alpha = 0.3f * (1 - fraction) + fraction * 1.0f
                     }
                     .padding(
@@ -62,7 +77,7 @@ fun LoopCardWithOption(
                 color = Color(loop.color),
                 onEdit = {
                     onEdit(loop)
-                    coroutineScope.launch { swipeState.animateTo(0) }
+                    coroutineScope.launch { state.animateTo(DragAnchors.Center) }
                 },
                 onDelete = { loopViewModel.removeLoop(loop) }
             )
@@ -72,13 +87,14 @@ fun LoopCardWithOption(
             modifier = Modifier
                 .offset {
                     IntOffset(
-                        x = swipeState.offset.value.roundToInt(),
+                        x = state
+                            .requireOffset()
+                            .roundToInt(),
                         y = 0
                     )
                 }
-                .swipeable(
-                    state = swipeState,
-                    anchors = mapOf(0f to 0, (constraints.maxWidth * 0.4f) to 1),
+                .anchoredDraggable(
+                    state = state,
                     orientation = Orientation.Horizontal,
                     enabled = !loop.isMock
                 ),
@@ -90,11 +106,9 @@ fun LoopCardWithOption(
     }
 }
 
-@OptIn(ExperimentalMaterialApi::class)
-private fun SwipeProgress<Int>.absFraction(): Float {
-    return if (from == 1) {
-        if (fraction == 1f) 1f else 1 - fraction
-    } else {
-        if (fraction == 1f) 0f else fraction
-    }
+
+@OptIn(ExperimentalFoundationApi::class)
+private fun AnchoredDraggableState<DragAnchors>.absFraction(): Float {
+    val offset = requireOffset()
+    return if (offset < 0) offset / anchors.minAnchor() else offset / anchors.maxAnchor()
 }

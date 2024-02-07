@@ -135,7 +135,9 @@ fun rememberDayColor(day: Int): Color {
     }
 }
 
-fun day(localDate: LocalDate = LocalDate.now()): @Day Int = when (localDate.dayOfWeek) {
+fun dayForLoop(localDate: LocalDate = LocalDate.now()): @Day Int = dayForLoop(localDate.dayOfWeek)
+
+fun dayForLoop(dayOfWeek: DayOfWeek): @Day Int = when (dayOfWeek) {
     DayOfWeek.SUNDAY -> SUNDAY
     DayOfWeek.MONDAY -> MONDAY
     DayOfWeek.TUESDAY -> TUESDAY
@@ -146,7 +148,7 @@ fun day(localDate: LocalDate = LocalDate.now()): @Day Int = when (localDate.dayO
     else -> throw IllegalStateException("Unknown value for day of week")
 }
 
-fun Long.toLocalDateTime(zoneId: ZoneId = ZoneId.systemDefault()):LocalDateTime =
+fun Long.toLocalDateTime(zoneId: ZoneId = ZoneId.systemDefault()): LocalDateTime =
     Instant.ofEpochMilli(this).atZone(zoneId).toLocalDateTime()
 
 fun Long.toLocalDate(zoneId: ZoneId = ZoneId.systemDefault()): LocalDate =
@@ -197,7 +199,7 @@ fun LoopBase.isActive(localDateTime: LocalDateTime = LocalDateTime.now()): Boole
 }
 
 fun LoopBase.isActiveDay(localDate: LocalDate = LocalDate.now()): Boolean {
-    return loopActiveDays.isOn(day(localDate))
+    return loopActiveDays.isOn(dayForLoop(localDate))
 }
 
 fun LoopBase.isActiveTime(localDateTime: LocalDateTime = LocalDateTime.now()): Boolean {

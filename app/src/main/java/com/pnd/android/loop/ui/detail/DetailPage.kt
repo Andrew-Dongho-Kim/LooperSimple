@@ -60,11 +60,10 @@ import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.surface
 import com.pnd.android.loop.util.ABB_DAYS
 import com.pnd.android.loop.util.annotatedString
-import com.pnd.android.loop.util.day
+import com.pnd.android.loop.util.dayForLoop
 import com.pnd.android.loop.util.formatHourMinute
 import com.pnd.android.loop.util.formatYearMonthDateDays
 import com.pnd.android.loop.util.toLocalDate
-import com.pnd.android.loop.util.toLocalDateTime
 import java.time.LocalDate
 
 private val DETAIL_AD_ID = if (BuildConfig.DEBUG) {
@@ -306,7 +305,7 @@ private fun DoneHistoryItem(
 ) {
     val localDate = remember(doneVo.date) { doneVo.date.toLocalDate() }
     val firstDateOfMonth = localDate.dayOfMonth == 1
-    val isActive = activeDays.isOn(day(doneVo.date.toLocalDate()))
+    val isActive = activeDays.isOn(dayForLoop(doneVo.date.toLocalDate()))
 
     val shape = RoundShapes.small
     Box(
