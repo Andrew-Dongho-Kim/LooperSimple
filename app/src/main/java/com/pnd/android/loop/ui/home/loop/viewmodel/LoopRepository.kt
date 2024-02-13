@@ -6,7 +6,7 @@ import com.pnd.android.loop.data.AppDatabase
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.LoopVo
-import com.pnd.android.loop.data.doneState
+import com.pnd.android.loop.data.isNotResponsed
 import com.pnd.android.loop.util.isActive
 import com.pnd.android.loop.util.isActiveDay
 import com.pnd.android.loop.util.toLocalDate
@@ -32,7 +32,14 @@ class LoopRepository @Inject constructor(
 
     private val loopDao = appDb.loopDao()
     private val loopWithDoneDao = appDb.loopWithDoneDao()
-    private val loopDonDao = appDb.loopDoneDao()
+    private val loopDoneDao = appDb.loopDoneDao()
+
+    val localDateTime = flow {
+        while (currentCoroutineContext().isActive) {
+            emit(LocalDateTime.now())
+            delay(1000L)
+        }
+    }
 
     val localDate = flow {
         while (currentCoroutineContext().isActive) {
@@ -49,20 +56,29 @@ class LoopRepository @Inject constructor(
         loopWithDoneDao.flowAllLoops(currDate.toLocalTime())
     }
 
+    // @formatter:off
     @OptIn(ExperimentalCoroutinesApi::class)
     val loopsNoResponseYesterday = localDate.flatMapLatest { currDate ->
         loopWithDoneDao.flowAllLoops(currDate.minusDays(1).toLocalTime())
     }.map { loops ->
         loops.filter { loop ->
+            loop.isNotResponsed &&
             loop.created.toLocalDate().isBefore(LocalDate.now()) &&
-                    loop.isActiveDay(LocalDate.now().minusDays(1)) &&
-                    loop.doneState == LoopDoneVo.DoneState.NO_RESPONSE
+            loop.isActiveDay(LocalDate.now().minusDays(1))
         }
     }
+    // @formatter:on
 
-    val activeLoops = loopsWithDoneAll.map { loops -> loops.filter { loop -> loop.isActive() } }
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val activeLoops = localDateTime.flatMapLatest { now ->
+        loopsWithDoneAll.map { loops -> loops.filter { loop -> loop.isActive(now) } }
+    }
     val countInActive = activeLoops.map { it.size }
-    val total = loopsWithDoneAll.map { loops -> loops.filter { loop -> loop.isActiveDay() }.size }
+    val countInTodayRemain = loopsWithDoneAll.map { loops ->
+        loops.filter { loop -> loop.isNotResponsed && loop.isActiveDay() }.size
+    }
+
+    val allResponseCount = loopDoneDao.flowDataDoneOrSkipCount()
 
     fun syncAlarms() = alarmController.syncAlarms()
 
@@ -86,7 +102,7 @@ class LoopRepository @Inject constructor(
         localDate: LocalDate = LocalDate.now(),
         @LoopDoneVo.DoneState doneState: Int
     ) {
-        loopDonDao.addOrUpdate(
+        loopDoneDao.addOrUpdate(
             loop = loop,
             localDate = localDate,
             doneState = doneState

@@ -27,7 +27,7 @@ fun HomeAppBar(
     modifier: Modifier = Modifier,
     loopViewModel: LoopViewModel,
 ) {
-    val totalLoops = loopViewModel.total.collectAsState(initial = 0)
+    val totalLoops = loopViewModel.countInTodayRemain.collectAsState(initial = 0)
     val countInProgress = loopViewModel.countInActive.collectAsState(initial = 0)
     AppBar(
         modifier = modifier,

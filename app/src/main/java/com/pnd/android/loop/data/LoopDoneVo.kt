@@ -12,6 +12,7 @@ import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.data.LoopDoneVo.DoneState.Companion.DONE
 import com.pnd.android.loop.data.LoopDoneVo.DoneState.Companion.NO_RESPONSE
 import com.pnd.android.loop.data.LoopDoneVo.DoneState.Companion.SKIP
+import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
 import java.time.ZoneId
 
@@ -62,6 +63,9 @@ interface LoopDoneDao {
         from: Long,
         to: Long
     ): List<LoopDoneVo>
+
+    @Query("SELECT COUNT(*) FROM loop_done where done != $NO_RESPONSE")
+    fun flowDataDoneOrSkipCount(): Flow<Int>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun addOrUpdate(doneVo: LoopDoneVo)

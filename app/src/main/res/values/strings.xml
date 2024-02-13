@@ -5,6 +5,7 @@
     <string name="loops">%d loops</string>
     <string name="desc_no_loops">There are no loops.</string>
     <string name="unchecked_loops">Yesterday, there were *%d* unchecked loops.</string>
+    <string name="response_rate">Response rate</string>
 
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>

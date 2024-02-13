@@ -127,16 +127,16 @@ private fun DetailPageContent(
         )
         DoneHistoryGrid(
             modifier = modifier
-                .padding(top = 12.dp)
+                .padding(top = 24.dp)
                 .fillMaxWidth()
                 .height(224.dp),
             detailViewModel = detailViewModel,
             loop = loop,
         )
-        ExpandableNativeAd(
-            modifier = Modifier.padding(top = 16.dp),
-            adId = DETAIL_AD_ID
-        )
+//        ExpandableNativeAd(
+//            modifier = Modifier.padding(top = 16.dp),
+//            adId = DETAIL_AD_ID
+//        )
     }
 }
 
@@ -247,6 +247,8 @@ private fun DoneHistoryGrid(
     val doneHistory = detailViewModel.donePager.collectAsLazyPagingItems()
 
     val lazyGridState = rememberLazyGridState()
+    LaunchedEffect(key1 = Unit) { lazyGridState.scrollToItem(index = Int.MAX_VALUE) }
+
     Row(modifier = modifier) {
         LazyHorizontalGrid(
             modifier = Modifier.weight(1f),

@@ -76,19 +76,22 @@ class HistoryPagingSource(
             }
 
             results.add(
-                loops.map { loop ->
-                    val doneVo = loopDoneDao.doneState(
-                        loopId = loop.id,
-                        date = date.toMs()
-                    )
-                    loop.toLoopWithDone(
-                        doneVo = doneVo ?: LoopDoneVo(
+                loops
+                    .filter { loop ->
+                        !loop.created.toLocalDate().isAfter(date)
+                    }.map { loop ->
+                        val doneVo = loopDoneDao.doneState(
                             loopId = loop.id,
-                            done = LoopDoneVo.DoneState.NO_RESPONSE,
                             date = date.toMs()
                         )
-                    )
-                }
+                        loop.toLoopWithDone(
+                            doneVo = doneVo ?: LoopDoneVo(
+                                loopId = loop.id,
+                                done = LoopDoneVo.DoneState.NO_RESPONSE,
+                                date = date.toMs()
+                            )
+                        )
+                    }
             )
             date = date.plusDays(1)
         }

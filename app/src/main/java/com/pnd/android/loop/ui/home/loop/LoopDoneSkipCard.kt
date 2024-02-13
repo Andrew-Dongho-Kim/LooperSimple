@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
@@ -36,6 +37,7 @@ import com.pnd.android.loop.data.LoopWithDone
 import com.pnd.android.loop.ui.common.isLargeScreen
 import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.theme.AppColor
+import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
@@ -62,11 +64,12 @@ fun LoopDoneSkipCard(
     }
 
     Column(modifier = modifier) {
-        val doneList = loopGroup[DoneState.DONE] ?: emptyList()
-        val skipList = loopGroup[DoneState.SKIP] ?: emptyList()
-
-        Summary(
-            loops = doneList,
+        ResponseRate(
+            modifier = Modifier.padding(start = 28.dp),
+            loopViewModel = loopViewModel
+        )
+        DoneSkipContent(
+            loops = loopGroup[DoneState.DONE] ?: emptyList(),
             title = stringResource(id = R.string.done),
             icon = Icons.Filled.Done,
             iconColor = AppColor.primary,
@@ -75,9 +78,9 @@ fun LoopDoneSkipCard(
             onUndoDoneState = onUndoDoneState,
         )
 
-        Summary(
+        DoneSkipContent(
             modifier = Modifier.padding(top = 12.dp),
-            loops = skipList,
+            loops = loopGroup[DoneState.SKIP] ?: emptyList(),
             title = stringResource(id = R.string.skip),
             icon = Icons.Filled.Clear,
             iconColor = AppColor.onSurface,
@@ -89,8 +92,35 @@ fun LoopDoneSkipCard(
 
 }
 
+
 @Composable
-private fun Summary(
+private fun ResponseRate(
+    modifier: Modifier = Modifier,
+    loopViewModel: LoopViewModel,
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = stringResource(id = R.string.response_rate) + ": ",
+            style = AppTypography.body1.copy(
+                color = AppColor.onSurface
+            )
+        )
+
+        val responseRate by loopViewModel.allResponseRate.collectAsState(initial = 0f)
+        Text(
+            text = String.format("%.2f%%", responseRate),
+            style = AppTypography.body1.copy(
+                color = AppColor.primary
+            )
+        )
+    }
+}
+
+@Composable
+private fun DoneSkipContent(
     modifier: Modifier = Modifier,
     loops: List<LoopBase>,
     title: String,
@@ -108,7 +138,7 @@ private fun Summary(
             vertical = 8.dp
         )
     ) {
-        SummaryHeader(
+        DoneSkipHeader(
             modifier = Modifier.align(Alignment.CenterHorizontally),
             title = title,
             itemCount = loops.size,
@@ -121,7 +151,7 @@ private fun Summary(
         ) {
             loops.forEach { loop ->
                 key(loop.id) {
-                    SummaryItem(
+                    DoneSkipItem(
                         loop = loop,
                         onNavigateToDetailPage = onNavigateToDetailPage,
                         onUndoDoneState = onUndoDoneState,
@@ -134,7 +164,7 @@ private fun Summary(
 }
 
 @Composable
-private fun SummaryHeader(
+private fun DoneSkipHeader(
     modifier: Modifier = Modifier,
     title: String,
     itemCount: Int,
@@ -175,7 +205,7 @@ private fun SummaryHeader(
 }
 
 @Composable
-private fun SummaryItem(
+private fun DoneSkipItem(
     modifier: Modifier = Modifier,
     loop: LoopBase,
     onNavigateToDetailPage: (LoopBase) -> Unit,
@@ -188,13 +218,13 @@ private fun SummaryItem(
         verticalAlignment = Alignment.CenterVertically,
 
         ) {
-        SummaryItemTitle(
+        DoneSkipItemTitle(
             modifier = Modifier.weight(1f),
             title = loop.title
         )
 
         if (LocalConfiguration.current.isLargeScreen()) {
-            SummaryItemStartAndEndTime(
+            DoneSkipItemStartAndEndTime(
                 modifier = Modifier.padding(start = 4.dp),
                 loopStart = loop.loopStart,
                 loopEnd = loop.loopEnd
@@ -209,7 +239,7 @@ private fun SummaryItem(
             color = loop.color
         )
 
-        SummaryItemDoneStateButton(
+        DoneSkipItemDoneStateButton(
             loop = loop,
             onUndoDonState = onUndoDoneState
         )
@@ -217,7 +247,7 @@ private fun SummaryItem(
 }
 
 @Composable
-private fun SummaryItemTitle(
+private fun DoneSkipItemTitle(
     modifier: Modifier = Modifier,
     title: String,
 ) {
@@ -233,7 +263,7 @@ private fun SummaryItemTitle(
 }
 
 @Composable
-private fun SummaryItemStartAndEndTime(
+private fun DoneSkipItemStartAndEndTime(
     modifier: Modifier = Modifier,
     loopStart: Long,
     loopEnd: Long
@@ -254,7 +284,7 @@ private fun SummaryItemStartAndEndTime(
 }
 
 @Composable
-private fun SummaryItemDoneStateButton(
+private fun DoneSkipItemDoneStateButton(
     modifier: Modifier = Modifier,
     loop: LoopBase,
     onUndoDonState: (loop: LoopBase) -> Unit

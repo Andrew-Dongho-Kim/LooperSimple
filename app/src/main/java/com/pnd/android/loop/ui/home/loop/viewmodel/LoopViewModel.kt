@@ -8,18 +8,18 @@ import com.pnd.android.loop.common.log
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.LoopVo
+import com.pnd.android.loop.util.toLocalDate
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.isActive
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.time.LocalDate
-import java.time.LocalDateTime
 import javax.inject.Inject
+import kotlin.math.roundToInt
 
 @Stable
 @HiltViewModel
@@ -34,20 +34,31 @@ class LoopViewModel @Inject constructor(
     }
     private val coroutineScope = CoroutineScope(SupervisorJob() + coroutineExceptionHandler)
 
-
     val localDate = loopRepository.localDate
-    val localDateTime = flow {
-        while (currentCoroutineContext().isActive) {
-            emit(LocalDateTime.now())
-            delay(1000L)
+    val localDateTime = loopRepository.localDateTime
+
+    val loopsNoResponseYesterday = loopRepository.loopsNoResponseYesterday
+    val loopsWithDoneAll = loopRepository.loopsWithDoneAll
+
+    val countInActive = loopRepository.countInActive
+    val countInTodayRemain = loopRepository.countInTodayRemain
+
+    private val allCount = loopsWithDoneAll.map { loops ->
+        val now = LocalDate.now()
+        var count = 0L
+        loops.forEach { loop ->
+            count += (now.toEpochDay() - loop.created.toLocalDate().toEpochDay())
+        }
+        count
+    }
+    private val allResponseCount = loopRepository.allResponseCount
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val allResponseRate = allCount.flatMapLatest { all ->
+        allResponseCount.map { response ->
+            (response.toFloat() / all.toFloat() * 100)
         }
     }
-
-    val loopsNoResponseYesterday = loopRepository.loopsNoResponseY esterday
-    val loopsWithDoneToday = loopRepository.loopsWithDoneAll
-    val countInActive = loopRepository.countInActive
-    val total = loopRepository.total
-
 
     fun addOrUpdateLoop(vararg loops: LoopVo) {
         coroutineScope.launch {

@@ -27,6 +27,7 @@ import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.doneState
+import com.pnd.android.loop.data.isNotResponsed
 import com.pnd.android.loop.ui.home.loop.input.UserInputState
 import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.theme.AppColor
@@ -92,7 +93,7 @@ fun EmptyLoops(
 private fun LoopViewModel.observeSectionsAsState(
     inputState: UserInputState,
 ): State<List<Section>> {
-    val loops by loopsWithDoneToday.collectAsState(emptyList())
+    val loops by loopsWithDoneAll.collectAsState(emptyList())
     val yesterdayLoops by loopsNoResponseYesterday.collectAsState(initial = emptyList())
 
     return if (loops.isEmpty()) {
@@ -134,7 +135,7 @@ private fun rememberTodaySection(
     inputState: UserInputState,
 ): Section {
     val filtered = loops.filter {
-        it.isActiveDay() && it.doneState == LoopDoneVo.DoneState.NO_RESPONSE
+        it.isActiveDay() && it.isNotResponsed
     }
 
     val resultLoops = mutableListOf(*filtered.toTypedArray())
