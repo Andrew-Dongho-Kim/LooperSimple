@@ -19,7 +19,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
-import kotlin.math.roundToInt
 
 @Stable
 @HiltViewModel
@@ -47,16 +46,32 @@ class LoopViewModel @Inject constructor(
         val now = LocalDate.now()
         var count = 0L
         loops.forEach { loop ->
-            count += (now.toEpochDay() - loop.created.toLocalDate().toEpochDay())
+            count += (now.toEpochDay() - loop.created.toLocalDate().toEpochDay() + 1)
         }
         count
     }
     private val allResponseCount = loopRepository.allResponseCount
+    private val doneCount = loopRepository.doneCount
+    private val skipCount = loopRepository.skipCount
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val allResponseRate = allCount.flatMapLatest { all ->
         allResponseCount.map { response ->
-            (response.toFloat() / all.toFloat() * 100)
+            if (all > 0) (response.toFloat() / all.toFloat() * 100) else 100
+        }
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val doneRate = allCount.flatMapLatest { all ->
+        doneCount.map { doneCount ->
+            if (all > 0) (doneCount.toFloat() / all.toFloat() * 100) else 100
+        }
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val skipRate = allCount.flatMapLatest { all ->
+        skipCount.map { skipCount ->
+            if (all > 0) (skipCount.toFloat() / all.toFloat() * 100) else 100
         }
     }
 

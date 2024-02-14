@@ -65,6 +65,11 @@ fun LazyListScope.section(
     onEdit: (LoopBase) -> Unit,
 ) {
     when (section) {
+        is Section.Statistics -> sectionStatistics(
+            section = section,
+            loopViewModel = loopViewModel,
+        )
+
         is Section.Today -> sectionToday(
             section = section,
             loopViewModel = loopViewModel,
@@ -95,6 +100,24 @@ fun LazyListScope.section(
     }
 }
 
+private fun LazyListScope.sectionStatistics(
+    section: Section.Statistics,
+    loopViewModel: LoopViewModel,
+) {
+    item(
+        contentType = ContentTypes.STATISTICS_CARD,
+        key = section.key
+    ) {
+        StatisticsCard(
+            modifier = Modifier.padding(
+                horizontal = 12.dp,
+                vertical = 12.dp
+            ),
+            loopViewModel = loopViewModel
+        )
+    }
+}
+
 private fun LazyListScope.sectionYesterday(
     section: Section.Yesterday,
     loopViewModel: LoopViewModel,
@@ -103,7 +126,10 @@ private fun LazyListScope.sectionYesterday(
     if (loops.isEmpty()) return
 
     var isExpanded by section.isExpanded
-    item {
+    item(
+        contentType = ContentTypes.YESTERDAY_CARD,
+        key = section.key
+    ) {
         LoopYesterdayCard(
             loopViewModel = loopViewModel,
             loops = loops,
@@ -125,7 +151,10 @@ private fun LazyListScope.sectionToday(
     val loops by section.items
 
     if (isSelected) {
-        item {
+        item(
+            contentType = ContentTypes.LOOP_TIMELINE,
+            key = "",
+        ) {
             LoopTimeline(
                 loopViewModel = loopViewModel,
                 loops = loops,
@@ -136,8 +165,8 @@ private fun LazyListScope.sectionToday(
     } else {
         items(
             items = loops,
+            contentType = { ContentTypes.LOOP_CARD },
             key = { loop -> loop.id },
-            contentType = { ContentTypes.LOOP_CARD }
         ) { loop ->
             LoopCardWithOption(
                 modifier = Modifier.animateItemPlacement(),
@@ -151,8 +180,8 @@ private fun LazyListScope.sectionToday(
     }
 
     item(
-        contentType = ContentTypes.TODAY_HEADER,
-        key = section.headerKey
+        contentType = ContentTypes.TIMELINE_TOGGLE_BUTTON,
+        key = section.key
     ) {
         TimelineHeaderButton(
             isSelected = isSelected,
@@ -220,8 +249,8 @@ private fun LazyListScope.sectionAd(
     section: Section.Ad
 ) {
     item(
-        key = section.headerKey,
-        contentType = ContentTypes.AD_CARD
+        contentType = ContentTypes.AD_CARD,
+        key = section.key,
     ) {
         ExpandableNativeAd(
             modifier = Modifier.padding(
@@ -240,8 +269,8 @@ private fun LazyListScope.sectionDoneSkip(
     onNavigateToHistoryPage: () -> Unit,
 ) {
     item(
-        key = section.headerKey,
-        contentType = ContentTypes.LOOP_SUMMARY_CARD
+        contentType = ContentTypes.DONE_SKIP_CARD,
+        key = section.key,
     ) {
         LoopDoneSkipCard(
             modifier = Modifier.padding(
@@ -263,8 +292,8 @@ private fun LazyListScope.sectionLater(
 ) {
     var isExpanded by section.isExpanded
     item(
-        key = section.headerKey,
-        contentType = ContentTypes.LATER_HEADER
+        contentType = ContentTypes.LATER_HEADER,
+        key = section.key,
     ) {
         ExpandableHeader(
             modifier = Modifier.padding(top = 8.dp),
@@ -278,8 +307,8 @@ private fun LazyListScope.sectionLater(
     val loops by section.items
     items(
         items = loops,
+        contentType = { ContentTypes.LOOP_CARD },
         key = { loop -> loop.id },
-        contentType = { ContentTypes.LOOP_CARD }
     ) { loop ->
         AnimatedVisibility(
             visible = isExpanded,
@@ -340,23 +369,30 @@ private fun ExpandableHeader(
 }
 
 enum class ContentTypes {
+    STATISTICS_CARD,
+    TIMELINE_TOGGLE_BUTTON,
+    LOOP_TIMELINE,
     LATER_HEADER,
-    TODAY_HEADER,
+    YESTERDAY_CARD,
     LOOP_CARD,
-    LOOP_SUMMARY_CARD,
+    DONE_SKIP_CARD,
     AD_CARD,
 }
 
-sealed class Section(val headerKey: String) {
+sealed class Section(val key: String) {
     val items = mutableStateOf<List<LoopBase>>(emptyList())
 
     open val size
         get() = items.value.size
 
+    class Statistics : Section(key = "StatisticsCard") {
+        override val size = 1
+    }
+
     class Yesterday(
         isSelected: Boolean = false
     ) : Section(
-        headerKey = "YesterdaySection",
+        key = "YesterdaySection",
     ) {
         val isExpanded = mutableStateOf(isSelected)
 
@@ -380,7 +416,7 @@ sealed class Section(val headerKey: String) {
         val showActiveDays: Boolean,
         isSelected: Boolean = false
     ) : Section(
-        headerKey = "TodaySection"
+        key = "TodaySection"
     ) {
         val isSelected = mutableStateOf(isSelected)
 
@@ -403,13 +439,13 @@ sealed class Section(val headerKey: String) {
     }
 
     class Ad : Section(
-        headerKey = "AdSection"
+        key = "AdSection"
     ) {
         override val size = 1
     }
 
     class DoneSkip : Section(
-        headerKey = "DoneSkipSection"
+        key = "DoneSkipSection"
     )
 
     class Later(
@@ -417,7 +453,7 @@ sealed class Section(val headerKey: String) {
         val showActiveDays: Boolean,
         isExpanded: Boolean = false
     ) : Section(
-        headerKey = "LaterSection"
+        key = "LaterSection"
     ) {
 
         val isExpanded = mutableStateOf(isExpanded)

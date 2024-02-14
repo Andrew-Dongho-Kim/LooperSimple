@@ -52,7 +52,6 @@ import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.TimeStat
 import com.pnd.android.loop.data.timeStatAsFlow
-import com.pnd.android.loop.ui.common.ExpandableNativeAd
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.RoundShapes
@@ -127,11 +126,18 @@ private fun DetailPageContent(
         )
         DoneHistoryGrid(
             modifier = modifier
-                .padding(top = 24.dp)
+                .padding(top = 18.dp)
                 .fillMaxWidth()
                 .height(224.dp),
             detailViewModel = detailViewModel,
             loop = loop,
+        )
+        LoopResponseRate(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 18.dp),
+            detailViewModel = detailViewModel,
+            created = loop.created,
         )
 //        ExpandableNativeAd(
 //            modifier = Modifier.padding(top = 16.dp),
@@ -235,6 +241,82 @@ private fun LoopStartAndEndTime(
                 )
             )
         }
+    }
+}
+
+@Composable
+private fun LoopResponseRate(
+    modifier: Modifier = Modifier,
+    detailViewModel: LoopDetailViewModel,
+    created: Long
+) {
+    val createdDate = created.toLocalDate()
+    val duration = LocalDate.now().toEpochDay() - createdDate.toEpochDay() + 1
+    Column(modifier = modifier) {
+        val responseCount by detailViewModel.responseCount.collectAsState(initial = 0)
+        LoopRate(
+            text = stringResource(id = R.string.response_rate),
+            rate = (responseCount.toFloat() / duration) * 100,
+            count = responseCount,
+        )
+
+        LoopDoneSkipRate(
+            modifier = Modifier.padding(top = 8.dp),
+            detailViewModel = detailViewModel,
+            duration = duration
+        )
+    }
+}
+
+@Composable
+private fun LoopDoneSkipRate(
+    modifier: Modifier = Modifier,
+    detailViewModel: LoopDetailViewModel,
+    duration: Long
+) {
+    Row(modifier = modifier) {
+        val doneCount by detailViewModel.doneCount.collectAsState(initial = 0)
+        LoopRate(
+            modifier = Modifier.weight(1f),
+            text = stringResource(id = R.string.done_rate),
+            rate = (doneCount.toFloat() / duration) * 100,
+            count = doneCount,
+        )
+
+        val skipCount by detailViewModel.skipCount.collectAsState(initial = 0)
+        LoopRate(
+            modifier = Modifier.weight(1f),
+            text = stringResource(id = R.string.skip_rate),
+            rate = (skipCount.toFloat() / duration) * 100,
+            count = skipCount,
+        )
+    }
+}
+
+@Composable
+private fun LoopRate(
+    modifier: Modifier = Modifier,
+    text: String,
+    rate: Float,
+    count: Int
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "$text: ",
+            style = AppTypography.subtitle1.copy(
+                color = AppColor.onSurface
+            )
+        )
+
+        Text(
+            text = String.format("%.2f%%(%d)", rate, count),
+            style = AppTypography.body1.copy(
+                color = AppColor.onSurface
+            )
+        )
     }
 }
 

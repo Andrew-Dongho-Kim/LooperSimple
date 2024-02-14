@@ -107,6 +107,7 @@ private fun LoopViewModel.observeSectionsAsState(
         }
 
         val sections = mutableListOf(
+            rememberStatisticsSection(),
             rememberTodaySection(resultLoops, inputState),
             rememberYesterdaySection(yesterdayLoops),
             rememberAdSection(),
@@ -117,6 +118,9 @@ private fun LoopViewModel.observeSectionsAsState(
         remember(sections) { mutableStateOf(sections) }
     }
 }
+
+@Composable
+private fun rememberStatisticsSection(): Section = remember { Section.Statistics() }
 
 @Composable
 private fun rememberYesterdaySection(

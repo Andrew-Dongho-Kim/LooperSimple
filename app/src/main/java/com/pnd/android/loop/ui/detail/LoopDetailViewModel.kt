@@ -21,8 +21,12 @@ class LoopDetailViewModel @Inject constructor(
     private val loopId: Int = savedStateHandle[Screen.ARGS_ID] ?: -1
 
     private val loopDao = appDb.loopDao()
+    private val loopDoneDao = appDb.loopDoneDao()
 
     val loop = loopDao.flowLoop(loopId)
+    val responseCount = loopDoneDao.flowResponseCount(loopId)
+    val doneCount = loopDoneDao.flowDoneCount(loopId)
+    val skipCount = loopDoneDao.flowSkipCount(loopId)
 
     val donePager = Pager(
         PagingConfig(pageSize = PAGE_SIZE),

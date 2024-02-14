@@ -101,12 +101,6 @@ fun LoopCard(
         )
     }
     Box(modifier = modifier.graphicsLayer { this.alpha = animateAlpha }) {
-//        LoopCardTag(
-//            modifier = Modifier
-//                .padding(start = 30.dp, top = 6.dp)
-//                .size(14.dp)
-//        )
-
         val cardShape = remember { CircularPolygonShape(12.dp) }
         Card(
             modifier = Modifier

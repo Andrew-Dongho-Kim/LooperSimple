@@ -15,7 +15,6 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
@@ -37,7 +36,6 @@ import com.pnd.android.loop.data.LoopWithDone
 import com.pnd.android.loop.ui.common.isLargeScreen
 import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.theme.AppColor
-import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
@@ -64,10 +62,6 @@ fun LoopDoneSkipCard(
     }
 
     Column(modifier = modifier) {
-        ResponseRate(
-            modifier = Modifier.padding(start = 28.dp),
-            loopViewModel = loopViewModel
-        )
         DoneSkipContent(
             loops = loopGroup[DoneState.DONE] ?: emptyList(),
             title = stringResource(id = R.string.done),
@@ -87,34 +81,6 @@ fun LoopDoneSkipCard(
             onNavigateToDetailPage = onNavigateToDetailPage,
             onNavigateToHistoryPage = onNavigateToHistoryPage,
             onUndoDoneState = onUndoDoneState,
-        )
-    }
-
-}
-
-
-@Composable
-private fun ResponseRate(
-    modifier: Modifier = Modifier,
-    loopViewModel: LoopViewModel,
-) {
-    Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = stringResource(id = R.string.response_rate) + ": ",
-            style = AppTypography.body1.copy(
-                color = AppColor.onSurface
-            )
-        )
-
-        val responseRate by loopViewModel.allResponseRate.collectAsState(initial = 0f)
-        Text(
-            text = String.format("%.2f%%", responseRate),
-            style = AppTypography.body1.copy(
-                color = AppColor.primary
-            )
         )
     }
 }

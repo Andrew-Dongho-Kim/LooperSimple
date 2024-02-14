@@ -65,7 +65,22 @@ interface LoopDoneDao {
     ): List<LoopDoneVo>
 
     @Query("SELECT COUNT(*) FROM loop_done where done != $NO_RESPONSE")
-    fun flowDataDoneOrSkipCount(): Flow<Int>
+    fun flowResponseCount(): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM loop_done where done != $NO_RESPONSE AND loopId=:loopId")
+    fun flowResponseCount(loopId:Int): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM loop_done where done == $DONE")
+    fun flowDoneCount(): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM loop_done where done == $DONE AND loopId=:loopId")
+    fun flowDoneCount(loopId:Int): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM loop_done where done == $SKIP")
+    fun flowSkipCount(): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM loop_done where done == $SKIP AND loopId=:loopId")
+    fun flowSkipCount(loopId: Int): Flow<Int>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun addOrUpdate(doneVo: LoopDoneVo)
