@@ -13,6 +13,7 @@ import com.pnd.android.loop.common.log
 import com.pnd.android.loop.data.AppDatabase
 import com.pnd.android.loop.data.Day
 import com.pnd.android.loop.data.LoopBase
+import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.NO_REPEAT
 import com.pnd.android.loop.data.asLoop
 import com.pnd.android.loop.data.asLoopVo
@@ -22,11 +23,13 @@ import com.pnd.android.loop.util.dayForLoop
 import com.pnd.android.loop.util.dh2m2
 import com.pnd.android.loop.util.isActiveDay
 import com.pnd.android.loop.util.isActiveTime
+import com.pnd.android.loop.util.toLocalDate
 import com.pnd.android.loop.util.toMs
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalTime
@@ -42,6 +45,7 @@ class AlarmController @Inject constructor(
 
     private val coroutineScope = CoroutineScope(SupervisorJob())
     private val loopDao = appDb.loopDao()
+    private val loopDoneDao = appDb.loopDoneDao()
 
     @VisibleForTesting
     fun notifyAfter(loop: LoopBase): Long {
@@ -87,23 +91,49 @@ class AlarmController @Inject constructor(
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
             )
 
-        alarmManager.setExact(
-            AlarmManager.ELAPSED_REALTIME_WAKEUP,
-            systemElapsed + after,
-            pendingIntent
-        )
+        if (alarmManager.canScheduleExactAlarms()) {
+            alarmManager.setExact(
+                AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                systemElapsed + after,
+                pendingIntent
+            )
+        }
     }
 
     fun syncAlarms() {
         logger.d { "start sync" }
         coroutineScope.launch {
             loopDao.allLoops().forEach { loop ->
+                fillNoResponse(loop)
                 if (loop.enabled) {
                     reserveAlarm(loop = loop)
                 } else {
                     cancelAlarm(loop)
                 }
             }
+            reserveAlarm(loop = LoopBase.midnight())
+        }
+    }
+
+    private suspend fun fillNoResponse(loop: LoopBase) {
+        val now = LocalDate.now()
+        var date = now.minusDays(1L)
+
+        while (date.isBefore(now)) {
+            if (!loop.isActiveDay(date)) {
+                date = date.plusDays(1)
+                continue
+            }
+
+            loopDoneDao.addIfAbsent(
+                LoopDoneVo(
+                    loopId = loop.id,
+                    date = date.toMs(),
+                    done = LoopDoneVo.DoneState.NO_RESPONSE
+                )
+            )
+
+            date = date.plusDays(1)
         }
     }
 
@@ -161,9 +191,15 @@ class AlarmController @Inject constructor(
             }
 
             val today = dayForLoop(LocalDate.now())
+
             val isAllowedDay = loop.isActiveDay()
             val isAllowedTime = loop.isActiveTime()
-            if (isAllowedDay && isAllowedTime) {
+            val isMock = loop.isMock
+            if (isMock) {
+                if (loop.id == LoopBase.MIDNIGHT_RESERVATION_ID) {
+                    alarmController.syncAlarms()
+                }
+            } else if (isAllowedDay && isAllowedTime) {
                 notificationHelper.notify(loop)
             }
 

@@ -78,6 +78,7 @@ class LoopRepository @Inject constructor(
         loops.filter { loop -> loop.isNotResponsed && loop.isActiveDay() }.size
     }
 
+    val allCount = loopDoneDao.flowAllCount()
     val allResponseCount = loopDoneDao.flowResponseCount()
     val doneCount = loopDoneDao.flowDoneCount()
     val skipCount = loopDoneDao.flowSkipCount()

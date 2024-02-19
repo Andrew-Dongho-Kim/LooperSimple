@@ -64,26 +64,38 @@ interface LoopDoneDao {
         to: Long
     ): List<LoopDoneVo>
 
-    @Query("SELECT COUNT(*) FROM loop_done where done != $NO_RESPONSE")
+    @Query("SELECT COUNT(*) FROM loop_done")
+    fun flowAllCount(): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM loop_done WHERE loopId=:loopId")
+    fun flowAllCount(loopId:Int): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM loop_done WHERE done != $NO_RESPONSE")
     fun flowResponseCount(): Flow<Int>
 
-    @Query("SELECT COUNT(*) FROM loop_done where done != $NO_RESPONSE AND loopId=:loopId")
-    fun flowResponseCount(loopId:Int): Flow<Int>
+    @Query("SELECT COUNT(*) FROM loop_done WHERE done != $NO_RESPONSE AND loopId=:loopId")
+    fun flowResponseCount(loopId: Int): Flow<Int>
 
-    @Query("SELECT COUNT(*) FROM loop_done where done == $DONE")
+    @Query("SELECT COUNT(*) FROM loop_done WHERE done == $DONE")
     fun flowDoneCount(): Flow<Int>
 
-    @Query("SELECT COUNT(*) FROM loop_done where done == $DONE AND loopId=:loopId")
-    fun flowDoneCount(loopId:Int): Flow<Int>
+    @Query("SELECT COUNT(*) FROM loop_done WHERE done == $DONE AND loopId=:loopId")
+    fun flowDoneCount(loopId: Int): Flow<Int>
 
-    @Query("SELECT COUNT(*) FROM loop_done where done == $SKIP")
+    @Query("SELECT COUNT(*) FROM loop_done WHERE done == $SKIP")
     fun flowSkipCount(): Flow<Int>
 
-    @Query("SELECT COUNT(*) FROM loop_done where done == $SKIP AND loopId=:loopId")
+    @Query("SELECT COUNT(*) FROM loop_done WHERE done == $SKIP AND loopId=:loopId")
     fun flowSkipCount(loopId: Int): Flow<Int>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun addOrUpdate(doneVo: LoopDoneVo)
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun addIfAbsent(doneVo: LoopDoneVo)
+
+    @Query("DELETE FROM loop_done WHERE done==$NO_RESPONSE")
+    suspend fun deleteNoResponseAll()
 
     suspend fun addOrUpdate(
         loop: LoopBase,

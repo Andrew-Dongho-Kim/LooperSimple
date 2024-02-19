@@ -8,6 +8,9 @@ import com.pnd.android.loop.data.AppDatabase
 import com.pnd.android.loop.data.DonePagingSource
 import com.pnd.android.loop.ui.Screen
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 private const val PAGE_SIZE = 150
@@ -24,9 +27,11 @@ class LoopDetailViewModel @Inject constructor(
     private val loopDoneDao = appDb.loopDoneDao()
 
     val loop = loopDao.flowLoop(loopId)
+    val allCount = loopDoneDao.flowAllCount(loopId)
     val responseCount = loopDoneDao.flowResponseCount(loopId)
     val doneCount = loopDoneDao.flowDoneCount(loopId)
     val skipCount = loopDoneDao.flowSkipCount(loopId)
+
 
     val donePager = Pager(
         PagingConfig(pageSize = PAGE_SIZE),

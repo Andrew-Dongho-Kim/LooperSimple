@@ -17,6 +17,7 @@ import com.pnd.android.loop.data.Day.Companion.WEEKENDS
 import com.pnd.android.loop.util.h2m2
 import com.pnd.android.loop.util.intervalString
 import com.pnd.android.loop.util.toMs
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.util.concurrent.TimeUnit
@@ -64,6 +65,14 @@ interface LoopBase {
 
     companion object {
         fun default(isMock: Boolean = false): LoopBase = LoopImpl(isMock = isMock)
+
+        const val MIDNIGHT_RESERVATION_ID = -10
+        fun midnight(): LoopBase = LoopImpl(
+            id = MIDNIGHT_RESERVATION_ID,
+            loopStart = LocalDate.now().plusDays(1L).toMs(),
+            loopEnd = LocalDate.now().plusDays(1L).toMs(),
+            isMock = true
+        )
 
         val SUPPORTED_COLORS = listOf(
             DEFAULT_COLOR, 0xff0000cc.toInt(), 0xff3333ff.toInt(),
@@ -164,7 +173,10 @@ fun Map<String, Any?>.asLoop(): LoopBase {
         created = (getOrDefault(EXTRA_LOOP_CREATED, defaultCreated) as Number).toLong(),
         loopStart = (getOrDefault(EXTRA_LOOP_START, defaultLoopStart) as Number).toLong(),
         loopEnd = (getOrDefault(EXTRA_LOOP_END, defaultLoopEnd) as Number).toLong(),
-        loopActiveDays = (getOrDefault(EXTRA_LOOP_ACTIVE_DAYS, DEFAULT_ACTIVE_DAYS) as Number).toInt(),
+        loopActiveDays = (getOrDefault(
+            EXTRA_LOOP_ACTIVE_DAYS,
+            DEFAULT_ACTIVE_DAYS
+        ) as Number).toInt(),
         interval = (getOrDefault(EXTRA_LOOP_INTERVAL, DEFAULT_INTERVAL) as Number).toLong(),
         enabled = getOrDefault(EXTRA_LOOP_ENABLED, DEFAULT_ENABLED) as Boolean,
         isMock = getOrDefault(EXTRA_LOOP_IS_MOCK, DEFAULT_IS_MOCK) as Boolean,

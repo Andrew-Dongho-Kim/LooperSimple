@@ -251,8 +251,8 @@ private fun LoopResponseRate(
     created: Long
 ) {
     val createdDate = created.toLocalDate()
-    val duration = LocalDate.now().toEpochDay() - createdDate.toEpochDay() + 1
     Column(modifier = modifier) {
+        val duration by detailViewModel.allCount.collectAsState(initial = 0)
         val responseCount by detailViewModel.responseCount.collectAsState(initial = 0)
         LoopRate(
             text = stringResource(id = R.string.response_rate),
@@ -272,7 +272,7 @@ private fun LoopResponseRate(
 private fun LoopDoneSkipRate(
     modifier: Modifier = Modifier,
     detailViewModel: LoopDetailViewModel,
-    duration: Long
+    duration: Int
 ) {
     Row(modifier = modifier) {
         val doneCount by detailViewModel.doneCount.collectAsState(initial = 0)

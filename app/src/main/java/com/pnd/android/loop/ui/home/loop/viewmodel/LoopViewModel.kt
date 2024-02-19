@@ -8,7 +8,6 @@ import com.pnd.android.loop.common.log
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.LoopVo
-import com.pnd.android.loop.util.toLocalDate
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
@@ -42,14 +41,7 @@ class LoopViewModel @Inject constructor(
     val countInActive = loopRepository.countInActive
     val countInTodayRemain = loopRepository.countInTodayRemain
 
-    private val allCount = loopsWithDoneAll.map { loops ->
-        val now = LocalDate.now()
-        var count = 0L
-        loops.forEach { loop ->
-            count += (now.toEpochDay() - loop.created.toLocalDate().toEpochDay() + 1)
-        }
-        count
-    }
+    private val allCount = loopRepository.allCount
     private val allResponseCount = loopRepository.allResponseCount
     private val doneCount = loopRepository.doneCount
     private val skipCount = loopRepository.skipCount
