@@ -4,7 +4,7 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.material.Surface
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
@@ -52,7 +52,7 @@ fun Selectors(
     Surface(
         modifier = modifier,
         color = compositeOverSurface(),
-        elevation = 3.dp
+        shadowElevation = 3.dp
     ) {
         Selector(
             inputState = inputState,

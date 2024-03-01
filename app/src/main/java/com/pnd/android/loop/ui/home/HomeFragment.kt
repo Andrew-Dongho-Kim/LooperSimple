@@ -32,9 +32,6 @@ class HomeFragment : Fragment() {
             ) {
                 AppTheme {
                     AppNavHost(
-                        // Add padding so that we are inset from any left/right navigation bars
-                        // (usually shown when in landscape orientation)
-//                        modifier = Modifier.navigationBarsPadding(),
                         loopViewModel = loopViewModel
                     )
                 }

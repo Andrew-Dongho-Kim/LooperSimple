@@ -1,6 +1,6 @@
 package com.pnd.android.loop.ui.theme
 
-import androidx.compose.material.Typography
+import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -21,68 +21,68 @@ private val KarlaFontFamily = FontFamily(
 )
 
 val AppTypography = Typography(
-    defaultFontFamily = MontserratFontFamily,
-    h1 = TextStyle(
+//    defaultFontFamily = MontserratFontFamily,
+    displayLarge = TextStyle(
         fontWeight = FontWeight.Light,
         fontSize = 94.sp,
         letterSpacing = (-1.5).sp
     ),
-    h2 = TextStyle(
+    displayMedium = TextStyle(
         fontWeight = FontWeight.Light,
         fontSize = 58.sp,
         letterSpacing = (-0.5).sp
     ),
-    h3 = TextStyle(
+    displaySmall = TextStyle(
         fontWeight = FontWeight.Normal,
         fontSize = 46.sp,
         letterSpacing = 0.sp
     ),
-    h4 = TextStyle(
+    headlineLarge = TextStyle(
         fontWeight = FontWeight.SemiBold,
         fontSize = 28.sp,
         letterSpacing = 0.sp
     ),
-    h5 = TextStyle(
+    headlineMedium = TextStyle(
         fontWeight = FontWeight.SemiBold,
         fontSize = 22.sp,
         letterSpacing = 0.sp
     ),
-    h6 = TextStyle(
+    headlineSmall = TextStyle(
         fontWeight = FontWeight.SemiBold,
         fontSize = 18.sp,
         letterSpacing = 0.sp
     ),
-    subtitle1 = TextStyle(
+    titleMedium = TextStyle(
         fontWeight = FontWeight.SemiBold,
         fontSize = 16.sp,
         letterSpacing = 0.5.sp
     ),
-    subtitle2 = TextStyle(
+    titleSmall = TextStyle(
         fontWeight = FontWeight.Bold,
         fontSize = 15.sp,
         letterSpacing = 0.25.sp
     ),
-    body1 = TextStyle(
+    bodyMedium = TextStyle(
         fontWeight = FontWeight.Normal,
         fontSize = 14.sp,
         letterSpacing = 0.25.sp,
     ),
-    body2 = TextStyle(
+    bodySmall = TextStyle(
         fontWeight = FontWeight.Medium,
         fontSize = 12.sp,
         letterSpacing = 0.25.sp
     ),
-    button = TextStyle(
+    labelLarge = TextStyle(
         fontWeight = FontWeight.SemiBold,
         fontSize = 12.sp,
         letterSpacing = 1.25.sp
     ),
-    caption = TextStyle(
+    labelMedium = TextStyle(
         fontWeight = FontWeight.Bold,
         fontSize = 11.sp,
         letterSpacing = 0.15.sp
     ),
-    overline = TextStyle(
+    labelSmall = TextStyle(
         fontWeight = FontWeight.SemiBold,
         fontSize = 11.sp,
         letterSpacing = 1.sp

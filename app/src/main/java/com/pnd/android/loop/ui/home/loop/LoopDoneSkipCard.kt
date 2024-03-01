@@ -8,12 +8,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.ContentAlpha
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -36,6 +35,7 @@ import com.pnd.android.loop.data.LoopWithDone
 import com.pnd.android.loop.ui.common.isLargeScreen
 import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.theme.AppColor
+import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
@@ -153,7 +153,7 @@ private fun DoneSkipHeader(
     ) {
         Text(
             text = "($itemCount) $title",
-            style = MaterialTheme.typography.subtitle1.copy(
+            style = AppTypography.titleMedium.copy(
                 color = AppColor.onSurface,
                 fontWeight = FontWeight.Bold
             )
@@ -220,7 +220,7 @@ private fun DoneSkipItemTitle(
     Text(
         modifier = modifier,
         text = title,
-        style = MaterialTheme.typography.body1.copy(
+        style = AppTypography.bodyMedium.copy(
             color = AppColor.onSurface,
         ),
         maxLines = 1,
@@ -241,7 +241,7 @@ private fun DoneSkipItemStartAndEndTime(
                 withAmPm = true
             )
         })",
-        style = MaterialTheme.typography.body2.copy(
+        style = AppTypography.bodySmall.copy(
             color = AppColor.onSurface.copy(
                 alpha = ContentAlpha.disabled
             ),

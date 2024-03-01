@@ -7,8 +7,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.Icon
-import androidx.compose.material.TopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -19,10 +21,11 @@ import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.onSurface
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppBar(
     modifier: Modifier = Modifier,
-    navigationIcon: @Composable (() -> Unit)? = null,
+    navigationIcon: @Composable (() -> Unit) = {},
     title: @Composable RowScope.() -> Unit,
     actions: @Composable RowScope.() -> Unit = {}
 ) {
@@ -30,9 +33,9 @@ fun AppBar(
         modifier = modifier,
     ) {
         TopAppBar(
-            backgroundColor = Color.Transparent,
-            elevation = 0.dp, // No shadow needed
-            contentColor = AppColor.onSurface,
+            colors = TopAppBarDefaults.topAppBarColors(
+                titleContentColor = AppColor.onSurface
+            ),
             navigationIcon = navigationIcon,
             actions = actions,
             title = { Row { title() } },

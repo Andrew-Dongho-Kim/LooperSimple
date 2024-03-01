@@ -147,7 +147,7 @@ private fun LoopDetailAndOption(
                 .padding(top = 8.dp)
                 .padding(horizontal = 12.dp),
             text = loop.title,
-            style = AppTypography.body1.copy(color = AppColor.onSurface)
+            style = AppTypography.bodyMedium .copy(color = AppColor.onSurface)
         )
         LoopOptions(
             modifier = modifier.padding(top = 8.dp),

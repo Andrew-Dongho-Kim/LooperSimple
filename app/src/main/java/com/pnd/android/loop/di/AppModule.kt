@@ -9,6 +9,7 @@ import com.pnd.android.loop.alarm.AlarmController
 import com.pnd.android.loop.alarm.notification.NotificationHelper
 import com.pnd.android.loop.data.AppDatabase
 import com.pnd.android.loop.data.MIGRATION_1_2
+import com.pnd.android.loop.data.MIGRATION_2_3
 import com.pnd.android.loop.ui.home.loop.viewmodel.LoopRepository
 import dagger.Module
 import dagger.Provides
@@ -27,6 +28,7 @@ class AppModule {
         AppDatabase::class.java,
         "app_db"
     ).addMigrations(MIGRATION_1_2)
+        .addMigrations(MIGRATION_2_3)
         .enableMultiInstanceInvalidation()
         .build()
 

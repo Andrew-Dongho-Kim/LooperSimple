@@ -27,13 +27,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.Card
 import androidx.compose.material.ContentAlpha
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Done
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -68,6 +68,7 @@ import com.pnd.android.loop.data.timeStatAsFlow
 import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.shape.CircularPolygonShape
 import com.pnd.android.loop.ui.theme.AppColor
+import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.ui.theme.surface
@@ -93,7 +94,7 @@ fun LoopCard(
     val animateAlpha = animateCardAlphaWithMock(loopBase = loop)
 
     val primary = AppColor.primary.copy(alpha = ContentAlpha.medium)
-    val surface = AppColor.onSurface.copy(alpha = 0.4f)
+    val surface = AppColor.onSurface.copy(alpha = 0.45f)
     val border = remember(isMock, loop.color) {
         BorderStroke(
             width = if (isMock) 1.dp else 0.5.dp,
@@ -113,6 +114,10 @@ fun LoopCard(
                 .clickable(enabled = !loop.isMock) {
                     onNavigateToDetailPage(loop)
                 },
+            colors = CardDefaults.cardColors(
+                containerColor = AppColor.surface,
+                contentColor = AppColor.onSurface,
+            ),
             shape = cardShape,
             border = border
         ) {
@@ -359,7 +364,7 @@ private fun LoopCardTitle(
     Text(
         modifier = modifier,
         text = title,
-        style = MaterialTheme.typography.body1.copy(
+        style = AppTypography.bodyMedium.copy(
             color = colorBody1Text(),
             fontWeight = FontWeight.Bold
         ),
@@ -384,7 +389,7 @@ private fun LoopCardInterval(
                 )
             )
         },
-        style = MaterialTheme.typography.caption.copy(color = colorBody2Text()),
+        style = AppTypography.labelMedium.copy(color = colorBody2Text()),
         modifier = modifier,
     )
 }
@@ -407,7 +412,7 @@ private fun LoopCardStartEndTime(
     Text(
         modifier = modifier,
         text = timeText,
-        style = MaterialTheme.typography.caption.copy(color = colorBody2Text()),
+        style = AppTypography.labelMedium.copy(color = colorBody2Text()),
     )
 }
 
@@ -442,7 +447,7 @@ private fun LoopCardActiveDaysPronoun(
     Text(
         modifier = modifier.padding(end = 2.dp),
         text = stringResource(DAY_STRING_MAP[loop.loopActiveDays]!!),
-        style = MaterialTheme.typography.caption.copy(
+        style = AppTypography.labelMedium.copy(
             color = AppColor.primary
         )
     )
@@ -494,7 +499,7 @@ private fun ActiveDayText(
         Text(
             modifier = Modifier,
             text = dayText,
-            style = MaterialTheme.typography.caption.copy(
+            style = AppTypography.labelMedium.copy(
                 color = rememberDayColor(day = day).copy(
                     alpha = if (selected) ContentAlpha.high else ContentAlpha.disabled,
                 ),

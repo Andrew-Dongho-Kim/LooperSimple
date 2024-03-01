@@ -2,7 +2,8 @@ package com.pnd.android.loop.ui.theme
 
 import androidx.compose.material.Colors
 import androidx.compose.material.LocalElevationOverlay
-import androidx.compose.material.MaterialTheme
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material.MaterialTheme as MT
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
@@ -82,10 +83,11 @@ val Purple700 = Color(0xFF3700B3)
 val Teal200 = Color(0xFF03DAC5)
 
 
+
 @Composable
 fun compositeOverSurface(): Color {
-    return MaterialTheme.colors.compositedOnSurface(
-        if (MaterialTheme.colors.isLight) 0.05f else 0.1f
+    return MT.colors.compositedOnSurface(
+        if (MT.colors.isLight) 0.05f else 0.1f
     )
 }
 
@@ -112,15 +114,15 @@ fun Colors.elevatedSurface(elevation: Dp): Color {
 object AppColor
 
 val AppColor.primary
-    @Composable get() = MaterialTheme.colors.primary
+    @Composable get() = MaterialTheme.colorScheme.primary
 val AppColor.error
-    @Composable get() = MaterialTheme.colors.error
+    @Composable get() = MaterialTheme.colorScheme.error
 val AppColor.background
-    @Composable get() = MaterialTheme.colors.background //onSurface.copy(alpha = 0.02f)
+    @Composable get() = MaterialTheme.colorScheme.background //onSurface.copy(alpha = 0.02f)
 val AppColor.surface
-    @Composable get() = MaterialTheme.colors.surface
+    @Composable get() = MaterialTheme.colorScheme.surface
 
 val AppColor.onSurfaceLight get() = Black99
 val AppColor.onSurfaceDark get() = White99
 val AppColor.onSurface
-    @Composable get() = MaterialTheme.colors.onSurface
+    @Composable get() = MaterialTheme.colorScheme.onSurface

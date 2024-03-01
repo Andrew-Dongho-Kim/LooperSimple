@@ -5,6 +5,7 @@ import androidx.compose.runtime.Immutable
 import androidx.room.Dao
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.ForeignKey.Companion.CASCADE
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
@@ -24,7 +25,8 @@ import java.time.ZoneId
         ForeignKey(
             entity = LoopVo::class,
             parentColumns = ["id"],
-            childColumns = ["loopId"]
+            childColumns = ["loopId"],
+            onDelete = CASCADE
         )
     ]
 )
@@ -68,7 +70,13 @@ interface LoopDoneDao {
     fun flowAllCount(): Flow<Int>
 
     @Query("SELECT COUNT(*) FROM loop_done WHERE loopId=:loopId")
-    fun flowAllCount(loopId:Int): Flow<Int>
+    fun flowAllCount(loopId: Int): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM loop_done WHERE loopId=:loopId AND :from >= date")
+    suspend fun allCountBefore(loopId: Int, from: Long): Int
+
+    @Query("SELECT COUNT(*) FROM loop_done WHERE loopId=:loopId AND :from <= date AND date <= :to")
+    suspend fun allCountBetween(loopId: Int, from: Long, to: Long): Int
 
     @Query("SELECT COUNT(*) FROM loop_done WHERE done != $NO_RESPONSE")
     fun flowResponseCount(): Flow<Int>
@@ -81,6 +89,12 @@ interface LoopDoneDao {
 
     @Query("SELECT COUNT(*) FROM loop_done WHERE done == $DONE AND loopId=:loopId")
     fun flowDoneCount(loopId: Int): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM loop_done WHERE done == $DONE AND loopId=:loopId AND :from >= date")
+    suspend fun doneCountBefore(loopId: Int, from: Long): Int
+
+    @Query("SELECT COUNT(*) FROM loop_done WHERE done == $DONE AND loopId=:loopId AND :from <= date AND date <= :to")
+    suspend fun doneCountBetween(loopId: Int, from: Long, to: Long): Int
 
     @Query("SELECT COUNT(*) FROM loop_done WHERE done == $SKIP")
     fun flowSkipCount(): Flow<Int>

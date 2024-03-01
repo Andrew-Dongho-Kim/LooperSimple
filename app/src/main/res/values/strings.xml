@@ -16,6 +16,7 @@
     <string name="delete">Delete</string>
     <string name="done">DONE</string>
     <string name="skip">SKIP</string>
+    <string name="no_response">No Response</string>
     <string name="restore">Restore</string>
     <string name="later">Later</string>
     <string name="start">Start</string>

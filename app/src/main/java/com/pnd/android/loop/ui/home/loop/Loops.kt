@@ -9,11 +9,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material.ContentAlpha
-import androidx.compose.material.LocalContentAlpha
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -22,15 +19,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.stringResource
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
-import com.pnd.android.loop.data.LoopDoneVo
-import com.pnd.android.loop.data.doneState
-import com.pnd.android.loop.data.isNotResponsed
+import com.pnd.android.loop.data.isNotRespond
+import com.pnd.android.loop.data.isRespond
 import com.pnd.android.loop.ui.home.loop.input.UserInputState
 import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.theme.AppColor
+import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.background
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.util.isActiveDay
@@ -78,14 +76,13 @@ fun EmptyLoops(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.medium) {
-            Text(
-                text = stringResource(R.string.desc_no_loops),
-                style = MaterialTheme.typography.subtitle1.copy(
-                    color = AppColor.onSurface
-                )
+        Text(
+            modifier = Modifier.alpha(ContentAlpha.medium),
+            text = stringResource(R.string.desc_no_loops),
+            style = AppTypography.titleMedium.copy(
+                color = AppColor.onSurface
             )
-        }
+        )
     }
 }
 
@@ -139,7 +136,7 @@ private fun rememberTodaySection(
     inputState: UserInputState,
 ): Section {
     val filtered = loops.filter {
-        it.isActiveDay() && it.isNotResponsed
+        it.isActiveDay() && it.isNotRespond
     }
 
     val resultLoops = mutableListOf(*filtered.toTypedArray())
@@ -162,7 +159,7 @@ private fun rememberDoneSection(loops: List<LoopBase>) = remember {
     Section.DoneSkip()
 }.apply {
     items.value =
-        loops.filter { it.isActiveDay() && it.doneState != LoopDoneVo.DoneState.NO_RESPONSE }
+        loops.filter { it.isActiveDay() && it.isRespond }
 }
 
 @Composable

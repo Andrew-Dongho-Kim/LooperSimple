@@ -7,9 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.ContentAlpha
-import androidx.compose.material.LocalTextStyle
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -22,6 +20,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.ui.theme.AppColor
+import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.onSurface
 
 
@@ -75,7 +74,7 @@ private fun UserInputTextField(
         ),
         maxLines = 1,
         cursorBrush = SolidColor(AppColor.onSurface),
-        textStyle = LocalTextStyle.current.copy(color = AppColor.onSurface)
+        textStyle = AppTypography.titleMedium.copy(color = AppColor.onSurface)
     )
 }
 
@@ -86,7 +85,7 @@ private fun EmptyTextField(
     Text(
         modifier = modifier.padding(start = 16.dp),
         text = stringResource(R.string.desc_enter_loop_title),
-        style = MaterialTheme.typography.body1.copy(
+        style = AppTypography.bodyMedium.copy(
             color = AppColor.onSurface.copy(alpha = ContentAlpha.disabled)
         )
     )

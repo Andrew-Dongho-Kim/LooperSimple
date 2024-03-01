@@ -16,6 +16,7 @@ import com.pnd.android.loop.data.Day.Companion.WEEKDAYS
 import com.pnd.android.loop.data.Day.Companion.WEEKENDS
 import com.pnd.android.loop.util.h2m2
 import com.pnd.android.loop.util.intervalString
+import com.pnd.android.loop.util.toLocalTime
 import com.pnd.android.loop.util.toMs
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -69,8 +70,9 @@ interface LoopBase {
         const val MIDNIGHT_RESERVATION_ID = -10
         fun midnight(): LoopBase = LoopImpl(
             id = MIDNIGHT_RESERVATION_ID,
-            loopStart = LocalDate.now().plusDays(1L).toMs(),
-            loopEnd = LocalDate.now().plusDays(1L).toMs(),
+            title = "Midnight Sync",
+            loopStart = LocalTime.MAX.toMs(),
+            loopEnd = LocalTime.MAX.toMs(),
             isMock = true
         )
 
@@ -187,11 +189,12 @@ fun LoopBase.description(context: Context) =
     """ -->
     |*Loop  
     | title : $title
-    | loopStart : ${h2m2(loopStart)}
-    | loopEnd : ${h2m2(loopEnd)}
+    | loopStart : ${loopStart.toLocalTime()}
+    | loopEnd : ${loopEnd.toLocalTime()}
     | activeDays : ${Day.description(loopActiveDays)}
     | interval : ${intervalString(context, interval)}
-    | enabled : $enabled""".trimMargin()
+    | enabled : $enabled
+    | isMock : $isMock""".trimMargin()
 
 
 @Target(

@@ -5,10 +5,10 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.ButtonDefaults
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
-import androidx.compose.material.TextButton
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shadow
@@ -16,7 +16,10 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.pnd.android.loop.ui.theme.AppColor
+import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.compositeOverSurface
+import com.pnd.android.loop.ui.theme.onSurface
 
 @Composable
 fun TextSelectorItem(
@@ -25,9 +28,9 @@ fun TextSelectorItem(
     selected: Boolean = false,
     onClick: () -> Unit = {}
 ) {
-    val colorOnSurface = MaterialTheme.colors.onSurface
+    val colorOnSurface = AppColor.onSurface
     val colors = ButtonDefaults.buttonColors(
-        backgroundColor = if (selected) {
+        containerColor = if (selected) {
             colorOnSurface.copy(alpha = 0.08f)
         } else {
             compositeOverSurface()
@@ -59,7 +62,7 @@ fun TextSelectorItem(
         Text(
             text = text,
             textAlign = TextAlign.Center,
-            style = MaterialTheme.typography.body1.copy(
+            style = AppTypography.bodyMedium.copy(
                 shadow = Shadow(blurRadius = 0.5f),
                 fontWeight = FontWeight.Medium
             )

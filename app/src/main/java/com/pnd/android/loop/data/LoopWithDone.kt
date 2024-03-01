@@ -86,4 +86,5 @@ interface LoopWithDoneDao {
 
 val LoopBase.doneState get() = (this as? LoopWithDone)?.done
 
-val LoopBase.isNotResponsed get() = doneState == LoopDoneVo.DoneState.NO_RESPONSE
+val LoopBase.isRespond get() = doneState != LoopDoneVo.DoneState.NO_RESPONSE
+val LoopBase.isNotRespond get() = doneState == LoopDoneVo.DoneState.NO_RESPONSE

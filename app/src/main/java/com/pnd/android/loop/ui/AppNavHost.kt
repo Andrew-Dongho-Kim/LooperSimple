@@ -17,7 +17,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.pnd.android.loop.data.LoopBase
-import com.pnd.android.loop.ui.active.ActivePage
 import com.pnd.android.loop.ui.detail.DetailPage
 import com.pnd.android.loop.ui.history.HistoryPage
 import com.pnd.android.loop.ui.home.Home
@@ -75,11 +74,6 @@ fun AppNavHost(
                     navController.navigate(Screen.HistoryPage)
                 }
             )
-        }
-        composable(
-            route = Screen.ActivePage.route
-        ) {
-            ActivePage(loopViewModel = loopViewModel)
         }
 
         composable(

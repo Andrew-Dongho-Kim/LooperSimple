@@ -1,10 +1,12 @@
 package com.pnd.android.loop.ui.home.loop
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.Card
+import androidx.compose.material3.Card
 import androidx.compose.material.ContentAlpha
-import androidx.compose.material.Text
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -18,13 +20,21 @@ import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
+import com.pnd.android.loop.ui.theme.surface
 
 @Composable
 fun StatisticsCard(
     modifier: Modifier = Modifier,
     loopViewModel: LoopViewModel,
 ) {
-    Card(modifier = modifier) {
+    Card(
+        modifier = modifier.clickable {  },
+        colors = CardDefaults.cardColors(
+            containerColor = AppColor.surface,
+            contentColor = AppColor.onSurface,
+        ),
+        elevation = CardDefaults.elevatedCardElevation()
+    ) {
         Row(
             modifier = Modifier.padding(
                 vertical = 8.dp,
@@ -58,7 +68,7 @@ private fun ResponseRate(
     ) {
         Text(
             text = stringResource(id = R.string.response_rate) + ": ",
-            style = AppTypography.body1.copy(
+            style = AppTypography.bodyMedium.copy(
                 color = AppColor.onSurface
             )
         )
@@ -66,7 +76,7 @@ private fun ResponseRate(
         val responseRate by loopViewModel.allResponseRate.collectAsState(initial = 0f)
         Text(
             text = String.format("%.2f%%", responseRate),
-            style = AppTypography.body1.copy(
+            style = AppTypography.bodyMedium.copy(
                 color = AppColor.onSurface.copy(alpha = ContentAlpha.medium)
             )
         )
@@ -84,7 +94,7 @@ private fun DoneRate(
     ) {
         Text(
             text = stringResource(id = R.string.done_rate) + ": ",
-            style = AppTypography.body1.copy(
+            style = AppTypography.bodyMedium.copy(
                 color = AppColor.onSurface
             )
         )
@@ -92,7 +102,7 @@ private fun DoneRate(
         val responseRate by loopViewModel.doneRate.collectAsState(initial = 0f)
         Text(
             text = String.format("%.2f%%", responseRate),
-            style = AppTypography.body1.copy(
+            style = AppTypography.bodyMedium.copy(
                 color = AppColor.primary
             )
         )
@@ -110,7 +120,7 @@ private fun SkipRate(
     ) {
         Text(
             text = stringResource(id = R.string.skip_rate) + ": ",
-            style = AppTypography.body1.copy(
+            style = AppTypography.bodyMedium.copy(
                 color = AppColor.onSurface
             )
         )
@@ -118,7 +128,7 @@ private fun SkipRate(
         val responseRate by loopViewModel.skipRate.collectAsState(initial = 0f)
         Text(
             text = String.format("%.2f%%", responseRate),
-            style = AppTypography.body1.copy(
+            style = AppTypography.bodyMedium.copy(
                 color = AppColor.onSurface.copy(alpha = ContentAlpha.medium)
             )
         )

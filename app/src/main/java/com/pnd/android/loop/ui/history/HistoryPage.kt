@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Done
@@ -48,7 +47,7 @@ fun HistoryPage(
 ) {
 
     HistoryPager(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .fillMaxHeight()
             .statusBarsPadding()
@@ -129,7 +128,7 @@ private fun YearMonthDateHeader(
     Text(
         modifier = modifier.fillMaxWidth(),
         text = localDate.formatYearMonthDateDays(),
-        style = AppTypography.h6.copy(
+        style = AppTypography.headlineSmall .copy(
             color = AppColor.onSurface,
             textAlign = TextAlign.Center,
         )
@@ -157,7 +156,7 @@ private fun HistoryItemSection(
                 Text(
                     modifier = Modifier.padding(top = 8.dp),
                     text = loop.title,
-                    style = AppTypography.body1.copy(
+                    style = AppTypography.bodyMedium .copy(
                         color = AppColor.onSurface
                     )
                 )
@@ -182,7 +181,7 @@ private fun HistoryItemSectionHeader(
     ) {
         Text(
             text = "($itemCount) $title",
-            style = MaterialTheme.typography.subtitle1.copy(
+            style = AppTypography.titleMedium.copy(
                 color = AppColor.onSurface,
                 fontWeight = FontWeight.Bold
             )

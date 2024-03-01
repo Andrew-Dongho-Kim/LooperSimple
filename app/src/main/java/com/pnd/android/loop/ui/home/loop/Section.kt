@@ -224,7 +224,7 @@ private fun TimelineHeaderButton(
             val contentColor = if (isSelected) selectedColor else normalColor
             Text(
                 text = stringResource(R.string.timeline),
-                style = AppTypography.body1.copy(
+                style = AppTypography.bodyMedium .copy(
                     color = contentColor,
                     fontWeight = FontWeight.Bold,
                     fontStyle = FontStyle.Italic
@@ -344,7 +344,7 @@ private fun ExpandableHeader(
 
         Text(
             text = headText,
-            style = AppTypography.subtitle2.copy(
+            style = AppTypography.titleSmall.copy(
                 color = AppColor.onSurface,
             )
         )

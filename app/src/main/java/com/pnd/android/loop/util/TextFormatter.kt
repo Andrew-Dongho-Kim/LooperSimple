@@ -1,18 +1,14 @@
 package com.pnd.android.loop.util
 
-import androidx.compose.material.Colors
-import androidx.compose.material.MaterialTheme
+import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.BaselineShift
 import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.unit.sp
 
 // Regex containing the syntax tokens
 val symbolPattern by lazy {
@@ -46,23 +42,14 @@ fun annotatedString(
     val tokens = symbolPattern.findAll(text)
 
     return buildAnnotatedString {
-
         var cursorPosition = 0
-
-        val codeSnippetBackground =
-            if (MaterialTheme.colors.isLight) {
-                Color(0xFFDEDEDE)
-            } else {
-                Color(0xFF424242)
-            }
 
         for (token in tokens) {
             append(text.slice(cursorPosition until token.range.first))
 
             val (annotatedString, stringAnnotation) = getSymbolAnnotation(
                 matchResult = token,
-                colors = MaterialTheme.colors,
-                codeSnippetBackground = codeSnippetBackground
+                colors = MaterialTheme.colorScheme,
             )
             append(annotatedString)
 
@@ -90,8 +77,7 @@ fun annotatedString(
  */
 private fun getSymbolAnnotation(
     matchResult: MatchResult,
-    colors: Colors,
-    codeSnippetBackground: Color
+    colors: ColorScheme,
 ): SymbolAnnotation {
     return when (matchResult.value.first()) {
         '@' -> SymbolAnnotation(
@@ -109,6 +95,7 @@ private fun getSymbolAnnotation(
                 tag = SymbolAnnotationType.PERSON.name
             )
         )
+
         '#' -> SymbolAnnotation(
             AnnotatedString(
                 text = matchResult.value.trim('#'),
@@ -124,6 +111,7 @@ private fun getSymbolAnnotation(
                 tag = SymbolAnnotationType.PERSON.name
             )
         )
+
         '*' -> SymbolAnnotation(
             AnnotatedString(
                 text = matchResult.value.trim('*'),
@@ -131,6 +119,7 @@ private fun getSymbolAnnotation(
             ),
             null
         )
+
         '_' -> SymbolAnnotation(
             AnnotatedString(
                 text = matchResult.value.trim('_'),
@@ -138,6 +127,7 @@ private fun getSymbolAnnotation(
             ),
             null
         )
+
         '~' -> SymbolAnnotation(
             AnnotatedString(
                 text = matchResult.value.trim('~'),
@@ -145,18 +135,7 @@ private fun getSymbolAnnotation(
             ),
             null
         )
-        '`' -> SymbolAnnotation(
-            AnnotatedString(
-                text = matchResult.value.trim('`'),
-                spanStyle = SpanStyle(
-                    fontFamily = FontFamily.Monospace,
-                    fontSize = 12.sp,
-                    background = codeSnippetBackground,
-                    baselineShift = BaselineShift(0.2f)
-                )
-            ),
-            null
-        )
+
         'h' -> SymbolAnnotation(
             AnnotatedString(
                 text = matchResult.value,
@@ -171,6 +150,7 @@ private fun getSymbolAnnotation(
                 tag = SymbolAnnotationType.LINK.name
             )
         )
+
         else -> SymbolAnnotation(AnnotatedString(matchResult.value), null)
     }
 }

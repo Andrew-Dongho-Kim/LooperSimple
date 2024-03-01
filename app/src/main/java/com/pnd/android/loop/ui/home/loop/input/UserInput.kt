@@ -2,15 +2,18 @@ package com.pnd.android.loop.ui.home.loop.input
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.material.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.ui.home.loop.input.selector.Selectors
+import com.pnd.android.loop.ui.theme.AppColor
+import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.util.BackPressHandler
 import com.pnd.android.loop.util.rememberImeOpenState
 import kotlinx.coroutines.launch
@@ -39,7 +42,10 @@ fun UserInput(
     OverrideBackPress(inputState = inputState)
 
     Column(modifier) {
-        Divider()
+        HorizontalDivider(
+            thickness = 0.5.dp,
+            color =  AppColor.onSurface.copy(alpha = 0.3f)
+        )
         UserInputText(
             textField = inputState.textFieldValue,
             hasFocus = keyboardShown,

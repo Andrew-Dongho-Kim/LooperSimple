@@ -15,6 +15,7 @@
     <string name="delete">삭제</string>
     <string name="done">완료</string>
     <string name="skip">건너뜀</string>
+    <string name="no_response">응답없음</string>
     <string name="restore">복원</string>
     <string name="later">나중에</string>
     <string name="start">시작</string>

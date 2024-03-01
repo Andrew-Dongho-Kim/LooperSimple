@@ -73,7 +73,6 @@ fun ExpandableNativeAd(
             Column {
                 NativeAdContent(
                     adViewModel = adViewModel,
-                    adId = adId,
                     isExpanded = isExpanded,
                 )
 
@@ -115,7 +114,6 @@ private fun ExpandableImage(
 private fun NativeAdContent(
     modifier: Modifier = Modifier,
     adViewModel: AdViewModel,
-    adId: String,
     isExpanded: Boolean
 ) {
     AndroidViewBinding(

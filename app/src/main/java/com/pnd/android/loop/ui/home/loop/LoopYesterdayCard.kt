@@ -14,7 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.ContentAlpha
-import androidx.compose.material.Text
+import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.runtime.Composable
@@ -99,7 +99,7 @@ private fun LoopYesterdayHeader(
     ) {
         Text(
             text = annotatedString(stringResource(id = R.string.unchecked_loops, count)),
-            style = AppTypography.body1.copy(
+            style = AppTypography.bodyMedium .copy(
                 color = AppColor.onSurface
             )
         )
@@ -154,7 +154,7 @@ private fun LoopTitle(
     Text(
         modifier = modifier,
         text = title,
-        style = AppTypography.body1.copy(
+        style = AppTypography.bodyMedium .copy(
             color = AppColor.onSurface.copy(alpha = ContentAlpha.medium)
         )
     )

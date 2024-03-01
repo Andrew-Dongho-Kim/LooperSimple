@@ -2,10 +2,9 @@ package com.pnd.android.loop.ui.home
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material.ContentAlpha
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -36,7 +35,9 @@ fun HomeAppBar(
                 val localDate by loopViewModel.localDate.collectAsState(initial = LocalDate.now())
                 Text(
                     text = localDate.formatYearMonthDateDays(),
-                    style = MaterialTheme.typography.subtitle1
+                    style = AppTypography.titleMedium.copy(
+                        color = AppColor.onSurface
+                    )
                 )
 
                 Text(
@@ -48,7 +49,7 @@ fun HomeAppBar(
                             )
                         }"
                     ),
-                    style = AppTypography.caption.copy(
+                    style = AppTypography.labelMedium.copy(
                         color = AppColor.onSurface.copy(alpha = ContentAlpha.medium)
                     )
                 )

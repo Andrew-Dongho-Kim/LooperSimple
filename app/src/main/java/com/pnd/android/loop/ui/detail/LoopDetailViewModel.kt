@@ -7,10 +7,9 @@ import androidx.paging.PagingConfig
 import com.pnd.android.loop.data.AppDatabase
 import com.pnd.android.loop.data.DonePagingSource
 import com.pnd.android.loop.ui.Screen
+import com.pnd.android.loop.util.toMs
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.map
+import java.time.LocalDate
 import javax.inject.Inject
 
 private const val PAGE_SIZE = 150
@@ -44,4 +43,15 @@ class LoopDetailViewModel @Inject constructor(
         }
     ).flow
 
+    suspend fun allCountBefore(loopId: Int, date: LocalDate) =
+        loopDoneDao.allCountBefore(loopId, date.toMs())
+
+    suspend fun doneCountBefore(loopId: Int, date: LocalDate) =
+        loopDoneDao.doneCountBefore(loopId, date.toMs())
+
+    suspend fun allCountBetween(loopId: Int, from: LocalDate, to: LocalDate) =
+        loopDoneDao.allCountBetween(loopId, from.toMs(), to.toMs())
+
+    suspend fun doneCountBetween(loopId: Int, from: LocalDate, to: LocalDate) =
+        loopDoneDao.doneCountBetween(loopId, from.toMs(), to.toMs())
 }

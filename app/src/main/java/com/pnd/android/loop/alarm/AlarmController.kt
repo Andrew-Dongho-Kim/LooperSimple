@@ -118,8 +118,8 @@ class AlarmController @Inject constructor(
     private suspend fun fillNoResponse(loop: LoopBase) {
         val now = LocalDate.now()
         var date = now.minusDays(1L)
-
-        while (date.isBefore(now)) {
+        
+        while (date.isBefore(now) || date.isEqual(now)) {
             if (!loop.isActiveDay(date)) {
                 date = date.plusDays(1)
                 continue
@@ -198,6 +198,9 @@ class AlarmController @Inject constructor(
             if (isMock) {
                 if (loop.id == LoopBase.MIDNIGHT_RESERVATION_ID) {
                     alarmController.syncAlarms()
+
+                    // TEMP CODE
+                    notificationHelper.notify(loop)
                 }
             } else if (isAllowedDay && isAllowedTime) {
                 notificationHelper.notify(loop)

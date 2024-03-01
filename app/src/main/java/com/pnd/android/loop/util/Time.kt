@@ -95,6 +95,18 @@ fun LocalDate.formatYearMonthDateDays(): String {
 }
 
 @Composable
+fun LocalDate.formatMonthDate():String {
+    val args = listOf(
+        stringResource(id = ABB_MONTHS[monthValue - 1]),
+        "$dayOfMonth",
+    )
+    return stringResource(
+        id = R.string.format_month_date,
+        formatArgs = args.toTypedArray()
+    )
+}
+
+@Composable
 fun Long.formatHourMinute(
     context: Context = LocalContext.current,
     withAmPm: Boolean = true
