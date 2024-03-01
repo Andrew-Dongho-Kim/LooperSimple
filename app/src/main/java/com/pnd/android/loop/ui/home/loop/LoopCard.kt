@@ -69,7 +69,9 @@ import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.shape.CircularPolygonShape
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
+import com.pnd.android.loop.ui.theme.compositeOverOnSurface
 import com.pnd.android.loop.ui.theme.onSurface
+import com.pnd.android.loop.ui.theme.outline
 import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.ui.theme.surface
 import com.pnd.android.loop.util.ABB_DAYS
@@ -94,7 +96,7 @@ fun LoopCard(
     val animateAlpha = animateCardAlphaWithMock(loopBase = loop)
 
     val primary = AppColor.primary.copy(alpha = ContentAlpha.medium)
-    val surface = AppColor.onSurface.copy(alpha = 0.45f)
+    val surface = AppColor.outline
     val border = remember(isMock, loop.color) {
         BorderStroke(
             width = if (isMock) 1.dp else 0.5.dp,
@@ -210,7 +212,7 @@ private fun LoopCardActiveEffect(
         ),
         label = ""
     )
-    val edgeColor = Color(loop.color).copy(alpha = 0.4f)
+    val edgeColor = loop.color.compositeOverOnSurface().copy(alpha = 0.7f)
 
     Canvas(modifier = modifier) {
         val path = cardShape.createOutlinePath(
@@ -244,11 +246,7 @@ fun LoopCardColor(
         modifier = modifier
             .alpha(0.7f)
             .background(
-                color = Color(color),
-                shape = CircleShape
-            )
-            .background(
-                color = AppColor.surface.copy(alpha = 0.25f),
+                color = color.compositeOverOnSurface(),
                 shape = CircleShape
             )
             .border(

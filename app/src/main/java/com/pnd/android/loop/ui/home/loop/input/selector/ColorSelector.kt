@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.ui.theme.AppColor
+import com.pnd.android.loop.ui.theme.compositeOverOnSurface
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.surface
 import kotlin.math.min
@@ -131,11 +132,7 @@ private fun ColorBox(
             .clickable { onColorSelected(color) }
             .padding(8.dp)
             .background(
-                color = Color(color),
-                shape = CircleShape
-            )
-            .background(
-                color = AppColor.surface.copy(alpha = 0.3f),
+                color = color.compositeOverOnSurface(),
                 shape = CircleShape
             )
     )

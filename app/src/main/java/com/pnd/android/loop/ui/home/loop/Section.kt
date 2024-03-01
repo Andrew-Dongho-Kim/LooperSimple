@@ -108,7 +108,7 @@ private fun LazyListScope.sectionStatistics(
         contentType = ContentTypes.STATISTICS_CARD,
         key = section.key
     ) {
-        StatisticsCard(
+        LoopStatisticsCard(
             modifier = Modifier.padding(
                 horizontal = 12.dp,
                 vertical = 12.dp

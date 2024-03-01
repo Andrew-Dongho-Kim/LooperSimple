@@ -30,6 +30,7 @@ private val darkColorScheme = lightColorScheme(
     onBackground = White99,
     error = Red300,
     onError = Black99,
+    outline = Grey20
 )
 
 //private val lightColorPalette = lightColors(
@@ -57,6 +58,7 @@ private val lightColorScheme = lightColorScheme(
     onBackground = Black99,
     error = Red800,
     onError = White99,
+    outline = Grey80
 )
 
 

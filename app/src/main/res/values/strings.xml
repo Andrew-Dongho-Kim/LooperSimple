@@ -2,12 +2,15 @@
     <string name="app_name" translatable="false">LooperSimple</string>
 
     <string name="loop">loop</string>
-    <string name="loops">%d loops</string>
+    <string name="loops">%d loops</string>한영Percent Complete Chart
     <string name="desc_no_loops">There are no loops.</string>
     <string name="unchecked_loops">Yesterday, there were *%d* unchecked loops.</string>
     <string name="response_rate">Response rate</string>
     <string name="done_rate">Done rate</string>
     <string name="skip_rate">Skip rate</string>
+
+    <string name="daily_done_rate_chart">Daily done rate chart</string>
+    <string name="monthly_done_rate_chart">Monthly done rate chart</string>
 
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>

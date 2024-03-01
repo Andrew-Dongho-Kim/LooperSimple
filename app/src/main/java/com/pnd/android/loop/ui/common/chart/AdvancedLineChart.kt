@@ -1,4 +1,4 @@
-package com.pnd.android.loop.ui.common
+package com.pnd.android.loop.ui.common.chart
 
 import android.graphics.PorterDuff
 import android.graphics.Typeface
@@ -56,6 +56,7 @@ import com.patrykandpatrick.vico.core.extension.copyColor
 import com.patrykandpatrick.vico.core.marker.Marker
 import com.patrykandpatrick.vico.core.model.CartesianChartModelProducer
 import com.pnd.android.loop.ui.theme.AppColor
+import com.pnd.android.loop.ui.theme.onBackground
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.surface
 
@@ -116,7 +117,7 @@ private fun rememberChartStartAxis(axisTitle: String) = rememberStartAxis(
         typeface = Typeface.MONOSPACE,
     ),
     label = axisLabelComponent(
-        color = MaterialTheme.colorScheme.onBackground,
+        color = AppColor.onBackground,
         background = rememberShapeComponent(
             shape = Shapes.pillShape,
             color = Color.Transparent,
@@ -205,154 +206,13 @@ private fun chartLineBackgroundShader(
 )
 
 
-@Composable
-internal fun rememberMarker(
-    labelPosition: MarkerComponent.LabelPosition = MarkerComponent.LabelPosition.Top
-): Marker {
-    val labelBackgroundColor = AppColor.surface
-    val labelBackground = remember(labelBackgroundColor) {
-        ShapeComponent(labelBackgroundShape, labelBackgroundColor.toArgb())
-            .setShadow(
-                radius = LABEL_BACKGROUND_SHADOW_RADIUS,
-                dy = LABEL_BACKGROUND_SHADOW_DY,
-                applyElevationOverlay = true,
-            )
-    }
-    val label = rememberTextComponent(
-        background = labelBackground,
-        lineCount = LABEL_LINE_COUNT,
-        padding = labelPadding,
-        typeface = Typeface.MONOSPACE,
-    )
-    val indicatorInnerComponent = rememberShapeComponent(Shapes.pillShape, AppColor.surface)
-    val indicatorCenterComponent = rememberShapeComponent(Shapes.pillShape, Color.White)
-    val indicatorOuterComponent = rememberShapeComponent(Shapes.pillShape, Color.White)
-    val indicator = overlayingComponent(
-        outer = indicatorOuterComponent,
-        inner = overlayingComponent(
-            outer = indicatorCenterComponent,
-            inner = indicatorInnerComponent,
-            innerPaddingAll = indicatorInnerAndCenterComponentPaddingValue,
-        ),
-        innerPaddingAll = indicatorCenterAndOuterComponentPaddingValue,
-    )
-    val guideline = rememberLineComponent(
-        MaterialTheme.colorScheme.onSurface.copy(GUIDELINE_ALPHA),
-        guidelineThickness,
-        guidelineShape,
-    )
-    return remember(label, labelPosition, indicator, guideline) {
-        object : MarkerComponent(label, labelPosition, indicator, guideline) {
-            init {
-                indicatorSizeDp = INDICATOR_SIZE_DP
-                onApplyEntryColor = { entryColor ->
-                    indicatorOuterComponent.color =
-                        entryColor.copyColor(INDICATOR_OUTER_COMPONENT_ALPHA)
-                    with(indicatorCenterComponent) {
-                        color = entryColor
-                        setShadow(
-                            radius = INDICATOR_CENTER_COMPONENT_SHADOW_RADIUS,
-                            color = entryColor
-                        )
-                    }
-                }
-            }
-
-            override fun getInsets(
-                context: MeasureContext,
-                outInsets: Insets,
-                horizontalDimensions: HorizontalDimensions,
-            ) {
-                with(context) {
-                    outInsets.top =
-                        (SHADOW_RADIUS_MULTIPLIER * LABEL_BACKGROUND_SHADOW_RADIUS - LABEL_BACKGROUND_SHADOW_DY).pixels
-                    if (labelPosition == LabelPosition.AroundPoint) return
-                    outInsets.top += label.getHeight(context) + labelBackgroundShape.tickSizeDp.pixels
-                }
-            }
-        }
-    }
-}
-
-
-@Composable
-internal fun rememberChartStyle(chartColors: List<Color>) = rememberChartStyle(
-    columnLayerColors = chartColors,
-    lineLayerColors = chartColors
-)
-
-@Composable
-internal fun rememberChartStyle(
-    columnLayerColors: List<Color>,
-    lineLayerColors: List<Color>,
-): ChartStyle {
-    val isSystemInDarkTheme = isSystemInDarkTheme()
-    return remember(columnLayerColors, lineLayerColors, isSystemInDarkTheme) {
-        val defaultColors = if (isSystemInDarkTheme) {
-            DefaultColors.Dark
-        } else {
-            DefaultColors.Light
-        }
-
-        ChartStyle(
-            axis = ChartStyle.Axis(
-                axisLabelColor = Color(defaultColors.axisLabelColor),
-                axisGuidelineColor = Color(defaultColors.axisGuidelineColor),
-                axisLineColor = Color(defaultColors.axisLineColor),
-            ),
-            columnLayer = ChartStyle.ColumnLayer(
-                columnLayerColors.map { columnChartColor ->
-                    LineComponent(
-                        columnChartColor.toArgb(),
-                        COLUMN_WIDTH,
-                        Shapes.roundedCornerShape(COLUMN_ROUNDNESS_PERCENT),
-                    )
-                },
-            ),
-            lineLayer = ChartStyle.LineLayer(
-                lineLayerColors.map { color ->
-                    LineCartesianLayer.LineSpec(
-                        shader = DynamicShaders.color(color),
-                        backgroundShader = DynamicShaders.fromBrush(
-                            Brush.verticalGradient(
-                                listOf(
-                                    color.copy(DefaultAlpha.LINE_BACKGROUND_SHADER_START),
-                                    color.copy(DefaultAlpha.LINE_BACKGROUND_SHADER_END),
-                                ),
-                            ),
-                        ),
-                    )
-                },
-            ),
-            marker = ChartStyle.Marker(),
-            elevationOverlayColor = Color(defaultColors.elevationOverlayColor),
-        )
-    }
-}
 
 const val COLUMN_WIDTH: Float = 8f
-const val COLUMN_ROUNDNESS_PERCENT: Int = 40
+const val COLUMN_ROUNDNESS_PERCENT: Int = 12
 
-private const val LABEL_BACKGROUND_SHADOW_RADIUS = 4f
-private const val LABEL_BACKGROUND_SHADOW_DY = 2f
-private const val LABEL_LINE_COUNT = 1
-private const val GUIDELINE_ALPHA = .2f
-private const val INDICATOR_SIZE_DP = 36f
-private const val INDICATOR_OUTER_COMPONENT_ALPHA = 32
-private const val INDICATOR_CENTER_COMPONENT_SHADOW_RADIUS = 12f
-private const val GUIDELINE_DASH_LENGTH_DP = 8f
-private const val GUIDELINE_GAP_LENGTH_DP = 4f
-private const val SHADOW_RADIUS_MULTIPLIER = 1.3f
 
-private val labelBackgroundShape = MarkerCorneredShape(Corner.FullyRounded)
-private val labelHorizontalPaddingValue = 8.dp
-private val labelVerticalPaddingValue = 4.dp
-private val labelPadding = dimensionsOf(labelHorizontalPaddingValue, labelVerticalPaddingValue)
-private val indicatorInnerAndCenterComponentPaddingValue = 5.dp
-private val indicatorCenterAndOuterComponentPaddingValue = 10.dp
-private val guidelineThickness = 2.dp
-private val guidelineShape =
-    DashedShape(Shapes.pillShape, GUIDELINE_DASH_LENGTH_DP, GUIDELINE_GAP_LENGTH_DP)
+
+
 
 
 

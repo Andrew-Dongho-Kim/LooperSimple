@@ -1,9 +1,9 @@
 package com.pnd.android.loop.ui.theme
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material.Colors
 import androidx.compose.material.LocalElevationOverlay
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material.MaterialTheme as MT
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
@@ -83,12 +83,25 @@ val Purple700 = Color(0xFF3700B3)
 val Teal200 = Color(0xFF03DAC5)
 
 
+@Composable
+fun Int.compositeOverOnSurface(): Color {
+    return Color(this).compositeOverOnSurface()
+}
+
+@Composable
+fun Color.compositeOverSurface(alpha: Float = 0.8f): Color {
+    return this.copy(alpha = alpha).compositeOver(AppColor.surface)
+}
+
+@Composable
+fun Color.compositeOverOnSurface(alpha: Float = 0.8f): Color {
+    return this.copy(alpha = alpha).compositeOver(AppColor.onSurface)
+}
+
 
 @Composable
 fun compositeOverSurface(): Color {
-    return MT.colors.compositedOnSurface(
-        if (MT.colors.isLight) 0.05f else 0.1f
-    )
+    return compositedOnSurface(if (isSystemInDarkTheme()) 0.1f else 0.05f)
 }
 
 /**
@@ -96,8 +109,8 @@ fun compositeOverSurface(): Color {
  * given [alpha]. Useful for situations where semi-transparent colors are undesirable.
  */
 @Composable
-fun Colors.compositedOnSurface(alpha: Float): Color {
-    return onSurface.copy(alpha = alpha).compositeOver(surface)
+fun compositedOnSurface(alpha: Float): Color {
+    return AppColor.onSurface.copy(alpha = alpha).compositeOver(AppColor.surface)
 }
 
 /**
@@ -126,3 +139,8 @@ val AppColor.onSurfaceLight get() = Black99
 val AppColor.onSurfaceDark get() = White99
 val AppColor.onSurface
     @Composable get() = MaterialTheme.colorScheme.onSurface
+val AppColor.onBackground
+    @Composable get() = MaterialTheme.colorScheme.onBackground
+
+val AppColor.outline
+    @Composable get() = MaterialTheme.colorScheme.outline

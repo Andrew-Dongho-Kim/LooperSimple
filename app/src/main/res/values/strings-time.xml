@@ -104,6 +104,7 @@
 
     <string name="format_year_month_date_day">%4$s, %2$s %3$s, %1$s</string>
     <string name="format_month_date">%1$s %2$s</string>
+    <string name="format_month">%s</string>
     <string name="format_hour_minute_24">%02d:%02d</string>
     <string name="format_am_hour_minute">%02d:%02d AM</string>
     <string name="format_pm_hour_minute">%02d:%02d PM</string>

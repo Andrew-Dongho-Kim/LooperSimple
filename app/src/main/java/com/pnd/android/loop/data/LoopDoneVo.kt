@@ -39,6 +39,8 @@ data class LoopDoneVo(
 
     fun isSkip() = done == SKIP
 
+    fun isRespond() = done != NO_RESPONSE
+
     @Target(AnnotationTarget.TYPE, AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.FUNCTION)
     @IntDef(DONE, SKIP, NO_RESPONSE)
     annotation class DoneState {
