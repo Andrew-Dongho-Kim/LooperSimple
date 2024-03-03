@@ -59,6 +59,8 @@
     <string name="weekends">주말</string>
 
     <string name="format_year_month_date_day">%1$s년 %2$s %3$s일 (%4$s)</string>
+    <string name="format_year_montn">%1$s년 %2$s</string>
+    <string name="format_month_date_day">%1$s %2$s일 (%3$s)</string>
     <string name="format_month_date">%1$s %2$s일</string>
     <string name="format_month">%s</string>
     <string name="format_hour_minute_24">%02d:%02d</string>

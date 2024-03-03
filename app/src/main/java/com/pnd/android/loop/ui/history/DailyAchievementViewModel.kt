@@ -10,11 +10,15 @@ import javax.inject.Inject
 private const val PAGE_SIZE = 30
 
 @HiltViewModel
-class HistoryViewModel @Inject constructor(
+class DailyAchievementViewModel @Inject constructor(
     appDb: AppDatabase,
 ) : ViewModel() {
 
-    val historyPager = Pager(
+    private val loopWithDoneDao = appDb.loopWithDoneDao()
+
+    val flowAllLoopsWithDoneStates = loopWithDoneDao.flowAllLoopsWithDoneStates()
+
+    val achievementPager = Pager(
         PagingConfig(pageSize = PAGE_SIZE),
         pagingSourceFactory = {
             HistoryPagingSource(

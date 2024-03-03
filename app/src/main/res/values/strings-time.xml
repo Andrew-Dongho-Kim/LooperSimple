@@ -103,6 +103,8 @@
     <string name="weekends">Weekends</string>
 
     <string name="format_year_month_date_day">%4$s, %2$s %3$s, %1$s</string>
+    <string name="format_year_montn">%2$s, %1$s</string>
+    <string name="format_month_date_day">%3$s, %1$s %2$s</string>
     <string name="format_month_date">%1$s %2$s</string>
     <string name="format_month">%s</string>
     <string name="format_hour_minute_24">%02d:%02d</string>

@@ -9,6 +9,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.unit.Dp
 
+val BlueGreen = Color(0xFF064D8A)
+
 val Blue10 = Color(0xFF000F5E)
 val Blue20 = Color(0xFF001E92)
 val Blue30 = Color(0xFF002ECC)
@@ -144,3 +146,6 @@ val AppColor.onBackground
 
 val AppColor.outline
     @Composable get() = MaterialTheme.colorScheme.outline
+
+val AppColor.outlineVariant
+    @Composable get() = MaterialTheme.colorScheme.outlineVariant

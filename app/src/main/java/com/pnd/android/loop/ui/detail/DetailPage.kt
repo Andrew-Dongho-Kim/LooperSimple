@@ -1,6 +1,5 @@
 package com.pnd.android.loop.ui.detail
 
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
@@ -41,15 +40,15 @@ import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.TimeStat
 import com.pnd.android.loop.data.timeStatAsFlow
 import com.pnd.android.loop.ui.common.SimpleAd
+import com.pnd.android.loop.ui.common.SimpleAppBar
 import com.pnd.android.loop.ui.common.chart.AdvancedLineChart
 import com.pnd.android.loop.ui.common.chart.BarChart
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
+import com.pnd.android.loop.ui.theme.background
 import com.pnd.android.loop.ui.theme.compositeOverOnSurface
-import com.pnd.android.loop.ui.theme.compositeOverSurface
 import com.pnd.android.loop.ui.theme.error
 import com.pnd.android.loop.ui.theme.onSurface
-import com.pnd.android.loop.ui.theme.surface
 import com.pnd.android.loop.util.ABB_MONTHS
 import com.pnd.android.loop.util.annotatedString
 import com.pnd.android.loop.util.formatHourMinute
@@ -80,15 +79,13 @@ fun DetailPage(
     Scaffold(
         modifier = modifier
             .fillMaxWidth()
-            .fillMaxHeight(),
+            .fillMaxHeight()
+            .background(color = AppColor.background),
         topBar = {
-            DetailAppBar(
+            SimpleAppBar(
                 modifier = Modifier
-                    .background(
-                        color = AppColor.surface
-                    )
                     .statusBarsPadding(),
-                loop = loop,
+                title = loop.title,
                 onNavigateUp = onNavigateUp
             )
         }

@@ -1,5 +1,6 @@
-package com.pnd.android.loop.ui.detail
+package com.pnd.android.loop.ui.common
 
+import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -9,24 +10,24 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import com.pnd.android.loop.R
-import com.pnd.android.loop.data.LoopBase
-import com.pnd.android.loop.ui.common.AppBarIcon
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.onSurface
+import com.pnd.android.loop.ui.theme.surface
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DetailAppBar(
+fun SimpleAppBar(
     modifier: Modifier = Modifier,
-    loop: LoopBase,
+    title: String,
     onNavigateUp: () -> Unit,
 ) {
     TopAppBar(
-        modifier = modifier,
+        modifier = modifier.background(color = AppColor.surface),
         title = {
             Text(
-                text = loop.title,
+                text = title,
                 style = AppTypography.headlineSmall.copy(
                     color = AppColor.onSurface,
                     fontWeight = FontWeight.Normal
@@ -37,10 +38,9 @@ fun DetailAppBar(
             AppBarIcon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 color = AppColor.onSurface,
-                descriptionResId = R.string.about_app,
+                descriptionResId = R.string.navi_up,
                 onClick = onNavigateUp
             )
         }
-
     )
 }

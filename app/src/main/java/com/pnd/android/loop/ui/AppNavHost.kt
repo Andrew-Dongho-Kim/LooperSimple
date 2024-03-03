@@ -18,7 +18,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.ui.detail.DetailPage
-import com.pnd.android.loop.ui.history.HistoryPage
+import com.pnd.android.loop.ui.history.DailyAchievementPage
 import com.pnd.android.loop.ui.home.Home
 import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
 
@@ -39,7 +39,7 @@ sealed class Screen(val route: String) {
         }
     }
 
-    data object HistoryPage : Screen("history")
+    data object DailyAchievementPage : Screen("daily_achievement")
 
     companion object {
         const val ARGS_ID = "id"
@@ -71,7 +71,7 @@ fun AppNavHost(
                     )
                 },
                 onNavigateToHistoryPage = {
-                    navController.navigate(Screen.HistoryPage)
+                    navController.navigate(Screen.DailyAchievementPage)
                 }
             )
         }
@@ -90,13 +90,15 @@ fun AppNavHost(
         }
 
         composable(
-            route = Screen.HistoryPage.route,
+            route = Screen.DailyAchievementPage.route,
             enterTransition = { scaleIntoContainer() },
             exitTransition = { scaleOutOfContainer(INWARDS) },
             popEnterTransition = { scaleIntoContainer(OUTWARDS) },
             popExitTransition = { scaleOutOfContainer() }
         ) {
-            HistoryPage()
+            DailyAchievementPage(
+                onNavigateUp = { navController.popBackStack() }
+            )
         }
     }
 }

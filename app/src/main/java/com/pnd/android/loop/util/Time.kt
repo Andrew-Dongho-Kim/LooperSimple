@@ -22,6 +22,8 @@ import com.pnd.android.loop.data.Day.Companion.isOn
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.Blue500
+import com.pnd.android.loop.ui.theme.BlueGreen
+import com.pnd.android.loop.ui.theme.Red300
 import com.pnd.android.loop.ui.theme.Red500
 import com.pnd.android.loop.ui.theme.onSurface
 import java.time.DayOfWeek
@@ -73,12 +75,35 @@ val DAYS_WITH_3CHARS = arrayOf(
     R.string.sun,
 )
 
+val DAYS_WITH_3CHARS_SUNDAY_FIRST = arrayOf(
+    R.string.sun,
+    R.string.mon,
+    R.string.tue,
+    R.string.wed,
+    R.string.thu,
+    R.string.fri,
+    R.string.sat,
+)
+
 val DAY_STRING_MAP = mapOf(
     EVERYDAY to R.string.everyday,
     WEEKDAYS to R.string.weekdays,
     WEEKENDS to R.string.weekends
 )
 
+@Composable
+fun LoopBase.formatStartEndTime(context: Context = LocalContext.current) =
+    "${
+        loopStart.formatHourMinute(
+            context = context,
+            withAmPm = false
+        )
+    } ~ ${
+        loopEnd.formatHourMinute(
+            context = context,
+            withAmPm = false
+        )
+    }"
 
 @Composable
 fun LocalDate.formatYearMonthDateDays(): String {
@@ -95,13 +120,26 @@ fun LocalDate.formatYearMonthDateDays(): String {
 }
 
 @Composable
-fun LocalDate.formatMonthDate():String {
+fun LocalDate.formatYearMonth(): String {
+    val args = listOf(
+        year,
+        stringResource(id = ABB_MONTHS[monthValue - 1]),
+    )
+    return stringResource(
+        id = R.string.format_year_montn,
+        formatArgs = args.toTypedArray()
+    )
+}
+
+@Composable
+fun LocalDate.formatMonthDateDay(): String {
     val args = listOf(
         stringResource(id = ABB_MONTHS[monthValue - 1]),
         "$dayOfMonth",
+        stringResource(id = DAYS_WITH_3CHARS[dayOfWeek.value - 1]),
     )
     return stringResource(
-        id = R.string.format_month_date,
+        id = R.string.format_month_date_day,
         formatArgs = args.toTypedArray()
     )
 }
@@ -140,11 +178,23 @@ fun rememberDayColor(day: Int): Color {
     val commonColor = AppColor.onSurface
     return remember(day) {
         when (day) {
-            SUNDAY -> Red500
-            SATURDAY -> Blue500
+            SUNDAY -> Red300
+            SATURDAY -> BlueGreen
             else -> commonColor
         }
     }
+}
+
+@Composable
+fun DayOfWeek.color() = when (this) {
+    DayOfWeek.SUNDAY -> Red300
+    DayOfWeek.SATURDAY -> BlueGreen
+    else -> AppColor.onSurface
+}
+
+fun LocalDate.isSameMonth(other: LocalDate): Boolean {
+    val me = this
+    return me.year == other.year && me.month == other.month
 }
 
 fun dayForLoop(localDate: LocalDate = LocalDate.now()): @Day Int = dayForLoop(localDate.dayOfWeek)
@@ -181,20 +231,6 @@ fun LocalTime.toMs() = TimeUnit.NANOSECONDS.toMillis(toNanoOfDay())
 fun LocalDate.toLocalTime(zoneId: ZoneId = ZoneId.systemDefault()) =
     atStartOfDay(zoneId).toInstant().toEpochMilli()
 
-
-@Composable
-fun LoopBase.formatStartEndTime(context: Context = LocalContext.current) =
-    "${
-        loopStart.formatHourMinute(
-            context = context,
-            withAmPm = false
-        )
-    } ~ ${
-        loopEnd.formatHourMinute(
-            context = context,
-            withAmPm = false
-        )
-    }"
 
 fun LoopBase.isPast(localDateTime: LocalDateTime = LocalDateTime.now()): Boolean {
     val localTime = localDateTime.toLocalTime()
