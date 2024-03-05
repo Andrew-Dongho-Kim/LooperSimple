@@ -1,6 +1,7 @@
 package com.pnd.android.loop.ui.common
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -22,6 +23,7 @@ fun SimpleAppBar(
     modifier: Modifier = Modifier,
     title: String,
     onNavigateUp: () -> Unit,
+    actions: @Composable RowScope.() -> Unit = {},
 ) {
     TopAppBar(
         modifier = modifier.background(color = AppColor.surface),
@@ -41,6 +43,7 @@ fun SimpleAppBar(
                 descriptionResId = R.string.navi_up,
                 onClick = onNavigateUp
             )
-        }
+        },
+        actions = actions
     )
 }

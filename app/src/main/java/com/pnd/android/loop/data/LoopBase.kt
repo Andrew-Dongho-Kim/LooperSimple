@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import androidx.annotation.IntDef
 import androidx.annotation.IntRange
+import androidx.compose.runtime.Immutable
 import com.pnd.android.loop.data.Day.Companion.EVERYDAY
 import com.pnd.android.loop.data.Day.Companion.FRIDAY
 import com.pnd.android.loop.data.Day.Companion.MONDAY
@@ -14,12 +15,9 @@ import com.pnd.android.loop.data.Day.Companion.TUESDAY
 import com.pnd.android.loop.data.Day.Companion.WEDNESDAY
 import com.pnd.android.loop.data.Day.Companion.WEEKDAYS
 import com.pnd.android.loop.data.Day.Companion.WEEKENDS
-import com.pnd.android.loop.util.h2m2
 import com.pnd.android.loop.util.intervalString
 import com.pnd.android.loop.util.toLocalTime
 import com.pnd.android.loop.util.toMs
-import java.time.LocalDate
-import java.time.LocalDateTime
 import java.time.LocalTime
 import java.util.concurrent.TimeUnit
 
@@ -31,8 +29,7 @@ private const val DEFAULT_INTERVAL = NO_REPEAT
 private const val DEFAULT_ENABLED = true
 private const val DEFAULT_IS_MOCK = false
 
-private val defaultCreated
-    get() = LocalDateTime.now().toMs()
+private const val DEFAULT_CREATED = 0L
 private val defaultLoopStart
     get() = TimeUnit.NANOSECONDS.toMillis(LocalTime.now().toNanoOfDay())
 
@@ -40,6 +37,7 @@ private val defaultLoopEnd
     get() = TimeUnit.NANOSECONDS.toMillis(LocalTime.now().plusHours(1).toNanoOfDay())
 
 
+@Immutable
 interface LoopBase {
     val id: Int
     val title: String
@@ -92,7 +90,7 @@ private class LoopImpl(
     override val id: Int = 0,
     override val title: String = DEFAULT_TITLE,
     override val color: Int = DEFAULT_COLOR,
-    override val created: Long = defaultCreated,
+    override val created: Long = DEFAULT_CREATED,
     override val loopStart: Long = defaultLoopStart,
     override val loopEnd: Long = defaultLoopEnd,
     override val loopActiveDays: Int = DEFAULT_ACTIVE_DAYS,
@@ -144,7 +142,7 @@ fun Intent.asLoop(): LoopBase {
         id = getIntExtra(EXTRA_ID, 0),
         title = getStringExtra(EXTRA_TITLE) ?: DEFAULT_TITLE,
         color = getIntExtra(EXTRA_COLOR, DEFAULT_COLOR),
-        created = getLongExtra(EXTRA_LOOP_CREATED, defaultCreated),
+        created = getLongExtra(EXTRA_LOOP_CREATED, DEFAULT_CREATED),
         loopStart = getLongExtra(EXTRA_LOOP_START, defaultLoopStart),
         loopEnd = getLongExtra(EXTRA_LOOP_END, defaultLoopEnd),
         loopActiveDays = getIntExtra(EXTRA_LOOP_ACTIVE_DAYS, DEFAULT_ACTIVE_DAYS),
@@ -172,7 +170,7 @@ fun Map<String, Any?>.asLoop(): LoopBase {
         id = getOrDefault(EXTRA_ID, 0) as Int,
         title = getOrDefault(EXTRA_TITLE, DEFAULT_TITLE) as String,
         color = (getOrDefault(EXTRA_COLOR, DEFAULT_COLOR) as Number).toInt(),
-        created = (getOrDefault(EXTRA_LOOP_CREATED, defaultCreated) as Number).toLong(),
+        created = (getOrDefault(EXTRA_LOOP_CREATED, DEFAULT_CREATED) as Number).toLong(),
         loopStart = (getOrDefault(EXTRA_LOOP_START, defaultLoopStart) as Number).toLong(),
         loopEnd = (getOrDefault(EXTRA_LOOP_END, defaultLoopEnd) as Number).toLong(),
         loopActiveDays = (getOrDefault(

@@ -127,7 +127,7 @@ private fun DetailPageContent(
         )
 
         DoneHistoryGrid(
-            modifier = modifier
+            modifier = Modifier
                 .padding(top = paddingVerticalExtraLarge)
                 .fillMaxWidth()
                 .height(264.dp),
@@ -152,6 +152,13 @@ private fun DetailPageContent(
         )
 
         MonthlyDoneRateChart(
+            modifier = Modifier.padding(
+                top = paddingVerticalSuperExtraLarge
+            ),
+            detailViewModel = detailViewModel,
+        )
+
+        WeeklyDoneRateChart(
             modifier = Modifier.padding(
                 top = paddingVerticalSuperExtraLarge
             ),
@@ -493,4 +500,12 @@ private fun rememberMonthlyDonRateChartBottomAxisFormatter()
             )
         }
     }
+}
+
+@Composable
+private fun WeeklyDoneRateChart(
+    modifier: Modifier = Modifier,
+    detailViewModel: LoopDetailViewModel,
+) {
+
 }

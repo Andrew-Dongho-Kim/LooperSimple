@@ -15,7 +15,6 @@ import androidx.compose.foundation.lazy.grid.LazyGridItemScope
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.material.ContentAlpha
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material.icons.outlined.Close
@@ -141,7 +140,7 @@ private fun ItemDescriptionItem(
                 else -> Icons.Outlined.Remove
             },
             colorFilter = ColorFilter.tint(
-                color.copy(alpha = ContentAlpha.disabled)
+                color.copy(alpha = 0.4f)
             ),
             contentDescription = null
         )
@@ -228,7 +227,7 @@ private fun DoneHistoryItem(
                         color
                     } else {
                         AppColor.onSurface
-                    }.copy(alpha = ContentAlpha.disabled)
+                    }.copy(alpha = 0.4f)
                 ),
                 contentDescription = null
             )

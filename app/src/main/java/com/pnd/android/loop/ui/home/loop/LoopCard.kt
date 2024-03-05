@@ -244,7 +244,6 @@ fun LoopCardColor(
 ) {
     Box(
         modifier = modifier
-            .alpha(0.7f)
             .background(
                 color = color.compositeOverOnSurface(),
                 shape = CircleShape

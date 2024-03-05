@@ -1,14 +1,17 @@
 package com.pnd.android.loop.ui.history
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -33,12 +36,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.paging.compose.collectAsLazyPagingItems
@@ -74,7 +81,12 @@ fun DailyAchievementPage(
             SimpleAppBar(
                 modifier = Modifier.statusBarsPadding(),
                 title = selectedDate.formatYearMonth(),
-                onNavigateUp = onNavigateUp
+                onNavigateUp = onNavigateUp,
+                actions = {
+                    AppBarDateIcon(
+                        modifier = Modifier.padding(end = 12.dp)
+                    )
+                }
             )
         }
     ) { contentPadding ->
@@ -87,6 +99,44 @@ fun DailyAchievementPage(
         }
     }
 }
+
+@Preview
+@Composable
+private fun AppBarDateIcon(
+    modifier: Modifier = Modifier,
+    currDate: LocalDate = LocalDate.now(),
+    onMoveToToday: () -> Unit = {}
+) {
+    Box(
+        modifier = modifier
+            .clickable(onClick = onMoveToToday)
+    ) {
+        val borderColor = AppColor.onSurface
+        Canvas(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .size(21.dp)
+        )
+        {
+            drawRoundRect(
+                color = borderColor,
+                style = Stroke(
+                    width = 1.dp.toPx()
+                ),
+                cornerRadius = CornerRadius(x = 4.dp.toPx(), y = 4.dp.toPx())
+            )
+        }
+        Text(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .offset(y = 1.dp),
+            text = "${currDate.dayOfMonth}",
+            textAlign = TextAlign.Center,
+            style = AppTypography.titleSmall.copy(fontWeight = FontWeight.Bold),
+        )
+    }
+}
+
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
