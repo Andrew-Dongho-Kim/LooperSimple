@@ -3,6 +3,7 @@ package com.pnd.android.loop.ui.home.loop
 import android.graphics.Path
 import android.graphics.PathDashPathEffect
 import android.graphics.PathMeasure
+import android.util.Log
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -81,6 +82,7 @@ import com.pnd.android.loop.util.formatStartEndTime
 import com.pnd.android.loop.util.intervalString
 import com.pnd.android.loop.util.isActive
 import com.pnd.android.loop.util.rememberDayColor
+import kotlinx.coroutines.launch
 
 private const val ACTIVE_EFFECT_SEGMENTS = 11f
 
@@ -193,13 +195,14 @@ private fun LoopCardActiveEffect(
             isActive = loop.isActive(currTime)
         }
     }
+
     if (!isActive) return
 
     val paint = remember { Paint() }
     val pathMeasure = remember { PathMeasure() }
     val cardShape = remember { CircularPolygonShape(12.dp) }
 
-    val infiniteTransition = rememberInfiniteTransition(label = "")
+    val infiniteTransition = rememberInfiniteTransition(label = "active_animation")
     val phase by infiniteTransition.animateFloat(
         initialValue = 1f,
         targetValue = 0f,
@@ -210,7 +213,7 @@ private fun LoopCardActiveEffect(
             ),
             repeatMode = RepeatMode.Restart
         ),
-        label = ""
+        label = "phase"
     )
     val edgeColor = loop.color.compositeOverOnSurface().copy(alpha = 0.7f)
 

@@ -24,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -46,10 +47,12 @@ import com.pnd.android.loop.ui.common.chart.BarChart
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.background
+import com.pnd.android.loop.ui.theme.compositeOver
 import com.pnd.android.loop.ui.theme.compositeOverOnSurface
 import com.pnd.android.loop.ui.theme.error
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.util.ABB_MONTHS
+import com.pnd.android.loop.util.DAYS_WITH_3CHARS
 import com.pnd.android.loop.util.annotatedString
 import com.pnd.android.loop.util.formatHourMinute
 import com.pnd.android.loop.util.formatYearMonthDateDays
@@ -158,7 +161,7 @@ private fun DetailPageContent(
             detailViewModel = detailViewModel,
         )
 
-        WeeklyDoneRateChart(
+        DayOfWeekDoneRateChart(
             modifier = Modifier.padding(
                 top = paddingVerticalSuperExtraLarge
             ),
@@ -433,7 +436,7 @@ private fun MonthlyDoneRateChart(
                 loop = loop,
                 detailViewModel = detailViewModel,
             ),
-            barColor = loop.color.compositeOverOnSurface(),
+            barColors = listOf(loop.color.compositeOverOnSurface()),
             titleStartAxis = stringResource(id = R.string.done_rate),
             bottomAxisValueFormatter = rememberMonthlyDonRateChartBottomAxisFormatter()
         )
@@ -503,9 +506,86 @@ private fun rememberMonthlyDonRateChartBottomAxisFormatter()
 }
 
 @Composable
-private fun WeeklyDoneRateChart(
+private fun DayOfWeekDoneRateChart(
     modifier: Modifier = Modifier,
     detailViewModel: LoopDetailViewModel,
 ) {
+    Column(modifier = modifier) {
+        val loop by detailViewModel.loop.collectAsState(initial = LoopBase.default())
 
+        Text(
+            modifier = Modifier.padding(bottom = paddingVerticalNormal),
+            text = stringResource(id = R.string.day_of_week_done_rate_chart),
+            style = AppTypography.headlineSmall.copy(
+                color = AppColor.onSurface
+            )
+        )
+
+        BarChart(
+            modelProducer = rememberDayOfWeekDoneRate(
+                loop = loop,
+                detailViewModel = detailViewModel,
+            ),
+            barColors = listOf(
+                AppColor.onSurface.copy(alpha = 0.8f),
+                loop.color.compositeOverOnSurface(0.8f),
+            ),
+            legends = listOf(
+                stringResource(id = R.string.response_rate),
+                stringResource(id = R.string.done_rate)
+            ),
+            bottomAxisValueFormatter = rememberDayOfWeekDonRateChartBottomAxisFormatter()
+        )
+    }
+}
+
+@Composable
+private fun rememberDayOfWeekDoneRate(
+    loop: LoopBase,
+    detailViewModel: LoopDetailViewModel,
+): CartesianChartModelProducer {
+
+    val modelProducer = remember(loop) { CartesianChartModelProducer.build() }
+    LaunchedEffect(key1 = loop) {
+        val allDoneStates = detailViewModel.allDoneStates(loop.id)
+        val doneStatesByDayOfWeek = allDoneStates.groupBy { doneVo ->
+            doneVo.date.toLocalDate().dayOfWeek
+        }
+
+        val doneX = mutableListOf<Int>()
+        val doneY = mutableListOf<Float>()
+
+        val responseX = mutableListOf<Int>()
+        val responseY = mutableListOf<Float>()
+        doneStatesByDayOfWeek.forEach { entry ->
+            val doneStates = entry.value
+            val all = doneStates.size
+            val numberOfDone = doneStates.count { doneVo -> doneVo.isDone() }
+            val numberOfResponse = doneStates.count { doneVo -> doneVo.isRespond() }
+
+            doneX.add(entry.key.value - 1)
+            doneY.add((if (all == 0) 0f else numberOfDone.toFloat() / all) * 100)
+
+            responseX.add(entry.key.value - 1)
+            responseY.add((if (all == 0) 0f else numberOfResponse.toFloat() / all) * 100)
+        }
+        modelProducer.tryRunTransaction {
+            columnSeries {
+                series(x = responseX, y = responseY)
+                series(x = doneX, y = doneY)
+            }
+        }
+    }
+    return modelProducer
+}
+
+@Composable
+private fun rememberDayOfWeekDonRateChartBottomAxisFormatter()
+        : AxisValueFormatter<AxisPosition.Horizontal.Bottom> {
+    val context = LocalContext.current
+    return remember {
+        AxisValueFormatter { value, _, _ ->
+            context.getString(DAYS_WITH_3CHARS[value.toInt()])
+        }
+    }
 }

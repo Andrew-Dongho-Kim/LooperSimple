@@ -39,7 +39,6 @@ import kotlin.math.ceil
 fun Calendar(
     modifier: Modifier = Modifier,
     pagerState: PagerState,
-    allLoopsWithDoneStates: List<LoopWithDoneStates>?,
     selectedDate: LocalDate,
     onSelectDate: (LocalDate) -> Unit
 ) {

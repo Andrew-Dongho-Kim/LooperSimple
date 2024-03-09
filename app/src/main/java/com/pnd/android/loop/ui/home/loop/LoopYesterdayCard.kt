@@ -46,6 +46,7 @@ fun LoopYesterdayCard(
     loops: List<LoopBase>,
     isExpanded: Boolean,
     onExpandChanged: (isExpanded: Boolean) -> Unit,
+    onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
     Column(
         modifier = modifier
@@ -74,7 +75,8 @@ fun LoopYesterdayCard(
                             localDate = LocalDate.now().minusDays(1),
                             doneState = if (done) LoopDoneVo.DoneState.DONE else LoopDoneVo.DoneState.SKIP
                         )
-                    }
+                    },
+                    onNavigateToDetailPage = onNavigateToDetailPage,
                 )
             }
         }
@@ -99,7 +101,7 @@ private fun LoopYesterdayHeader(
     ) {
         Text(
             text = annotatedString(stringResource(id = R.string.unchecked_loops, count)),
-            style = AppTypography.bodyMedium .copy(
+            style = AppTypography.bodyMedium.copy(
                 color = AppColor.onSurface
             )
         )
@@ -128,13 +130,17 @@ private fun LoopYesterdayItem(
     modifier: Modifier = Modifier,
     loop: LoopBase,
     onDone: (Boolean) -> Unit,
+    onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
     Row(
         modifier = modifier
             .padding(
                 vertical = 8.dp,
                 horizontal = 24.dp
-            ),
+            )
+            .clickable {
+                onNavigateToDetailPage(loop)
+            },
         verticalAlignment = Alignment.CenterVertically
     ) {
         LoopTitle(title = loop.title)
@@ -154,7 +160,7 @@ private fun LoopTitle(
     Text(
         modifier = modifier,
         text = title,
-        style = AppTypography.bodyMedium .copy(
+        style = AppTypography.bodyMedium.copy(
             color = AppColor.onSurface.copy(alpha = ContentAlpha.medium)
         )
     )

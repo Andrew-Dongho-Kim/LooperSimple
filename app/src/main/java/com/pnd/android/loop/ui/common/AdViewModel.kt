@@ -41,7 +41,7 @@ class AdViewModel(
                     .build()
             ).withAdListener(object : AdListener() {
                 override fun onAdFailedToLoad(error: LoadAdError) {
-                    continuation.resumeWithException(IllegalStateException(error.message))
+                    continuation.resumeWith(Result.success(nativeAd))
                 }
             }).build()
 

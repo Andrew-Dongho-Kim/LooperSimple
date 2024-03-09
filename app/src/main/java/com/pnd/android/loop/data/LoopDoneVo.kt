@@ -55,6 +55,11 @@ data class LoopDoneVo(
 @Dao
 interface LoopDoneDao {
 
+    @Query("SELECT * FROM loop_done WHERE loopId=:loopId")
+    suspend fun allDoneStates(
+        loopId: Int,
+    ): List<LoopDoneVo>
+
     @Query("SELECT * FROM loop_done WHERE loopId=:loopId AND date=:date LIMIT 1")
     suspend fun doneState(
         loopId: Int,

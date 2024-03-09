@@ -21,11 +21,11 @@ import com.pnd.android.loop.ui.detail.DetailPage
 import com.pnd.android.loop.ui.history.DailyAchievementPage
 import com.pnd.android.loop.ui.home.Home
 import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
+import com.pnd.android.loop.ui.statisctics.StatisticsPage
 
 sealed class Screen(val route: String) {
 
     data object Home : Screen("home")
-    data object ActivePage : Screen("active")
     data object DetailPage : Screen("detail/{$ARGS_ID}") {
         val arguments = listOf(navArgument(ARGS_ID) { type = NavType.IntType })
 
@@ -41,6 +41,7 @@ sealed class Screen(val route: String) {
 
     data object DailyAchievementPage : Screen("daily_achievement")
 
+    data object StatisticsPage : Screen("statistics")
     companion object {
         const val ARGS_ID = "id"
     }
@@ -72,6 +73,9 @@ fun AppNavHost(
                 },
                 onNavigateToHistoryPage = {
                     navController.navigate(Screen.DailyAchievementPage)
+                },
+                onNavigateToStatisticsPage = {
+                    navController.navigate(Screen.StatisticsPage)
                 }
             )
         }
@@ -97,6 +101,18 @@ fun AppNavHost(
             popExitTransition = { scaleOutOfContainer() }
         ) {
             DailyAchievementPage(
+                onNavigateUp = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Screen.StatisticsPage.route,
+            enterTransition = { scaleIntoContainer() },
+            exitTransition = { scaleOutOfContainer(INWARDS) },
+            popEnterTransition = { scaleIntoContainer(OUTWARDS) },
+            popExitTransition = { scaleOutOfContainer() }
+        ) {
+            StatisticsPage(
                 onNavigateUp = { navController.popBackStack() }
             )
         }

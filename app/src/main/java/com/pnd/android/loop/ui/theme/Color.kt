@@ -86,8 +86,13 @@ val Teal200 = Color(0xFF03DAC5)
 
 
 @Composable
-fun Int.compositeOverOnSurface(): Color {
-    return Color(this).compositeOverOnSurface()
+fun Int.compositeOverOnSurface(alpha: Float = 0.8f): Color {
+    return Color(this).compositeOverOnSurface(alpha = alpha)
+}
+
+@Composable
+fun Int.compositeOver(alpha: Float = 0.8f, color: Color): Color {
+    return Color(this).copy(alpha = alpha).compositeOver(color)
 }
 
 @Composable

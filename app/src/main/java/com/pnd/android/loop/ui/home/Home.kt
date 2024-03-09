@@ -41,6 +41,7 @@ fun Home(
     loopViewModel: LoopViewModel,
     onNavigateToDetailPage: (LoopBase) -> Unit,
     onNavigateToHistoryPage: () -> Unit,
+    onNavigateToStatisticsPage: () -> Unit,
 ) {
     val snackBarHostState = remember { SnackbarHostState() }
 
@@ -77,6 +78,7 @@ fun Home(
             loopViewModel = loopViewModel,
             onNavigateToDetailPage = onNavigateToDetailPage,
             onNavigateToHistoryPage = onNavigateToHistoryPage,
+            onNavigateToStatisticsPage = onNavigateToStatisticsPage,
         )
     }
 }
@@ -88,6 +90,7 @@ private fun HomeContent(
     loopViewModel: LoopViewModel,
     onNavigateToDetailPage: (LoopBase) -> Unit,
     onNavigateToHistoryPage: () -> Unit,
+    onNavigateToStatisticsPage: () -> Unit,
 ) {
 
     Column(modifier = modifier) {
@@ -101,6 +104,7 @@ private fun HomeContent(
             loopViewModel = loopViewModel,
             onNavigateToDetailPage = onNavigateToDetailPage,
             onNavigateToHistoryPage = onNavigateToHistoryPage,
+            onNavigateToStatisticsPage = onNavigateToStatisticsPage,
         )
 
         val context = LocalContext.current

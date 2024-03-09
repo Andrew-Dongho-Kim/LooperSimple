@@ -11,6 +11,7 @@
 
     <string name="daily_done_rate_chart">Daily done rate chart</string>
     <string name="monthly_done_rate_chart">Monthly done rate chart</string>
+    <string name="day_of_week_done_rate_chart">Done rate chart by day of week</string>
 
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
@@ -28,6 +29,7 @@
     <string name="end_at">End at %s</string>
     <string name="refresh">Refresh</string>
 
+    <string name="created">created</string>
     <string name="created_date">Created date</string>
 
     <string name="delete_confirm_message">Do you want to delete this loop?</string>

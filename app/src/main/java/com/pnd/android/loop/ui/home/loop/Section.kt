@@ -62,12 +62,14 @@ fun LazyListScope.section(
     loopViewModel: LoopViewModel,
     onNavigateToDetailPage: (LoopBase) -> Unit,
     onNavigateToHistoryPage: () -> Unit,
+    onNavigateToStatisticsPage: () -> Unit,
     onEdit: (LoopBase) -> Unit,
 ) {
     when (section) {
         is Section.Statistics -> sectionStatistics(
             section = section,
             loopViewModel = loopViewModel,
+            onNavigateToStatisticsPage = onNavigateToStatisticsPage
         )
 
         is Section.Today -> sectionToday(
@@ -80,6 +82,7 @@ fun LazyListScope.section(
         is Section.Yesterday -> sectionYesterday(
             section = section,
             loopViewModel = loopViewModel,
+            onNavigateToDetailPage = onNavigateToDetailPage
         )
 
         is Section.Ad -> sectionAd(section = section)
@@ -103,6 +106,7 @@ fun LazyListScope.section(
 private fun LazyListScope.sectionStatistics(
     section: Section.Statistics,
     loopViewModel: LoopViewModel,
+    onNavigateToStatisticsPage: () -> Unit,
 ) {
     item(
         contentType = ContentTypes.STATISTICS_CARD,
@@ -113,7 +117,8 @@ private fun LazyListScope.sectionStatistics(
                 horizontal = 12.dp,
                 vertical = 12.dp
             ),
-            loopViewModel = loopViewModel
+            loopViewModel = loopViewModel,
+            onNavigateToStatisticsPage = onNavigateToStatisticsPage,
         )
     }
 }
@@ -121,6 +126,7 @@ private fun LazyListScope.sectionStatistics(
 private fun LazyListScope.sectionYesterday(
     section: Section.Yesterday,
     loopViewModel: LoopViewModel,
+    onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
     val loops by section.items
     if (loops.isEmpty()) return
@@ -134,7 +140,8 @@ private fun LazyListScope.sectionYesterday(
             loopViewModel = loopViewModel,
             loops = loops,
             isExpanded = isExpanded,
-            onExpandChanged = { isExpanded = it }
+            onExpandChanged = { isExpanded = it },
+            onNavigateToDetailPage = onNavigateToDetailPage,
         )
     }
 }
@@ -224,7 +231,7 @@ private fun TimelineHeaderButton(
             val contentColor = if (isSelected) selectedColor else normalColor
             Text(
                 text = stringResource(R.string.timeline),
-                style = AppTypography.bodyMedium .copy(
+                style = AppTypography.bodyMedium.copy(
                     color = contentColor,
                     fontWeight = FontWeight.Bold,
                     fontStyle = FontStyle.Italic

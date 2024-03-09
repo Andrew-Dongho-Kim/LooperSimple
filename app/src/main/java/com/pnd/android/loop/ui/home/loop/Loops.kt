@@ -41,6 +41,7 @@ fun Loops(
     loopViewModel: LoopViewModel,
     onNavigateToDetailPage: (LoopBase) -> Unit,
     onNavigateToHistoryPage: () -> Unit,
+    onNavigateToStatisticsPage: () -> Unit,
 ) {
     val sections by loopViewModel.observeSectionsAsState(inputState)
     val onEdit = remember { { loop: LoopBase -> inputState.edit(loop) } }
@@ -59,6 +60,7 @@ fun Loops(
                         loopViewModel = loopViewModel,
                         onNavigateToDetailPage = onNavigateToDetailPage,
                         onNavigateToHistoryPage = onNavigateToHistoryPage,
+                        onNavigateToStatisticsPage = onNavigateToStatisticsPage,
                         onEdit = onEdit,
                     )
                 }

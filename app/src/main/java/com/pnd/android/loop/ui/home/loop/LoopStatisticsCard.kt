@@ -27,9 +27,10 @@ import com.pnd.android.loop.ui.theme.primary
 fun LoopStatisticsCard(
     modifier: Modifier = Modifier,
     loopViewModel: LoopViewModel,
+    onNavigateToStatisticsPage: () -> Unit,
 ) {
     Card(
-        modifier = modifier.clickable { },
+        modifier = modifier.clickable(onClick = onNavigateToStatisticsPage),
         colors = CardDefaults.cardColors(
             containerColor = AppColor.primary.compositeOverSurface(
                 alpha = if (isSystemInDarkTheme()) 0.15f else 0.1f
@@ -101,7 +102,7 @@ private fun DoneRate(
             )
         )
 
-        val doneRate  by loopViewModel.doneRate.collectAsState(initial = 0f)
+        val doneRate by loopViewModel.doneRate.collectAsState(initial = 0f)
         Text(
             text = String.format("%.2f%%", doneRate),
             style = AppTypography.bodyMedium.copy(

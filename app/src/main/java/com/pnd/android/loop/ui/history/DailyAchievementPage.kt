@@ -36,7 +36,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
@@ -50,13 +49,16 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.pnd.android.loop.R
+import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.LoopWithDone
 import com.pnd.android.loop.ui.common.SimpleAppBar
+import com.pnd.android.loop.ui.common.findLastFullyVisibleItemIndex
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.background
 import com.pnd.android.loop.ui.theme.compositeOverSurface
+import com.pnd.android.loop.ui.theme.error
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.util.formatMonthDateDay
@@ -175,7 +177,6 @@ private fun DailyAchievementPageContent(
         Calendar(
             modifier = Modifier.weight(1f),
             pagerState = pagerState,
-            allLoopsWithDoneStates = allLoopsWithDoneStates,
             selectedDate = selectedDate,
             onSelectDate = onSelectedDate
         )
@@ -203,7 +204,9 @@ private fun UpdateSelectedDate(
 ) {
     var savedCalendarPage by remember { mutableStateOf(pagerState.targetPage) }
     if (lazyListState.isScrollInProgress) {
-        val index by remember { derivedStateOf { lazyListState.firstVisibleItemIndex } }
+        val index by remember {
+            derivedStateOf { lazyListState.findLastFullyVisibleItemIndex() }
+        }
         val selectedDate = minDate.plusDays(index.toLong())
 
         onSelectDate(selectedDate)
@@ -248,8 +251,6 @@ private fun DailyAchievementsRecords(
 ) {
     val items = achievementViewModel.achievementPager.collectAsLazyPagingItems()
 
-
-
     LazyColumn(
         modifier = modifier,
         state = lazyListState,
@@ -275,11 +276,12 @@ private fun AchievementItem(
     item: List<LoopWithDone>
 ) {
     Column(modifier = modifier) {
+        val itemDate = item[0].date.toLocalDate()
         AchievementItemDateHeader(
             modifier = Modifier
                 .padding(top = 22.dp)
                 .padding(bottom = 12.dp),
-            localDate = item[0].date.toLocalDate()
+            itemDate = itemDate,
         )
 
         val doneList = item.filter { it.done == LoopDoneVo.DoneState.DONE }
@@ -287,6 +289,7 @@ private fun AchievementItem(
             AchievementItemSection(
                 modifier = Modifier.fillMaxWidth(),
                 loops = doneList,
+                itemDate = itemDate,
                 title = stringResource(id = R.string.done),
                 backgroundColor = AppColor.primary.compositeOverSurface(
                     alpha = if (isSystemInDarkTheme()) 0.15f else 0.1f
@@ -303,6 +306,7 @@ private fun AchievementItem(
                     .padding(top = 12.dp)
                     .fillMaxWidth(),
                 loops = skipList,
+                itemDate = itemDate,
                 title = stringResource(id = R.string.skip),
                 backgroundColor = compositeOverSurface(),
                 icon = Icons.Filled.Clear,
@@ -315,11 +319,11 @@ private fun AchievementItem(
 @Composable
 private fun AchievementItemDateHeader(
     modifier: Modifier = Modifier,
-    localDate: LocalDate
+    itemDate: LocalDate
 ) {
     Text(
         modifier = modifier.fillMaxWidth(),
-        text = localDate.formatMonthDateDay(),
+        text = itemDate.formatMonthDateDay(),
         style = AppTypography.headlineSmall.copy(
             color = AppColor.onSurface,
             textAlign = TextAlign.Center,
@@ -332,6 +336,7 @@ private fun AchievementItemDateHeader(
 private fun AchievementItemSection(
     modifier: Modifier = Modifier,
     loops: List<LoopWithDone>,
+    itemDate: LocalDate,
     title: String,
     backgroundColor: Color,
     icon: ImageVector,
@@ -354,15 +359,9 @@ private fun AchievementItemSection(
         )
         loops.forEach { loop ->
             key(loop.id) {
-                Text(
-                    modifier = Modifier.padding(
-                        start = 16.dp,
-                        top = 8.dp
-                    ),
-                    text = loop.title,
-                    style = AppTypography.bodyMedium.copy(
-                        color = AppColor.onSurface
-                    )
+                AchievementItemSectionBody(
+                    loop = loop,
+                    itemDate = itemDate,
                 )
             }
         }
@@ -399,4 +398,39 @@ private fun AchievementItemSectionHeader(
         )
 
     }
+}
+
+@Composable
+private fun AchievementItemSectionBody(
+    modifier: Modifier = Modifier,
+    loop: LoopBase,
+    itemDate: LocalDate,
+) {
+    Row(
+        modifier = modifier.padding(
+            start = 16.dp,
+            top = 8.dp
+        ),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = loop.title,
+            style = AppTypography.bodyMedium.copy(
+                color = AppColor.onSurface
+            )
+        )
+
+        val createdDate = remember(loop.created) { loop.created.toLocalDate() }
+        if (itemDate == createdDate) {
+            Text(
+                modifier = Modifier.padding(start = 6.dp),
+                text = "[${stringResource(id = R.string.created)}]",
+                style = AppTypography.labelMedium.copy(
+                    color = AppColor.error.copy(alpha = 0.7f)
+                )
+            )
+        }
+
+    }
+
 }

@@ -26,11 +26,11 @@ class LoopDetailViewModel @Inject constructor(
     private val loopDoneDao = appDb.loopDoneDao()
 
     val loop = loopDao.flowLoop(loopId)
+
     val allCount = loopDoneDao.flowAllCount(loopId)
     val responseCount = loopDoneDao.flowResponseCount(loopId)
     val doneCount = loopDoneDao.flowDoneCount(loopId)
     val skipCount = loopDoneDao.flowSkipCount(loopId)
-
 
     val donePager = Pager(
         PagingConfig(pageSize = PAGE_SIZE),
@@ -42,6 +42,9 @@ class LoopDetailViewModel @Inject constructor(
             )
         }
     ).flow
+
+    suspend fun allDoneStates(loopId: Int) =
+        loopDoneDao.allDoneStates(loopId = loopId)
 
     suspend fun allCountBefore(loopId: Int, date: LocalDate) =
         loopDoneDao.allCountBefore(loopId, date.toMs())
