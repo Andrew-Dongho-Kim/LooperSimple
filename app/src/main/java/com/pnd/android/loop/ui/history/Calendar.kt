@@ -1,6 +1,7 @@
 package com.pnd.android.loop.ui.history
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,10 +9,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -23,8 +28,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.pnd.android.loop.data.LoopWithDoneStates
+import com.pnd.android.loop.data.LoopsByDate
 import com.pnd.android.loop.ui.theme.AppTypography
+import com.pnd.android.loop.ui.theme.compositeOverOnSurface
 import com.pnd.android.loop.ui.theme.compositeOverSurface
 import com.pnd.android.loop.util.DAYS_WITH_3CHARS_SUNDAY_FIRST
 import com.pnd.android.loop.util.color
@@ -39,6 +45,7 @@ import kotlin.math.ceil
 fun Calendar(
     modifier: Modifier = Modifier,
     pagerState: PagerState,
+    achievementViewModel: DailyAchievementViewModel,
     selectedDate: LocalDate,
     onSelectDate: (LocalDate) -> Unit
 ) {
@@ -50,8 +57,9 @@ fun Calendar(
             reverseLayout = true,
         ) { page ->
             CalendarPage(
+                achievementViewModel = achievementViewModel,
                 selectedDate = selectedDate,
-                localDate = LocalDate.now().minusMonths(page.toLong()).withDayOfMonth(1),
+                firstDateOfMonth = LocalDate.now().minusMonths(page.toLong()).withDayOfMonth(1),
                 onSelectDate = onSelectDate
             )
         }
@@ -89,28 +97,35 @@ fun CalendarHeader(
 @Composable
 private fun CalendarPage(
     modifier: Modifier = Modifier,
+    achievementViewModel: DailyAchievementViewModel,
     selectedDate: LocalDate,
-    localDate: LocalDate,
+    firstDateOfMonth: LocalDate,
     onSelectDate: (LocalDate) -> Unit
 ) {
-    val itemMonth = localDate
-    val start = remember(itemMonth) { itemMonth.dayOfWeek.value % 7L }
-
-    val days = remember(itemMonth, start) { YearMonth.from(itemMonth).lengthOfMonth() + start }
+    val start = remember(firstDateOfMonth) { firstDateOfMonth.dayOfWeek.value % 7L }
+    val days = remember(firstDateOfMonth, start) {
+        YearMonth.from(firstDateOfMonth).lengthOfMonth() + start
+    }
     val rows = remember(days) { ceil(days.toFloat() / DAYS_OF_WEEK).toInt() }
 
+    var itDate = firstDateOfMonth.minusDays(start)
+    val loopsByDate by achievementViewModel.flowsDoneLoopsByDate(
+        from = itDate,
+        to = itDate.plusDays(41)
+    ).collectAsState(initial = emptyMap())
+
     Column(modifier = modifier) {
-        var month = itemMonth.minusDays(start)
         repeat(rows) {
-            key(month) {
+            key(itDate) {
                 CalendarRow(
                     modifier = Modifier.weight(1f),
-                    itemDate = month,
+                    loopsByDate = loopsByDate,
+                    itemDate = itDate,
                     selectedDate = selectedDate,
                     onSelectDate = onSelectDate
                 )
             }
-            month = month.plusWeeks(1)
+            itDate = itDate.plusWeeks(1)
         }
     }
 }
@@ -118,6 +133,7 @@ private fun CalendarPage(
 @Composable
 private fun CalendarRow(
     modifier: Modifier = Modifier,
+    loopsByDate: Map<LocalDate, List<LoopsByDate>>,
     itemDate: LocalDate,
     selectedDate: LocalDate,
     onSelectDate: (LocalDate) -> Unit,
@@ -136,6 +152,7 @@ private fun CalendarRow(
                                 0.3f
                             }
                         ),
+                    doneLoops = loopsByDate[itDate] ?: emptyList(),
                     itemDate = itDate,
                     isToday = itDate == LocalDate.now(),
                     isSelected = itDate == selectedDate,
@@ -150,13 +167,14 @@ private fun CalendarRow(
 @Composable
 private fun CalendarDateItem(
     modifier: Modifier = Modifier,
+    doneLoops: List<LoopsByDate>,
     itemDate: LocalDate,
     isToday: Boolean,
     isSelected: Boolean,
     onSelectDate: (LocalDate) -> Unit
 ) {
     val selectedBackground = compositeOverSurface()
-    Box(
+    Column(
         modifier = modifier
             .fillMaxHeight()
             .padding(all = 2.dp)
@@ -184,6 +202,35 @@ private fun CalendarDateItem(
                 fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal
             )
         )
+
+        DoneLoopsIndicator(
+            modifier = Modifier
+                .padding(top = 12.dp)
+                .align(Alignment.CenterHorizontally),
+            doneLoops = doneLoops,
+        )
+    }
+}
+
+@Composable
+private fun DoneLoopsIndicator(
+    modifier: Modifier = Modifier,
+    doneLoops: List<LoopsByDate>,
+) {
+    Row(modifier = modifier) {
+        doneLoops.forEach { loop ->
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 1.dp)
+                    .size(4.dp)
+                    .background(
+                        color = loop.color
+                            .compositeOverOnSurface()
+                            .copy(alpha = 0.8f),
+                        shape = CircleShape
+                    )
+            )
+        }
     }
 }
 

@@ -107,7 +107,7 @@ class LoopRepository @Inject constructor(
 
     suspend fun addOrUpdateLoop(vararg loops: LoopVo) {
         loopDao.addOrUpdate(*loops).forEachIndexed { index, id ->
-            val loop = loops[index].copy(id = id.toInt())
+            val loop = loops[index].copy(id = id)
             logger.d { "$loop is added or updated" }
 
             if (loop.enabled) alarmController.reserveAlarm(loop)

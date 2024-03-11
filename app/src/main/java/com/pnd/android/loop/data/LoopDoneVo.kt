@@ -26,7 +26,8 @@ import java.time.ZoneId
             entity = LoopVo::class,
             parentColumns = ["id"],
             childColumns = ["loopId"],
-            onDelete = CASCADE
+            onUpdate = CASCADE,
+            onDelete = CASCADE,
         )
     ]
 )

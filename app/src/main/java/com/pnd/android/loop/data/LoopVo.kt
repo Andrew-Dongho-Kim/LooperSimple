@@ -1,5 +1,6 @@
 package com.pnd.android.loop.data
 
+import android.database.sqlite.SQLiteConstraintException
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.LiveData
 import androidx.room.*
@@ -81,11 +82,25 @@ interface LoopDao {
     @Query("SELECT * FROM loop WHERE id=:loopId")
     fun flowLoop(loopId: Int): Flow<LoopVo>
 
+    @Query("SELECT min(created) FROM loop")
+    fun flowMinCreatedTime(): Flow<Long>
+
     @Query("SELECT * FROM loop")
     suspend fun allLoops(): List<LoopVo>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun addOrUpdate(vararg loops: LoopVo): List<Long>
+    @Insert
+    suspend fun insert(vararg loops: LoopVo): List<Long>
+
+    @Update
+    suspend fun update(vararg loops: LoopVo)
+
+    suspend fun addOrUpdate(vararg loops: LoopVo) =
+        try {
+            insert(*loops).map { it.toInt() }
+        } catch (e: SQLiteConstraintException) {
+            update(*loops)
+            loops.map { loop -> loop.id }
+        }
 
     @Query("DELETE FROM loop WHERE id = :id")
     suspend fun remove(id: Int)

@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Done
@@ -57,6 +58,7 @@ import com.pnd.android.loop.ui.common.findLastFullyVisibleItemIndex
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.background
+import com.pnd.android.loop.ui.theme.compositeOverOnSurface
 import com.pnd.android.loop.ui.theme.compositeOverSurface
 import com.pnd.android.loop.ui.theme.error
 import com.pnd.android.loop.ui.theme.onSurface
@@ -149,15 +151,8 @@ private fun DailyAchievementPageContent(
     onSelectedDate: (LocalDate) -> Unit
 ) {
     Column(modifier = modifier) {
-        val allLoopsWithDoneStates by achievementViewModel
-            .flowAllLoopsWithDoneStates
-            .collectAsState(initial = null)
-
-        val minCreatedDate = remember(allLoopsWithDoneStates) {
-            allLoopsWithDoneStates?.minOfOrNull {
-                it.loop.created
-            }?.toLocalDate() ?: LocalDate.now()
-        }
+        val minCreatedDate by achievementViewModel.flowMinCreatedDate
+            .collectAsState(initial = LocalDate.now())
 
         val pagerState = rememberPagerState {
             ChronoUnit.MONTHS.between(
@@ -177,6 +172,7 @@ private fun DailyAchievementPageContent(
         Calendar(
             modifier = Modifier.weight(1f),
             pagerState = pagerState,
+            achievementViewModel = achievementViewModel,
             selectedDate = selectedDate,
             onSelectDate = onSelectedDate
         )
@@ -396,7 +392,6 @@ private fun AchievementItemSectionHeader(
             colorFilter = ColorFilter.tint(color = iconColor),
             contentDescription = title
         )
-
     }
 }
 
@@ -413,7 +408,17 @@ private fun AchievementItemSectionBody(
         ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .background(
+                    color = loop.color.compositeOverOnSurface(),
+                    shape = CircleShape
+                )
+        )
+
         Text(
+            modifier = Modifier.padding(start = 16.dp),
             text = loop.title,
             style = AppTypography.bodyMedium.copy(
                 color = AppColor.onSurface
@@ -430,7 +435,5 @@ private fun AchievementItemSectionBody(
                 )
             )
         }
-
     }
-
 }
