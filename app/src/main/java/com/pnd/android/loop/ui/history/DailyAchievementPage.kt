@@ -34,6 +34,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,16 +67,48 @@ import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.util.formatMonthDateDay
 import com.pnd.android.loop.util.formatYearMonth
 import com.pnd.android.loop.util.toLocalDate
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun DailyAchievementPage(
     modifier: Modifier = Modifier,
     achievementViewModel: DailyAchievementViewModel = hiltViewModel(),
     onNavigateUp: () -> Unit,
 ) {
+    val minDate by achievementViewModel.flowMinCreatedDate
+        .collectAsState(initial = LocalDate.now())
+
     var selectedDate by remember { mutableStateOf(LocalDate.now()) }
+
+    val lazyListState = rememberLazyListState()
+    val pagerState = rememberPagerState {
+        ChronoUnit.MONTHS.between(
+            minDate.withDayOfMonth(1),
+            LocalDate.now().withDayOfMonth(1),
+        ).toInt() + 1
+    }
+
+    val coroutineScope = rememberCoroutineScope()
+    val onDateSelected = remember {
+        func@{ date: LocalDate ->
+            if (date.isBefore(minDate) || date.isAfter(LocalDate.now())) {
+                return@func
+            }
+            coroutineScope.launch {
+                lazyListState.scrollToItem(
+                    calculateListItemPosition(
+                        minDate = minDate,
+                        selectedDate = selectedDate,
+                    )
+                )
+                pagerState.scrollToPage(calculateTargetCalendarPage(selectedDate))
+            }
+            selectedDate = date
+        }
+    }
     Scaffold(
         modifier = modifier
             .fillMaxWidth()
@@ -88,7 +121,8 @@ fun DailyAchievementPage(
                 onNavigateUp = onNavigateUp,
                 actions = {
                     AppBarDateIcon(
-                        modifier = Modifier.padding(end = 12.dp)
+                        modifier = Modifier.padding(end = 12.dp),
+                        onMoveToToday = { onDateSelected(LocalDate.now()) }
                     )
                 }
             )
@@ -96,9 +130,13 @@ fun DailyAchievementPage(
     ) { contentPadding ->
         Box(modifier = Modifier.padding(contentPadding)) {
             DailyAchievementPageContent(
+                pagerState = pagerState,
+                lazyListState = lazyListState,
                 achievementViewModel = achievementViewModel,
+                minDate = minDate,
                 selectedDate = selectedDate,
-                onSelectedDate = { date -> selectedDate = date }
+                onDateSelected = onDateSelected,
+                onUpdateSelectedDate = { localDate -> selectedDate = localDate }
             )
         }
     }
@@ -119,7 +157,7 @@ private fun AppBarDateIcon(
         Canvas(
             modifier = Modifier
                 .align(Alignment.Center)
-                .size(21.dp)
+                .size(22.dp)
         )
         {
             drawRoundRect(
@@ -136,7 +174,10 @@ private fun AppBarDateIcon(
                 .offset(y = 1.dp),
             text = "${currDate.dayOfMonth}",
             textAlign = TextAlign.Center,
-            style = AppTypography.titleSmall.copy(fontWeight = FontWeight.Bold),
+            style = AppTypography.titleSmall.copy(
+                color = AppColor.onSurface,
+                fontWeight = FontWeight.Bold
+            ),
         )
     }
 }
@@ -146,35 +187,34 @@ private fun AppBarDateIcon(
 @Composable
 private fun DailyAchievementPageContent(
     modifier: Modifier = Modifier,
+    pagerState: PagerState,
+    lazyListState: LazyListState,
     achievementViewModel: DailyAchievementViewModel,
+    minDate: LocalDate,
     selectedDate: LocalDate,
-    onSelectedDate: (LocalDate) -> Unit
+    onDateSelected: (LocalDate) -> Unit,
+    onUpdateSelectedDate: (LocalDate) -> Unit,
 ) {
     Column(modifier = modifier) {
-        val minCreatedDate by achievementViewModel.flowMinCreatedDate
-            .collectAsState(initial = LocalDate.now())
 
-        val pagerState = rememberPagerState {
-            ChronoUnit.MONTHS.between(
-                minCreatedDate.withDayOfMonth(1),
-                LocalDate.now().withDayOfMonth(1),
-            ).toInt() + 1
+        LaunchedEffect(key1 = Unit) {
+            lazyListState.scrollToItem(Int.MAX_VALUE)
         }
-        val lazyListState = rememberLazyListState()
 
         UpdateSelectedDate(
             pagerState = pagerState,
             lazyListState = lazyListState,
-            minDate = minCreatedDate,
-            onSelectDate = onSelectedDate
+            minDate = minDate,
+            onUpdateSelectedDate = onUpdateSelectedDate
         )
 
         Calendar(
             modifier = Modifier.weight(1f),
             pagerState = pagerState,
             achievementViewModel = achievementViewModel,
+            minDate = minDate,
             selectedDate = selectedDate,
-            onSelectDate = onSelectedDate
+            onDateSelected = onDateSelected
         )
 
         DailyAchievementsRecords(
@@ -196,48 +236,84 @@ private fun UpdateSelectedDate(
     pagerState: PagerState,
     lazyListState: LazyListState,
     minDate: LocalDate,
-    onSelectDate: (LocalDate) -> Unit,
+    onUpdateSelectedDate: (LocalDate) -> Unit,
 ) {
-    var savedCalendarPage by remember { mutableStateOf(pagerState.targetPage) }
     if (lazyListState.isScrollInProgress) {
-        val index by remember {
-            derivedStateOf { lazyListState.findLastFullyVisibleItemIndex() }
-        }
-        val selectedDate = minDate.plusDays(index.toLong())
-
-        onSelectDate(selectedDate)
-        LaunchedEffect(key1 = selectedDate.withDayOfMonth(1)) {
-            val page = ChronoUnit.MONTHS.between(
-                selectedDate.withDayOfMonth(1),
-                LocalDate.now().withDayOfMonth(1),
-            ).toInt()
-
-            savedCalendarPage = page
-            pagerState.animateScrollToPage(page)
-        }
-    } else {
-        if (savedCalendarPage == pagerState.targetPage) return
-        savedCalendarPage = pagerState.targetPage
-
-        var selectedDate = LocalDate.now()
-            .minusMonths(pagerState.targetPage.toLong())
-            .withDayOfMonth(1)
-        selectedDate = if (selectedDate.isBefore(minDate)) {
-            minDate
-        } else if (selectedDate.isAfter(LocalDate.now())) {
-            LocalDate.now()
-        } else {
-            selectedDate
-        }
-
-        onSelectDate(selectedDate)
-        LaunchedEffect(key1 = selectedDate) {
-            val index = (selectedDate.toEpochDay() - minDate.toEpochDay()).toInt()
-            lazyListState.scrollToItem(index)
-        }
-
+        OnListScrolled(
+            pagerState = pagerState,
+            lazyListState = lazyListState,
+            minDate = minDate,
+            onUpdateSelectedDate = onUpdateSelectedDate
+        )
+    } else if (pagerState.isScrollInProgress) {
+        OnPagerScrolled(
+            pagerState = pagerState,
+            lazyListState = lazyListState,
+            minDate = minDate,
+            onUpdateSelectedDate = onUpdateSelectedDate
+        )
     }
 }
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun OnListScrolled(
+    pagerState: PagerState,
+    lazyListState: LazyListState,
+    minDate: LocalDate,
+    onUpdateSelectedDate: (LocalDate) -> Unit,
+) {
+    val index by remember {
+        derivedStateOf { lazyListState.findLastFullyVisibleItemIndex() }
+    }
+    val selectedDate = minDate.plusDays(index.toLong())
+    onUpdateSelectedDate(selectedDate)
+
+    LaunchedEffect(key1 = selectedDate.withDayOfMonth(1)) {
+        pagerState.animateScrollToPage(calculateTargetCalendarPage(selectedDate))
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun OnPagerScrolled(
+    pagerState: PagerState,
+    lazyListState: LazyListState,
+    minDate: LocalDate,
+    onUpdateSelectedDate: (LocalDate) -> Unit,
+) {
+    var selectedDate = LocalDate.now()
+        .minusMonths(pagerState.targetPage.toLong())
+        .withDayOfMonth(1)
+    selectedDate = if (selectedDate.isBefore(minDate)) {
+        minDate
+    } else if (selectedDate.isAfter(LocalDate.now())) {
+        LocalDate.now()
+    } else {
+        selectedDate
+    }
+
+    onUpdateSelectedDate(selectedDate)
+    LaunchedEffect(key1 = selectedDate) {
+        lazyListState.scrollToItem(
+            calculateListItemPosition(
+                minDate = minDate,
+                selectedDate = selectedDate,
+            )
+        )
+    }
+}
+
+fun calculateTargetCalendarPage(selectedDate: LocalDate) = ChronoUnit.MONTHS.between(
+    selectedDate.withDayOfMonth(1),
+    LocalDate.now().withDayOfMonth(1),
+).toInt()
+
+fun calculateListItemPosition(
+    minDate: LocalDate,
+    selectedDate: LocalDate,
+) =
+    (selectedDate.toEpochDay() - minDate.toEpochDay()).toInt()
 
 @Composable
 private fun DailyAchievementsRecords(
@@ -259,7 +335,7 @@ private fun DailyAchievementsRecords(
             val item = items[index]!!
 
             AchievementItem(
-                modifier = Modifier.padding(top = 12.dp),
+                modifier = Modifier.padding(vertical = 18.dp),
                 item = item
             )
         }
@@ -276,7 +352,7 @@ private fun AchievementItem(
         AchievementItemDateHeader(
             modifier = Modifier
                 .padding(top = 22.dp)
-                .padding(bottom = 12.dp),
+                .padding(bottom = 18.dp),
             itemDate = itemDate,
         )
 

@@ -13,6 +13,8 @@
     <string name="monthly_done_rate_chart">Monthly done rate chart</string>
     <string name="day_of_week_done_rate_chart">Done rate chart by day of week</string>
 
+    <string name="go_to_statistics">Go to statistics</string>
+
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
     <string name="add">Add</string>

@@ -1,10 +1,13 @@
 package com.pnd.android.loop.ui.home.loop
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.ContentAlpha
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowRightAlt
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
@@ -13,6 +16,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
@@ -42,7 +46,8 @@ fun LoopStatisticsCard(
             modifier = Modifier.padding(
                 vertical = 8.dp,
                 horizontal = 12.dp,
-            )
+            ),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             ResponseRate(
                 modifier = Modifier.weight(1f),
@@ -55,6 +60,15 @@ fun LoopStatisticsCard(
             SkipRate(
                 modifier = Modifier.weight(1f),
                 loopViewModel = loopViewModel
+            )
+            Image(
+                imageVector = Icons.AutoMirrored.Outlined.ArrowRightAlt,
+                colorFilter = ColorFilter.tint(
+                    color = AppColor.onSurface.compositeOverSurface(
+                        alpha = 0.7f
+                    )
+                ),
+                contentDescription = stringResource(id = R.string.go_to_statistics)
             )
         }
     }

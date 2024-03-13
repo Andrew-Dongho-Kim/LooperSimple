@@ -231,7 +231,6 @@ fun LocalTime.toMs() = TimeUnit.NANOSECONDS.toMillis(toNanoOfDay())
 fun LocalDate.toLocalTime(zoneId: ZoneId = ZoneId.systemDefault()) =
     atStartOfDay(zoneId).toInstant().toEpochMilli()
 
-
 fun LoopBase.isPast(localDateTime: LocalDateTime = LocalDateTime.now()): Boolean {
     val localTime = localDateTime.toLocalTime()
     val timeInMs = TimeUnit.MILLISECONDS.convert(localTime.toNanoOfDay(), TimeUnit.NANOSECONDS)

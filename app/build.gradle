@@ -73,20 +73,20 @@ dependencies {
     implementation "androidx.activity:activity-compose:1.8.2"
 
     // Ads Kit
-    implementation 'com.google.android.gms:play-services-ads:22.6.0'
+    implementation 'com.google.android.gms:play-services-ads:23.0.0'
 
     // Compose
-    implementation 'androidx.compose.animation:animation:1.6.2'
-    implementation 'androidx.compose.ui:ui:1.6.2'
-    implementation 'androidx.compose.ui:ui-tooling:1.6.2'
-    implementation 'androidx.compose.ui:ui-viewbinding:1.6.2'
-    implementation 'androidx.compose.runtime:runtime-livedata:1.6.2'
-    implementation 'androidx.compose.foundation:foundation:1.6.2'
-    implementation 'androidx.compose.material:material:1.6.2'
-    implementation 'androidx.compose.material3:material3:1.2.0'
-    implementation 'androidx.compose.material:material-icons-extended:1.6.2'
+    implementation 'androidx.compose.animation:animation:1.6.3'
+    implementation 'androidx.compose.ui:ui:1.6.3'
+    implementation 'androidx.compose.ui:ui-tooling:1.6.3'
+    implementation 'androidx.compose.ui:ui-viewbinding:1.6.3'
+    implementation 'androidx.compose.runtime:runtime-livedata:1.6.3'
+    implementation 'androidx.compose.foundation:foundation:1.6.3'
+    implementation 'androidx.compose.material:material:1.6.3'
+    implementation 'androidx.compose.material3:material3:1.2.1'
+    implementation 'androidx.compose.material:material-icons-extended:1.6.3'
     implementation 'androidx.navigation:navigation-compose:2.7.7'
-    androidTestImplementation 'androidx.compose.ui:ui-test-junit4:1.6.2'
+    androidTestImplementation 'androidx.compose.ui:ui-test-junit4:1.6.3'
 
     // Compose chart
     implementation 'com.patrykandpatrick.vico:compose:2.0.0-alpha.8'
@@ -99,13 +99,13 @@ dependencies {
     implementation "androidx.glance:glance-material3:1.0.0"
 
     // Hilt
-    implementation "com.google.dagger:hilt-android:2.50"
-    kapt "com.google.dagger:hilt-compiler:2.50"
+    implementation 'com.google.dagger:hilt-android:2.51'
+    kapt 'com.google.dagger:hilt-compiler:2.51'
     implementation 'androidx.hilt:hilt-navigation-compose:1.2.0'
 
     // Json
-    implementation 'com.fasterxml.jackson.core:jackson-core:2.16.1'
-    implementation 'com.fasterxml.jackson.core:jackson-databind:2.16.1'
+    implementation 'com.fasterxml.jackson.core:jackson-core:2.17.0'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.17.0'
 
     // Lifecycle
     implementation "androidx.lifecycle:lifecycle-runtime-ktx:2.7.0"

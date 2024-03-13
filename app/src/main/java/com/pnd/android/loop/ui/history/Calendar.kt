@@ -46,8 +46,9 @@ fun Calendar(
     modifier: Modifier = Modifier,
     pagerState: PagerState,
     achievementViewModel: DailyAchievementViewModel,
+    minDate: LocalDate,
     selectedDate: LocalDate,
-    onSelectDate: (LocalDate) -> Unit
+    onDateSelected: (LocalDate) -> Unit
 ) {
     Column(modifier = modifier) {
         CalendarHeader()
@@ -58,9 +59,10 @@ fun Calendar(
         ) { page ->
             CalendarPage(
                 achievementViewModel = achievementViewModel,
+                minDate = minDate,
                 selectedDate = selectedDate,
                 firstDateOfMonth = LocalDate.now().minusMonths(page.toLong()).withDayOfMonth(1),
-                onSelectDate = onSelectDate
+                onDateSelected = onDateSelected
             )
         }
     }
@@ -71,7 +73,6 @@ fun CalendarHeader(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
-
         Row(
             modifier = Modifier.padding(top = 16.dp)
         ) {
@@ -85,7 +86,13 @@ fun CalendarHeader(
                     textAlign = TextAlign.Center,
                     text = day,
                     style = AppTypography.bodySmall.copy(
-                        color = DayOfWeek.of(if (index == 0) 7 else index).color()
+                        color = DayOfWeek.of(
+                            if (index == 0) {
+                                DayOfWeek.SUNDAY.value
+                            } else {
+                                index
+                            }
+                        ).color()
                     )
                 )
             }
@@ -98,34 +105,40 @@ fun CalendarHeader(
 private fun CalendarPage(
     modifier: Modifier = Modifier,
     achievementViewModel: DailyAchievementViewModel,
+    minDate: LocalDate,
     selectedDate: LocalDate,
     firstDateOfMonth: LocalDate,
-    onSelectDate: (LocalDate) -> Unit
+    onDateSelected: (LocalDate) -> Unit
 ) {
-    val start = remember(firstDateOfMonth) { firstDateOfMonth.dayOfWeek.value % 7L }
+    val start = remember(firstDateOfMonth) {
+        firstDateOfMonth.dayOfWeek.value % 7L
+    }
     val days = remember(firstDateOfMonth, start) {
         YearMonth.from(firstDateOfMonth).lengthOfMonth() + start
     }
-    val rows = remember(days) { ceil(days.toFloat() / DAYS_OF_WEEK).toInt() }
+    val rows = remember(days) {
+        ceil(days.toFloat() / DAYS_OF_WEEK).toInt()
+    }
 
-    var itDate = firstDateOfMonth.minusDays(start)
+    var itemDate = firstDateOfMonth.minusDays(start)
     val loopsByDate by achievementViewModel.flowsDoneLoopsByDate(
-        from = itDate,
-        to = itDate.plusDays(41)
+        from = itemDate,
+        to = itemDate.plusDays((rows * DAYS_OF_WEEK - 1).toLong())
     ).collectAsState(initial = emptyMap())
 
     Column(modifier = modifier) {
         repeat(rows) {
-            key(itDate) {
+            key(itemDate) {
                 CalendarRow(
                     modifier = Modifier.weight(1f),
                     loopsByDate = loopsByDate,
-                    itemDate = itDate,
+                    itemDate = itemDate,
+                    minDate = minDate,
                     selectedDate = selectedDate,
-                    onSelectDate = onSelectDate
+                    onDateSelected = onDateSelected
                 )
             }
-            itDate = itDate.plusWeeks(1)
+            itemDate = itemDate.plusWeeks(1)
         }
     }
 }
@@ -135,18 +148,23 @@ private fun CalendarRow(
     modifier: Modifier = Modifier,
     loopsByDate: Map<LocalDate, List<LoopsByDate>>,
     itemDate: LocalDate,
+    minDate: LocalDate,
     selectedDate: LocalDate,
-    onSelectDate: (LocalDate) -> Unit,
+    onDateSelected: (LocalDate) -> Unit,
 ) {
     var itDate = itemDate
     Row(modifier = modifier.fillMaxWidth()) {
         repeat(DAYS_OF_WEEK) {
             key(itDate) {
+                val isThisMonth = selectedDate.isSameMonth(itDate)
+                val isBeforeNow = itDate.isBefore(LocalDate.now().plusDays(1))
+                val isAfterMinDate = itDate.isAfter(minDate.minusDays(1))
+
                 CalendarDateItem(
                     modifier = Modifier
                         .weight(1f)
                         .alpha(
-                            alpha = if (selectedDate.isSameMonth(itDate)) {
+                            alpha = if (isThisMonth && isBeforeNow && isAfterMinDate) {
                                 1f
                             } else {
                                 0.3f
@@ -156,7 +174,7 @@ private fun CalendarRow(
                     itemDate = itDate,
                     isToday = itDate == LocalDate.now(),
                     isSelected = itDate == selectedDate,
-                    onSelectDate = onSelectDate,
+                    onDateSelected = onDateSelected,
                 )
             }
             itDate = itDate.plusDays(1)
@@ -171,14 +189,14 @@ private fun CalendarDateItem(
     itemDate: LocalDate,
     isToday: Boolean,
     isSelected: Boolean,
-    onSelectDate: (LocalDate) -> Unit
+    onDateSelected: (LocalDate) -> Unit
 ) {
     val selectedBackground = compositeOverSurface()
     Column(
         modifier = modifier
             .fillMaxHeight()
             .padding(all = 2.dp)
-            .clickable { onSelectDate(itemDate) }
+            .clickable { onDateSelected(itemDate) }
             .drawBehind {
                 if (isSelected) {
                     drawRoundRect(
@@ -205,7 +223,7 @@ private fun CalendarDateItem(
 
         DoneLoopsIndicator(
             modifier = Modifier
-                .padding(top = 12.dp)
+                .padding(top = 8.dp)
                 .align(Alignment.CenterHorizontally),
             doneLoops = doneLoops,
         )
@@ -232,6 +250,7 @@ private fun DoneLoopsIndicator(
             )
         }
     }
+
 }
 
 

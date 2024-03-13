@@ -12,6 +12,8 @@
     <string name="monthly_done_rate_chart">월별 완료율 차트</string>
     <string name="day_of_week_done_rate_chart">요일별 완료율 차트</string>
 
+    <string name="go_to_statistics">통계페이지로 이동</string>
+
     <string name="ok">예</string>
     <string name="cancel">취소</string>
     <string name="add">추가</string>
