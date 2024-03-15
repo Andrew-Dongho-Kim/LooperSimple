@@ -1,6 +1,8 @@
 package com.pnd.android.loop.ui.home.loop.input
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -35,11 +37,20 @@ fun UserInputText(
 ) {
     Box(
         modifier = modifier
-            .height(48.dp)
             .fillMaxWidth()
+            .height(48.dp)
     ) {
+        // Block to click under UserInputText
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight()
+                .clickable(enabled = false, onClick = {})
+        )
         UserInputTextField(
-            modifier = Modifier.align(Alignment.CenterStart),
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .fillMaxWidth(),
             text = textField,
             keyboardType = keyboardType,
             onTextChanged = onTextChanged,
