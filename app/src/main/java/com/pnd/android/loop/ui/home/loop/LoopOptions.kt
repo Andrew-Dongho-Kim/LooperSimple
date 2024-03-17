@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.ContentAlpha
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.ModeEdit
@@ -15,7 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,6 +25,7 @@ import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
+import com.pnd.android.loop.ui.home.BlurState
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.RoundShapes
@@ -34,11 +34,13 @@ import com.pnd.android.loop.ui.theme.onSurface
 @Composable
 fun LoopOptions(
     modifier: Modifier = Modifier,
+    blurState: BlurState,
+    title: String,
     color: Color,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    var showDeleteDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by rememberSaveable { mutableStateOf(false) }
     Row(
         modifier = modifier
             .background(
@@ -61,12 +63,17 @@ fun LoopOptions(
             text = stringResource(R.string.delete),
             onClick = {
                 showDeleteDialog = true
+                blurState.on()
             }
         )
     }
     if (showDeleteDialog) {
-        DeleteDialog(
-            onDismiss = { showDeleteDialog = false },
+        DeleteLoopDialog(
+            loopTitle = title,
+            onDismiss = {
+                showDeleteDialog = false
+                blurState.off()
+            },
             onDelete = onDelete
         )
     }
@@ -83,7 +90,7 @@ private fun OptionIcon(
         modifier = modifier.clickable(onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        val color = AppColor.onSurface.copy(alpha = ContentAlpha.medium)
+        val color = AppColor.onSurface.copy(alpha = 0.7f)
         Icon(
             modifier = Modifier
                 .padding(horizontal = 16.dp)

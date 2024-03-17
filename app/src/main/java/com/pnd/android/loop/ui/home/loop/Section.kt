@@ -43,6 +43,7 @@ import com.pnd.android.loop.BuildConfig
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.ui.common.ExpandableNativeAd
+import com.pnd.android.loop.ui.home.BlurState
 import com.pnd.android.loop.ui.home.loop.timeline.LoopTimeline
 import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.theme.AppColor
@@ -59,6 +60,7 @@ val HOME_NATIVE_AD_ID = if (BuildConfig.DEBUG) {
 
 fun LazyListScope.section(
     section: Section,
+    blurState: BlurState,
     loopViewModel: LoopViewModel,
     onNavigateToDetailPage: (LoopBase) -> Unit,
     onNavigateToHistoryPage: () -> Unit,
@@ -74,6 +76,7 @@ fun LazyListScope.section(
 
         is Section.Today -> sectionToday(
             section = section,
+            blurState = blurState,
             loopViewModel = loopViewModel,
             onNavigateToDetailPage = onNavigateToDetailPage,
             onEdit = onEdit,
@@ -96,6 +99,7 @@ fun LazyListScope.section(
 
         is Section.Later -> sectionLater(
             section = section,
+            blurState = blurState,
             loopViewModel = loopViewModel,
             onNavigateToDetailPage = onNavigateToDetailPage,
             onEdit = onEdit,
@@ -150,6 +154,7 @@ private fun LazyListScope.sectionYesterday(
 @OptIn(ExperimentalFoundationApi::class)
 private fun LazyListScope.sectionToday(
     section: Section.Today,
+    blurState: BlurState,
     loopViewModel: LoopViewModel,
     onNavigateToDetailPage: (LoopBase) -> Unit,
     onEdit: (LoopBase) -> Unit,
@@ -163,6 +168,7 @@ private fun LazyListScope.sectionToday(
             key = "",
         ) {
             LoopTimeline(
+                blurState = blurState,
                 loopViewModel = loopViewModel,
                 loops = loops,
                 onNavigateToDetailPage = onNavigateToDetailPage,
@@ -177,6 +183,7 @@ private fun LazyListScope.sectionToday(
         ) { loop ->
             LoopCardWithOption(
                 modifier = Modifier.animateItemPlacement(),
+                blurState = blurState,
                 loopViewModel = loopViewModel,
                 loop = loop,
                 onNavigateToDetailPage = onNavigateToDetailPage,
@@ -293,6 +300,7 @@ private fun LazyListScope.sectionDoneSkip(
 
 private fun LazyListScope.sectionLater(
     section: Section.Later,
+    blurState: BlurState,
     loopViewModel: LoopViewModel,
     onNavigateToDetailPage: (LoopBase) -> Unit,
     onEdit: (LoopBase) -> Unit,
@@ -323,6 +331,7 @@ private fun LazyListScope.sectionLater(
             exit = fadeOut(tween(duration)) + shrinkVertically(tween(duration))
         ) {
             LoopCardWithOption(
+                blurState = blurState,
                 loopViewModel = loopViewModel,
                 loop = loop,
                 onNavigateToDetailPage = onNavigateToDetailPage,

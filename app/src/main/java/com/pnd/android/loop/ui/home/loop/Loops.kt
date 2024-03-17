@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.material.ContentAlpha
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
@@ -28,6 +27,7 @@ import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.isNotRespond
 import com.pnd.android.loop.data.isRespond
+import com.pnd.android.loop.ui.home.BlurState
 import com.pnd.android.loop.ui.home.loop.input.UserInputState
 import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.theme.AppColor
@@ -39,6 +39,7 @@ import com.pnd.android.loop.util.isActiveDay
 @Composable
 fun Loops(
     modifier: Modifier = Modifier,
+    blurState: BlurState,
     inputState: UserInputState,
     lazyListState: LazyListState,
     loopViewModel: LoopViewModel,
@@ -60,6 +61,7 @@ fun Loops(
                 sections.forEach { section ->
                     section(
                         section = section,
+                        blurState = blurState,
                         loopViewModel = loopViewModel,
                         onNavigateToDetailPage = onNavigateToDetailPage,
                         onNavigateToHistoryPage = onNavigateToHistoryPage,
@@ -85,7 +87,7 @@ fun EmptyLoops(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            modifier = Modifier.alpha(ContentAlpha.medium),
+            modifier = Modifier.alpha(0.7f),
             text = stringResource(R.string.desc_no_loops),
             style = AppTypography.titleMedium.copy(
                 color = AppColor.onSurface

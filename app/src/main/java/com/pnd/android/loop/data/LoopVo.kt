@@ -3,9 +3,16 @@ package com.pnd.android.loop.data
 import android.database.sqlite.SQLiteConstraintException
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.LiveData
-import androidx.room.*
+import androidx.room.Dao
+import androidx.room.Entity
+import androidx.room.Ignore
+import androidx.room.Insert
+import androidx.room.PrimaryKey
+import androidx.room.Query
+import androidx.room.Update
+import com.pnd.android.loop.data.Day.Companion.ALL
+import com.pnd.android.loop.data.Day.Companion.isOn
 import kotlinx.coroutines.flow.Flow
-import java.util.*
 
 @Immutable
 @Entity(tableName = "loop")
@@ -104,4 +111,15 @@ interface LoopDao {
 
     @Query("DELETE FROM loop WHERE id = :id")
     suspend fun remove(id: Int)
+
+    suspend fun maxOfIntersects(loopToCompare: LoopBase) =
+        ALL.filter { day -> loopToCompare.loopActiveDays.isOn(day) }
+            .map { day ->
+                allLoops()
+                    .filter { loop -> loop.loopActiveDays.isOn(day) }
+                    .filter { loop -> loop.isIntersect(loopToCompare) }
+            }
+            .maxOfOrNull { loops -> loops.size }
+            ?: 0
+
 }

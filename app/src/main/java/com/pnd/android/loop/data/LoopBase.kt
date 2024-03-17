@@ -83,6 +83,8 @@ interface LoopBase {
             0xffcccc00.toInt(), 0xffcc9900.toInt(), 0xffcc6600.toInt(),
             0xffff0000.toInt(), 0xffff3399.toInt(), 0xffcc6699.toInt(),
         )
+
+        const val MAX_LOOPS_TO_DO_SIMULTANEOUSLY = 5
     }
 }
 
@@ -183,6 +185,10 @@ fun Map<String, Any?>.asLoop(): LoopBase {
     )
 }
 
+fun LoopBase.isIntersect(loop: LoopBase) =
+    loop.loopEnd in (loopStart + 1)..loopEnd ||
+    loop.loopStart in loopStart..<loopEnd
+
 fun LoopBase.description(context: Context) =
     """ -->
     |*Loop  
@@ -214,6 +220,7 @@ annotation class Day {
         const val WEEKDAYS = (MONDAY or TUESDAY or WEDNESDAY or THURSDAY or FRIDAY)
         const val WEEKENDS = (SUNDAY or SATURDAY)
         const val EVERYDAY = (WEEKDAYS or WEEKENDS)
+        val ALL = listOf(SUNDAY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY)
 
 
         @IntRange(from = 0, to = 6)

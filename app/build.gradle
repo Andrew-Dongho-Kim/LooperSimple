@@ -94,6 +94,9 @@ dependencies {
     implementation 'com.patrykandpatrick.vico:compose-m3:2.0.0-alpha.8'
     implementation 'com.patrykandpatrick.vico:core:2.0.0-alpha.8'
 
+    // Cloudy
+    implementation "com.github.skydoves:cloudy:0.1.2"
+
     // Glance
     implementation "androidx.glance:glance-appwidget:1.0.0"
     implementation "androidx.glance:glance-material3:1.0.0"

@@ -2,11 +2,13 @@ package com.pnd.android.loop.ui.home
 
 import android.content.Context
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
@@ -22,17 +24,23 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
+import com.pnd.android.loop.data.LoopBase.Companion.MAX_LOOPS_TO_DO_SIMULTANEOUSLY
 import com.pnd.android.loop.data.asLoopVo
 import com.pnd.android.loop.ui.home.loop.Loops
 import com.pnd.android.loop.ui.home.loop.input.UserInput
+import com.pnd.android.loop.ui.home.loop.input.UserInputState
 import com.pnd.android.loop.ui.home.loop.input.rememberUserInputState
 import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.theme.AppColor
+import com.pnd.android.loop.ui.theme.background
+import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.surface
 import com.pnd.android.loop.util.toMs
 import java.time.LocalDateTime
@@ -45,10 +53,14 @@ fun Home(
     onNavigateToHistoryPage: () -> Unit,
     onNavigateToStatisticsPage: () -> Unit,
 ) {
+    val inputState = rememberUserInputState()
     val snackBarHostState = remember { SnackbarHostState() }
+    val blurState = rememberBlurState()
 
     Scaffold(
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier
+            .fillMaxSize()
+            .blur(radius = blurState.radius),
         topBar = {
             HomeAppBar(
                 modifier = Modifier
@@ -62,7 +74,14 @@ fun Home(
                 modifier = Modifier
                     .navigationBarsPadding()
                     .imePadding()
-                    .padding(bottom = 48.dp + 56.dp),
+                    .padding(bottom = 48.dp + 56.dp)
+                    .padding(
+                        bottom = if (inputState.isSelectorOpened) {
+                            dimensionResource(id = R.dimen.user_input_selector_content_height)
+                        } else {
+                            0.dp
+                        }
+                    ),
                 hostState = snackBarHostState
             )
         },
@@ -76,6 +95,8 @@ fun Home(
     { contentPadding ->
         HomeContent(
             modifier = Modifier.padding(contentPadding),
+            blurState = blurState,
+            inputState = inputState,
             snackBarHostState = snackBarHostState,
             loopViewModel = loopViewModel,
             onNavigateToDetailPage = onNavigateToDetailPage,
@@ -83,11 +104,28 @@ fun Home(
             onNavigateToStatisticsPage = onNavigateToStatisticsPage,
         )
     }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .fillMaxHeight()
+            .background(
+                color = if (blurState.isOn) {
+                    AppColor.onSurface.copy(
+                        alpha = if (isSystemInDarkTheme()) 0.1f else 0.2f
+                    )
+                } else {
+                    Color.Transparent
+                }
+            )
+    )
 }
 
 @Composable
 private fun HomeContent(
     modifier: Modifier,
+    blurState: BlurState,
+    inputState: UserInputState,
     snackBarHostState: SnackbarHostState,
     loopViewModel: LoopViewModel,
     onNavigateToDetailPage: (LoopBase) -> Unit,
@@ -95,15 +133,15 @@ private fun HomeContent(
     onNavigateToStatisticsPage: () -> Unit,
 ) {
 
-    Box(modifier = modifier) {
+    Box(modifier = modifier.background(color = AppColor.background)) {
         val lazyListState = rememberLazyListState()
-        val inputState = rememberUserInputState()
 
         Loops(
             modifier = Modifier
                 .fillMaxHeight()
                 .navigationBarsPadding()
                 .imePadding(),
+            blurState = blurState,
             inputState = inputState,
             lazyListState = lazyListState,
             loopViewModel = loopViewModel,
@@ -118,11 +156,14 @@ private fun HomeContent(
                 .align(Alignment.BottomStart)
                 .navigationBarsPadding()
                 .imePadding(),
+            blurState = blurState,
             inputState = inputState,
+            snackBarHostState = snackBarHostState,
             lazyListState = lazyListState,
             onEnsureLoop = { loop ->
                 ensureLoop(
                     context = context,
+                    loopViewModel = loopViewModel,
                     loop = loop,
                     hostState = snackBarHostState
                 )
@@ -145,6 +186,7 @@ private fun HomeContent(
 
 private suspend fun ensureLoop(
     context: Context,
+    loopViewModel: LoopViewModel,
     loop: LoopBase,
     hostState: SnackbarHostState
 ): Boolean {
@@ -152,11 +194,17 @@ private suspend fun ensureLoop(
     // Empty title check
     if (loop.title.trim().isEmpty()) {
         hostState.showSnackbar(
-            message = context.getString(R.string.warning_enter_characters_other_than_sapces)
+            message = context.getString(R.string.warning_enter_characters_other_than_spaces)
         )
         return false
     }
 
+    if (loopViewModel.maxOfIntersects(loop) >= MAX_LOOPS_TO_DO_SIMULTANEOUSLY) {
+        hostState.showSnackbar(
+            message = context.getString(R.string.warning_up_to_five_loops)
+        )
+        return false
+    }
 
     return true
 }

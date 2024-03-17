@@ -67,6 +67,9 @@ class LoopViewModel @Inject constructor(
         }
     }
 
+    suspend fun maxOfIntersects(loop: LoopBase) =
+        loopRepository.maxOfIntersects(loop = loop)
+
     fun addOrUpdateLoop(vararg loops: LoopVo) {
         coroutineScope.launch {
             loopRepository.addOrUpdateLoop(*loops)

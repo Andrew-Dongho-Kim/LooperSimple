@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
@@ -21,6 +22,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
 import com.pnd.android.loop.data.LoopBase
+import com.pnd.android.loop.ui.home.BlurState
 import com.pnd.android.loop.ui.home.loop.input.selector.Selectors
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.onSurface
@@ -33,7 +35,9 @@ import kotlinx.coroutines.launch
 @Composable
 fun UserInput(
     modifier: Modifier = Modifier,
+    blurState: BlurState,
     inputState: UserInputState,
+    snackBarHostState: SnackbarHostState,
     lazyListState: LazyListState,
     onEnsureLoop: suspend (LoopBase) -> Boolean,
     onLoopSubmitted: (LoopBase) -> Unit,
@@ -104,6 +108,8 @@ fun UserInput(
 
         Selectors(
             inputState = inputState,
+            blurState = blurState,
+            snackBarHostState = snackBarHostState,
             focusRequester = focusRequester,
         )
     }

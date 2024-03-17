@@ -2,10 +2,11 @@ package com.pnd.android.loop
 
 import android.os.Bundle
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.viewinterop.AndroidViewBinding
-import androidx.core.view.WindowCompat
+import androidx.core.view.ViewCompat
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
 import com.google.android.gms.ads.MobileAds
@@ -18,13 +19,11 @@ import dagger.hilt.android.AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        ViewCompat.setOnApplyWindowInsetsListener(window.decorView) { _, insets -> insets }
 
         savedInstanceState ?: MobileAds.initialize(this) { }
-
-        // Turn off the decor fitting system windows, which allows us to handle insets,
-        // including IME animations
-        WindowCompat.setDecorFitsSystemWindows(window, false)
 
         setContent {
             CompositionLocalProvider(LocalBackPressedDispatcher provides onBackPressedDispatcher) {

@@ -24,6 +24,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.data.LoopBase
+import com.pnd.android.loop.ui.home.BlurState
 import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -34,6 +35,7 @@ private enum class DragAnchors { Start, Center, End }
 @Composable
 fun LoopCardWithOption(
     modifier: Modifier = Modifier,
+    blurState: BlurState,
     loopViewModel: LoopViewModel,
     loop: LoopBase,
     onNavigateToDetailPage: (LoopBase) -> Unit,
@@ -74,6 +76,8 @@ fun LoopCardWithOption(
                     )
                     .fillMaxWidth()
                     .height(42.dp),
+                blurState = blurState,
+                title = loop.title,
                 color = Color(loop.color),
                 onEdit = {
                     onEdit(loop)

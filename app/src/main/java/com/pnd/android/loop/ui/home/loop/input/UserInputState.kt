@@ -27,6 +27,9 @@ class UserInputState(
     var currSelector by mutableStateOf(currSelector)
         private set
 
+    val isSelectorOpened
+        get() = currSelector != InputSelector.NONE
+
     var mode by mutableStateOf(mode)
         private set
 

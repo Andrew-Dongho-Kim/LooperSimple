@@ -51,6 +51,8 @@
     <string name="desc_alarm_selector">Alarm Selector</string>
     <string name="desc_enter_loop_title">Enter loop title</string>
 
-    <string name="warning_enter_characters_other_than_sapces">Please also enter characters other than spaces.</string>
+    <string name="warning_enter_characters_other_than_spaces">Please also enter characters other than spaces.</string>
+    <string name="warning_choose_at_least_one_day_of_the_week">You should choose at least one day of the week.</string>
+    <string name="warning_up_to_five_loops">You can do up to five loops simultaneously.</string>
 
 </resources>

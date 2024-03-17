@@ -8,5 +8,8 @@
     <color name="blue400">#4860F7</color>
     <color name="yellow400">#F6E547</color>
 
-    <!-- Status bar -->
+    <color name="primary">@color/blue500</color>
+    <color name="primary_dark">@color/blue800</color>
+    <color name="accent">@color/yellow700</color>
+    <color name="surface">#fffafafa</color>
 </resources>

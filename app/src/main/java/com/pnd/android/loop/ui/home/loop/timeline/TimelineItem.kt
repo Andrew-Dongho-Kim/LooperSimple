@@ -16,17 +16,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.ContentAlpha
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -43,7 +40,8 @@ import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.ui.common.Tooltip
-import com.pnd.android.loop.ui.home.loop.DeleteDialog
+import com.pnd.android.loop.ui.home.BlurState
+import com.pnd.android.loop.ui.home.loop.DeleteLoopDialog
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.RoundShapes
@@ -53,6 +51,7 @@ import com.pnd.android.loop.ui.theme.surface
 @Composable
 fun TimelineItem(
     modifier: Modifier = Modifier,
+    blurState: BlurState,
     loop: LoopBase,
     onNavigateToDetailPage: (LoopBase) -> Unit,
     onEdit: (LoopBase) -> Unit,
@@ -70,18 +69,19 @@ fun TimelineItem(
         },
         tooltipContent = {
             LoopDetailAndOption(
+                blurState = blurState,
                 loop = loop,
                 onNavigateToDetailPage = { loop ->
                     onNavigateToDetailPage(loop)
+                },
+                onTooltipDismiss = {
                     isTooltipShown = false
                 },
                 onEdit = { loop ->
                     onEdit(loop)
-                    isTooltipShown = false
                 },
                 onDelete = { loop ->
                     onDelete(loop)
-                    isTooltipShown = false
                 },
             )
         },
@@ -125,7 +125,7 @@ private fun LoopInTimeline(
                 .padding(2.dp),
             text = loop.title,
             overflow = TextOverflow.Ellipsis,
-            style = MaterialTheme.typography.caption.copy(
+            style = AppTypography.labelMedium.copy(
                 color = AppColor.onSurface,
                 fontWeight = FontWeight.Normal
             )
@@ -136,8 +136,10 @@ private fun LoopInTimeline(
 @Composable
 private fun LoopDetailAndOption(
     modifier: Modifier = Modifier,
+    blurState: BlurState,
     loop: LoopBase,
     onNavigateToDetailPage: (LoopBase) -> Unit,
+    onTooltipDismiss: () -> Unit,
     onEdit: (LoopBase) -> Unit,
     onDelete: (LoopBase) -> Unit,
 ) {
@@ -147,12 +149,14 @@ private fun LoopDetailAndOption(
                 .padding(top = 8.dp)
                 .padding(horizontal = 12.dp),
             text = loop.title,
-            style = AppTypography.bodyMedium .copy(color = AppColor.onSurface)
+            style = AppTypography.bodyMedium.copy(color = AppColor.onSurface)
         )
         LoopOptions(
             modifier = modifier.padding(top = 8.dp),
+            blurState = blurState,
             loop = loop,
             onNavigateToDetailPage = onNavigateToDetailPage,
+            onTooltipDismiss = onTooltipDismiss,
             onEdit = onEdit,
             onDelete = onDelete
         )
@@ -162,13 +166,15 @@ private fun LoopDetailAndOption(
 @Composable
 private fun LoopOptions(
     modifier: Modifier = Modifier,
+    blurState: BlurState,
     loop: LoopBase,
     onNavigateToDetailPage: (LoopBase) -> Unit,
+    onTooltipDismiss: () -> Unit = {},
     onEdit: (LoopBase) -> Unit = {},
     onDelete: (LoopBase) -> Unit = {}
 ) {
 
-    var showDeleteDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by rememberSaveable { mutableStateOf(false) }
     Row(
         modifier = modifier
             .padding(
@@ -185,22 +191,36 @@ private fun LoopOptions(
         LoopOptionButton(
             imageVector = Icons.Outlined.Edit,
             contentDescription = stringResource(id = R.string.edit),
-            onClick = { onEdit(loop) }
+            onClick = {
+                onTooltipDismiss()
+                onEdit(loop)
+            }
         )
         LoopOptionButton(
             imageVector = Icons.Outlined.Delete,
             contentDescription = stringResource(id = R.string.delete),
-            onClick = { showDeleteDialog = true }
+            onClick = {
+                showDeleteDialog = true
+//                onTooltipDismiss()
+                blurState.on()
+            }
         )
         LoopOptionButton(
             imageVector = Icons.Outlined.MoreVert,
-            onClick = { onNavigateToDetailPage(loop) }
+            onClick = {
+                onTooltipDismiss()
+                onNavigateToDetailPage(loop)
+            }
         )
     }
 
     if (showDeleteDialog) {
-        DeleteDialog(
-            onDismiss = { showDeleteDialog = false },
+        DeleteLoopDialog(
+            loopTitle = loop.title,
+            onDismiss = {
+                blurState.off()
+                showDeleteDialog = false
+            },
             onDelete = { onDelete(loop) }
         )
     }
@@ -221,7 +241,7 @@ private fun LoopOptionButton(
             .width(28.dp)
             .height(20.dp),
         imageVector = imageVector,
-        colorFilter = ColorFilter.tint(AppColor.onSurface.copy(alpha = ContentAlpha.medium)),
+        colorFilter = ColorFilter.tint(AppColor.onSurface.copy(alpha = 0.7f)),
         contentDescription = contentDescription
     )
 }

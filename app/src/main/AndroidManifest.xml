@@ -27,8 +27,7 @@
 
         <activity
             android:name=".MainActivity"
-            android:exported="true"
-            android:theme="@style/Theme.LooperSimple.NoActionBar"
+            android:exported="false"
             android:launchMode="singleInstance"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>

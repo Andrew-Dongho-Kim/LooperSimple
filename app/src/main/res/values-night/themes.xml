@@ -1,8 +1,0 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Theme.LooperSimple" parent="Theme.Base.LooperSimple">
-        <item name="colorPrimary">@color/blue400</item>
-        <item name="colorPrimaryDark">@color/blue500</item>
-        <item name="colorAccent">@color/yellow400</item>
-    </style>
-</resources>

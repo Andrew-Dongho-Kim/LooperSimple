@@ -105,6 +105,8 @@ class LoopRepository @Inject constructor(
 
     fun syncAlarms() = alarmController.syncAlarms()
 
+    suspend fun maxOfIntersects(loop: LoopBase) = loopDao.maxOfIntersects(loopToCompare = loop)
+
     suspend fun addOrUpdateLoop(vararg loops: LoopVo) {
         loopDao.addOrUpdate(*loops).forEachIndexed { index, id ->
             val loop = loops[index].copy(id = id)

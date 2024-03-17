@@ -1,16 +1,28 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
     <style name="Theme.LooperSimple" parent="Theme.Base.LooperSimple">
-        <item name="colorPrimary">@color/blue500</item>
-        <item name="colorPrimaryDark">@color/blue800</item>
-        <item name="colorAccent">@color/yellow700</item>
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorPrimaryDark">@color/primary_dark</item>
+        <item name="colorAccent">@color/accent</item>
+        <item name="android:dialogTheme">@style/Theme.DialogFullScreen</item>
     </style>
 
-    <style name="Theme.LooperSimple.NoActionBar">
+    <style name="Theme.Base.LooperSimple" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:windowActionBar">false</item>
         <item name="android:windowNoTitle">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">?attr/isLightTheme</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>"
+        <item name="android:windowLightNavigationBar" tools:targetApi="27">?attr/isLightTheme</item>
+    </style>
+
+    <style name="Theme.DialogFullScreen" parent="@style/ThemeOverlay.MaterialComponents.Dialog.Alert">
+        <item name="android:windowMinWidthMajor">100%</item>
+        <item name="android:windowMinWidthMinor">100%</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:colorBackground">@android:color/transparent</item>
     </style>
 
 </resources>

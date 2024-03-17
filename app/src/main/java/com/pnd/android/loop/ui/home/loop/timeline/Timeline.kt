@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.ui.common.VerticalDashedDivider
 import com.pnd.android.loop.ui.common.VerticalDivider
+import com.pnd.android.loop.ui.home.BlurState
 import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.WineRed
@@ -35,6 +36,7 @@ import kotlin.math.max
 @Composable
 fun LoopTimeline(
     modifier: Modifier = Modifier,
+    blurState: BlurState,
     loopViewModel: LoopViewModel,
     loops: List<LoopBase>,
     onNavigateToDetailPage: (LoopBase) -> Unit,
@@ -45,6 +47,7 @@ fun LoopTimeline(
     Column(modifier = modifier) {
         TimeGrid(
             modifier = Modifier.height(timelineHeight),
+            blurState = blurState,
             horizontalScrollState = horizontalScrollState,
             loopViewModel = loopViewModel,
             loops = loops,
@@ -62,6 +65,7 @@ fun LoopTimeline(
 @Composable
 private fun TimeGrid(
     modifier: Modifier = Modifier,
+    blurState: BlurState,
     horizontalScrollState: ScrollState,
     loopViewModel: LoopViewModel,
     loops: List<LoopBase>,
@@ -76,6 +80,7 @@ private fun TimeGrid(
 
         TimeGridContent(
             horizontalScrollState = horizontalScrollState,
+            blurState = blurState,
             loopViewModel = loopViewModel,
             loops = loops,
             onNavigateToDetailPage = onNavigateToDetailPage,
@@ -87,6 +92,7 @@ private fun TimeGrid(
 @Composable
 private fun TimeGridContent(
     modifier: Modifier = Modifier,
+    blurState: BlurState,
     horizontalScrollState: ScrollState,
     loopViewModel: LoopViewModel,
     loops: List<LoopBase>,
@@ -111,6 +117,7 @@ private fun TimeGridContent(
             }
             TimelineLoops(
                 modifier = Modifier.align(Alignment.BottomStart),
+                blurState = blurState,
                 loopViewModel = loopViewModel,
                 loops = loops,
                 onNavigateToDetailPage = onNavigateToDetailPage,
@@ -125,6 +132,7 @@ private fun TimeGridContent(
 @Composable
 private fun TimelineLoops(
     modifier: Modifier = Modifier,
+    blurState: BlurState,
     loopViewModel: LoopViewModel,
     loops: List<LoopBase>,
     onNavigateToDetailPage: (LoopBase) -> Unit,
@@ -145,6 +153,7 @@ private fun TimelineLoops(
                             modifier = Modifier.offset {
                                 IntOffset(x = loop.timelineOffsetStart().roundToPx(), y = 0)
                             },
+                            blurState = blurState,
                             loop = loop,
                             onNavigateToDetailPage = onNavigateToDetailPage,
                             onEdit = onEdit,

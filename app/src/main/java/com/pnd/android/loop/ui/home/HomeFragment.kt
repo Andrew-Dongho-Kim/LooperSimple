@@ -11,7 +11,6 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import com.pnd.android.loop.ui.AppNavHost
 import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
-import com.pnd.android.loop.ui.theme.AppTheme
 import com.pnd.android.loop.util.LocalBackPressedDispatcher
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -30,11 +29,9 @@ class HomeFragment : Fragment() {
             CompositionLocalProvider(
                 LocalBackPressedDispatcher provides requireActivity().onBackPressedDispatcher,
             ) {
-                AppTheme {
-                    AppNavHost(
-                        loopViewModel = loopViewModel
-                    )
-                }
+                AppNavHost(
+                    loopViewModel = loopViewModel
+                )
             }
         }
     }
