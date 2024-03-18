@@ -1,6 +1,8 @@
 package com.pnd.android.loop.ui.home.loop.input.selector
 
+import android.util.Log
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -111,8 +113,11 @@ private fun StartAndEndTimeSelector(
             modifier = Modifier.weight(1f),
             blurState = blurState,
             title = stringResource(id = R.string.start),
-            selectedTime = selectedStartTime,
-            onTimeSelected = onStartTimeSelected
+            selectedStartTime = selectedStartTime,
+            onStartTimeSelected = onStartTimeSelected,
+            selectedEndTime = selectedEndTime,
+            onEndTimeSelected = onEndTimeSelected,
+            isStart = true
         )
         Image(
             imageVector = Icons.AutoMirrored.Filled.ArrowRightAlt,
@@ -125,30 +130,27 @@ private fun StartAndEndTimeSelector(
             modifier = Modifier.weight(1f),
             blurState = blurState,
             title = stringResource(id = R.string.end),
-            selectedTime = selectedEndTime,
-            onTimeSelected = onEndTimeSelected
+            selectedStartTime = selectedStartTime,
+            onStartTimeSelected = onStartTimeSelected,
+            selectedEndTime = selectedEndTime,
+            onEndTimeSelected = onEndTimeSelected,
+            isStart = false,
         )
     }
-
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TimeDisplay(
     modifier: Modifier = Modifier,
     blurState: BlurState,
     title: String,
-    selectedTime: Long,
-    onTimeSelected: (Long) -> Unit,
+    selectedStartTime: Long,
+    onStartTimeSelected: (Long) -> Unit,
+    selectedEndTime: Long,
+    onEndTimeSelected: (Long) -> Unit,
+    isStart: Boolean,
 ) {
     var isOpened by rememberSaveable { mutableStateOf(false) }
-
-    val localTime = selectedTime.toLocalTime()
-    val state = rememberTimePickerState(
-        initialHour = localTime.hour,
-        initialMinute = localTime.minute,
-        is24Hour = false
-    )
 
     Column(
         modifier = modifier,
@@ -160,7 +162,7 @@ private fun TimeDisplay(
                 color = AppColor.onSurface
             )
         )
-
+        val time = if (isStart) selectedStartTime else selectedEndTime
         Text(
             modifier = Modifier
                 .padding(top = 8.dp)
@@ -171,7 +173,7 @@ private fun TimeDisplay(
                     blurState.on()
                 }
                 .padding(horizontal = 24.dp, vertical = 12.dp),
-            text = selectedTime.formatHourMinute(withAmPm = true),
+            text = time.formatHourMinute(withAmPm = true),
             style = AppTypography.titleLarge.copy(
                 color = AppColor.onSurface.copy(
                     alpha = 0.6f
@@ -182,11 +184,15 @@ private fun TimeDisplay(
 
     if (isOpened) {
         TimePickerDialog(
-            state = state,
+            localTimeStart = selectedStartTime.toLocalTime(),
+            onStartTimeSelected = onStartTimeSelected,
+            localTimeEnd = selectedEndTime.toLocalTime(),
+            onEndTimeSelected = onEndTimeSelected,
+            isStart = isStart,
             onDismiss = {
                 isOpened = false
                 blurState.off()
-                onTimeSelected(LocalTime.of(state.hour, state.minute).toMs())
+
             }
         )
     }
@@ -196,9 +202,33 @@ private fun TimeDisplay(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TimePickerDialog(
-    state: TimePickerState,
+    localTimeStart: LocalTime,
+    onStartTimeSelected: (Long) -> Unit,
+    localTimeEnd: LocalTime,
+    onEndTimeSelected: (Long) -> Unit,
+    isStart: Boolean,
     onDismiss: () -> Unit
 ) {
+    var isStartTime by remember { mutableStateOf(isStart) }
+    val startTimePickerState = rememberTimePickerState(
+        initialHour = localTimeStart.hour,
+        initialMinute = localTimeStart.minute,
+        is24Hour = false
+    )
+    val endTimePickerState = rememberTimePickerState(
+        initialHour = localTimeEnd.hour,
+        initialMinute = localTimeEnd.minute,
+        is24Hour = false
+    )
+
+    Log.d("DDEBUG2", "test")
+    val timePickerState = if (isStartTime) startTimePickerState else endTimePickerState
+    UpdateStartEndTime(
+        timePickerState = timePickerState,
+        selectedTime = if (isStartTime) localTimeStart else localTimeEnd,
+        onTimeSelected = if (isStartTime) onStartTimeSelected else onEndTimeSelected,
+    )
+
     BasicAlertDialog(
         modifier = Modifier
             .fillMaxWidth()
@@ -208,44 +238,163 @@ private fun TimePickerDialog(
         ),
         onDismissRequest = onDismiss
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight()
-        ) {
-            TimePicker(
-                modifier = Modifier.align(Alignment.Center),
-                state = state,
-                colors = TimePickerDefaults.colors(
-                    clockDialColor = AppColor.surface,
-                    clockDialSelectedContentColor = AppColor.onSurfaceDark,
-                    clockDialUnselectedContentColor = AppColor.onSurface,
-                    selectorColor = AppColor.primary,
-                    containerColor = AppColor.background,
-                    periodSelectorSelectedContainerColor = AppColor.primary.compositeOverSurface(
-                        alpha = if (isSystemInDarkTheme()) 0.2f else 0.1f
-                    ),
-                    periodSelectorUnselectedContainerColor = AppColor.surface,
-                    periodSelectorSelectedContentColor = AppColor.onSurface,
-                    periodSelectorUnselectedContentColor = AppColor.onSurface,
-                    timeSelectorSelectedContainerColor = AppColor.primary.compositeOverSurface(
-                        alpha = if (isSystemInDarkTheme()) 0.2f else 0.1f
-                    ),
-                    timeSelectorUnselectedContainerColor = AppColor.surface,
-                    timeSelectorSelectedContentColor = AppColor.onSurface,
-                    timeSelectorUnselectedContentColor = AppColor.onSurface,
-                )
-            )
-
-            val snackBarHostState = remember { SnackbarHostState() }
-            SnackbarHost(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 24.dp),
-                hostState = snackBarHostState
-            )
-        }
+        TimePickerDialogContent(
+            timePickerState = timePickerState,
+            localTimeStart = localTimeStart,
+            localTimeEnd = localTimeEnd,
+            isStart = isStartTime,
+            onTimeTypeSelected = { isStart -> isStartTime = isStart }
+        )
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TimePickerDialogContent(
+    modifier: Modifier = Modifier,
+    timePickerState: TimePickerState,
+    localTimeStart: LocalTime,
+    localTimeEnd: LocalTime,
+    isStart: Boolean,
+    onTimeTypeSelected: (Boolean) -> Unit,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .fillMaxHeight()
+    ) {
+        TimePickerStartEndTime(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(start = 24.dp, top = 24.dp),
+            localTimeStart = localTimeStart,
+            localTimeEnd = localTimeEnd,
+            isStart = isStart,
+            onTimeTypeSelected = onTimeTypeSelected,
+        )
+
+        TimePicker(
+            modifier = Modifier.align(Alignment.Center),
+            state = timePickerState,
+            colors = TimePickerDefaults.colors(
+                clockDialColor = AppColor.surface,
+                clockDialSelectedContentColor = AppColor.onSurfaceDark,
+                clockDialUnselectedContentColor = AppColor.onSurface,
+                selectorColor = AppColor.primary,
+                containerColor = AppColor.background,
+                periodSelectorSelectedContainerColor = AppColor.primary.compositeOverSurface(
+                    alpha = if (isSystemInDarkTheme()) 0.2f else 0.1f
+                ),
+                periodSelectorUnselectedContainerColor = AppColor.surface,
+                periodSelectorSelectedContentColor = AppColor.onSurface,
+                periodSelectorUnselectedContentColor = AppColor.onSurface,
+                timeSelectorSelectedContainerColor = AppColor.primary.compositeOverSurface(
+                    alpha = if (isSystemInDarkTheme()) 0.2f else 0.1f
+                ),
+                timeSelectorUnselectedContainerColor = AppColor.surface,
+                timeSelectorSelectedContentColor = AppColor.onSurface,
+                timeSelectorUnselectedContentColor = AppColor.onSurface,
+            )
+        )
+
+        val snackBarHostState = remember { SnackbarHostState() }
+        SnackbarHost(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 24.dp),
+            hostState = snackBarHostState
+        )
+    }
+}
+
+@Composable
+private fun TimePickerStartEndTime(
+    modifier: Modifier = Modifier,
+    localTimeStart: LocalTime,
+    localTimeEnd: LocalTime,
+    isStart: Boolean,
+    onTimeTypeSelected: (Boolean) -> Unit,
+) {
+    Column(modifier = modifier) {
+        val selectedColor = AppColor.primary.compositeOverSurface(
+            alpha = if (isSystemInDarkTheme()) 0.2f else 0.1f
+        )
+        val normalColor = AppColor.surface
+
+        TimePickerTimeText(
+            title = stringResource(id = R.string.start),
+            localTime = localTimeStart,
+            backgroundColor = if (isStart) selectedColor else normalColor,
+            onClick = { onTimeTypeSelected(true) }
+        )
+
+        TimePickerTimeText(
+            title = stringResource(id = R.string.end),
+            localTime = localTimeEnd,
+            backgroundColor = if (isStart) normalColor else selectedColor,
+            onClick = { onTimeTypeSelected(false) }
+        )
+
+    }
+}
+
+@Composable
+private fun TimePickerTimeText(
+    modifier: Modifier = Modifier,
+    title: String,
+    localTime: LocalTime,
+    backgroundColor: Color,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            modifier = Modifier
+                .background(backgroundColor)
+                .border(
+                    width = 0.5.dp,
+                    color = AppColor.onSurface.copy(alpha = 0.2f)
+                )
+                .clickable(onClick = onClick)
+                .padding(all = 12.dp),
+            text = title,
+            style = AppTypography.titleLarge.copy(color = AppColor.onSurface)
+        )
+        Text(
+            modifier = Modifier
+                .padding(start = 8.dp)
+                .background(AppColor.surface)
+                .border(
+                    width = 0.5.dp,
+                    color = AppColor.onSurface.copy(alpha = 0.2f)
+                )
+                .padding(
+                    vertical = 12.dp,
+                    horizontal = 18.dp
+                ),
+            text = localTime.formatHourMinute(),
+            style = AppTypography.titleLarge.copy(color = AppColor.onSurface)
+        )
+    }
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun UpdateStartEndTime(
+    timePickerState: TimePickerState,
+    selectedTime: LocalTime,
+    onTimeSelected: (Long) -> Unit,
+) {
+    if (selectedTime.hour == timePickerState.hour &&
+        selectedTime.minute == timePickerState.minute
+    ) {
+        return
+    }
+
+    onTimeSelected(LocalTime.of(timePickerState.hour, timePickerState.minute).toMs())
 }
 
 @Composable

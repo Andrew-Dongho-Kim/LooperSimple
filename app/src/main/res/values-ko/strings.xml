@@ -52,5 +52,5 @@
 
     <string name="warning_enter_characters_other_than_spaces">공백 이외의 문자를 입력해주세요.</string>
     <string name="warning_choose_at_least_one_day_of_the_week">적어도 하나의 요일을 선택해야 합니다.</string>
-    <string name="warning_up_to_five_loops">최대 5개의 루프까지 동시에 수행할 수 있습니다.</string>
+    <string name="warning_up_to_max_loops">최대 %d개의 루프까지 동시에 수행할 수 있습니다.</string>
 </resources>

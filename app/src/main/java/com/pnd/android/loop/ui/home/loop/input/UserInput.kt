@@ -1,6 +1,5 @@
 package com.pnd.android.loop.ui.home.loop.input
 
-import android.content.Context
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
@@ -10,17 +9,11 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.core.content.edit
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.ui.home.BlurState
 import com.pnd.android.loop.ui.home.loop.input.selector.Selectors
@@ -56,21 +49,13 @@ fun UserInput(
 
     OverrideBackPress(inputState = inputState)
 
-    val context = LocalContext.current
-    val pref = remember {
-        context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
-    }
-    var isOpen by rememberSaveable {
-        mutableStateOf(pref.getBoolean(KEY_IS_USER_INPUT_OPEN, true))
-    }
-
     Column(
         modifier
             .animateContentSize()
-            .background(color = if (isOpen) AppColor.surface else Color.Transparent)
+            .background(color = if (inputState.isVisible) AppColor.surface else Color.Transparent)
 
     ) {
-        if (isOpen) {
+        if (inputState.isVisible) {
             HorizontalDivider(
                 thickness = 0.5.dp,
                 color = AppColor.onSurface.copy(alpha = 0.3f)
@@ -90,11 +75,6 @@ fun UserInput(
 
         UserInputButtons(
             inputState = inputState,
-            isOpen = isOpen,
-            onInputOpenToggle = { open ->
-                isOpen = open
-                pref.edit { putBoolean(KEY_IS_USER_INPUT_OPEN, isOpen) }
-            },
             onSubmitted = {
                 coroutineScope.launch {
                     val loop = inputState.value
@@ -131,6 +111,3 @@ private fun OverrideBackPress(
         }
     }
 }
-
-private const val PREF_NAME = "user_input_pref"
-private const val KEY_IS_USER_INPUT_OPEN = "is_user_input_open"

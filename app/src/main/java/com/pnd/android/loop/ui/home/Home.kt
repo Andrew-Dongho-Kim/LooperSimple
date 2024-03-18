@@ -53,7 +53,7 @@ fun Home(
     onNavigateToHistoryPage: () -> Unit,
     onNavigateToStatisticsPage: () -> Unit,
 ) {
-    val inputState = rememberUserInputState()
+    val inputState = rememberUserInputState(context = LocalContext.current)
     val snackBarHostState = remember { SnackbarHostState() }
     val blurState = rememberBlurState()
 
@@ -201,7 +201,10 @@ private suspend fun ensureLoop(
 
     if (loopViewModel.maxOfIntersects(loop) >= MAX_LOOPS_TO_DO_SIMULTANEOUSLY) {
         hostState.showSnackbar(
-            message = context.getString(R.string.warning_up_to_five_loops)
+            message = context.getString(
+                R.string.warning_up_to_max_loops,
+                MAX_LOOPS_TO_DO_SIMULTANEOUSLY
+            )
         )
         return false
     }

@@ -42,6 +42,7 @@ import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
@@ -58,11 +59,9 @@ import com.pnd.android.loop.ui.theme.surface
 fun UserInputButtons(
     modifier: Modifier = Modifier,
     inputState: UserInputState,
-    isOpen: Boolean,
-    onInputOpenToggle: (Boolean) -> Unit,
     onSubmitted: () -> Unit,
 ) {
-    val overrideModifier = if (isOpen) {
+    val overrideModifier = if (inputState.isVisible) {
         modifier.clickable(enabled = false, onClick = {})
     } else {
         modifier
@@ -75,14 +74,14 @@ fun UserInputButtons(
             .padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (isOpen) {
+        if (inputState.isVisible) {
             UserInputSelectorButtons(
                 inputState = inputState,
             )
         }
         Spacer(modifier = Modifier.weight(1f))
 
-        if (isOpen && inputState.mode != UserInputState.Mode.None) {
+        if (!inputState.isModeNone) {
             UserInputSubmitButton(
                 enabled = !inputState.isTitleEmpty,
                 onSubmitted = onSubmitted,
@@ -90,10 +89,9 @@ fun UserInputButtons(
             )
         }
 
-        if (inputState.mode == UserInputState.Mode.None) {
+        if (inputState.isModeNone) {
             UserInputOpenButton(
-                isOpen = isOpen,
-                onInputOpenToggle = onInputOpenToggle,
+                inputState = inputState,
             )
         }
     }
@@ -226,15 +224,14 @@ private fun UserInputSubmitButton(
 @Composable
 private fun UserInputOpenButton(
     modifier: Modifier = Modifier,
-    isOpen: Boolean,
-    onInputOpenToggle: (Boolean) -> Unit
+    inputState: UserInputState,
 ) {
     Box(
         modifier = Modifier
             .width(90.dp)
             .height(110.dp)
     ) {
-        if (!isOpen) {
+        if (!inputState.isOpen) {
             Box(
                 modifier = Modifier
                     .clip(CircleShape)
@@ -249,9 +246,10 @@ private fun UserInputOpenButton(
                         )
                     })
         }
+        val context = LocalContext.current
         Button(
-            modifier = modifier.align(if (isOpen) Alignment.BottomEnd else Alignment.Center),
-            onClick = { onInputOpenToggle(!isOpen) },
+            modifier = modifier.align(if (inputState.isOpen) Alignment.BottomEnd else Alignment.Center),
+            onClick = { inputState.toggleOpen(context) },
             shape = CircleShape,
             colors = ButtonDefaults.buttonColors(
                 containerColor = AppColor.surface,
@@ -263,7 +261,7 @@ private fun UserInputOpenButton(
             contentPadding = PaddingValues(0.dp)
         ) {
             Icon(
-                imageVector = if (isOpen) {
+                imageVector = if (inputState.isOpen) {
                     Icons.AutoMirrored.Outlined.ArrowForward
                 } else {
                     Icons.AutoMirrored.Outlined.ArrowBack

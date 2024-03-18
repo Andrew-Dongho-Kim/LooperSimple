@@ -84,7 +84,7 @@ interface LoopBase {
             0xffff0000.toInt(), 0xffff3399.toInt(), 0xffcc6699.toInt(),
         )
 
-        const val MAX_LOOPS_TO_DO_SIMULTANEOUSLY = 5
+        const val MAX_LOOPS_TO_DO_SIMULTANEOUSLY = 3
     }
 }
 

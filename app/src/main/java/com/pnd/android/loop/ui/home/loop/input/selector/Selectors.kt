@@ -100,26 +100,10 @@ private fun Selector(
             blurState = blurState,
             selectedStartTime = loop.loopStart,
             onStartTimeSelected = onStartTimeSelected@{ loopStart ->
-                if (loopStart >= loop.loopEnd) {
-                    coroutineScope.launch {
-                        snackBarHostState.showSnackbar(
-                            message = context.getString(R.string.warning_choose_at_least_one_day_of_the_week)
-                        )
-                    }
-                    return@onStartTimeSelected
-                }
                 inputState.update(loopStart = loopStart)
             },
             selectedEndTime = loop.loopEnd,
             onEndTimeSelected = onEndTimeSelected@{ loopEnd ->
-                if (loop.loopStart >= loopEnd) {
-                    coroutineScope.launch {
-                        snackBarHostState.showSnackbar(
-                            message = context.getString(R.string.warning_choose_at_least_one_day_of_the_week)
-                        )
-                    }
-                    return@onEndTimeSelected
-                }
                 inputState.update(loopEnd = loopEnd)
             },
             selectedDays = loop.loopActiveDays,
