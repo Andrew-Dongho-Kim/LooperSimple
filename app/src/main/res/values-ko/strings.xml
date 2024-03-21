@@ -14,7 +14,7 @@
 
     <string name="go_to_statistics">통계페이지로 이동</string>
 
-    <string name="ok">예</string>
+    <string name="ok">확인</string>
     <string name="cancel">취소</string>
     <string name="add">추가</string>
     <string name="edit">수정</string>
@@ -53,4 +53,6 @@
     <string name="warning_enter_characters_other_than_spaces">공백 이외의 문자를 입력해주세요.</string>
     <string name="warning_choose_at_least_one_day_of_the_week">적어도 하나의 요일을 선택해야 합니다.</string>
     <string name="warning_up_to_max_loops">최대 %d개의 루프까지 동시에 수행할 수 있습니다.</string>
+    <string name="warning_start_time_should_be_before_end_time">* 시작 시간은 종료 시간 보다 최소 15분 전 이어야 합니다.</string>
+    <string name="warning_end_time_should_be_after_start_time">* 종료 시간은 시작 시간  보다 최소 15분 후 이어야 합니다.</string>
 </resources>

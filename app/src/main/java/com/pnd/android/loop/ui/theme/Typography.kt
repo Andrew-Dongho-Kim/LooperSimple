@@ -24,17 +24,17 @@ val AppTypography = Typography(
 //    defaultFontFamily = MontserratFontFamily,
     displayLarge = TextStyle(
         fontWeight = FontWeight.Light,
-        fontSize = 94.sp,
+        fontSize = 40.sp,
         letterSpacing = (-1.5).sp
     ),
     displayMedium = TextStyle(
         fontWeight = FontWeight.Light,
-        fontSize = 58.sp,
+        fontSize = 36.sp,
         letterSpacing = (-0.5).sp
     ),
     displaySmall = TextStyle(
         fontWeight = FontWeight.Normal,
-        fontSize = 46.sp,
+        fontSize = 32.sp,
         letterSpacing = 0.sp
     ),
     headlineLarge = TextStyle(

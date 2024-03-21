@@ -54,5 +54,7 @@
     <string name="warning_enter_characters_other_than_spaces">Please also enter characters other than spaces.</string>
     <string name="warning_choose_at_least_one_day_of_the_week">You should choose at least one day of the week.</string>
     <string name="warning_up_to_max_loops">You can do up to %d loops simultaneously.</string>
+    <string name="warning_start_time_should_be_before_end_time">* The start time must be at least %d minutes before the end time.</string>
+    <string name="warning_end_time_should_be_after_start_time">* The end time must be at least %d minutes after the start time.</string>
 
 </resources>
