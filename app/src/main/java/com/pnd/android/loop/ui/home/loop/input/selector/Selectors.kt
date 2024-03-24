@@ -1,5 +1,6 @@
 package com.pnd.android.loop.ui.home.loop.input.selector
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -47,10 +48,11 @@ fun Selectors(
         } else {
             dimensionResource(id = R.dimen.user_input_selector_content_height)
         },
-        label = ""
+        label = "selectorHeightAnimation"
     )
 
     val modifier = Modifier
+        .animateContentSize()
         .fillMaxWidth()
         .height(selectorHeight)
         .focusRequester(focusRequester)
@@ -92,7 +94,19 @@ private fun Selector(
         InputSelector.ALARM_INTERVAL -> IntervalSelector(
             modifier = modifier,
             selectedInterval = loop.interval,
-            onIntervalSelected = { inputState.update(interval = it) }
+            maxInterval = loop.loopEnd - loop.loopStart,
+            onIntervalSelected = onIntervalChanged@{ interval ->
+                if (loop.loopEnd - loop.loopStart <= interval) {
+                    coroutineScope.launch {
+                        snackBarHostState.showSnackbar(
+                            message = "BBBBB!"
+                        )
+                    }
+                    return@onIntervalChanged
+                }
+
+                inputState.update(interval = interval)
+            }
         )
 
         InputSelector.START_END_TIME -> StartEndTimeSelector(

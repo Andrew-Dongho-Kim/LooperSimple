@@ -5,18 +5,20 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.pnd.android.loop.R
-import com.pnd.android.loop.util.intervalString
 import com.pnd.android.loop.util.annotatedString
+import com.pnd.android.loop.util.intervalString
 import java.util.concurrent.TimeUnit
 
 @Composable
 fun IntervalSelector(
     modifier: Modifier = Modifier,
     selectedInterval: Long,
+    maxInterval: Long,
     onIntervalSelected: (Long) -> Unit,
 ) {
     val description = stringResource(R.string.desc_interval_selector)
@@ -27,6 +29,9 @@ fun IntervalSelector(
     ) {
         intervals.forEach { interval ->
             TextSelectorItem(
+                modifier = Modifier.alpha(
+                    if (interval > maxInterval) 0.3f else 1f
+                ),
                 text = annotatedString(intervalString(interval, "#")),
                 selected = selectedInterval == interval,
                 onClick = { onIntervalSelected(interval) }

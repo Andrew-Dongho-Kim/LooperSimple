@@ -8,11 +8,16 @@
     <string name="done_rate">완료율</string>
     <string name="skip_rate">건너뜀율</string>
 
+    <string name="prompt_for_wise_saying">습관과 관련된 명언 하나</string>
+
     <string name="daily_done_rate_chart">일별 완료율 차트</string>
     <string name="monthly_done_rate_chart">월별 완료율 차트</string>
     <string name="day_of_week_done_rate_chart">요일별 완료율 차트</string>
 
+    <string name="statistics">통계</string>
     <string name="go_to_statistics">통계페이지로 이동</string>
+
+    <string name="total">전체</string>
 
     <string name="ok">확인</string>
     <string name="cancel">취소</string>

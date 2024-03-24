@@ -26,8 +26,8 @@ fun HomeAppBar(
     modifier: Modifier = Modifier,
     loopViewModel: LoopViewModel,
 ) {
-    val totalLoops = loopViewModel.countInTodayRemain.collectAsState(initial = 0)
-    val countInProgress = loopViewModel.countInActive.collectAsState(initial = 0)
+    val totalLoops by loopViewModel.countInTodayRemain.collectAsState(initial = 0)
+    val countInProgress by loopViewModel.countInActive.collectAsState(initial = 0)
     AppBar(
         modifier = modifier,
         title = {
@@ -42,10 +42,10 @@ fun HomeAppBar(
 
                 Text(
                     text = annotatedString(
-                        "#${countInProgress.value}/${
+                        "#${countInProgress}/${
                             stringResource(
                                 R.string.loops,
-                                totalLoops.value
+                                totalLoops
                             )
                         }"
                     ),

@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.ContentAlpha
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Timeline
@@ -127,6 +126,7 @@ private fun LazyListScope.sectionStatistics(
     }
 }
 
+
 private fun LazyListScope.sectionYesterday(
     section: Section.Yesterday,
     loopViewModel: LoopViewModel,
@@ -233,7 +233,7 @@ private fun TimelineHeaderButton(
                 }
                 .padding(horizontal = 12.dp, vertical = 8.dp),
         ) {
-            val normalColor = AppColor.onSurface.copy(alpha = ContentAlpha.medium)
+            val normalColor = AppColor.onSurface.copy(alpha = 0.7f)
             val selectedColor = AppColor.primary
             val contentColor = if (isSelected) selectedColor else normalColor
             Text(

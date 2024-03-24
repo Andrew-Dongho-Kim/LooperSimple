@@ -3,6 +3,11 @@ package com.pnd.android.loop.ui.home.loop.viewmodel
 import android.app.Application
 import androidx.compose.runtime.Stable
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.google.ai.client.generativeai.GenerativeModel
+import com.google.ai.client.generativeai.type.ResponseStoppedException
+import com.google.ai.client.generativeai.type.generationConfig
+import com.pnd.android.loop.R
 import com.pnd.android.loop.appwidget.AppWidgetUpdateWorker
 import com.pnd.android.loop.common.log
 import com.pnd.android.loop.data.LoopBase
@@ -13,11 +18,15 @@ import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
+
+private const val GENERATIVE_AI_KEY = "AIzaSyDBPQuAGgOyw3m03HCpBSonqes-ojqMZ7A"
 
 @Stable
 @HiltViewModel
@@ -31,6 +40,30 @@ class LoopViewModel @Inject constructor(
         logger.e { "coroutine exception is passed: $throwable" }
     }
     private val coroutineScope = CoroutineScope(SupervisorJob() + coroutineExceptionHandler)
+
+    private val generativeModel = GenerativeModel(
+        modelName = "gemini-1.0-pro",
+        apiKey = GENERATIVE_AI_KEY,
+        generationConfig = generationConfig {
+            temperature = 0.7f
+        }
+    )
+    private val chat = generativeModel.startChat()
+
+    private val _wiseSaying = MutableStateFlow("")
+    val wiseSaying: StateFlow<String> = _wiseSaying
+
+    fun loadWiseSaying() {
+        viewModelScope.launch {
+            try {
+                val response =
+                    chat.sendMessage(application.getString(R.string.prompt_for_wise_saying))
+                _wiseSaying.emit(response.text ?: "")
+            } catch (e: ResponseStoppedException) {
+                // don't anything, just catch
+            }
+        }
+    }
 
     val localDate = loopRepository.localDate
     val localDateTime = loopRepository.localDateTime

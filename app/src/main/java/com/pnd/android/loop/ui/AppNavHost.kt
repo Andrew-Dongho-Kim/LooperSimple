@@ -34,8 +34,16 @@ sealed class Screen(val route: String) {
         fun navigate(
             navController: NavHostController,
             loop: LoopBase
+        ) = navigate(
+            navController = navController,
+            id = loop.id
+        )
+
+        fun navigate(
+            navController: NavHostController,
+            id: Int,
         ) {
-            navController.navigate("detail/${loop.id}")
+            navController.navigate("detail/${id}")
         }
     }
 
@@ -113,6 +121,12 @@ fun AppNavHost(
             popExitTransition = { scaleOutOfContainer() }
         ) {
             StatisticsPage(
+                onNavigateToDetailPage = { id ->
+                    Screen.DetailPage.navigate(
+                        navController = navController,
+                        id = id,
+                    )
+                },
                 onNavigateUp = { navController.popBackStack() }
             )
         }

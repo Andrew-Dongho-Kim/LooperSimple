@@ -28,7 +28,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.pnd.android.loop.data.LoopsByDate
+import com.pnd.android.loop.data.LoopByDate
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.compositeOverOnSurface
 import com.pnd.android.loop.ui.theme.compositeOverSurface
@@ -146,7 +146,7 @@ private fun CalendarPage(
 @Composable
 private fun CalendarRow(
     modifier: Modifier = Modifier,
-    loopsByDate: Map<LocalDate, List<LoopsByDate>>,
+    loopsByDate: Map<LocalDate, List<LoopByDate>>,
     itemDate: LocalDate,
     minDate: LocalDate,
     selectedDate: LocalDate,
@@ -185,7 +185,7 @@ private fun CalendarRow(
 @Composable
 private fun CalendarDateItem(
     modifier: Modifier = Modifier,
-    doneLoops: List<LoopsByDate>,
+    doneLoops: List<LoopByDate>,
     itemDate: LocalDate,
     isToday: Boolean,
     isSelected: Boolean,
@@ -233,7 +233,7 @@ private fun CalendarDateItem(
 @Composable
 private fun DoneLoopsIndicator(
     modifier: Modifier = Modifier,
-    doneLoops: List<LoopsByDate>,
+    doneLoops: List<LoopByDate>,
 ) {
     Row(modifier = modifier) {
         doneLoops.forEach { loop ->

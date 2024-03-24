@@ -65,12 +65,20 @@ fun LoopBase.toLoopWithDone(
     isMock = isMock
 )
 
-data class LoopsByDate(
+data class LoopByDate(
     val date: LocalDate,
     val id: Int,
     val title: String,
     val color: Int
 )
+
+data class LoopWithStatistics(
+    val id: Int,
+    val title: String,
+    val color: Int,
+    val doneRate: Float,
+)
+
 
 @Dao
 interface LoopWithDoneDao {
@@ -100,7 +108,18 @@ interface LoopWithDoneDao {
     fun flowDoneLoopsByDate(
         from: Long,
         to: Long,
-    ): Flow<List<LoopsByDate>>
+    ): Flow<List<LoopByDate>>
+
+    @Query(
+        """SELECT id, title, color, doneCount /  CAST(allCount AS REAL) AS doneRate FROM 
+                (SELECT *,
+                    (SELECT COUNT(*) FROM loop_done WHERE loopId==id AND :from <= date AND date <= :to) AS allCount, 
+                    (SELECT COUNT(*) FROM loop_done WHERE done == ${LoopDoneVo.DoneState.DONE} AND loopId==id AND :from <= date AND date <= :to) AS doneCount
+                FROM loop WHERE created <= :to) 
+            ORDER BY doneRate DESC
+        """
+    )
+    fun flowLoopsWithStatistics(from: Long, to: Long): Flow<List<LoopWithStatistics>>
 }
 
 val LoopBase.doneState get() = (this as? LoopWithDone)?.done

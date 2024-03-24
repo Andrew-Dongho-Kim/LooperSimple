@@ -42,4 +42,9 @@ class HomeFragment : Fragment() {
             loopViewModel.syncAlarms()
         }
     }
+
+    override fun onResume() {
+        super.onResume()
+        loopViewModel.loadWiseSaying()
+    }
 }

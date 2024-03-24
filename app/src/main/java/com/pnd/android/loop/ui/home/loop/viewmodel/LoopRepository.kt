@@ -51,10 +51,11 @@ class LoopRepository @Inject constructor(
 
     val localDate = flow {
         while (currentCoroutineContext().isActive) {
-            val now = LocalDate.now()
-            emit(now)
-
             val delayInMs = LocalTime.now().until(LocalTime.MAX, ChronoUnit.MILLIS)
+            val now = LocalDate.now()
+            logger.d { "localDate is $now, delay:${delayInMs.toLocalTime()}" }
+
+            emit(now)
             delay(delayInMs)
         }
     }.stateIn(

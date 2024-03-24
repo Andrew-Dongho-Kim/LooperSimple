@@ -1,11 +1,12 @@
 package com.pnd.android.loop.ui.home.loop
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.ContentAlpha
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowRightAlt
 import androidx.compose.material3.Card
@@ -23,6 +24,7 @@ import com.pnd.android.loop.R
 import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
+import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.compositeOverSurface
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
@@ -37,7 +39,7 @@ fun LoopStatisticsCard(
         modifier = modifier.clickable(onClick = onNavigateToStatisticsPage),
         colors = CardDefaults.cardColors(
             containerColor = AppColor.primary.compositeOverSurface(
-                alpha = if (isSystemInDarkTheme()) 0.15f else 0.1f
+                alpha = if (isSystemInDarkTheme()) 0.25f else 0.1f
             ),
             contentColor = AppColor.onSurface,
         ),
@@ -71,6 +73,28 @@ fun LoopStatisticsCard(
                 contentDescription = stringResource(id = R.string.go_to_statistics)
             )
         }
+
+        val wiseSaying by loopViewModel.wiseSaying.collectAsState("")
+        if (wiseSaying.isNotBlank()) {
+            Text(
+                modifier = Modifier
+                    .padding(
+                        horizontal = 24.dp,
+                        vertical = 8.dp,
+                    )
+                    .fillMaxWidth()
+                    .border(
+                        width = 0.5.dp,
+                        color = AppColor.onSurface.copy(alpha = 0.3f),
+                        shape = RoundShapes.small
+                    )
+                    .padding(all = 12.dp),
+                text = wiseSaying,
+                style = AppTypography.bodyMedium.copy(
+                    color = AppColor.onSurface.copy(alpha = 0.7f)
+                )
+            )
+        }
     }
 }
 
@@ -94,7 +118,7 @@ private fun ResponseRate(
         Text(
             text = String.format("%.2f%%", responseRate),
             style = AppTypography.bodyMedium.copy(
-                color = AppColor.onSurface.copy(alpha = ContentAlpha.medium)
+                color = AppColor.onSurface.copy(alpha = 0.7f)
             )
         )
     }
@@ -146,7 +170,7 @@ private fun SkipRate(
         Text(
             text = String.format("%.2f%%", skipRate),
             style = AppTypography.bodyMedium.copy(
-                color = AppColor.onSurface.copy(alpha = ContentAlpha.medium)
+                color = AppColor.onSurface.copy(alpha = 0.7f)
             )
         )
     }
