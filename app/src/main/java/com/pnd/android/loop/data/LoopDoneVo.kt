@@ -10,6 +10,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.pnd.android.loop.data.LoopDoneVo.DoneState
+import com.pnd.android.loop.data.LoopDoneVo.DoneState.Companion.DISABLED
 import com.pnd.android.loop.data.LoopDoneVo.DoneState.Companion.DONE
 import com.pnd.android.loop.data.LoopDoneVo.DoneState.Companion.NO_RESPONSE
 import com.pnd.android.loop.data.LoopDoneVo.DoneState.Companion.SKIP
@@ -36,16 +37,18 @@ data class LoopDoneVo(
     val date: Long,
     val done: Int = NO_RESPONSE
 ) {
-    fun isDone() = done == DONE
+    fun isEnabled() = done.isEnabled()
+    fun isDone() = done.isDone()
 
-    fun isSkip() = done == SKIP
+    fun isSkip() = done.isSkip()
 
-    fun isRespond() = done != NO_RESPONSE
+    fun isRespond() = done.isRespond()
 
     @Target(AnnotationTarget.TYPE, AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.FUNCTION)
     @IntDef(DONE, SKIP, NO_RESPONSE)
     annotation class DoneState {
         companion object {
+            const val DISABLED = -1
             const val DONE = 1
             const val SKIP = 2
             const val NO_RESPONSE = 0
@@ -53,44 +56,50 @@ data class LoopDoneVo(
     }
 }
 
+fun Int.isEnabled() = this != DISABLED
+fun Int.isDone() = this == DONE
+fun Int.isSkip() = this == SKIP
+fun Int.isRespond() = this == DONE || this == SKIP
+
+
 @Dao
 interface LoopDoneDao {
 
-    @Query("SELECT * FROM loop_done WHERE loopId=:loopId")
-    suspend fun allDoneStates(
-        loopId: Int,
-    ): List<LoopDoneVo>
-
-    @Query("SELECT * FROM loop_done WHERE loopId=:loopId AND date=:date LIMIT 1")
-    suspend fun doneState(
-        loopId: Int,
-        date: Long
-    ): LoopDoneVo?
-
     @Query("SELECT * FROM loop_done WHERE loopId=:loopId AND :from <= date AND date <= :to")
-    suspend fun doneStates(
+    suspend fun allDoneStateBetween(
         loopId: Int,
         from: Long,
         to: Long
     ): List<LoopDoneVo>
 
-    @Query("SELECT COUNT(*) FROM loop_done")
-    fun flowAllCount(): Flow<Int>
+    @Query("SELECT * FROM loop_done WHERE loopId=:loopId AND done != $DISABLED")
+    suspend fun allEnabledDoneStates(
+        loopId: Int,
+    ): List<LoopDoneVo>
 
-    @Query("SELECT COUNT(*) FROM loop_done WHERE loopId=:loopId")
-    fun flowAllCount(loopId: Int): Flow<Int>
+    @Query("SELECT * FROM loop_done WHERE loopId=:loopId AND date=:date LIMIT 1")
+    suspend fun getDoneState(
+        loopId: Int,
+        date: Long
+    ): LoopDoneVo?
 
-    @Query("SELECT COUNT(*) FROM loop_done WHERE loopId=:loopId AND :from >= date")
-    suspend fun allCountBefore(loopId: Int, from: Long): Int
+    @Query("SELECT COUNT(*) FROM loop_done WHERE done != $DISABLED")
+    fun flowAllEnabledCount(): Flow<Int>
 
-    @Query("SELECT COUNT(*) FROM loop_done WHERE loopId=:loopId AND :from <= date AND date <= :to")
-    suspend fun allCountBetween(loopId: Int, from: Long, to: Long): Int
+    @Query("SELECT COUNT(*) FROM loop_done WHERE loopId=:loopId AND done != $DISABLED")
+    fun flowAllEnabledCount(loopId: Int): Flow<Int>
 
-    @Query("SELECT COUNT(*) FROM loop_done WHERE done != $NO_RESPONSE")
-    fun flowResponseCount(): Flow<Int>
+    @Query("SELECT COUNT(*) FROM loop_done WHERE loopId=:loopId AND done != $DISABLED AND :from >= date")
+    suspend fun allEnabledCountBefore(loopId: Int, from: Long): Int
 
-    @Query("SELECT COUNT(*) FROM loop_done WHERE done != $NO_RESPONSE AND loopId=:loopId")
-    fun flowResponseCount(loopId: Int): Flow<Int>
+    @Query("SELECT COUNT(*) FROM loop_done WHERE loopId=:loopId AND done != $DISABLED AND :from <= date AND date <= :to")
+    suspend fun allEnabledCountBetween(loopId: Int, from: Long, to: Long): Int
+
+    @Query("SELECT COUNT(*) FROM loop_done WHERE (done == $DONE OR done == $SKIP)")
+    fun flowRespondCount(): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM loop_done WHERE loopId=:loopId AND (done == $DONE OR done == $SKIP)")
+    fun flowRespondCount(loopId: Int): Flow<Int>
 
     @Query("SELECT COUNT(*) FROM loop_done WHERE done == $DONE")
     fun flowDoneCount(): Flow<Int>

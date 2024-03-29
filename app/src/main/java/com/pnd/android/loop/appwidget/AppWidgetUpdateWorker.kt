@@ -16,6 +16,7 @@ import com.pnd.android.loop.common.Logger
 import com.pnd.android.loop.data.AppDatabase
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
+import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.data.isNotRespond
 import com.pnd.android.loop.data.putTo
 import com.pnd.android.loop.util.isActiveDay
@@ -48,7 +49,7 @@ class AppWidgetUpdateWorker @AssistedInject constructor(
                 LoopDoneVo(
                     loopId = doneLoopId,
                     date = LocalDate.now().toMs(),
-                    done = LoopDoneVo.DoneState.DONE
+                    done = DoneState.DONE
                 )
             )
         }
@@ -59,12 +60,12 @@ class AppWidgetUpdateWorker @AssistedInject constructor(
                 LoopDoneVo(
                     loopId = skipLoopId,
                     date = LocalDate.now().toMs(),
-                    done = LoopDoneVo.DoneState.SKIP
+                    done = DoneState.SKIP
                 )
             )
         }
 
-        val loops = loopWithDoneDao.allLoops(date = LocalDate.now().toMs())
+        val loops = loopWithDoneDao.allEnabledLoops(date = LocalDate.now().toMs())
         updateWidget(
             context = context,
             loops = loops.filter { loop -> loop.isNotRespond && loop.isActiveDay() }

@@ -53,7 +53,10 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
+import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.data.LoopWithDone
+import com.pnd.android.loop.data.isDone
+import com.pnd.android.loop.data.isSkip
 import com.pnd.android.loop.ui.common.SimpleAppBar
 import com.pnd.android.loop.ui.common.findLastFullyVisibleItemIndex
 import com.pnd.android.loop.ui.theme.AppColor
@@ -356,7 +359,7 @@ private fun AchievementItem(
             itemDate = itemDate,
         )
 
-        val doneList = item.filter { it.done == LoopDoneVo.DoneState.DONE }
+        val doneList = item.filter { it.done.isDone()}
         if (doneList.isNotEmpty()) {
             AchievementItemSection(
                 modifier = Modifier.fillMaxWidth(),
@@ -371,7 +374,7 @@ private fun AchievementItem(
             )
         }
 
-        val skipList = item.filter { it.done == LoopDoneVo.DoneState.SKIP }
+        val skipList = item.filter { it.done.isSkip() }
         if (skipList.isNotEmpty()) {
             AchievementItemSection(
                 modifier = Modifier

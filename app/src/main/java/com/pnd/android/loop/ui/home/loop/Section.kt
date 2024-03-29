@@ -165,9 +165,10 @@ private fun LazyListScope.sectionToday(
     if (isSelected) {
         item(
             contentType = ContentTypes.LOOP_TIMELINE,
-            key = "",
+            key = "LoopTimeline",
         ) {
             LoopTimeline(
+                modifier = Modifier.padding(top = 24.dp),
                 blurState = blurState,
                 loopViewModel = loopViewModel,
                 loops = loops,
@@ -198,6 +199,7 @@ private fun LazyListScope.sectionToday(
         key = section.key
     ) {
         TimelineHeaderButton(
+            modifier = Modifier.padding(vertical = 12.dp),
             isSelected = isSelected,
             onSelected = { selected -> isSelected = selected }
         )

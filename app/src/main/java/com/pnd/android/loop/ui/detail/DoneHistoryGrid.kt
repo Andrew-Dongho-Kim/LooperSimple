@@ -38,6 +38,7 @@ import com.pnd.android.loop.R
 import com.pnd.android.loop.data.Day.Companion.isOn
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
+import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.RoundShapes
@@ -102,20 +103,20 @@ private fun DoneHistoryGridIconsDescription(
         verticalAlignment = Alignment.CenterVertically
     ) {
         ItemDescriptionItem(
-            doneState = LoopDoneVo.DoneState.DONE,
+            doneState = DoneState.DONE,
             text = stringResource(id = R.string.done),
             color = doneColor.compositeOverOnSurface(),
         )
         ItemDescriptionItem(
             modifier = Modifier.padding(start = 12.dp),
-            doneState = LoopDoneVo.DoneState.SKIP,
+            doneState = DoneState.SKIP,
             text = stringResource(id = R.string.skip),
             color = AppColor.onSurface,
         )
 
         ItemDescriptionItem(
             modifier = Modifier.padding(start = 12.dp),
-            doneState = LoopDoneVo.DoneState.NO_RESPONSE,
+            doneState = DoneState.NO_RESPONSE,
             text = stringResource(id = R.string.no_response),
             color = AppColor.onSurface
         )
@@ -125,7 +126,7 @@ private fun DoneHistoryGridIconsDescription(
 @Composable
 private fun ItemDescriptionItem(
     modifier: Modifier = Modifier,
-    @LoopDoneVo.DoneState doneState: Int,
+    @DoneState doneState: Int,
     text: String,
     color: Color
 ) {
@@ -135,8 +136,8 @@ private fun ItemDescriptionItem(
     ) {
         Image(
             imageVector = when (doneState) {
-                LoopDoneVo.DoneState.DONE -> Icons.Outlined.Circle
-                LoopDoneVo.DoneState.SKIP -> Icons.Outlined.Close
+                DoneState.DONE -> Icons.Outlined.Circle
+                DoneState.SKIP -> Icons.Outlined.Close
                 else -> Icons.Outlined.Remove
             },
             colorFilter = ColorFilter.tint(

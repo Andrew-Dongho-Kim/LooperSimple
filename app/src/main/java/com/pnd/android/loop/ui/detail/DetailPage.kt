@@ -24,7 +24,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -47,7 +46,6 @@ import com.pnd.android.loop.ui.common.chart.BarChart
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.background
-import com.pnd.android.loop.ui.theme.compositeOver
 import com.pnd.android.loop.ui.theme.compositeOverOnSurface
 import com.pnd.android.loop.ui.theme.error
 import com.pnd.android.loop.ui.theme.onSurface
@@ -278,8 +276,8 @@ private fun LoopResponseDoneSkipRate(
     detailViewModel: LoopDetailViewModel
 ) {
     Row(modifier = modifier.horizontalScroll(state = rememberScrollState())) {
-        val duration by detailViewModel.allCount.collectAsState(initial = 0)
-        val responseCount by detailViewModel.responseCount.collectAsState(initial = 0)
+        val duration by detailViewModel.allEnabledCount.collectAsState(initial = 0)
+        val responseCount by detailViewModel.respondCount.collectAsState(initial = 0)
         LoopRate(
             text = stringResource(id = R.string.response_rate),
             rate = (responseCount.toFloat() / duration) * 100,
@@ -381,7 +379,7 @@ private fun rememberDailyDoneRateModel(
         val y = mutableListOf<Float>()
         while (date.isAfter(createdDate)) {
             val doneCount = detailViewModel.doneCountBefore(loop.id, date)
-            val allCount = detailViewModel.allCountBefore(loop.id, date)
+            val allCount = detailViewModel.allEnabledCountBefore(loop.id, date)
             val rate = doneCount.toFloat() / allCount
             x.add(days++)
             y.add(rate * 100)
@@ -461,7 +459,7 @@ private fun rememberMonthlyDoneRate(
         while (date.isAfter(createdDate)) {
             val firstDateOfMonth = date.withDayOfMonth(1)
 
-            val allCount = detailViewModel.allCountBetween(
+            val allCount = detailViewModel.allEnabledCountBetween(
                 loopId = loop.id,
                 from = firstDateOfMonth,
                 to = date
@@ -547,8 +545,8 @@ private fun rememberDayOfWeekDoneRate(
 
     val modelProducer = remember(loop) { CartesianChartModelProducer.build() }
     LaunchedEffect(key1 = loop) {
-        val allDoneStates = detailViewModel.allDoneStates(loop.id)
-        val doneStatesByDayOfWeek = allDoneStates.groupBy { doneVo ->
+        val allEnabledDoneStates = detailViewModel.allEnabledDoneStates(loop.id)
+        val doneStatesByDayOfWeek = allEnabledDoneStates.groupBy { doneVo ->
             doneVo.date.toLocalDate().dayOfWeek
         }
 

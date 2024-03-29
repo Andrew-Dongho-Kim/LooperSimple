@@ -15,6 +15,7 @@ import com.pnd.android.loop.data.Day.Companion.TUESDAY
 import com.pnd.android.loop.data.Day.Companion.WEDNESDAY
 import com.pnd.android.loop.data.Day.Companion.WEEKDAYS
 import com.pnd.android.loop.data.Day.Companion.WEEKENDS
+import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.util.intervalString
 import com.pnd.android.loop.util.toLocalTime
 import com.pnd.android.loop.util.toMs
@@ -187,7 +188,7 @@ fun Map<String, Any?>.asLoop(): LoopBase {
 
 fun LoopBase.isIntersect(loop: LoopBase) =
     loop.loopEnd in (loopStart + 1)..loopEnd ||
-    loop.loopStart in loopStart..<loopEnd
+            loop.loopStart in loopStart..<loopEnd
 
 fun LoopBase.description(context: Context) =
     """ -->
@@ -266,6 +267,12 @@ annotation class Day {
         }
     }
 }
+
+
+val LoopBase.doneState get() = (this as? LoopWithDone)?.done
+
+val LoopBase.isRespond get() = doneState == DoneState.DONE || doneState == DoneState.SKIP
+val LoopBase.isNotRespond get() = doneState == DoneState.NO_RESPONSE
 
 
 private const val EXTRA_ID = "extra_loop_id"

@@ -24,6 +24,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.data.LoopBase
+import com.pnd.android.loop.data.asLoopVo
 import com.pnd.android.loop.ui.home.BlurState
 import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
 import kotlinx.coroutines.launch
@@ -52,7 +53,7 @@ fun LoopCardWithOption(
                     DragAnchors.Center at 0f
                     DragAnchors.End at constraints.maxWidth * 0.3f
                 },
-                positionalThreshold = { distance -> distance * 0.5f },
+                positionalThreshold = { distance -> distance * 0.7f },
                 velocityThreshold = { with(density) { 125.dp.toPx() } },
                 animationSpec = tween(
                     durationMillis = 100,
@@ -79,6 +80,11 @@ fun LoopCardWithOption(
                 blurState = blurState,
                 title = loop.title,
                 color = Color(loop.color),
+                enabled = loop.enabled,
+                onEnabled = { enabled ->
+                    loopViewModel.addOrUpdateLoop(loop.copyAs(enabled = enabled).asLoopVo())
+                    coroutineScope.launch { state.animateTo(DragAnchors.Center) }
+                },
                 onEdit = {
                     onEdit(loop)
                     coroutineScope.launch { state.animateTo(DragAnchors.Center) }

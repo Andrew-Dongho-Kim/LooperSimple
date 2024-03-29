@@ -7,6 +7,7 @@ import com.pnd.android.loop.data.AppDatabase
 import com.pnd.android.loop.data.Day.Companion.isOn
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
+import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.data.LoopWithDone
 import com.pnd.android.loop.data.toLoopWithDone
 import com.pnd.android.loop.util.dayForLoop
@@ -80,14 +81,18 @@ class HistoryPagingSource(
                     .filter { loop ->
                         !loop.created.toLocalDate().isAfter(date)
                     }.map { loop ->
-                        val doneVo = loopDoneDao.doneState(
+                        val doneVo = loopDoneDao.getDoneState(
                             loopId = loop.id,
                             date = date.toMs()
                         )
                         loop.toLoopWithDone(
                             doneVo = doneVo ?: LoopDoneVo(
                                 loopId = loop.id,
-                                done = LoopDoneVo.DoneState.NO_RESPONSE,
+                                done = if (loop.enabled) {
+                                    DoneState.NO_RESPONSE
+                                } else {
+                                    DoneState.DISABLED
+                                },
                                 date = date.toMs()
                             )
                         )

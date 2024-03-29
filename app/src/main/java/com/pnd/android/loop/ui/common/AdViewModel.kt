@@ -25,6 +25,8 @@ class AdViewModel(
     var nativeAd by mutableStateOf<NativeAd?>(null)
 
     suspend fun loadAd(adId: String) {
+        if (nativeAd != null) return
+
         logger.d { "start loadAd:$adId" }
         suspendCancellableCoroutine { continuation ->
             val adLoader = AdLoader.Builder(

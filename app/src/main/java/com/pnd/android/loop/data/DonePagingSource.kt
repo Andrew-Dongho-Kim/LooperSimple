@@ -71,7 +71,7 @@ class DonePagingSource(
     ): List<LoopDoneVo> {
         val from = prev ?: return emptyList()
 
-        val doneStates = loopDoneDao.doneStates(
+        val doneStates = loopDoneDao.allDoneStateBetween(
             loopId = loopId,
             from = from.toMs(),
             to = curr.toMs()

@@ -74,8 +74,8 @@ class LoopViewModel @Inject constructor(
     val countInActive = loopRepository.countInActive
     val countInTodayRemain = loopRepository.countInTodayRemain
 
-    private val allCount = loopRepository.allCount
-    private val allResponseCount = loopRepository.allResponseCount
+    private val allCount = loopRepository.allEnabledCount
+    private val allResponseCount = loopRepository.allRespondCount
     private val doneCount = loopRepository.doneCount
     private val skipCount = loopRepository.skipCount
 

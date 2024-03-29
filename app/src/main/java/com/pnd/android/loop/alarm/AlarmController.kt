@@ -14,6 +14,7 @@ import com.pnd.android.loop.data.AppDatabase
 import com.pnd.android.loop.data.Day
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
+import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.data.NO_REPEAT
 import com.pnd.android.loop.data.asLoop
 import com.pnd.android.loop.data.asLoopVo
@@ -23,13 +24,11 @@ import com.pnd.android.loop.util.dayForLoop
 import com.pnd.android.loop.util.dh2m2
 import com.pnd.android.loop.util.isActiveDay
 import com.pnd.android.loop.util.isActiveTime
-import com.pnd.android.loop.util.toLocalDate
 import com.pnd.android.loop.util.toMs
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalTime
@@ -118,7 +117,7 @@ class AlarmController @Inject constructor(
     private suspend fun fillNoResponse(loop: LoopBase) {
         val now = LocalDate.now()
         var date = now.minusDays(1L)
-        
+
         while (date.isBefore(now) || date.isEqual(now)) {
             if (!loop.isActiveDay(date)) {
                 date = date.plusDays(1)
@@ -129,7 +128,11 @@ class AlarmController @Inject constructor(
                 LoopDoneVo(
                     loopId = loop.id,
                     date = date.toMs(),
-                    done = LoopDoneVo.DoneState.NO_RESPONSE
+                    done = if (loop.enabled) {
+                        DoneState.NO_RESPONSE
+                    } else {
+                        DoneState.DISABLED
+                    }
                 )
             )
 
