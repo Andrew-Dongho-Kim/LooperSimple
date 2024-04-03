@@ -48,7 +48,9 @@
     <string name="alarm_category_vibes">Vibes</string>
 
     <string name="navi_up">Navigate up</string>
+    <string name="filter">Filter</string>
     <string name="about_app">About LooperSimple</string>
+    <string name="view_daily_record">View daily record</string>
 
     <string name="desc_color_selector">Color Selector</string>
     <string name="desc_time_selector">Time Selector</string>

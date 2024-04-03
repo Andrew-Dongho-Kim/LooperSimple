@@ -47,7 +47,9 @@
     <string name="alarm_category_vibes">진동</string>
 
     <string name="navi_up">뒤로가기</string>
+    <string name="filter">필터</string>
     <string name="about_app">LooperSimple에 관하여</string>
+    <string name="view_daily_record">일별 기록 보기</string>
 
     <string name="desc_color_selector">색상 선택</string>
     <string name="desc_time_selector">시간 선택</string>

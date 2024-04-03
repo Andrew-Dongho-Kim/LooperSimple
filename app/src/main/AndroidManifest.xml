@@ -38,7 +38,7 @@
             </intent-filter>
         </activity>
 
-        <receiver android:name=".alarm.AlarmController$AlarmReceiver" />
+        <receiver android:name=".alarm.LoopScheduler$AlarmReceiver" />
 
         <receiver
             android:name=".appwidget.AppWidgetReceiver"

@@ -51,6 +51,7 @@ class LoopViewModel @Inject constructor(
     private val chat = generativeModel.startChat()
 
     private val _wiseSaying = MutableStateFlow("")
+    val wiseSayingText get() = _wiseSaying.value
     val wiseSaying: StateFlow<String> = _wiseSaying
 
     fun loadWiseSaying() {

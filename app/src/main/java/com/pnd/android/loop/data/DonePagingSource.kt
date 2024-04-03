@@ -29,9 +29,6 @@ class DonePagingSource(
         dateTime
     }
 
-
-    private val keys = TreeSet<Pair<LocalDate, LocalDate>> { o1, o2 -> 0 }
-
     override fun getRefreshKey(
         state: PagingState<LocalDate, LoopDoneVo>
     ): LocalDate? {

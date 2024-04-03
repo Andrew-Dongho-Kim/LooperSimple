@@ -464,7 +464,9 @@ sealed class Section(val key: String) {
 
     class DoneSkip : Section(
         key = "DoneSkipSection"
-    )
+    ) {
+        override val size = 1
+    }
 
     class Later(
         val title: String,

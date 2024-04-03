@@ -74,7 +74,7 @@ fun LoopStatisticsCard(
             )
         }
 
-        val wiseSaying by loopViewModel.wiseSaying.collectAsState("")
+        val wiseSaying by loopViewModel.wiseSaying.collectAsState(loopViewModel.wiseSayingText)
         if (wiseSaying.isNotBlank()) {
             Text(
                 modifier = Modifier

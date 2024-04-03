@@ -35,7 +35,7 @@ import java.time.LocalTime
 import javax.inject.Inject
 
 
-class AlarmController @Inject constructor(
+class LoopScheduler @Inject constructor(
     @ApplicationContext private val context: Context,
     private val alarmManager: AlarmManager,
     appDb: AppDatabase
@@ -99,7 +99,7 @@ class AlarmController @Inject constructor(
         }
     }
 
-    fun syncAlarms() {
+    fun syncLoops() {
         logger.d { "start sync" }
         coroutineScope.launch {
             loopDao.allLoops().forEach { loop ->
@@ -165,7 +165,7 @@ class AlarmController @Inject constructor(
         private val logger = log("AlarmReceiver")
 
         @Inject
-        lateinit var alarmController: AlarmController
+        lateinit var alarmController: LoopScheduler
 
         @Inject
         lateinit var notificationHelper: NotificationHelper
@@ -200,7 +200,7 @@ class AlarmController @Inject constructor(
             val isMock = loop.isMock
             if (isMock) {
                 if (loop.id == LoopBase.MIDNIGHT_RESERVATION_ID) {
-                    alarmController.syncAlarms()
+                    alarmController.syncLoops()
 
                     // TEMP CODE
                     notificationHelper.notify(loop)

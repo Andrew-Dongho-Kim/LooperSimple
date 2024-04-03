@@ -25,6 +25,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
+import com.pnd.android.loop.data.isDisabled
 import com.pnd.android.loop.data.isNotRespond
 import com.pnd.android.loop.data.isRespond
 import com.pnd.android.loop.ui.home.BlurState
@@ -119,7 +120,6 @@ private fun LoopViewModel.observeSectionsAsState(
             rememberYesterdaySection(yesterdayLoops),
             rememberAdSection(),
             rememberDoneSection(resultLoops),
-            rememberLaterSection(resultLoops)
         ).filter { it.size > 0 }
 
         remember(sections) { mutableStateOf(sections) }
@@ -146,7 +146,7 @@ private fun rememberTodaySection(
     inputState: UserInputState,
 ): Section {
     val filtered = loops.filter {
-        it.isActiveDay() && it.isNotRespond
+        (it.isActiveDay() && it.isNotRespond) || it.isDisabled
     }
 
     val resultLoops = mutableListOf(*filtered.toTypedArray())
@@ -170,17 +170,4 @@ private fun rememberDoneSection(loops: List<LoopBase>) = remember {
 }.apply {
     items.value =
         loops.filter { it.isActiveDay() && it.isRespond }
-}
-
-@Composable
-private fun rememberLaterSection(loops: List<LoopBase>): Section {
-    val title = stringResource(id = R.string.later)
-    return rememberSaveable(saver = Section.Later.Saver) {
-        Section.Later(
-            title = title,
-            showActiveDays = true
-        )
-    }.apply {
-        items.value = loops.filter { !it.isActiveDay() }
-    }
 }

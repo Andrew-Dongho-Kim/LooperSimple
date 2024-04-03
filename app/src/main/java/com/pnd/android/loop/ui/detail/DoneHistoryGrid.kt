@@ -113,13 +113,6 @@ private fun DoneHistoryGridIconsDescription(
             text = stringResource(id = R.string.skip),
             color = AppColor.onSurface,
         )
-
-        ItemDescriptionItem(
-            modifier = Modifier.padding(start = 12.dp),
-            doneState = DoneState.NO_RESPONSE,
-            text = stringResource(id = R.string.no_response),
-            color = AppColor.onSurface
-        )
     }
 }
 
@@ -210,12 +203,9 @@ private fun DoneHistoryItem(
                 color = AppColor.onSurface.copy(alpha = 0.2f),
                 shape = shape
             )
-            .alpha(if (!isActive || isBeforeCreated) 0.3f else 1.0f)
+            .alpha(if (!isActive || isBeforeCreated || doneVo.isDisabled()) 0.3f else 1.0f)
     ) {
-        if (isActive &&
-            (localDate.isAfter(createdDate) || localDate.isEqual(createdDate)) &&
-            !(localDate.isEqual(LocalDate.now()) && !doneVo.isRespond())
-        ) {
+        if (doneVo.isRespond()) {
             Image(
                 modifier = Modifier.align(Alignment.Center),
                 imageVector = when {
@@ -235,7 +225,8 @@ private fun DoneHistoryItem(
         }
 
         DoneHistoryItemText(
-            modifier = Modifier.align(Alignment.Center),
+            modifier = Modifier
+                .align(Alignment.Center),
             createdDate = createdDate,
             localDate = localDate,
         )

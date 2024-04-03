@@ -7,9 +7,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.ContentAlpha
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowRightAlt
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.DensityMedium
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Text
@@ -37,6 +38,7 @@ import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.RoundShapes
+import com.pnd.android.loop.ui.theme.compositeOverSurface
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.util.formatHourMinute
@@ -50,6 +52,75 @@ fun LoopDoneSkipCard(
     onNavigateToHistoryPage: () -> Unit,
 ) {
     val loops by section.items
+
+    Column(modifier = modifier) {
+        DoneSkipCardHeader(
+            modifier = Modifier.padding(horizontal = 16.dp),
+            onNavigateToHistoryPage = onNavigateToHistoryPage,
+        )
+
+        if (loops.isNotEmpty()) {
+            LoopDoneSkipCardContent(
+                modifier = Modifier.padding(top = 12.dp),
+                loops = loops,
+                loopViewModel = loopViewModel,
+                onNavigateToDetailPage = onNavigateToDetailPage,
+                onNavigateToHistoryPage = onNavigateToHistoryPage
+            )
+        }
+    }
+}
+
+@Composable
+private fun DoneSkipCardHeader(
+    modifier: Modifier = Modifier,
+    onNavigateToHistoryPage: () -> Unit,
+) {
+    Row(
+        modifier = modifier
+            .clickable { onNavigateToHistoryPage() }
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Image(
+            imageVector = Icons.Filled.DensityMedium,
+            colorFilter = ColorFilter.tint(
+                color = AppColor.onSurface.compositeOverSurface(
+                    alpha = 0.7f
+                )
+            ),
+            contentDescription = ""
+        )
+        Text(
+            modifier = Modifier
+                .padding(start = 8.dp)
+                .weight(1f),
+            text = stringResource(id = R.string.view_daily_record),
+            style = AppTypography.titleMedium.copy(
+                color = AppColor.onSurface
+            )
+        )
+        Image(
+            imageVector = Icons.AutoMirrored.Outlined.ArrowRightAlt,
+            colorFilter = ColorFilter.tint(
+                color = AppColor.onSurface.compositeOverSurface(
+                    alpha = 0.7f
+                )
+            ),
+            contentDescription = ""
+        )
+    }
+}
+
+
+@Composable
+private fun LoopDoneSkipCardContent(
+    modifier: Modifier = Modifier,
+    loops: List<LoopBase>,
+    loopViewModel: LoopViewModel,
+    onNavigateToDetailPage: (LoopBase) -> Unit,
+    onNavigateToHistoryPage: () -> Unit,
+) {
     val loopGroup = loops.groupBy { (it as LoopWithDone).done }
 
     val onUndoDoneState = remember {
@@ -62,7 +133,7 @@ fun LoopDoneSkipCard(
     }
 
     Column(modifier = modifier) {
-        DoneSkipContent(
+        DoneSkipCard(
             loops = loopGroup[DoneState.DONE] ?: emptyList(),
             title = stringResource(id = R.string.done),
             icon = Icons.Filled.Done,
@@ -72,7 +143,7 @@ fun LoopDoneSkipCard(
             onUndoDoneState = onUndoDoneState,
         )
 
-        DoneSkipContent(
+        DoneSkipCard(
             modifier = Modifier.padding(top = 12.dp),
             loops = loopGroup[DoneState.SKIP] ?: emptyList(),
             title = stringResource(id = R.string.skip),
@@ -86,7 +157,7 @@ fun LoopDoneSkipCard(
 }
 
 @Composable
-private fun DoneSkipContent(
+private fun DoneSkipCard(
     modifier: Modifier = Modifier,
     loops: List<LoopBase>,
     title: String,
@@ -243,7 +314,7 @@ private fun DoneSkipItemStartAndEndTime(
         })",
         style = AppTypography.bodySmall.copy(
             color = AppColor.onSurface.copy(
-                alpha = ContentAlpha.disabled
+                alpha = 0.3f
             ),
         )
     )
@@ -269,7 +340,7 @@ private fun DoneSkipItemDoneStateButton(
         imageVector = Icons.Filled.Refresh,
         colorFilter = ColorFilter.tint(
             color = AppColor.onSurface.copy(
-                alpha = ContentAlpha.medium
+                alpha = 0.7f
             )
         ),
         contentDescription = stringResource(R.string.restore)

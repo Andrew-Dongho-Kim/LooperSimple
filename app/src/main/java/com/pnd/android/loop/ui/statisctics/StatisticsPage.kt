@@ -92,7 +92,7 @@ private fun StatisticsPageContent(
 ) {
     Column(modifier = modifier) {
         LoopsOrderByDoneRate(
-            modifier = Modifier.height(280.dp),
+            modifier = Modifier.height(320.dp),
             statisticsViewModel = statisticsViewModel,
             onNavigateToDetailPage = onNavigateToDetailPage,
         )

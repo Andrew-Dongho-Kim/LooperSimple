@@ -5,7 +5,7 @@ import android.app.NotificationManager
 import android.content.Context
 import android.media.AudioManager
 import androidx.room.Room
-import com.pnd.android.loop.alarm.AlarmController
+import com.pnd.android.loop.alarm.LoopScheduler
 import com.pnd.android.loop.alarm.notification.NotificationHelper
 import com.pnd.android.loop.data.AppDatabase
 import com.pnd.android.loop.data.MIGRATION_1_2
@@ -60,7 +60,7 @@ class AppModule {
     @Provides
     fun provideLoopRepository(
         appDb: AppDatabase,
-        alarmController: AlarmController,
+        alarmController: LoopScheduler,
     ): LoopRepository {
         return LoopRepository(
             appDb = appDb,

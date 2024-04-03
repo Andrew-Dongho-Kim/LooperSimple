@@ -95,7 +95,7 @@ interface LoopWithDoneDao {
     @Query(
         "SELECT loop.id, loop.color, loop.title, loop.created, loop.loopStart, loop.loopEnd, loop.loopActiveDays, loop.interval, loop.enabled, loop_done.date, loop_done.done " +
                 "FROM loop LEFT JOIN loop_done " +
-                "ON loop.id == loop_done.loopId WHERE loop_done.date ==:date AND loop.enabled == 1 " +
+                "ON loop.id == loop_done.loopId AND loop_done.date ==:date WHERE loop.enabled == 1 " +
                 "ORDER BY loop.loopEnd ASC, loop.loopStart ASC, loop.title ASC"
     )
     suspend fun allEnabledLoops(date: Long): List<LoopWithDone>

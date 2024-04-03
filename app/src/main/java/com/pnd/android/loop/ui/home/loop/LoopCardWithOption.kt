@@ -24,6 +24,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.data.LoopBase
+import com.pnd.android.loop.data.LoopDoneVo
+import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.data.asLoopVo
 import com.pnd.android.loop.ui.home.BlurState
 import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
@@ -82,7 +84,12 @@ fun LoopCardWithOption(
                 color = Color(loop.color),
                 enabled = loop.enabled,
                 onEnabled = { enabled ->
-                    loopViewModel.addOrUpdateLoop(loop.copyAs(enabled = enabled).asLoopVo())
+                    val updated = loop.copyAs(enabled = enabled).asLoopVo()
+                    loopViewModel.addOrUpdateLoop(updated)
+                    loopViewModel.doneLoop(
+                        loop = updated,
+                        doneState = if (updated.enabled) DoneState.NO_RESPONSE else DoneState.DISABLED
+                    )
                     coroutineScope.launch { state.animateTo(DragAnchors.Center) }
                 },
                 onEdit = {

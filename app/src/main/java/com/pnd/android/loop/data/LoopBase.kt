@@ -274,6 +274,8 @@ val LoopBase.doneState get() = (this as? LoopWithDone)?.done
 val LoopBase.isRespond get() = doneState == DoneState.DONE || doneState == DoneState.SKIP
 val LoopBase.isNotRespond get() = doneState == DoneState.NO_RESPONSE
 
+val LoopBase.isDisabled get() = doneState == DoneState.DISABLED
+
 
 private const val EXTRA_ID = "extra_loop_id"
 private const val EXTRA_COLOR = "extra_loop_color"

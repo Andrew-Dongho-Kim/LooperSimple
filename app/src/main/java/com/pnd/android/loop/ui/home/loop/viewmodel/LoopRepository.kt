@@ -1,6 +1,6 @@
 package com.pnd.android.loop.ui.home.loop.viewmodel
 
-import com.pnd.android.loop.alarm.AlarmController
+import com.pnd.android.loop.alarm.LoopScheduler
 import com.pnd.android.loop.common.log
 import com.pnd.android.loop.data.AppDatabase
 import com.pnd.android.loop.data.LoopBase
@@ -32,7 +32,7 @@ import javax.inject.Inject
 
 class LoopRepository @Inject constructor(
     appDb: AppDatabase,
-    private val alarmController: AlarmController,
+    private val alarmController: LoopScheduler,
 ) {
     private val logger = log("LoopRepository")
 
@@ -104,7 +104,7 @@ class LoopRepository @Inject constructor(
     val doneCount = loopDoneDao.flowDoneCount()
     val skipCount = loopDoneDao.flowSkipCount()
 
-    fun syncAlarms() = alarmController.syncAlarms()
+    fun syncAlarms() = alarmController.syncLoops()
 
     suspend fun maxOfIntersects(loop: LoopBase) = loopDao.maxOfIntersects(loopToCompare = loop)
 

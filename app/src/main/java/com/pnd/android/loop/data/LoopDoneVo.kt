@@ -37,7 +37,7 @@ data class LoopDoneVo(
     val date: Long,
     val done: Int = NO_RESPONSE
 ) {
-    fun isEnabled() = done.isEnabled()
+    fun isDisabled() = done.isDisabled()
     fun isDone() = done.isDone()
 
     fun isSkip() = done.isSkip()
@@ -45,7 +45,7 @@ data class LoopDoneVo(
     fun isRespond() = done.isRespond()
 
     @Target(AnnotationTarget.TYPE, AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.FUNCTION)
-    @IntDef(DONE, SKIP, NO_RESPONSE)
+    @IntDef(DISABLED, DONE, SKIP, NO_RESPONSE)
     annotation class DoneState {
         companion object {
             const val DISABLED = -1
@@ -56,7 +56,7 @@ data class LoopDoneVo(
     }
 }
 
-fun Int.isEnabled() = this != DISABLED
+fun Int.isDisabled() = this == DISABLED
 fun Int.isDone() = this == DONE
 fun Int.isSkip() = this == SKIP
 fun Int.isRespond() = this == DONE || this == SKIP
