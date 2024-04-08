@@ -70,7 +70,7 @@ class LoopViewModel @Inject constructor(
     val localDateTime = loopRepository.localDateTime
 
     val loopsNoResponseYesterday = loopRepository.loopsNoResponseYesterday
-    val loopsWithDoneAll = loopRepository.loopsWithDoneAll
+    val allLoopsWithDoneStates = loopRepository.allLoopsWithDoneStates
 
     val countInActive = loopRepository.countInActive
     val countInTodayRemain = loopRepository.countInTodayRemain

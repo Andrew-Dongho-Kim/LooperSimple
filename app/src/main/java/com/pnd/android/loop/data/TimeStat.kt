@@ -77,6 +77,7 @@ fun LoopBase.timeStatAsFlow() = flow {
 
     while (currentCoroutineContext().isActive) {
         val now = LocalTime.now()
+        logger.d { "timeStatAsFlow now:$now" }
 
         when {
             !isActiveDay() -> none()

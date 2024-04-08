@@ -3,7 +3,6 @@ package com.pnd.android.loop.ui.home.loop
 import android.graphics.Path
 import android.graphics.PathDashPathEffect
 import android.graphics.PathMeasure
-import android.util.Log
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -82,7 +81,6 @@ import com.pnd.android.loop.util.formatStartEndTime
 import com.pnd.android.loop.util.intervalString
 import com.pnd.android.loop.util.isActive
 import com.pnd.android.loop.util.rememberDayColor
-import kotlinx.coroutines.launch
 
 private const val ACTIVE_EFFECT_SEGMENTS = 11f
 
@@ -92,17 +90,17 @@ fun LoopCard(
     loopViewModel: LoopViewModel,
     loop: LoopBase,
     onNavigateToDetailPage: (LoopBase) -> Unit,
-    showActiveDays: Boolean,
+    syncWithTime: Boolean,
 ) {
     val isMock = loop.isMock
     val animateAlpha = animateCardAlphaWithMock(loopBase = loop)
 
-    val primary = AppColor.primary.copy(alpha = ContentAlpha.medium)
-    val surface = AppColor.outline
+    val mockBorerColor = loop.color.compositeOverOnSurface()
+    val commonBorderColor = AppColor.outline
     val border = remember(isMock, loop.color) {
         BorderStroke(
             width = if (isMock) 1.dp else 0.5.dp,
-            color = if (isMock) primary else surface
+            color = if (isMock) mockBorerColor else commonBorderColor
         )
     }
     Box(modifier = modifier.graphicsLayer { this.alpha = animateAlpha }) {
@@ -133,7 +131,7 @@ fun LoopCard(
                     ),
                 loopViewModel = loopViewModel,
                 loop = loop,
-                showActiveDays = showActiveDays || isMock,
+                syncWithTime = !isMock && syncWithTime,
             )
         }
     }
@@ -144,7 +142,7 @@ private fun LoopCardContent(
     modifier: Modifier = Modifier,
     loopViewModel: LoopViewModel,
     loop: LoopBase,
-    showActiveDays: Boolean,
+    syncWithTime: Boolean,
 ) {
 
     BoxWithConstraints(modifier = modifier) {
@@ -166,17 +164,19 @@ private fun LoopCardContent(
                     .weight(1f),
                 loopViewModel = loopViewModel,
                 loop = loop,
-                showActiveDays = showActiveDays,
+                syncWithTime = syncWithTime,
             )
         }
 
-        LoopCardActiveEffect(
-            modifier = Modifier
-                .width(maxWidth)
-                .height(maxHeight),
-            loopViewModel = loopViewModel,
-            loop = loop,
-        )
+        if (syncWithTime) {
+            LoopCardActiveEffect(
+                modifier = Modifier
+                    .width(maxWidth)
+                    .height(maxHeight),
+                loopViewModel = loopViewModel,
+                loop = loop,
+            )
+        }
     }
 }
 
@@ -264,7 +264,7 @@ fun LoopCardBody(
     modifier: Modifier = Modifier,
     loopViewModel: LoopViewModel,
     loop: LoopBase,
-    showActiveDays: Boolean,
+    syncWithTime: Boolean,
 ) {
     var timeStat by remember { mutableStateOf<TimeStat>(TimeStat.NotToday) }
     LaunchedEffect(loop) {
@@ -289,22 +289,21 @@ fun LoopCardBody(
                     timeStat = timeStat,
                 )
 
-                if (loop.isMock || !timeStat.isPast()) {
+                if (!syncWithTime) {
                     LoopCardInterval(
                         modifier = Modifier.weight(1f),
                         interval = loop.interval,
                     )
-
-                    if (showActiveDays) {
-                        LoopCardActiveDays(
-                            modifier = Modifier.weight(1f),
-                            loop = loop
-                        )
-                    }
+                }
+                if (!syncWithTime) {
+                    LoopCardActiveDays(
+                        modifier = Modifier.weight(1f),
+                        loop = loop
+                    )
                 }
             }
         }
-        if (loop.enabled && !loop.isMock && timeStat.isPast()) {
+        if (syncWithTime && loop.enabled && timeStat.isPast()) {
             LoopDoneOrSkip(
                 modifier = Modifier.height(36.dp),
                 onDone = { done ->

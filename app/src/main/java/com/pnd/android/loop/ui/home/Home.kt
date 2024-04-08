@@ -21,7 +21,11 @@ import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -53,6 +57,7 @@ fun Home(
     onNavigateToHistoryPage: () -> Unit,
     onNavigateToStatisticsPage: () -> Unit,
 ) {
+    var mode by rememberSaveable { mutableIntStateOf(MODE_SECTIONS) }
     val inputState = rememberUserInputState(context = LocalContext.current)
     val snackBarHostState = remember { SnackbarHostState() }
     val blurState = rememberBlurState()
@@ -67,6 +72,8 @@ fun Home(
                     .background(color = AppColor.surface)
                     .statusBarsPadding(),
                 loopViewModel = loopViewModel,
+                mode = mode,
+                onModeChanged = { mode = it }
             )
         },
         snackbarHost = {
@@ -95,6 +102,7 @@ fun Home(
     { contentPadding ->
         HomeContent(
             modifier = Modifier.padding(contentPadding),
+            mode = mode,
             blurState = blurState,
             inputState = inputState,
             snackBarHostState = snackBarHostState,
@@ -124,6 +132,7 @@ fun Home(
 @Composable
 private fun HomeContent(
     modifier: Modifier,
+    mode: Int,
     blurState: BlurState,
     inputState: UserInputState,
     snackBarHostState: SnackbarHostState,
@@ -132,15 +141,14 @@ private fun HomeContent(
     onNavigateToHistoryPage: () -> Unit,
     onNavigateToStatisticsPage: () -> Unit,
 ) {
-
     Box(modifier = modifier.background(color = AppColor.background)) {
         val lazyListState = rememberLazyListState()
-
         Loops(
             modifier = Modifier
                 .fillMaxHeight()
                 .navigationBarsPadding()
                 .imePadding(),
+            mode = mode,
             blurState = blurState,
             inputState = inputState,
             lazyListState = lazyListState,

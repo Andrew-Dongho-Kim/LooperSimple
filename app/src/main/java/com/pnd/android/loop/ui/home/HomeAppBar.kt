@@ -1,9 +1,11 @@
 package com.pnd.android.loop.ui.home
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Text
@@ -13,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.pnd.android.loop.R
@@ -30,10 +33,11 @@ import java.time.LocalDate
 fun HomeAppBar(
     modifier: Modifier = Modifier,
     loopViewModel: LoopViewModel,
+    mode: Int,
+    onModeChanged: (Int) -> Unit,
 ) {
     val totalLoops by loopViewModel.countInTodayRemain.collectAsState(initial = 0)
     val countInProgress by loopViewModel.countInActive.collectAsState(initial = 0)
-
 
     AppBar(
         modifier = modifier,
@@ -66,7 +70,6 @@ fun HomeAppBar(
             // Filter icon
             var isMenuOpened by rememberSaveable { mutableStateOf(false) }
             AppBarIcon(
-
                 imageVector = Icons.Outlined.FilterList,
                 color = AppColor.onSurface.copy(alpha = 0.8f),
                 descriptionResId = R.string.filter,
@@ -77,30 +80,21 @@ fun HomeAppBar(
                 expanded = isMenuOpened,
                 onDismissRequest = { isMenuOpened = false }
             ) {
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            text = "전체 루프 보기",
-                            style = AppTypography.bodyMedium.copy(
-                                color = AppColor.onSurface
-                            )
-                        )
-                    },
-                    onClick = {
+
+                FilterMenuItem(
+                    text = "전체 루프 보기",
+                    isSelected = mode == MODE_ALL_LOOPS,
+                    onMenuItemClicked = {
                         isMenuOpened = false
+                        onModeChanged(MODE_ALL_LOOPS)
                     }
                 )
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            text = "섹션 별 보기",
-                            style = AppTypography.bodyMedium.copy(
-                                color = AppColor.onSurface
-                            )
-                        )
-                    },
-                    onClick = {
+                FilterMenuItem(
+                    text = "섹션 별 보기",
+                    isSelected = mode == MODE_SECTIONS,
+                    onMenuItemClicked = {
                         isMenuOpened = false
+                        onModeChanged(MODE_SECTIONS)
                     }
                 )
             }
@@ -112,5 +106,31 @@ fun HomeAppBar(
                 descriptionResId = R.string.about_app,
             )
         }
+    )
+}
+
+@Composable
+private fun FilterMenuItem(
+    text: String,
+    isSelected: Boolean,
+    onMenuItemClicked: () -> Unit
+) {
+    DropdownMenuItem(
+        text = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(
+                    checked = isSelected,
+                    onCheckedChange = { onMenuItemClicked() }
+                )
+                Text(
+                    text = text,
+                    style = AppTypography.bodyMedium.copy(
+                        color = AppColor.onSurface
+                    )
+                )
+            }
+
+        },
+        onClick = onMenuItemClicked
     )
 }

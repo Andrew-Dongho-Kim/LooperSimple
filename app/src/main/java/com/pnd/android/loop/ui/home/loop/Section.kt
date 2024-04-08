@@ -103,6 +103,15 @@ fun LazyListScope.section(
             onNavigateToDetailPage = onNavigateToDetailPage,
             onEdit = onEdit,
         )
+
+        is Section.All -> sectionAll(
+            section = section,
+            blurState = blurState,
+            loopViewModel = loopViewModel,
+            onNavigateToDetailPage = onNavigateToDetailPage,
+            onEdit = onEdit,
+        )
+
     }
 }
 
@@ -189,7 +198,7 @@ private fun LazyListScope.sectionToday(
                 loop = loop,
                 onNavigateToDetailPage = onNavigateToDetailPage,
                 onEdit = onEdit,
-                showActiveDays = section.showActiveDays,
+                syncWithTime = true,
             )
         }
     }
@@ -300,6 +309,30 @@ private fun LazyListScope.sectionDoneSkip(
     }
 }
 
+private fun LazyListScope.sectionAll(
+    section: Section.All,
+    blurState: BlurState,
+    loopViewModel: LoopViewModel,
+    onNavigateToDetailPage: (LoopBase) -> Unit,
+    onEdit: (LoopBase) -> Unit,
+) {
+    val loops by section.items
+    items(
+        items = loops,
+        contentType = { ContentTypes.LOOP_CARD },
+        key = { loop -> loop.id }
+    ) { loop ->
+        LoopCardWithOption(
+            blurState = blurState,
+            loopViewModel = loopViewModel,
+            loop = loop,
+            onNavigateToDetailPage = onNavigateToDetailPage,
+            onEdit = onEdit,
+            syncWithTime = false
+        )
+    }
+}
+
 private fun LazyListScope.sectionLater(
     section: Section.Later,
     blurState: BlurState,
@@ -338,7 +371,7 @@ private fun LazyListScope.sectionLater(
                 loop = loop,
                 onNavigateToDetailPage = onNavigateToDetailPage,
                 onEdit = onEdit,
-                showActiveDays = section.showActiveDays
+                syncWithTime = false
             )
         }
     }
@@ -431,7 +464,6 @@ sealed class Section(val key: String) {
     }
 
     class Today(
-        val showActiveDays: Boolean,
         isSelected: Boolean = false
     ) : Section(
         key = "TodaySection"
@@ -442,14 +474,12 @@ sealed class Section(val key: String) {
             val Saver = listSaver(
                 save = {
                     listOf(
-                        it.showActiveDays,
                         it.isSelected.value
                     )
                 },
                 restore = { list ->
                     Today(
-                        showActiveDays = list[0],
-                        isSelected = list[1]
+                        isSelected = list[0]
                     )
                 }
             )
@@ -470,7 +500,6 @@ sealed class Section(val key: String) {
 
     class Later(
         val title: String,
-        val showActiveDays: Boolean,
         isExpanded: Boolean = false
     ) : Section(
         key = "LaterSection"
@@ -483,18 +512,18 @@ sealed class Section(val key: String) {
                 save = {
                     listOf(
                         it.title,
-                        it.showActiveDays,
                         it.isExpanded.value,
                     )
                 },
                 restore = { list ->
                     Later(
                         title = list[0] as String,
-                        showActiveDays = list[1] as Boolean,
-                        isExpanded = list[2] as Boolean,
+                        isExpanded = list[1] as Boolean,
                     )
                 }
             )
         }
     }
+
+    class All : Section(key = "AllSection")
 }

@@ -11,6 +11,7 @@ import com.pnd.android.loop.util.isActive
 import com.pnd.android.loop.util.isActiveDay
 import com.pnd.android.loop.util.toLocalDate
 import com.pnd.android.loop.util.toLocalTime
+import com.pnd.android.loop.util.toMs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
@@ -58,13 +59,9 @@ class LoopRepository @Inject constructor(
             emit(now)
             delay(delayInMs)
         }
-    }.stateIn(
-        initialValue = LocalDate.now(),
-        started = SharingStarted.WhileSubscribed(5000),
-        scope = coroutineScope
-    )
+    }
 
-    val loopsWithDoneAll = localDate.transform { currDate ->
+    val allLoopsWithDoneStates = localDate.transform { currDate ->
         logger.d { "loops with done: $currDate" }
         emitAll(loopWithDoneDao.flowAllLoops(currDate.toLocalTime()))
     }.stateIn(
@@ -92,10 +89,10 @@ class LoopRepository @Inject constructor(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val activeLoops = localDateTime.flatMapLatest { now ->
-        loopsWithDoneAll.map { loops -> loops.filter { loop -> loop.isActive(now) } }
+        allLoopsWithDoneStates.map { loops -> loops.filter { loop -> loop.isActive(now) } }
     }
     val countInActive = activeLoops.map { it.size }
-    val countInTodayRemain = loopsWithDoneAll.map { loops ->
+    val countInTodayRemain = allLoopsWithDoneStates.map { loops ->
         loops.filter { loop -> loop.isNotRespond && loop.isActiveDay() }.size
     }
 
@@ -112,6 +109,18 @@ class LoopRepository @Inject constructor(
         loopDao.addOrUpdate(*loops).forEachIndexed { index, id ->
             val loop = loops[index].copy(id = id)
             logger.d { "$loop is added or updated" }
+
+            loopDoneDao.addIfAbsent(
+                LoopDoneVo(
+                    loopId = loop.id,
+                    date = LocalDate.now().toMs(),
+                    done = if (loop.enabled) {
+                        LoopDoneVo.DoneState.NO_RESPONSE
+                    } else {
+                        LoopDoneVo.DoneState.DISABLED
+                    }
+                )
+            )
 
             if (loop.enabled) alarmController.reserveAlarm(loop)
             else alarmController.cancelAlarm(loop)

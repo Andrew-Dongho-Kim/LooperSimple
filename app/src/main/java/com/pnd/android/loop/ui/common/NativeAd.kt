@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.ContentAlpha
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Card
@@ -103,7 +102,7 @@ private fun ExpandableImage(
                 .graphicsLayer { rotationX = if (isExpanded) 180f else 0f },
             imageVector = Icons.Filled.KeyboardArrowDown,
             colorFilter = ColorFilter.tint(
-                color = Black99.copy(alpha = ContentAlpha.medium)
+                color = Black99.copy(alpha = 0.7f)
             ),
             contentDescription = ""
         )

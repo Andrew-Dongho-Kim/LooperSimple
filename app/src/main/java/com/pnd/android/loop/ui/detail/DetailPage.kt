@@ -280,7 +280,7 @@ private fun LoopResponseDoneSkipRate(
         val responseCount by detailViewModel.respondCount.collectAsState(initial = 0)
         LoopRate(
             text = stringResource(id = R.string.response_rate),
-            rate = (responseCount.toFloat() / duration) * 100,
+            rate = if (duration == 0) 0f else (responseCount.toFloat() / duration) * 100,
             count = responseCount,
         )
 
@@ -288,7 +288,7 @@ private fun LoopResponseDoneSkipRate(
         LoopRate(
             modifier = Modifier.padding(start = 24.dp),
             text = stringResource(id = R.string.done_rate),
-            rate = (doneCount.toFloat() / duration) * 100,
+            rate = if (duration == 0) 0f else (doneCount.toFloat() / duration) * 100,
             count = doneCount,
         )
 
@@ -296,7 +296,7 @@ private fun LoopResponseDoneSkipRate(
         LoopRate(
             modifier = Modifier.padding(start = 24.dp),
             text = stringResource(id = R.string.skip_rate),
-            rate = (skipCount.toFloat() / duration) * 100,
+            rate = if (duration == 0) 0f else (skipCount.toFloat() / duration) * 100,
             count = skipCount,
         )
     }
@@ -371,10 +371,9 @@ private fun rememberDailyDoneRateModel(
     val modelProducer = remember(loop) { CartesianChartModelProducer.build() }
     LaunchedEffect(key1 = loop) {
         val createdDate = loop.created.toLocalDateTime().toLocalDate()
-        val now = LocalDate.now()
 
         var days = 0
-        var date = now
+        var date = LocalDate.now().plusDays(1L)
         val x = mutableListOf<Int>()
         val y = mutableListOf<Float>()
         while (date.isAfter(createdDate)) {
@@ -450,10 +449,9 @@ private fun rememberMonthlyDoneRate(
     val modelProducer = remember(loop) { CartesianChartModelProducer.build() }
     LaunchedEffect(key1 = loop) {
         val createdDate = loop.created.toLocalDateTime().toLocalDate()
-        val now = LocalDate.now()
 
         var months = 0
-        var date = now
+        var date = LocalDate.now().plusDays(1L)
         val x = mutableListOf<Int>()
         val y = mutableListOf<Float>()
         while (date.isAfter(createdDate)) {

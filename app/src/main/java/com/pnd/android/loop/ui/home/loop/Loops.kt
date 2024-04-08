@@ -29,6 +29,7 @@ import com.pnd.android.loop.data.isDisabled
 import com.pnd.android.loop.data.isNotRespond
 import com.pnd.android.loop.data.isRespond
 import com.pnd.android.loop.ui.home.BlurState
+import com.pnd.android.loop.ui.home.MODE_ALL_LOOPS
 import com.pnd.android.loop.ui.home.loop.input.UserInputState
 import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.theme.AppColor
@@ -40,6 +41,7 @@ import com.pnd.android.loop.util.isActiveDay
 @Composable
 fun Loops(
     modifier: Modifier = Modifier,
+    mode: Int,
     blurState: BlurState,
     inputState: UserInputState,
     lazyListState: LazyListState,
@@ -48,7 +50,7 @@ fun Loops(
     onNavigateToHistoryPage: () -> Unit,
     onNavigateToStatisticsPage: () -> Unit,
 ) {
-    val sections by loopViewModel.observeSectionsAsState(inputState)
+    val sections by loopViewModel.observeSectionsAsState(mode, inputState)
     val onEdit = remember { { loop: LoopBase -> inputState.edit(loop) } }
 
     Box(modifier = modifier.background(AppColor.background)) {
@@ -99,9 +101,10 @@ fun EmptyLoops(
 
 @Composable
 private fun LoopViewModel.observeSectionsAsState(
+    mode: Int,
     inputState: UserInputState,
 ): State<List<Section>> {
-    val loops by loopsWithDoneAll.collectAsState(emptyList())
+    val loops by allLoopsWithDoneStates.collectAsState(emptyList())
     val yesterdayLoops by loopsNoResponseYesterday.collectAsState(initial = emptyList())
 
     return if (loops.isEmpty()) {
@@ -114,13 +117,24 @@ private fun LoopViewModel.observeSectionsAsState(
             resultLoops[index] = inputState.value
         }
 
-        val sections = mutableListOf(
-            rememberStatisticsSection(),
-            rememberTodaySection(resultLoops, inputState),
-            rememberYesterdaySection(yesterdayLoops),
-            rememberAdSection(),
-            rememberDoneSection(resultLoops),
-        ).filter { it.size > 0 }
+        val sections = if (mode == MODE_ALL_LOOPS) {
+            mutableListOf(
+                rememberAllSection(
+                    loops = resultLoops,
+                    inputState = inputState
+                ),
+                rememberAdSection(),
+            )
+        } else {
+            mutableListOf(
+                rememberStatisticsSection(),
+                rememberTodaySection(resultLoops, inputState),
+                rememberYesterdaySection(yesterdayLoops),
+                rememberAdSection(),
+                rememberDoneSection(resultLoops),
+            ).filter { it.size > 0 }
+        }
+
 
         remember(sections) { mutableStateOf(sections) }
     }
@@ -155,7 +169,26 @@ private fun rememberTodaySection(
     }
 
     return rememberSaveable(saver = Section.Today.Saver) {
-        Section.Today(showActiveDays = false)
+        Section.Today()
+    }.apply {
+        items.value = resultLoops
+    }
+}
+
+
+@Composable
+private fun rememberAllSection(
+    loops: List<LoopBase>,
+    inputState: UserInputState,
+): Section {
+
+    val resultLoops = mutableListOf(*loops.toTypedArray())
+    if (inputState.mode == UserInputState.Mode.New) {
+        resultLoops.add(0, inputState.value)
+    }
+
+    return remember {
+        Section.All()
     }.apply {
         items.value = resultLoops
     }
