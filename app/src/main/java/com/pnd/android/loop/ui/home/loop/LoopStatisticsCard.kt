@@ -39,7 +39,7 @@ fun LoopStatisticsCard(
         modifier = modifier.clickable(onClick = onNavigateToStatisticsPage),
         colors = CardDefaults.cardColors(
             containerColor = AppColor.primary.compositeOverSurface(
-                alpha = if (isSystemInDarkTheme()) 0.25f else 0.1f
+                alpha = if (isSystemInDarkTheme()) 0.20f else 0.08f
             ),
             contentColor = AppColor.onSurface,
         ),

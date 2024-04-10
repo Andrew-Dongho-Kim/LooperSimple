@@ -10,6 +10,7 @@ import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.Image
 import androidx.glance.ImageProvider
+import androidx.glance.LocalSize
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.SizeMode
@@ -21,7 +22,8 @@ import androidx.glance.layout.Box
 import androidx.glance.layout.padding
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.pnd.android.loop.R
-import com.pnd.android.loop.appwidget.ui.LoopWidget50By50
+import com.pnd.android.loop.appwidget.ui.LoopWidgetMedium
+import com.pnd.android.loop.appwidget.ui.LoopWidgetSmall
 import com.pnd.android.loop.appwidget.ui.stringResourceGlide
 import com.pnd.android.loop.common.Logger
 import com.pnd.android.loop.data.asLoop
@@ -38,9 +40,9 @@ class AppWidget : GlanceAppWidget() {
 
     override val sizeMode = SizeMode.Responsive(
         setOf(
-            SIZE_50_50,
-            SIZE_50_100,
-            SIZE_100_200
+            SIZE_SMALL,
+            SIZE_MEDIUM,
+            SIZE_LARGE
         )
     )
 
@@ -58,14 +60,24 @@ class AppWidget : GlanceAppWidget() {
         }
 
         val revision = currentState(KEY_REVISION)
-        logger.d { "AppWidget updated revision:$revision" }
+        val size = LocalSize.current
+        logger.d { "AppWidget updated revision:$revision, widgetSize:$size" }
+
         if (jsonLoops.isNullOrEmpty()) {
             RefreshLayout()
         } else {
             val loops = appWidgetData.list.map { it.asLoop() }
-            LoopWidget50By50(
-                loops = loops
-            )
+
+            when (size) {
+                SIZE_SMALL -> LoopWidgetSmall(
+                    loops = loops
+                )
+
+                else -> LoopWidgetMedium(
+                    loops = loops
+                )
+            }
+
         }
     }
 
@@ -96,9 +108,9 @@ class AppWidget : GlanceAppWidget() {
     }
 
     companion object {
-        private val SIZE_50_50 = DpSize(50.dp, 50.dp)
-        private val SIZE_50_100 = DpSize(50.dp, 100.dp)
-        private val SIZE_100_200 = DpSize(100.dp, 200.dp)
+        private val SIZE_SMALL = DpSize(50.dp, 50.dp)
+        private val SIZE_MEDIUM = DpSize(100.dp, 150.dp)
+        private val SIZE_LARGE = DpSize(500.dp, 600.dp)
 
         val KEY_LOOPS_JSON = stringPreferencesKey("key_loops_json")
         val KEY_REVISION = longPreferencesKey("key_revision")

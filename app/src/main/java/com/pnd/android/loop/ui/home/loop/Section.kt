@@ -299,7 +299,8 @@ private fun LazyListScope.sectionDoneSkip(
     ) {
         LoopDoneSkipCard(
             modifier = Modifier.padding(
-                vertical = 12.dp
+                top = 48.dp,
+                bottom = 12.dp
             ),
             section = section,
             loopViewModel = loopViewModel,

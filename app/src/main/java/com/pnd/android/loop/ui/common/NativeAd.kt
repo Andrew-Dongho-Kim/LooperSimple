@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -36,6 +37,7 @@ import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.Black99
 import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.onSurface
+import com.pnd.android.loop.ui.theme.surface
 
 @Composable
 fun ExpandableNativeAd(
@@ -64,6 +66,12 @@ fun ExpandableNativeAd(
                 .graphicsLayer {
                     this.alpha = alpha
                 },
+            colors = CardDefaults.cardColors(
+                containerColor = AppColor.surface,
+            ),
+            elevation = CardDefaults.cardElevation(
+                defaultElevation = 0.dp,
+            ),
             border = BorderStroke(
                 width = 0.5.dp,
                 color = AppColor.onSurface.copy(alpha = 0.2f)
@@ -102,7 +110,7 @@ private fun ExpandableImage(
                 .graphicsLayer { rotationX = if (isExpanded) 180f else 0f },
             imageVector = Icons.Filled.KeyboardArrowDown,
             colorFilter = ColorFilter.tint(
-                color = Black99.copy(alpha = 0.7f)
+                color = AppColor.onSurface.copy(alpha = 0.7f)
             ),
             contentDescription = ""
         )
