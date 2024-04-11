@@ -1,9 +1,10 @@
 package com.pnd.android.loop.appwidget.ui
 
+import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.glance.LocalContext
 
 
 @Composable
-fun stringResourceGlide(resId: Int, vararg args: Any) =
-    LocalContext.current.getString(resId, *args)
+fun stringResourceGlance(@StringRes id: Int, vararg formatArgs: Any) =
+    LocalContext.current.getString(id, *formatArgs)

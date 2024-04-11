@@ -24,6 +24,8 @@ import com.pnd.android.loop.util.dayForLoop
 import com.pnd.android.loop.util.dh2m2
 import com.pnd.android.loop.util.isActiveDay
 import com.pnd.android.loop.util.isActiveTime
+import com.pnd.android.loop.util.toLocalDate
+import com.pnd.android.loop.util.toLocalDateTime
 import com.pnd.android.loop.util.toMs
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -115,8 +117,10 @@ class LoopScheduler @Inject constructor(
     }
 
     private suspend fun fillNoResponse(loop: LoopBase) {
+        val created = loop.created.toLocalDate()
+
         val now = LocalDate.now()
-        var date = now.minusDays(1L)
+        var date = if (created == now) now else now.minusDays(1L)
 
         while (date.isBefore(now) || date.isEqual(now)) {
             if (!loop.isActiveDay(date)) {

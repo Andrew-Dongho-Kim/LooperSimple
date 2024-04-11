@@ -110,7 +110,7 @@ class LoopRepository @Inject constructor(
             val loop = loops[index].copy(id = id)
             logger.d { "$loop is added or updated" }
 
-            loopDoneDao.addIfAbsent(
+            loopDoneDao.addOrUpdate(
                 LoopDoneVo(
                     loopId = loop.id,
                     date = LocalDate.now().toMs(),

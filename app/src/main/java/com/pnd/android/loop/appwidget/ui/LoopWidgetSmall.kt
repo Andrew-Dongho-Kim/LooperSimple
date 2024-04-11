@@ -61,7 +61,7 @@ private fun LoopWidgetEmpty(
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = stringResourceGlide(resId = R.string.desc_no_loops),
+            text = stringResourceGlance(id = R.string.desc_no_loops),
             style = TextStyle(
                 color = ColorProvider(AppColor.onSurface.copy(alpha = 0.8f)),
                 fontSize = 16.sp

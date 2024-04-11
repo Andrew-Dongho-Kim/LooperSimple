@@ -39,6 +39,15 @@ fun LoopWidgetMedium(
                 vertical = 4.dp,
             ),
     ) {
+        LocalDateHeader(
+            modifier = GlanceModifier.padding(
+                top = 8.dp,
+                start = 4.dp,
+                end = 4.dp,
+                bottom = 8.dp,
+            ),
+            loops = loops,
+        )
         LazyColumn {
             items(
                 items = loops,

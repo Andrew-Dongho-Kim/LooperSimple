@@ -16,6 +16,7 @@ import androidx.glance.appwidget.cornerRadius
 import androidx.glance.background
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
+import androidx.glance.layout.Column
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxWidth
@@ -34,8 +35,12 @@ import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.Blue500
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
+import com.pnd.android.loop.util.ABB_MONTHS
+import com.pnd.android.loop.util.DAYS_WITH_3CHARS
 import com.pnd.android.loop.util.formatHourMinute
+import com.pnd.android.loop.util.isActive
 import com.pnd.android.loop.util.toMs
+import java.time.LocalDate
 import java.time.LocalTime
 
 
@@ -91,13 +96,13 @@ fun LoopBase.toStartOrEndTime(): String {
     val now = LocalTime.now().toMs()
 
     return if (now < loopStart) {
-        stringResourceGlide(
-            resId = R.string.start_at,
+        stringResourceGlance(
+            id = R.string.start_at,
             loopStart.formatHourMinute(context = LocalContext.current)
         )
     } else {
-        stringResourceGlide(
-            resId = R.string.end_at,
+        stringResourceGlance(
+            id = R.string.end_at,
             loopEnd.formatHourMinute(context = LocalContext.current)
         )
     }
@@ -122,7 +127,7 @@ fun LoopDoneOrSkip(
                 ),
             provider = ImageProvider(resId = R.drawable.done),
             colorFilter = ColorFilter.tint(ColorProvider(Blue500.copy(alpha = 0.8f))),
-            contentDescription = stringResourceGlide(resId = R.string.done)
+            contentDescription = stringResourceGlance(id = R.string.done)
         )
         Spacer(modifier = GlanceModifier.defaultWeight())
 
@@ -135,7 +140,7 @@ fun LoopDoneOrSkip(
                 ),
             provider = ImageProvider(resId = R.drawable.skip),
             colorFilter = ColorFilter.tint(ColorProvider(AppColor.onSurface.copy(alpha = 0.8f))),
-            contentDescription = stringResourceGlide(resId = R.string.skip)
+            contentDescription = stringResourceGlance(id = R.string.skip)
         )
     }
 }
@@ -160,7 +165,7 @@ fun LoopDoneOrSkipMedium(
                 ),
             provider = ImageProvider(resId = R.drawable.done),
             colorFilter = ColorFilter.tint(ColorProvider(Blue500.copy(alpha = 0.8f))),
-            contentDescription = stringResourceGlide(resId = R.string.done)
+            contentDescription = stringResourceGlance(id = R.string.done)
         )
         Spacer(modifier = GlanceModifier.width(24.dp))
 
@@ -173,7 +178,50 @@ fun LoopDoneOrSkipMedium(
                 ),
             provider = ImageProvider(resId = R.drawable.skip),
             colorFilter = ColorFilter.tint(ColorProvider(AppColor.onSurface.copy(alpha = 0.8f))),
-            contentDescription = stringResourceGlide(resId = R.string.skip)
+            contentDescription = stringResourceGlance(id = R.string.skip)
         )
     }
+}
+
+@Composable
+fun LocalDateHeader(
+    modifier: GlanceModifier = GlanceModifier,
+    localDate: LocalDate = LocalDate.now(),
+    loops: List<LoopBase>,
+) {
+    Column(modifier = modifier) {
+        Text(
+            text = localDate.formatYearMonthDateDaysGlance(),
+            style = TextStyle(
+                color = ColorProvider(AppColor.onSurface),
+                fontSize = 16.sp,
+            )
+        )
+
+        val countInProgress = loops.filter { it.isActive() }.size
+        val totalLoops = loops.size
+        Text(
+            text = "$countInProgress/${
+                stringResourceGlance(
+                    id = R.string.loops,
+                    totalLoops
+                )
+            }",
+            style = TextStyle(
+                color = ColorProvider(AppColor.onSurface),
+                fontSize = 12.sp,
+            )
+        )
+    }
+}
+
+@Composable
+fun LocalDate.formatYearMonthDateDaysGlance(): String {
+    return stringResourceGlance(
+        id = R.string.format_year_month_date_day,
+        "$year",
+        stringResourceGlance(id = ABB_MONTHS[monthValue - 1]),
+        "$dayOfMonth",
+        stringResourceGlance(id = DAYS_WITH_3CHARS[dayOfWeek.value - 1])
+    )
 }

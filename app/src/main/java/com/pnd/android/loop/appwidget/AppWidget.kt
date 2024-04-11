@@ -24,7 +24,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.pnd.android.loop.R
 import com.pnd.android.loop.appwidget.ui.LoopWidgetMedium
 import com.pnd.android.loop.appwidget.ui.LoopWidgetSmall
-import com.pnd.android.loop.appwidget.ui.stringResourceGlide
+import com.pnd.android.loop.appwidget.ui.stringResourceGlance
 import com.pnd.android.loop.common.Logger
 import com.pnd.android.loop.data.asLoop
 
@@ -91,7 +91,7 @@ class AppWidget : GlanceAppWidget() {
                     .clickable(onClick = actionRunCallback<AppWidgetRefreshAction>())
                     .padding(12.dp),
                 provider = ImageProvider(R.drawable.refresh),
-                contentDescription = stringResourceGlide(resId = R.string.refresh)
+                contentDescription = stringResourceGlance(id = R.string.refresh)
             )
         }
     }
