@@ -10,6 +10,7 @@ import androidx.glance.Image
 import androidx.glance.ImageProvider
 import androidx.glance.LocalContext
 import androidx.glance.action.actionParametersOf
+import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.cornerRadius
@@ -26,15 +27,16 @@ import androidx.glance.layout.width
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
+import com.pnd.android.loop.MainActivity
 import com.pnd.android.loop.R
 import com.pnd.android.loop.appwidget.ACTION_PARAMS_LOOP_ID
 import com.pnd.android.loop.appwidget.AppWidgetDoneAction
 import com.pnd.android.loop.appwidget.AppWidgetSkipAction
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.ui.theme.AppColor
+import com.pnd.android.loop.ui.theme.Blue400
 import com.pnd.android.loop.ui.theme.Blue500
 import com.pnd.android.loop.ui.theme.onSurface
-import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.util.ABB_MONTHS
 import com.pnd.android.loop.util.DAYS_WITH_3CHARS
 import com.pnd.android.loop.util.formatHourMinute
@@ -87,7 +89,7 @@ fun LoopStartEndTime(
     Text(
         modifier = modifier,
         text = loop.toStartOrEndTime(),
-        style = TextStyle(color = ColorProvider(AppColor.primary.copy(alpha = 0.8f)))
+        style = TextStyle(color = ColorProvider(Blue400.copy(alpha = 0.8f)))
     )
 }
 
@@ -189,7 +191,7 @@ fun LocalDateHeader(
     localDate: LocalDate = LocalDate.now(),
     loops: List<LoopBase>,
 ) {
-    Column(modifier = modifier) {
+    Column(modifier = modifier.clickable(actionStartActivity<MainActivity>())) {
         Text(
             text = localDate.formatYearMonthDateDaysGlance(),
             style = TextStyle(

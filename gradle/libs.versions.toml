@@ -1,0 +1,98 @@
+[versions]
+activityKtx = "1.9.0"
+appcompat = "1.6.1"
+espressoCore = "3.5.1"
+generativeai = "0.4.0"
+daggerHilt = "2.51"
+hilt = "1.2.0"
+jackson = "2.17.0"
+junit = "4.13.2"
+junitVersion = "1.1.5"
+lifecycle = "2.7.0"
+room = "2.6.1"
+vico = "2.0.0-alpha.8"
+coreKtx = "1.13.0"
+glanceAppwidget = "1.0.0"
+kotlinStdlib = "1.9.23"
+material = "1.11.0"
+material3 = "1.2.1"
+materialIconsExtended = "1.6.6"
+navigationFragmentKtx = "2.7.7"
+paging = "3.2.1"
+playServicesAds = "23.0.0"
+compose = "1.6.6"
+workRuntimeKtx = "2.9.0"
+
+[libraries]
+androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityKtx" }
+androidx-activity-ktx = { module = "androidx.activity:activity-ktx", version.ref = "activityKtx" }
+androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
+androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
+androidx-espresso-core = { module = "androidx.test.espresso:espresso-core", version.ref = "espressoCore" }
+androidx-junit = { module = "androidx.test.ext:junit", version.ref = "junitVersion" }
+androidx-material = { module = "androidx.compose.material:material", version.ref = "materialIconsExtended" }
+androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationFragmentKtx" }
+androidx-navigation-fragment-ktx = { module = "androidx.navigation:navigation-fragment-ktx", version.ref = "navigationFragmentKtx" }
+androidx-navigation-ui-ktx = { module = "androidx.navigation:navigation-ui-ktx", version.ref = "navigationFragmentKtx" }
+androidx-work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "workRuntimeKtx" }
+junit = { module = "junit:junit", version.ref = "junit" }
+
+# androidx hilt
+androidx-hilt-compiler = { module = "androidx.hilt:hilt-compiler", version.ref = "hilt" }
+androidx-hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "hilt" }
+androidx-hilt-work = { module = "androidx.hilt:hilt-work", version.ref = "hilt" }
+
+# androidx lifecycle
+androidx-lifecycle-livedata-ktx = { module = "androidx.lifecycle:lifecycle-livedata-ktx", version.ref = "lifecycle" }
+androidx-lifecycle-runtime-ktx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "lifecycle" }
+androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
+androidx-lifecycle-viewmodel-ktx = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "lifecycle" }
+
+# androidx paging
+androidx-paging-common-ktx = { module = "androidx.paging:paging-common-ktx", version.ref = "paging" }
+androidx-paging-compose = { module = "androidx.paging:paging-compose", version.ref = "paging" }
+androidx-paging-runtime-ktx = { module = "androidx.paging:paging-runtime-ktx", version.ref = "paging" }
+
+# android room
+androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
+androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
+androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
+
+# androidx compose
+androidx-compose-animation = { module = "androidx.compose.animation:animation", version.ref = "compose" }
+androidx-compose-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "compose" }
+androidx-compose-ui = { module = "androidx.compose.ui:ui", version.ref = "compose" }
+androidx-compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4", version.ref = "compose" }
+androidx-compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling", version.ref = "compose" }
+androidx-compose-ui-viewbinding = { module = "androidx.compose.ui:ui-viewbinding", version.ref = "compose" }
+androidx-compose-runtime-livedata = { module = "androidx.compose.runtime:runtime-livedata", version.ref = "compose" }
+androidx-compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended", version.ref = "compose" }
+androidx-compose-material3 = { module = "androidx.compose.material3:material3", version.ref = "material3" }
+
+# androidx compose glance
+androidx-glance-appwidget = { module = "androidx.glance:glance-appwidget", version.ref = "glanceAppwidget" }
+androidx-glance-material3 = { module = "androidx.glance:glance-material3", version.ref = "glanceAppwidget" }
+
+# compose chart
+vico-compose = { module = "com.patrykandpatrick.vico:compose", version.ref = "vico" }
+vico-compose-m2 = { module = "com.patrykandpatrick.vico:compose-m2", version.ref = "vico" }
+vico-compose-m3 = { module = "com.patrykandpatrick.vico:compose-m3", version.ref = "vico" }
+vico-core = { module = "com.patrykandpatrick.vico:core", version.ref = "vico" }
+
+# google
+google-generativeai = { module = "com.google.ai.client.generativeai:generativeai", version.ref = "generativeai" }
+google-material = { module = "com.google.android.material:material", version.ref = "material" }
+google-play-services-ads = { module = "com.google.android.gms:play-services-ads", version.ref = "playServicesAds" }
+
+# google dagger hilt
+google-dagger-hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "daggerHilt" }
+google-dagger-hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "daggerHilt" }
+
+# jackson
+jackson-core = { module = "com.fasterxml.jackson.core:jackson-core", version.ref = "jackson" }
+jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind", version.ref = "jackson" }
+
+# kotlin
+kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "kotlinStdlib" }
+
+[plugins]

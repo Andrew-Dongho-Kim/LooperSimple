@@ -108,8 +108,8 @@ class AppWidget : GlanceAppWidget() {
     }
 
     companion object {
-        private val SIZE_SMALL = DpSize(50.dp, 50.dp)
-        private val SIZE_MEDIUM = DpSize(100.dp, 150.dp)
+        private val SIZE_SMALL = DpSize(54.dp, 73.dp)
+        private val SIZE_MEDIUM = DpSize(110.dp, 148.dp)
         private val SIZE_LARGE = DpSize(500.dp, 600.dp)
 
         val KEY_LOOPS_JSON = stringPreferencesKey("key_loops_json")

@@ -1,6 +1,7 @@
 package com.pnd.android.loop.appwidget.ui
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceModifier
@@ -41,10 +42,12 @@ fun LoopWidgetSmall(
         )
     } else {
         val loop = pickOneLoop(loops)
-        LoopWidgetItem(
-            modifier = modifier.background(AppColor.surface.copy(alpha = 0.7f)),
-            loop = loop
-        )
+        key(loop.id) {
+            LoopWidgetItem(
+                modifier = modifier.background(AppColor.surface.copy(alpha = 0.7f)),
+                loop = loop
+            )
+        }
     }
 }
 
