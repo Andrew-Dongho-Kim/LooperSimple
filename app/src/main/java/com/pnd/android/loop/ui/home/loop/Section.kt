@@ -38,6 +38,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.pnd.android.loop.BuildConfig
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
@@ -125,10 +126,14 @@ private fun LazyListScope.sectionStatistics(
         key = section.key
     ) {
         LoopStatisticsCard(
-            modifier = Modifier.padding(
-                horizontal = 12.dp,
-                vertical = 12.dp
-            ),
+            modifier = Modifier
+                .padding(
+                    horizontal = 12.dp,
+                    vertical = 12.dp
+                )
+                .padding(
+                    bottom = 12.dp
+                ),
             loopViewModel = loopViewModel,
             onNavigateToStatisticsPage = onNavigateToStatisticsPage,
         )
@@ -168,9 +173,64 @@ private fun LazyListScope.sectionToday(
     onNavigateToDetailPage: (LoopBase) -> Unit,
     onEdit: (LoopBase) -> Unit,
 ) {
-    var isSelected by section.isSelected
     val loops by section.items
 
+    if (loops.isEmpty()) {
+        sectionTodayEmpty()
+    } else {
+        sectionTodayBody(
+            section = section,
+            blurState = blurState,
+            loopViewModel = loopViewModel,
+            loops = loops,
+            onNavigateToDetailPage = onNavigateToDetailPage,
+            onEdit = onEdit
+        )
+    }
+
+}
+
+private fun LazyListScope.sectionTodayEmpty(
+    modifier: Modifier = Modifier
+) {
+    item(
+        contentType = ContentTypes.LOOP_EMPTY,
+        key = "LoopEmpty"
+    ) {
+        Box(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal = 4.dp,
+                    vertical = 12.dp,
+                )
+                .padding(
+                    bottom = 12.dp
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = stringResource(id = R.string.today_loops_completed),
+                style = AppTypography.titleMedium.copy(
+                    color = AppColor.onSurface.copy(alpha = 0.8f),
+                    fontSize = 16.sp
+                )
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+private fun LazyListScope.sectionTodayBody(
+    section: Section.Today,
+    blurState: BlurState,
+    loopViewModel: LoopViewModel,
+    loops: List<LoopBase>,
+    onNavigateToDetailPage: (LoopBase) -> Unit,
+    onEdit: (LoopBase) -> Unit,
+) {
+
+    var isSelected by section.isSelected
     if (isSelected) {
         item(
             contentType = ContentTypes.LOOP_TIMELINE,
@@ -214,6 +274,7 @@ private fun LazyListScope.sectionToday(
         )
     }
 }
+
 
 @Composable
 private fun TimelineHeaderButton(
@@ -278,10 +339,14 @@ private fun LazyListScope.sectionAd(
         key = section.key,
     ) {
         ExpandableNativeAd(
-            modifier = Modifier.padding(
-                horizontal = 8.dp,
-                vertical = 12.dp
-            ),
+            modifier = Modifier
+                .padding(
+                    horizontal = 8.dp,
+                    vertical = 12.dp
+                )
+                .padding(
+                    top = 12.dp
+                ),
             adId = HOME_NATIVE_AD_ID
         )
     }
@@ -423,6 +488,7 @@ private fun ExpandableHeader(
 enum class ContentTypes {
     STATISTICS_CARD,
     TIMELINE_TOGGLE_BUTTON,
+    LOOP_EMPTY,
     LOOP_TIMELINE,
     LATER_HEADER,
     YESTERDAY_CARD,
@@ -470,6 +536,9 @@ sealed class Section(val key: String) {
         key = "TodaySection"
     ) {
         val isSelected = mutableStateOf(isSelected)
+
+        // Always visible
+        override val size = 1
 
         companion object {
             val Saver = listSaver(

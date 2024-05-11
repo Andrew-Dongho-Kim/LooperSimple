@@ -2,6 +2,7 @@ package com.pnd.android.loop.ui.home
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.Info
@@ -18,6 +19,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.ui.common.AppBar
 import com.pnd.android.loop.ui.common.AppBarIcon
@@ -36,8 +38,9 @@ fun HomeAppBar(
     mode: Int,
     onModeChanged: (Int) -> Unit,
 ) {
-    val totalLoops by loopViewModel.countInTodayRemain.collectAsState(initial = 0)
-    val countInProgress by loopViewModel.countInActive.collectAsState(initial = 0)
+    val countInActive by loopViewModel.countInActive.collectAsState(initial = 0)
+    val countInTodayRemain by loopViewModel.countInTodayRemain.collectAsState(initial = 0)
+    val countInToday by loopViewModel.countInToday.collectAsState(initial = 0)
 
     AppBar(
         modifier = modifier,
@@ -46,19 +49,20 @@ fun HomeAppBar(
                 val localDate by loopViewModel.localDate.collectAsState(initial = LocalDate.now())
                 Text(
                     text = localDate.formatYearMonthDateDays(),
-                    style = AppTypography.titleMedium.copy(
+                    style = AppTypography.titleLarge.copy(
                         color = AppColor.onSurface
                     )
                 )
 
                 Text(
+                    modifier = Modifier.padding(top = 8.dp),
                     text = annotatedString(
-                        "#${countInProgress}/${
-                            stringResource(
-                                R.string.loops,
-                                totalLoops
-                            )
-                        }"
+                        stringResource(
+                            id = R.string.today_loop_state,
+                            countInActive,
+                            countInTodayRemain,
+                            countInToday
+                        )
                     ),
                     style = AppTypography.labelMedium.copy(
                         color = AppColor.onSurface.copy(alpha = 0.8f)

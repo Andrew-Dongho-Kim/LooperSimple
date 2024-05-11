@@ -29,7 +29,9 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.temporal.ChronoUnit
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
+import kotlin.math.min
 
 class LoopRepository @Inject constructor(
     appDb: AppDatabase,
@@ -44,14 +46,14 @@ class LoopRepository @Inject constructor(
     private val loopDoneDao = appDb.loopDoneDao()
 
     val localDateTime = flow {
-        while (currentCoroutineContext().isActive) {
+        while (true) {
             emit(LocalDateTime.now())
             delay(1000L)
         }
     }
 
     val localDate = flow {
-        while (currentCoroutineContext().isActive) {
+        while (true) {
             val delayInMs = LocalTime.now().until(LocalTime.MAX, ChronoUnit.MILLIS)
             val now = LocalDate.now()
             logger.d { "localDate is $now, delay:${delayInMs.toLocalTime()}" }
@@ -63,6 +65,7 @@ class LoopRepository @Inject constructor(
 
     val allLoopsWithDoneStates = localDate.transform { currDate ->
         logger.d { "loops with done: $currDate" }
+        emit(loopWithDoneDao.allLoops(currDate.toLocalTime()))
         emitAll(loopWithDoneDao.flowAllLoops(currDate.toLocalTime()))
     }.stateIn(
         initialValue = emptyList(),
@@ -92,6 +95,9 @@ class LoopRepository @Inject constructor(
         allLoopsWithDoneStates.map { loops -> loops.filter { loop -> loop.isActive(now) } }
     }
     val countInActive = activeLoops.map { it.size }
+    val countInToday = allLoopsWithDoneStates.map { loops ->
+        loops.filter { loop -> loop.isActiveDay() }.size
+    }
     val countInTodayRemain = allLoopsWithDoneStates.map { loops ->
         loops.filter { loop -> loop.isNotRespond && loop.isActiveDay() }.size
     }

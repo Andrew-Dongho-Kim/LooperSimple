@@ -7,24 +7,14 @@ import androidx.compose.ui.unit.dp
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.glance.GlanceId
-import androidx.glance.GlanceModifier
-import androidx.glance.Image
-import androidx.glance.ImageProvider
 import androidx.glance.LocalSize
-import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.SizeMode
-import androidx.glance.appwidget.action.actionRunCallback
-import androidx.glance.appwidget.appWidgetBackground
 import androidx.glance.appwidget.provideContent
 import androidx.glance.currentState
-import androidx.glance.layout.Box
-import androidx.glance.layout.padding
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.pnd.android.loop.R
 import com.pnd.android.loop.appwidget.ui.LoopWidgetMedium
 import com.pnd.android.loop.appwidget.ui.LoopWidgetSmall
-import com.pnd.android.loop.appwidget.ui.stringResourceGlance
 import com.pnd.android.loop.common.Logger
 import com.pnd.android.loop.data.asLoop
 
@@ -63,46 +53,31 @@ class AppWidget : GlanceAppWidget() {
         val size = LocalSize.current
         logger.d { "AppWidget updated revision:$revision, widgetSize:$size" }
 
-        if (jsonLoops.isNullOrEmpty()) {
-            RefreshLayout()
-        } else {
-            val loops = appWidgetData.list.map { it.asLoop() }
+        if (!jsonLoops.isNullOrEmpty()) {
+            val loops = appWidgetData.loops.map { it.asLoop() }
 
             when (size) {
                 SIZE_SMALL -> LoopWidgetSmall(
-                    loops = loops
+                    loops = loops,
+                    todayTotal = appWidgetData.total,
                 )
 
                 else -> LoopWidgetMedium(
-                    loops = loops
+                    loops = loops,
+                    todayTotal = appWidgetData.total
                 )
             }
-
         }
     }
-
-    @Composable
-    private fun RefreshLayout(
-        modifier: GlanceModifier = GlanceModifier,
-    ) {
-        Box(modifier = modifier.appWidgetBackground()) {
-            Image(
-                modifier = GlanceModifier
-                    .clickable(onClick = actionRunCallback<AppWidgetRefreshAction>())
-                    .padding(12.dp),
-                provider = ImageProvider(R.drawable.refresh),
-                contentDescription = stringResourceGlance(id = R.string.refresh)
-            )
-        }
-    }
-
 
     class AppWidgetData {
-        lateinit var list: List<Map<String, Any>>
+        lateinit var loops: List<Map<String, Any>>
+        var total: Int = 0
 
         companion object {
             val EMPTY = AppWidgetData().apply {
-                list = emptyList()
+                loops = emptyList()
+                total = 0
             }
         }
     }

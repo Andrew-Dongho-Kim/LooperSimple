@@ -20,6 +20,7 @@ import androidx.glance.layout.Box
 import androidx.glance.layout.Column
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
+import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.padding
 import androidx.glance.layout.size
@@ -37,6 +38,7 @@ import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.Blue400
 import com.pnd.android.loop.ui.theme.Blue500
 import com.pnd.android.loop.ui.theme.onSurface
+import com.pnd.android.loop.ui.theme.surface
 import com.pnd.android.loop.util.ABB_MONTHS
 import com.pnd.android.loop.util.DAYS_WITH_3CHARS
 import com.pnd.android.loop.util.formatHourMinute
@@ -190,6 +192,7 @@ fun LocalDateHeader(
     modifier: GlanceModifier = GlanceModifier,
     localDate: LocalDate = LocalDate.now(),
     loops: List<LoopBase>,
+    todayTotal: Int,
 ) {
     Column(modifier = modifier.clickable(actionStartActivity<MainActivity>())) {
         Text(
@@ -203,15 +206,44 @@ fun LocalDateHeader(
         val countInProgress = loops.filter { it.isActive() }.size
         val totalLoops = loops.size
         Text(
-            text = "$countInProgress/${
-                stringResourceGlance(
-                    id = R.string.loops,
-                    totalLoops
-                )
-            }",
+            modifier = GlanceModifier.padding(top = 8.dp),
+            text = stringResourceGlance(
+                id = R.string.today_loop_state,
+                countInProgress,
+                totalLoops,
+                todayTotal
+            ),
             style = TextStyle(
                 color = ColorProvider(AppColor.onSurface),
                 fontSize = 12.sp,
+            )
+        )
+    }
+}
+
+@Composable
+fun LoopWidgetEmpty(
+    modifier: GlanceModifier = GlanceModifier,
+    loopsTotal: Int
+) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 4.dp)
+            .clickable(actionStartActivity<MainActivity>()),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = stringResourceGlance(
+                id = if (loopsTotal == 0) {
+                    R.string.desc_no_loops
+                } else {
+                    R.string.today_loops_completed
+                }
+            ),
+            style = TextStyle(
+                color = ColorProvider(AppColor.onSurface.copy(alpha = 0.8f)),
+                fontSize = 16.sp
             )
         )
     }

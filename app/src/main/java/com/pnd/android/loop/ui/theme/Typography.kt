@@ -52,6 +52,11 @@ val AppTypography = Typography(
         fontSize = 18.sp,
         letterSpacing = 0.sp
     ),
+    titleLarge = TextStyle(
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 17.sp,
+        letterSpacing = 0.5.sp
+    ),
     titleMedium = TextStyle(
         fontWeight = FontWeight.SemiBold,
         fontSize = 16.sp,

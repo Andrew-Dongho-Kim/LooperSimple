@@ -28,7 +28,8 @@ import com.pnd.android.loop.util.isPast
 @Composable
 fun LoopWidgetMedium(
     modifier: GlanceModifier = GlanceModifier,
-    loops: List<LoopBase>
+    loops: List<LoopBase>,
+    todayTotal: Int,
 ) {
     Column(
         modifier = modifier
@@ -47,23 +48,39 @@ fun LoopWidgetMedium(
                 bottom = 8.dp,
             ),
             loops = loops,
+            todayTotal = todayTotal,
         )
-        LazyColumn {
-            items(
-                items = loops,
-                itemId = { loop -> loop.id.toLong() }
-            ) { loop ->
-                LoopWidgetItem(loop = loop)
-            }
-            item(
-                itemId = -1L
-            ) {
-                Spacer(GlanceModifier.fillMaxWidth().height(24.dp))
-            }
+
+        if (loops.isEmpty()) {
+            LoopWidgetEmpty(
+                modifier = modifier,
+                loopsTotal = todayTotal
+            )
+        } else {
+            LoopWidgetBody(loops = loops)
         }
     }
 }
 
+@Composable
+private fun LoopWidgetBody(
+    modifier: GlanceModifier = GlanceModifier,
+    loops: List<LoopBase>,
+) {
+    LazyColumn(modifier = modifier) {
+        items(
+            items = loops,
+            itemId = { loop -> loop.id.toLong() }
+        ) { loop ->
+            LoopWidgetItem(loop = loop)
+        }
+        item(
+            itemId = -1L
+        ) {
+            Spacer(GlanceModifier.fillMaxWidth().height(24.dp))
+        }
+    }
+}
 
 @Composable
 private fun LoopWidgetItem(

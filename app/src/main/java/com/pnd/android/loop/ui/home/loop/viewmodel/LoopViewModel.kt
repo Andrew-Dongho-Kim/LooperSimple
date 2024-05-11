@@ -5,6 +5,7 @@ import androidx.compose.runtime.Stable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.ai.client.generativeai.GenerativeModel
+import com.google.ai.client.generativeai.type.InvalidStateException
 import com.google.ai.client.generativeai.type.ResponseStoppedException
 import com.google.ai.client.generativeai.type.generationConfig
 import com.pnd.android.loop.R
@@ -21,7 +22,9 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flatMapMerge
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.zip
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
@@ -62,6 +65,8 @@ class LoopViewModel @Inject constructor(
                 _wiseSaying.emit(response.text ?: "")
             } catch (e: ResponseStoppedException) {
                 // don't anything, just catch
+            } catch (e: InvalidStateException) {
+                // don't anything, just catch
             }
         }
     }
@@ -73,6 +78,7 @@ class LoopViewModel @Inject constructor(
     val allLoopsWithDoneStates = loopRepository.allLoopsWithDoneStates
 
     val countInActive = loopRepository.countInActive
+    val countInToday = loopRepository.countInToday
     val countInTodayRemain = loopRepository.countInTodayRemain
 
     private val allCount = loopRepository.allEnabledCount

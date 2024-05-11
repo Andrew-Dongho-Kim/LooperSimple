@@ -68,7 +68,7 @@ class AppWidgetUpdateWorker @AssistedInject constructor(
         val loops = loopWithDoneDao.allEnabledLoops(date = LocalDate.now().toMs())
         updateWidget(
             context = context,
-            loops = loops.filter { loop -> loop.isNotRespond && loop.isActiveDay() }
+            loops = loops.filter { loop -> loop.isActiveDay() }
         )
 
         return Result.success()
@@ -79,7 +79,7 @@ class AppWidgetUpdateWorker @AssistedInject constructor(
         loops: List<LoopBase>
     ) {
         val jsonArray = JSONArray()
-        loops.forEach { loop ->
+        loops.filter { loop -> loop.isNotRespond }.forEach { loop ->
             val map = mutableMapOf<String, Any?>()
             loop.putTo(map)
 
@@ -95,7 +95,7 @@ class AppWidgetUpdateWorker @AssistedInject constructor(
                 // This is hack to force update widget
                 val revision = prefs[KEY_REVISION]?.let { it + 1 } ?: 0
                 prefs[KEY_REVISION] = revision
-                prefs[KEY_LOOPS_JSON] = "{\"list\": $jsonArray}"
+                prefs[KEY_LOOPS_JSON] = "{\"loops\": $jsonArray, \"total\":${loops.size}}"
 
                 logger.d { "updateWidget[$glanceId] revision:$revision" }
             }
