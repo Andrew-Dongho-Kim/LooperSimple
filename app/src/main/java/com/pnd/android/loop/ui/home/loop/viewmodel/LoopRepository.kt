@@ -1,6 +1,7 @@
 package com.pnd.android.loop.ui.home.loop.viewmodel
 
 import com.pnd.android.loop.alarm.LoopScheduler
+import com.pnd.android.loop.alarm.LoopScheduler.Companion.scheduleStart
 import com.pnd.android.loop.common.log
 import com.pnd.android.loop.data.AppDatabase
 import com.pnd.android.loop.data.LoopBase
@@ -15,7 +16,6 @@ import com.pnd.android.loop.util.toMs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.emitAll
@@ -24,14 +24,11 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.transform
-import kotlinx.coroutines.isActive
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.temporal.ChronoUnit
-import java.util.concurrent.TimeUnit
 import javax.inject.Inject
-import kotlin.math.min
 
 class LoopRepository @Inject constructor(
     appDb: AppDatabase,
@@ -128,8 +125,11 @@ class LoopRepository @Inject constructor(
                 )
             )
 
-            if (loop.enabled) alarmController.reserveAlarm(loop)
-            else alarmController.cancelAlarm(loop)
+            if (loop.enabled) {
+                alarmController.reserveAlarm(scheduleStart(loop))
+            } else {
+                alarmController.cancelAlarm(loop)
+            }
         }
     }
 

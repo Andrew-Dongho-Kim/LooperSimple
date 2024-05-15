@@ -6,7 +6,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.SystemClock
-import androidx.annotation.VisibleForTesting
 import com.pnd.android.loop.alarm.notification.NotificationHelper
 import com.pnd.android.loop.appwidget.AppWidgetUpdateWorker
 import com.pnd.android.loop.common.log
@@ -25,7 +24,6 @@ import com.pnd.android.loop.util.dh2m2
 import com.pnd.android.loop.util.isActiveDay
 import com.pnd.android.loop.util.isActiveTime
 import com.pnd.android.loop.util.toLocalDate
-import com.pnd.android.loop.util.toLocalDateTime
 import com.pnd.android.loop.util.toMs
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -48,54 +46,35 @@ class LoopScheduler @Inject constructor(
     private val loopDao = appDb.loopDao()
     private val loopDoneDao = appDb.loopDoneDao()
 
-    @VisibleForTesting
-    fun notifyAfter(loop: LoopBase): Long {
-        val curr = LocalTime.now().toMs()
-
-        val loopStart = loop.loopStart
-        return if (loopStart > curr) {
-            loopStart - curr
-        } else if (loop.interval == 0L) {
-            NO_NOTIFY
-        } else {
-            loop.interval - ((curr - loopStart) % loop.interval)
-        }
-    }
-
     fun reserveAlarm(
-        loop: LoopBase
+        loopSchedule: LoopSchedule
     ) {
-        val after = notifyAfter(loop)
-        val systemElapsed = SystemClock.elapsedRealtime()
-        if (!loop.enabled) {
-            coroutineScope.launch { loopDao.addOrUpdate(loop.asLoopVo(enabled = true)) }
-        }
-        if (after == NO_NOTIFY) {
-            return
-        }
+        val (action, after, loop) = loopSchedule
+        if (after <= 0) return
 
         logger.d {
             " - repeat after:${dh2m2(after)} ${loop.description(context)}"
         }
 
+        val systemElapsed = SystemClock.elapsedRealtime()
+        val reservedTime = systemElapsed + after
         val alarmIntent = Intent(context, AlarmReceiver::class.java).apply {
-            action = ACTION_LOOP_ALARM
+            this.action = action
             loop.putTo(this)
-            putExtra(EXTRA_RESERVED_TIME, systemElapsed + after)
+            putExtra(EXTRA_RESERVED_TIME, reservedTime)
         }
 
-        val pendingIntent =
-            PendingIntent.getBroadcast(
-                context,
-                loop.id,
-                alarmIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
-            )
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            loop.id,
+            alarmIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+        )
 
         if (alarmManager.canScheduleExactAlarms()) {
             alarmManager.setExact(
                 AlarmManager.ELAPSED_REALTIME_WAKEUP,
-                systemElapsed + after,
+                reservedTime,
                 pendingIntent
             )
         }
@@ -107,12 +86,12 @@ class LoopScheduler @Inject constructor(
             loopDao.allLoops().forEach { loop ->
                 fillNoResponse(loop)
                 if (loop.enabled) {
-                    reserveAlarm(loop = loop)
+                    reserveAlarm(scheduleStart(loop))
                 } else {
                     cancelAlarm(loop)
                 }
             }
-            reserveAlarm(loop = LoopBase.midnight())
+            reserveAlarm(scheduleSync())
         }
     }
 
@@ -151,7 +130,7 @@ class LoopScheduler @Inject constructor(
         logger.d { " - cancel id:${loop.id}, title:${loop.title}" }
 
         val alarmIntent = Intent(context, AlarmReceiver::class.java).apply {
-            action = ACTION_LOOP_ALARM
+            action = ACTION_LOOP_START
         }
         val pendingIntent =
             PendingIntent.getBroadcast(
@@ -176,7 +155,11 @@ class LoopScheduler @Inject constructor(
 
         override fun onReceive(context: Context, intent: Intent) {
             when (intent.action) {
-                ACTION_LOOP_ALARM -> handleActionLoopAlarm(context, intent)
+                ACTION_LOOP_START -> handleActionLoopStart(context, intent)
+                ACTION_LOOP_END -> handleActionLoopEnd(context, intent)
+                ACTION_LOOP_REPEAT -> handleActionLoopRepeat(intent)
+                ACTION_LOOP_SYNC -> handleActionLoopSync(intent)
+
                 ACTION_LOOP_DONE -> handleActionLoopDone(intent)
                 ACTION_LOOP_CANCEL -> handleActionLoopCancel(intent)
             }
@@ -190,30 +173,33 @@ class LoopScheduler @Inject constructor(
             notificationHelper.cancel(intent.asLoop())
         }
 
-        private fun handleActionLoopAlarm(context: Context, intent: Intent) {
+
+        private fun handleActionLoopSync(intent: Intent) {
             val loop = intent.asLoop()
 
-            if (loop.interval != NO_REPEAT) {
-                alarmController.reserveAlarm(loop = loop)
+            if (loop.id == LoopBase.MIDNIGHT_RESERVATION_ID) {
+                alarmController.syncLoops()
+
+                // TEMP CODE
+                notificationHelper.notify(loop)
+            }
+        }
+
+        private fun handleActionLoopStart(context: Context, intent: Intent) {
+            val loop = intent.asLoop()
+
+            if (loop.interval == NO_REPEAT) {
+                alarmController.reserveAlarm(scheduleEnd(loop))
+            } else {
+                reserveRepeat(loop = loop)
             }
 
-            val today = dayForLoop(LocalDate.now())
+            notifyLoop(loop)
+            AppWidgetUpdateWorker.updateWidget(context)
 
             val isAllowedDay = loop.isActiveDay()
             val isAllowedTime = loop.isActiveTime()
-            val isMock = loop.isMock
-            if (isMock) {
-                if (loop.id == LoopBase.MIDNIGHT_RESERVATION_ID) {
-                    alarmController.syncLoops()
-
-                    // TEMP CODE
-                    notificationHelper.notify(loop)
-                }
-            } else if (isAllowedDay && isAllowedTime) {
-                notificationHelper.notify(loop)
-            }
-
-            AppWidgetUpdateWorker.updateWidget(context)
+            val today = dayForLoop(LocalDate.now())
             logger.d {
                 """ -->
                 |Received alarm id:${loop.id} 
@@ -223,12 +209,72 @@ class LoopScheduler @Inject constructor(
                 | isAllowedTime:$isAllowedTime""".trimMargin()
             }
         }
-    }
 
+        private fun handleActionLoopEnd(context: Context, intent: Intent) {
+            val loop = intent.asLoop()
+            notifyLoop(loop)
+            AppWidgetUpdateWorker.updateWidget(context)
+        }
+
+        private fun handleActionLoopRepeat(intent: Intent) {
+            val loop = intent.asLoop()
+
+            reserveRepeat(loop)
+            notifyLoop(loop)
+        }
+
+        private fun reserveRepeat(loop: LoopBase) {
+            val now = msNow
+            if (now + loop.interval >= loop.loopEnd) {
+                alarmController.reserveAlarm(scheduleEnd(loop))
+            } else {
+                alarmController.reserveAlarm(scheduleRepeat(loop))
+            }
+        }
+
+        private fun notifyLoop(loop: LoopBase) {
+            val isAllowedDay = loop.isActiveDay()
+            val isAllowedTime = loop.isActiveTime()
+            val isMock = loop.isMock
+            if (!isMock && isAllowedDay && isAllowedTime) {
+                notificationHelper.notify(loop)
+            }
+        }
+    }
 
     companion object {
         private const val EXTRA_RESERVED_TIME = "loop_reserved_time"
 
-        private const val NO_NOTIFY = -1L
+        val msNow get() = LocalTime.now().toMs()
+
+        fun scheduleStart(loop: LoopBase) = LoopSchedule(
+            action = ACTION_LOOP_START,
+            after = loop.loopStart - msNow,
+            loop = loop
+        )
+
+        fun scheduleEnd(loop: LoopBase) = LoopSchedule(
+            action = ACTION_LOOP_END,
+            after = loop.loopEnd - msNow,
+            loop = loop
+        )
+
+        fun scheduleRepeat(loop: LoopBase) = LoopSchedule(
+            action = ACTION_LOOP_REPEAT,
+            after = loop.interval - ((msNow - loop.loopStart) % loop.interval),
+            loop = loop
+        )
+
+        fun scheduleSync() = LoopSchedule(
+            action = ACTION_LOOP_SYNC,
+            after = LoopBase.midnight().loopStart - msNow,
+            loop = LoopBase.midnight()
+        )
+
+        data class LoopSchedule internal constructor(
+            @LoopScheduleAction val action: String,
+            val after: Long,
+            val loop: LoopBase
+        )
     }
 }

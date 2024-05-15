@@ -1,6 +1,7 @@
 package com.pnd.android.loop.appwidget.ui
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.glance.GlanceModifier
 import androidx.glance.action.actionStartActivity
@@ -21,7 +22,10 @@ import com.pnd.android.loop.MainActivity
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.compositeOverOnSurface
+import com.pnd.android.loop.ui.theme.onSurface
+import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.ui.theme.surface
+import com.pnd.android.loop.util.isActive
 import com.pnd.android.loop.util.isPast
 
 
@@ -90,6 +94,13 @@ private fun LoopWidgetItem(
     val isPast = loop.isPast()
     Column(
         modifier = modifier
+            .background(
+                if (loop.isActive()) {
+                    AppColor.primary.copy(alpha = 0.1f)
+                } else {
+                    Color.Transparent
+                }
+            )
             .fillMaxWidth()
             .clickable(actionStartActivity<MainActivity>())
             .padding(
