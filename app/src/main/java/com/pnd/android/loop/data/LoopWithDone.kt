@@ -98,7 +98,7 @@ interface LoopWithDoneDao {
                 "ON loop.id == loop_done.loopId AND loop_done.date ==:date " +
                 "ORDER BY loop.enabled DESC, loop.loopEnd ASC, loop.loopStart ASC, loop.title ASC"
     )
-    suspend fun allLoops(date:Long):List<LoopWithDone>
+    suspend fun allLoops(date: Long): List<LoopWithDone>
 
     @Query(
         "SELECT loop.id, loop.color, loop.title, loop.created, loop.loopStart, loop.loopEnd, loop.loopActiveDays, loop.interval, loop.enabled, loop_done.date, loop_done.done " +
@@ -115,6 +115,19 @@ interface LoopWithDoneDao {
                 "ORDER BY loop_done.date ASC, loop.id ASC"
     )
     fun flowDoneLoopsByDate(
+        from: Long,
+        to: Long,
+    ): Flow<List<LoopByDate>>
+
+
+    @Query(
+        "SELECT date, id, title, color FROM loop_done LEFT JOIN loop ON loop.id == loop_done.loopId " +
+                "WHERE  loop_done.done != ${DoneState.DONE} AND " +
+                "loop_done.done != ${DoneState.DISABLED} AND " +
+                ":from <= loop_done.date AND loop_done.date <= :to " +
+                "ORDER BY loop_done.date ASC, loop.id ASC"
+    )
+    fun flowNoDoneLoopsByDate(
         from: Long,
         to: Long,
     ): Flow<List<LoopByDate>>

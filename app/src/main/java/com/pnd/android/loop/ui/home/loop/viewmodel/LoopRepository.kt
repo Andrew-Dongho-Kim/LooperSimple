@@ -13,16 +13,12 @@ import com.pnd.android.loop.util.isActiveDay
 import com.pnd.android.loop.util.toLocalDate
 import com.pnd.android.loop.util.toLocalTime
 import com.pnd.android.loop.util.toMs
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.transform
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -35,8 +31,6 @@ class LoopRepository @Inject constructor(
     private val alarmController: LoopScheduler,
 ) {
     private val logger = log("LoopRepository")
-
-    private val coroutineScope = CoroutineScope(SupervisorJob())
 
     private val loopDao = appDb.loopDao()
     private val loopWithDoneDao = appDb.loopWithDoneDao()
@@ -64,12 +58,7 @@ class LoopRepository @Inject constructor(
         logger.d { "loops with done: $currDate" }
         emit(loopWithDoneDao.allLoops(currDate.toLocalTime()))
         emitAll(loopWithDoneDao.flowAllLoops(currDate.toLocalTime()))
-    }.stateIn(
-        initialValue = emptyList(),
-        started = SharingStarted.WhileSubscribed(5000),
-        scope = coroutineScope
-    )
-
+    }
 
     // @formatter:off
     val loopsNoResponseYesterday = localDate.transform { currDate ->
@@ -80,11 +69,7 @@ class LoopRepository @Inject constructor(
             loop.created.toLocalDate().isBefore(LocalDate.now()) &&
             loop.isActiveDay(LocalDate.now().minusDays(1))
         }
-    }.stateIn(
-        initialValue = emptyList(),
-        started = SharingStarted.WhileSubscribed(5000),
-        scope = coroutineScope
-    )
+    }
     // @formatter:on
 
     @OptIn(ExperimentalCoroutinesApi::class)

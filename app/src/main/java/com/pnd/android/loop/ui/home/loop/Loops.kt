@@ -21,6 +21,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
@@ -168,8 +169,9 @@ private fun rememberTodaySection(
         resultLoops.add(0, inputState.value)
     }
 
+    val context = LocalContext.current
     return rememberSaveable(saver = Section.Today.Saver) {
-        Section.Today()
+        Section.Today().apply { load(context) }
     }.apply {
         items.value = resultLoops
     }

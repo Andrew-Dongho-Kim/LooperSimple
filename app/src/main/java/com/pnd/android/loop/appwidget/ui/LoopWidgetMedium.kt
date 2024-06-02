@@ -22,7 +22,6 @@ import com.pnd.android.loop.MainActivity
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.compositeOverOnSurface
-import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.ui.theme.surface
 import com.pnd.android.loop.util.isActive
@@ -45,12 +44,14 @@ fun LoopWidgetMedium(
             ),
     ) {
         LocalDateHeader(
-            modifier = GlanceModifier.padding(
-                top = 8.dp,
-                start = 4.dp,
-                end = 4.dp,
-                bottom = 8.dp,
-            ),
+            modifier = GlanceModifier
+                .fillMaxWidth()
+                .padding(
+                    top = 8.dp,
+                    start = 4.dp,
+                    end = 4.dp,
+                    bottom = 8.dp,
+                ),
             loops = loops,
             todayTotal = todayTotal,
         )

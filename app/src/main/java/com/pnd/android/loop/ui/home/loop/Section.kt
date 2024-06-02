@@ -1,5 +1,6 @@
 package com.pnd.android.loop.ui.home.loop
 
+import android.content.Context
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -23,6 +24,7 @@ import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.listSaver
@@ -34,11 +36,13 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.edit
 import com.pnd.android.loop.BuildConfig
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
@@ -71,7 +75,8 @@ fun LazyListScope.section(
         is Section.Statistics -> sectionStatistics(
             section = section,
             loopViewModel = loopViewModel,
-            onNavigateToStatisticsPage = onNavigateToStatisticsPage
+            onNavigateToStatisticsPage = onNavigateToStatisticsPage,
+            onNavigateToHistoryPage = onNavigateToHistoryPage,
         )
 
         is Section.Today -> sectionToday(
@@ -120,6 +125,7 @@ private fun LazyListScope.sectionStatistics(
     section: Section.Statistics,
     loopViewModel: LoopViewModel,
     onNavigateToStatisticsPage: () -> Unit,
+    onNavigateToHistoryPage: () -> Unit,
 ) {
     item(
         contentType = ContentTypes.STATISTICS_CARD,
@@ -136,6 +142,7 @@ private fun LazyListScope.sectionStatistics(
                 ),
             loopViewModel = loopViewModel,
             onNavigateToStatisticsPage = onNavigateToStatisticsPage,
+            onNavigateToHistoryPage = onNavigateToHistoryPage,
         )
     }
 }
@@ -164,8 +171,6 @@ private fun LazyListScope.sectionYesterday(
     }
 }
 
-
-@OptIn(ExperimentalFoundationApi::class)
 private fun LazyListScope.sectionToday(
     section: Section.Today,
     blurState: BlurState,
@@ -230,7 +235,7 @@ private fun LazyListScope.sectionTodayBody(
     onEdit: (LoopBase) -> Unit,
 ) {
 
-    var isSelected by section.isSelected
+    val isSelected by section.isSelected
     if (isSelected) {
         item(
             contentType = ContentTypes.LOOP_TIMELINE,
@@ -267,10 +272,16 @@ private fun LazyListScope.sectionTodayBody(
         contentType = ContentTypes.TIMELINE_TOGGLE_BUTTON,
         key = section.key
     ) {
+        val context = LocalContext.current
         TimelineHeaderButton(
             modifier = Modifier.padding(vertical = 12.dp),
             isSelected = isSelected,
-            onSelected = { selected -> isSelected = selected }
+            onSelected = { selected ->
+                section.save(
+                    context = context,
+                    selected = selected
+                )
+            }
         )
     }
 }
@@ -535,12 +546,29 @@ sealed class Section(val key: String) {
     ) : Section(
         key = "TodaySection"
     ) {
-        val isSelected = mutableStateOf(isSelected)
+        private val _isSelected = mutableStateOf(isSelected)
+        val isSelected: State<Boolean> = _isSelected
+
+        fun load(context: Context) {
+            _isSelected.value = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+                .getBoolean(KEY_IS_SELECTED, false)
+        }
+
+        fun save(context: Context, selected: Boolean) {
+            _isSelected.value = selected
+            context
+                .getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+                .edit {
+                    putBoolean(KEY_IS_SELECTED, selected)
+                }
+        }
 
         // Always visible
         override val size = 1
 
         companion object {
+            private const val PREF_NAME = "loops_timeline"
+            private const val KEY_IS_SELECTED = "key_is_selected"
             val Saver = listSaver(
                 save = {
                     listOf(

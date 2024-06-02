@@ -5,7 +5,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -25,14 +24,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.data.LoopByDate
+import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.compositeOverOnSurface
 import com.pnd.android.loop.ui.theme.compositeOverSurface
+import com.pnd.android.loop.ui.theme.onSurface
+import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.util.DAYS_WITH_3CHARS_SUNDAY_FIRST
 import com.pnd.android.loop.util.color
 import com.pnd.android.loop.util.isSameMonth
@@ -47,6 +50,7 @@ fun Calendar(
     modifier: Modifier = Modifier,
     pagerState: PagerState,
     achievementViewModel: DailyAchievementViewModel,
+    viewMode: DailyAchievementPageViewMode,
     minDate: LocalDate,
     selectedDate: LocalDate,
     onDateSelected: (LocalDate) -> Unit
@@ -60,6 +64,7 @@ fun Calendar(
         ) { page ->
             CalendarPage(
                 achievementViewModel = achievementViewModel,
+                viewMode = viewMode,
                 minDate = minDate,
                 selectedDate = selectedDate,
                 firstDateOfMonth = LocalDate.now().minusMonths(page.toLong()).withDayOfMonth(1),
@@ -106,6 +111,7 @@ fun CalendarHeader(
 private fun CalendarPage(
     modifier: Modifier = Modifier,
     achievementViewModel: DailyAchievementViewModel,
+    viewMode: DailyAchievementPageViewMode,
     minDate: LocalDate,
     selectedDate: LocalDate,
     firstDateOfMonth: LocalDate,
@@ -122,7 +128,12 @@ private fun CalendarPage(
     }
 
     var itemDate = firstDateOfMonth.minusDays(start)
-    val loopsByDate by achievementViewModel.flowsDoneLoopsByDate(
+    val doneLoopsByDate by achievementViewModel.flowsDoneLoopsByDate(
+        from = itemDate,
+        to = itemDate.plusDays((rows * DAYS_OF_WEEK - 1).toLong())
+    ).collectAsState(initial = emptyMap())
+
+    val noDoneLoopsByDate by achievementViewModel.flowsNoDonLoopsByDate(
         from = itemDate,
         to = itemDate.plusDays((rows * DAYS_OF_WEEK - 1).toLong())
     ).collectAsState(initial = emptyMap())
@@ -132,7 +143,9 @@ private fun CalendarPage(
             key(itemDate) {
                 CalendarRow(
                     modifier = Modifier.weight(1f),
-                    loopsByDate = loopsByDate,
+                    viewMode = viewMode,
+                    doneLoopsByDate = doneLoopsByDate,
+                    noDoneLoopsByDate = noDoneLoopsByDate,
                     itemDate = itemDate,
                     minDate = minDate,
                     selectedDate = selectedDate,
@@ -147,7 +160,9 @@ private fun CalendarPage(
 @Composable
 private fun CalendarRow(
     modifier: Modifier = Modifier,
-    loopsByDate: Map<LocalDate, List<LoopByDate>>,
+    viewMode: DailyAchievementPageViewMode,
+    doneLoopsByDate: Map<LocalDate, List<LoopByDate>>,
+    noDoneLoopsByDate: Map<LocalDate, List<LoopByDate>>,
     itemDate: LocalDate,
     minDate: LocalDate,
     selectedDate: LocalDate,
@@ -160,19 +175,23 @@ private fun CalendarRow(
                 val isThisMonth = selectedDate.isSameMonth(itDate)
                 val isBeforeNow = itDate.isBefore(LocalDate.now().plusDays(1))
                 val isAfterMinDate = itDate.isAfter(minDate.minusDays(1))
+                val isInterest = isThisMonth && isBeforeNow && isAfterMinDate
 
                 CalendarDateItem(
                     modifier = Modifier
                         .weight(1f)
                         .alpha(
-                            alpha = if (isThisMonth && isBeforeNow && isAfterMinDate) {
+                            alpha = if (isInterest) {
                                 1f
                             } else {
                                 0.3f
                             }
                         ),
-                    doneLoops = loopsByDate[itDate] ?: emptyList(),
+                    viewMode = viewMode,
+                    doneLoops = doneLoopsByDate[itDate] ?: emptyList(),
+                    nodDoneLoops = noDoneLoopsByDate[itDate] ?: emptyList(),
                     itemDate = itDate,
+                    isInterest = isInterest,
                     isToday = itDate == LocalDate.now(),
                     isSelected = itDate == selectedDate,
                     onDateSelected = onDateSelected,
@@ -186,19 +205,35 @@ private fun CalendarRow(
 @Composable
 private fun CalendarDateItem(
     modifier: Modifier = Modifier,
+    viewMode: DailyAchievementPageViewMode,
     doneLoops: List<LoopByDate>,
+    nodDoneLoops: List<LoopByDate>,
     itemDate: LocalDate,
+    isInterest: Boolean,
     isToday: Boolean,
     isSelected: Boolean,
     onDateSelected: (LocalDate) -> Unit
 ) {
     val selectedBackground = compositeOverSurface()
+    val primaryColor = AppColor.primary
     Column(
         modifier = modifier
             .fillMaxHeight()
             .padding(all = 2.dp)
             .clickable { onDateSelected(itemDate) }
             .drawBehind {
+                if (viewMode == DailyAchievementPageViewMode.DESCRIPTION_TEXT && isInterest) {
+                    val doneRate = (doneLoops.size.toFloat() / (doneLoops.size + nodDoneLoops.size))
+                    if (doneRate > 0.5F) {
+                        drawRoundRect(
+                            color = primaryColor.copy((0.3f * doneRate) * (0.3f * doneRate)),
+                            cornerRadius = CornerRadius(
+                                x = 4.dp.toPx(),
+                                y = 4.dp.toPx()
+                            )
+                        )
+                    }
+                }
                 if (isSelected) {
                     drawRoundRect(
                         color = selectedBackground,
@@ -206,6 +241,14 @@ private fun CalendarDateItem(
                             x = 4.dp.toPx(),
                             y = 4.dp.toPx()
                         )
+                    )
+                    drawRoundRect(
+                        color = primaryColor.copy(alpha = 0.7f),
+                        cornerRadius = CornerRadius(
+                            x = 4.dp.toPx(),
+                            y = 4.dp.toPx()
+                        ),
+                        style = Stroke(width = 1f)
                     )
                 }
             }
@@ -222,17 +265,64 @@ private fun CalendarDateItem(
             )
         )
 
-        DoneLoopsIndicator(
-            modifier = Modifier
-                .padding(top = 8.dp)
-                .align(Alignment.CenterHorizontally),
+        if (isInterest) {
+            AchievementIndicators(
+                modifier = Modifier
+                    .padding(top = 8.dp)
+                    .align(Alignment.CenterHorizontally),
+                viewMode = viewMode,
+                doneLoops = doneLoops,
+                noDoneLoops = nodDoneLoops,
+            )
+        }
+    }
+}
+
+@Composable
+private fun AchievementIndicators(
+    modifier: Modifier = Modifier,
+    viewMode: DailyAchievementPageViewMode,
+    doneLoops: List<LoopByDate>,
+    noDoneLoops: List<LoopByDate>,
+) {
+    when (viewMode) {
+        DailyAchievementPageViewMode.COLOR_DOT -> ColorDotIndicator(
+            modifier = modifier,
             doneLoops = doneLoops,
+        )
+
+        DailyAchievementPageViewMode.DESCRIPTION_TEXT -> DescriptionTextIndicator(
+            modifier = modifier,
+            doneCount = doneLoops.size,
+            otherCount = noDoneLoops.size,
         )
     }
 }
 
 @Composable
-private fun DoneLoopsIndicator(
+private fun DescriptionTextIndicator(
+    modifier: Modifier = Modifier,
+    doneCount: Int,
+    otherCount: Int,
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            modifier = Modifier.padding(top = 4.dp),
+            text = String.format(
+                " %d/%d", doneCount, doneCount + otherCount
+            ),
+            style = AppTypography.labelMedium.copy(
+                color = AppColor.onSurface.copy(alpha = 0.4f)
+            )
+        )
+    }
+}
+
+@Composable
+private fun ColorDotIndicator(
     modifier: Modifier = Modifier,
     doneLoops: List<LoopByDate>,
 ) {

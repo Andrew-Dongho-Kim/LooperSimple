@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -52,11 +53,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
-import com.pnd.android.loop.data.LoopDoneVo
-import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.data.LoopWithDone
 import com.pnd.android.loop.data.isDone
 import com.pnd.android.loop.data.isSkip
+import com.pnd.android.loop.ui.common.AppBarIcon
 import com.pnd.android.loop.ui.common.SimpleAppBar
 import com.pnd.android.loop.ui.common.findLastFullyVisibleItemIndex
 import com.pnd.android.loop.ui.theme.AppColor
@@ -112,6 +112,10 @@ fun DailyAchievementPage(
             selectedDate = date
         }
     }
+
+    val viewMode by achievementViewModel.flowViewMode.collectAsState(
+        initial = DailyAchievementPageViewMode.COLOR_DOT
+    )
     Scaffold(
         modifier = modifier
             .fillMaxWidth()
@@ -123,8 +127,21 @@ fun DailyAchievementPage(
                 title = selectedDate.formatYearMonth(),
                 onNavigateUp = onNavigateUp,
                 actions = {
+                    AppBarIcon(
+                        imageVector = Icons.Outlined.Checklist,
+                        color = if (viewMode == DailyAchievementPageViewMode.DESCRIPTION_TEXT) {
+                            AppColor.primary.copy(alpha = 0.8f)
+                        } else {
+                            AppColor.onSurface.copy(alpha = 0.8f)
+                        },
+                        descriptionResId = R.string.daily_record,
+                        onClick = {
+                            achievementViewModel.toggleViewMode()
+                        }
+                    )
+
                     AppBarDateIcon(
-                        modifier = Modifier.padding(end = 12.dp),
+                        modifier = Modifier.padding(horizontal = 12.dp),
                         onMoveToToday = { onDateSelected(LocalDate.now()) }
                     )
                 }
@@ -136,6 +153,7 @@ fun DailyAchievementPage(
                 pagerState = pagerState,
                 lazyListState = lazyListState,
                 achievementViewModel = achievementViewModel,
+                viewMode = viewMode,
                 minDate = minDate,
                 selectedDate = selectedDate,
                 onDateSelected = onDateSelected,
@@ -193,6 +211,7 @@ private fun DailyAchievementPageContent(
     pagerState: PagerState,
     lazyListState: LazyListState,
     achievementViewModel: DailyAchievementViewModel,
+    viewMode: DailyAchievementPageViewMode,
     minDate: LocalDate,
     selectedDate: LocalDate,
     onDateSelected: (LocalDate) -> Unit,
@@ -213,6 +232,7 @@ private fun DailyAchievementPageContent(
 
         Calendar(
             modifier = Modifier.weight(1f),
+            viewMode = viewMode,
             pagerState = pagerState,
             achievementViewModel = achievementViewModel,
             minDate = minDate,
@@ -359,7 +379,7 @@ private fun AchievementItem(
             itemDate = itemDate,
         )
 
-        val doneList = item.filter { it.done.isDone()}
+        val doneList = item.filter { it.done.isDone() }
         if (doneList.isNotEmpty()) {
             AchievementItemSection(
                 modifier = Modifier.fillMaxWidth(),
@@ -387,6 +407,10 @@ private fun AchievementItem(
                 icon = Icons.Filled.Clear,
                 iconColor = AppColor.onSurface,
             )
+        }
+
+        if (doneList.isEmpty() && skipList.isEmpty()) {
+
         }
     }
 }

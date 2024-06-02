@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.InvalidStateException
+import com.google.ai.client.generativeai.type.QuotaExceededException
 import com.google.ai.client.generativeai.type.ResponseStoppedException
 import com.google.ai.client.generativeai.type.generationConfig
 import com.pnd.android.loop.R
@@ -66,6 +67,8 @@ class LoopViewModel @Inject constructor(
             } catch (e: ResponseStoppedException) {
                 // don't anything, just catch
             } catch (e: InvalidStateException) {
+                // don't anything, just catch
+            } catch (e : QuotaExceededException) {
                 // don't anything, just catch
             }
         }

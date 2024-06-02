@@ -18,7 +18,7 @@
     <string name="day_of_week_done_rate_chart">Done rate chart by day of week</string>
 
     <string name="statistics">Statistics</string>
-    <string name="go_to_statistics">Go to statistics</string>
+    <string name="go_to_statistics">statistics</string>
 
     <string name="total">Total</string>
 
@@ -52,6 +52,7 @@
     <string name="navi_up">Navigate up</string>
     <string name="filter">Filter</string>
     <string name="about_app">About LooperSimple</string>
+    <string name="daily_record">Daily record</string>
     <string name="view_daily_record">View daily record</string>
 
     <string name="desc_color_selector">Color Selector</string>

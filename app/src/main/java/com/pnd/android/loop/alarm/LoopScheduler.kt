@@ -158,7 +158,7 @@ class LoopScheduler @Inject constructor(
                 ACTION_LOOP_START -> handleActionLoopStart(context, intent)
                 ACTION_LOOP_END -> handleActionLoopEnd(context, intent)
                 ACTION_LOOP_REPEAT -> handleActionLoopRepeat(intent)
-                ACTION_LOOP_SYNC -> handleActionLoopSync(intent)
+                ACTION_LOOP_SYNC -> handleActionLoopSync(context, intent)
 
                 ACTION_LOOP_DONE -> handleActionLoopDone(intent)
                 ACTION_LOOP_CANCEL -> handleActionLoopCancel(intent)
@@ -174,7 +174,7 @@ class LoopScheduler @Inject constructor(
         }
 
 
-        private fun handleActionLoopSync(intent: Intent) {
+        private fun handleActionLoopSync(context: Context, intent: Intent) {
             val loop = intent.asLoop()
 
             if (loop.id == LoopBase.MIDNIGHT_RESERVATION_ID) {
@@ -183,6 +183,7 @@ class LoopScheduler @Inject constructor(
                 // TEMP CODE
                 notificationHelper.notify(loop)
             }
+            AppWidgetUpdateWorker.updateWidget(context)
         }
 
         private fun handleActionLoopStart(context: Context, intent: Intent) {
