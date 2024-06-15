@@ -4,7 +4,7 @@
     <string name="loops">%d 루프</string>
     <string name="today_loop_state">진행:%d, 남음:%d, 전체:%d</string>
     <string name="desc_no_loops">루프가 없습니다.</string>
-    <string name="today_loops_completed">\"오늘의 루프를 모두 완료하였습니다.\"</string>
+    <string name="today_loops_terminated">\"오늘의 루프를 모두 종료되었습니다.\"</string>
     <string name="unchecked_loops">어제, 확인하지 않은 루프가 *%d*개 있습니다.</string>
     <string name="response_rate">응답률</string>
     <string name="done_rate">완료율</string>
@@ -18,6 +18,8 @@
 
     <string name="statistics">통계</string>
     <string name="go_to_statistics">통계페이지로 이동</string>
+
+    <string name="no_achievements">완료하거나 건너뛴 루프가 없습니다.</string>
 
     <string name="total">전체</string>
 

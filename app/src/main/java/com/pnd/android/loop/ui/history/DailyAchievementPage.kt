@@ -39,9 +39,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -410,7 +412,7 @@ private fun AchievementItem(
         }
 
         if (doneList.isEmpty() && skipList.isEmpty()) {
-
+            NoAchievementItemSection()
         }
     }
 }
@@ -430,6 +432,31 @@ private fun AchievementItemDateHeader(
     )
 }
 
+@Composable
+private fun NoAchievementItemSection(
+    modifier: Modifier = Modifier
+) {
+    val color = AppColor.onSurface.copy(alpha = 0.6f)
+    Text(
+        modifier = modifier
+            .fillMaxWidth()
+            .drawBehind {
+                val stroke = Stroke(
+                    width = 1f,
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(5f, 5f), 0f)
+                )
+                drawRoundRect(
+                    color = color,
+                    style = stroke
+                )
+            }
+            .padding(horizontal = 24.dp, vertical = 18.dp),
+        text = stringResource(id = R.string.no_achievements),
+        style = AppTypography.bodyLarge.copy(
+            color = color
+        )
+    )
+}
 
 @Composable
 private fun AchievementItemSection(

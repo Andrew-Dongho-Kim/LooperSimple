@@ -38,7 +38,6 @@ import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.Blue400
 import com.pnd.android.loop.ui.theme.Blue500
 import com.pnd.android.loop.ui.theme.onSurface
-import com.pnd.android.loop.ui.theme.surface
 import com.pnd.android.loop.util.ABB_MONTHS
 import com.pnd.android.loop.util.DAYS_WITH_3CHARS
 import com.pnd.android.loop.util.formatHourMinute
@@ -238,7 +237,7 @@ fun LoopWidgetEmpty(
                 id = if (loopsTotal == 0) {
                     R.string.desc_no_loops
                 } else {
-                    R.string.today_loops_completed
+                    R.string.today_loops_terminated
                 }
             ),
             style = TextStyle(

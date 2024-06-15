@@ -215,7 +215,7 @@ private fun LazyListScope.sectionTodayEmpty(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = stringResource(id = R.string.today_loops_completed),
+                text = stringResource(id = R.string.today_loops_terminated),
                 style = AppTypography.titleMedium.copy(
                     color = AppColor.onSurface.copy(alpha = 0.8f),
                     fontSize = 16.sp
