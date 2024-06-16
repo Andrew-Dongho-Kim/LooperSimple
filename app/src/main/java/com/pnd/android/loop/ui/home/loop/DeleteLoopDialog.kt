@@ -11,6 +11,7 @@ import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
+import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.surface
 
@@ -23,6 +24,7 @@ fun DeleteLoopDialog(
 ) {
     AlertDialog(
         modifier = modifier.padding(horizontal = 32.dp),
+        shape = RoundShapes.medium,
         onDismissRequest = onDismiss,
         text = {
             Text(
@@ -52,5 +54,6 @@ fun DeleteLoopDialog(
             }
         },
         containerColor = AppColor.surface,
+        tonalElevation = 0.dp,
     )
 }

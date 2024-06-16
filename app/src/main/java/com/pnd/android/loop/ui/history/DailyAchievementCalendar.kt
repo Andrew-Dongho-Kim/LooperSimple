@@ -1,6 +1,7 @@
 package com.pnd.android.loop.ui.history
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -13,6 +14,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -46,7 +49,7 @@ import kotlin.math.ceil
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun Calendar(
+fun DailyAchievementCalendar(
     modifier: Modifier = Modifier,
     pagerState: PagerState,
     achievementViewModel: DailyAchievementViewModel,
@@ -189,7 +192,7 @@ private fun CalendarRow(
                         ),
                     viewMode = viewMode,
                     doneLoops = doneLoopsByDate[itDate] ?: emptyList(),
-                    nodDoneLoops = noDoneLoopsByDate[itDate] ?: emptyList(),
+                    noDoneLoops = noDoneLoopsByDate[itDate] ?: emptyList(),
                     itemDate = itDate,
                     isInterest = isInterest,
                     isToday = itDate == LocalDate.now(),
@@ -207,7 +210,7 @@ private fun CalendarDateItem(
     modifier: Modifier = Modifier,
     viewMode: DailyAchievementPageViewMode,
     doneLoops: List<LoopByDate>,
-    nodDoneLoops: List<LoopByDate>,
+    noDoneLoops: List<LoopByDate>,
     itemDate: LocalDate,
     isInterest: Boolean,
     isToday: Boolean,
@@ -223,7 +226,7 @@ private fun CalendarDateItem(
             .clickable { onDateSelected(itemDate) }
             .drawBehind {
                 if (viewMode == DailyAchievementPageViewMode.DESCRIPTION_TEXT && isInterest) {
-                    val doneRate = (doneLoops.size.toFloat() / (doneLoops.size + nodDoneLoops.size))
+                    val doneRate = (doneLoops.size.toFloat() / (doneLoops.size + noDoneLoops.size))
                     if (doneRate > 0.5F) {
                         drawRoundRect(
                             color = primaryColor.copy((0.3f * doneRate) * (0.3f * doneRate)),
@@ -253,10 +256,11 @@ private fun CalendarDateItem(
                 }
             }
     ) {
+
         Text(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 4.dp),
+                .padding(top = 4.dp)
+                .fillMaxWidth(),
             text = "${itemDate.dayOfMonth}",
             textAlign = TextAlign.Center,
             style = AppTypography.bodyMedium.copy(
@@ -265,14 +269,28 @@ private fun CalendarDateItem(
             )
         )
 
+        val hasRetrospect = doneLoops.any { it.retrospect != null } ||
+                noDoneLoops.any { it.retrospect != null }
+        if (hasRetrospect) {
+            Image(
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .size(10.dp),
+                imageVector = Icons.AutoMirrored.Filled.Chat,
+                alpha = 0.6f,
+                contentDescription = ""
+            )
+        }
+
+
         if (isInterest) {
             AchievementIndicators(
                 modifier = Modifier
-                    .padding(top = 8.dp)
+                    .padding(top = if (hasRetrospect) 4.dp else 14.dp)
                     .align(Alignment.CenterHorizontally),
                 viewMode = viewMode,
                 doneLoops = doneLoops,
-                noDoneLoops = nodDoneLoops,
+                noDoneLoops = noDoneLoops,
             )
         }
     }
@@ -310,7 +328,6 @@ private fun DescriptionTextIndicator(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            modifier = Modifier.padding(top = 4.dp),
             text = String.format(
                 " %d/%d", doneCount, doneCount + otherCount
             ),
@@ -326,7 +343,7 @@ private fun ColorDotIndicator(
     modifier: Modifier = Modifier,
     doneLoops: List<LoopByDate>,
 ) {
-    Row(modifier = modifier) {
+    Row(modifier = modifier.padding(top = 2.dp)) {
         doneLoops.forEach { loop ->
             Box(
                 modifier = Modifier

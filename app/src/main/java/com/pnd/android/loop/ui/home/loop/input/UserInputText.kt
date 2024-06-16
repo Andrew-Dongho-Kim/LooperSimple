@@ -81,7 +81,7 @@ private fun UserInputTextField(
             .onFocusChanged { state -> onTextFieldFocused(state.isFocused) },
         keyboardOptions = KeyboardOptions(
             keyboardType = keyboardType,
-            imeAction = ImeAction.Send
+            imeAction = ImeAction.Done
         ),
         maxLines = 1,
         cursorBrush = SolidColor(AppColor.onSurface),

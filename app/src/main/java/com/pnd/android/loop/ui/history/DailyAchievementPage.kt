@@ -232,7 +232,7 @@ private fun DailyAchievementPageContent(
             onUpdateSelectedDate = onUpdateSelectedDate
         )
 
-        Calendar(
+        DailyAchievementCalendar(
             modifier = Modifier.weight(1f),
             viewMode = viewMode,
             pagerState = pagerState,
@@ -531,39 +531,42 @@ private fun AchievementItemSectionBody(
     loop: LoopBase,
     itemDate: LocalDate,
 ) {
-    Row(
+    Column(
         modifier = modifier.padding(
             start = 16.dp,
             top = 8.dp
         ),
-        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            modifier = Modifier
-                .size(8.dp)
-                .background(
-                    color = loop.color.compositeOverOnSurface(),
-                    shape = CircleShape
-                )
-        )
-
-        Text(
-            modifier = Modifier.padding(start = 16.dp),
-            text = loop.title,
-            style = AppTypography.bodyMedium.copy(
-                color = AppColor.onSurface
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .background(
+                        color = loop.color.compositeOverOnSurface(),
+                        shape = CircleShape
+                    )
             )
-        )
 
-        val createdDate = remember(loop.created) { loop.created.toLocalDate() }
-        if (itemDate == createdDate) {
             Text(
-                modifier = Modifier.padding(start = 6.dp),
-                text = "[${stringResource(id = R.string.created)}]",
-                style = AppTypography.labelMedium.copy(
-                    color = AppColor.error.copy(alpha = 0.7f)
+                modifier = Modifier.padding(start = 16.dp),
+                text = loop.title,
+                style = AppTypography.bodyMedium.copy(
+                    color = AppColor.onSurface
                 )
             )
+
+            val createdDate = remember(loop.created) { loop.created.toLocalDate() }
+            if (itemDate == createdDate) {
+                Text(
+                    modifier = Modifier.padding(start = 6.dp),
+                    text = "[${stringResource(id = R.string.created)}]",
+                    style = AppTypography.labelMedium.copy(
+                        color = AppColor.error.copy(alpha = 0.7f)
+                    )
+                )
+            }
         }
     }
 }

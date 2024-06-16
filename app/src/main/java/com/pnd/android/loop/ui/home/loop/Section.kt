@@ -97,6 +97,7 @@ fun LazyListScope.section(
 
         is Section.DoneSkip -> sectionDoneSkip(
             section = section,
+            blurState = blurState,
             loopViewModel = loopViewModel,
             onNavigateToDetailPage = onNavigateToDetailPage,
             onNavigateToHistoryPage = onNavigateToHistoryPage
@@ -365,6 +366,7 @@ private fun LazyListScope.sectionAd(
 
 private fun LazyListScope.sectionDoneSkip(
     section: Section.DoneSkip,
+    blurState: BlurState,
     loopViewModel: LoopViewModel,
     onNavigateToDetailPage: (LoopBase) -> Unit,
     onNavigateToHistoryPage: () -> Unit,
@@ -379,6 +381,7 @@ private fun LazyListScope.sectionDoneSkip(
                 bottom = 12.dp
             ),
             section = section,
+            blurState = blurState,
             loopViewModel = loopViewModel,
             onNavigateToDetailPage = onNavigateToDetailPage,
             onNavigateToHistoryPage = onNavigateToHistoryPage,

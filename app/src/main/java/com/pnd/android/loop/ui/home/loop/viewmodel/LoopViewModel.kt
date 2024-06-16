@@ -20,12 +20,11 @@ import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flatMapMerge
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.zip
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
@@ -68,7 +67,7 @@ class LoopViewModel @Inject constructor(
                 // don't anything, just catch
             } catch (e: InvalidStateException) {
                 // don't anything, just catch
-            } catch (e : QuotaExceededException) {
+            } catch (e: QuotaExceededException) {
                 // don't anything, just catch
             }
         }
@@ -110,6 +109,11 @@ class LoopViewModel @Inject constructor(
         }
     }
 
+    override fun onCleared() {
+        coroutineScope.cancel()
+        super.onCleared()
+    }
+
     suspend fun maxOfIntersects(loop: LoopBase) =
         loopRepository.maxOfIntersects(loop = loop)
 
@@ -139,6 +143,28 @@ class LoopViewModel @Inject constructor(
                 doneState = doneState,
             )
             AppWidgetUpdateWorker.updateWidget(application)
+        }
+    }
+
+    suspend fun getMemo(
+        loopId: Int,
+        localDate: LocalDate,
+    ) = loopRepository.getMemo(
+        loopId = loopId,
+        localDate = localDate,
+    )
+
+    fun saveMemo(
+        loopId: Int,
+        localDate: LocalDate,
+        text: String
+    ) {
+        coroutineScope.launch {
+            loopRepository.saveMemo(
+                loopId = loopId,
+                localDate = localDate,
+                text = text
+            )
         }
     }
 

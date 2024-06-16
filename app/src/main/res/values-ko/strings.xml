@@ -4,7 +4,7 @@
     <string name="loops">%d 루프</string>
     <string name="today_loop_state">진행:%d, 남음:%d, 전체:%d</string>
     <string name="desc_no_loops">루프가 없습니다.</string>
-    <string name="today_loops_terminated">\"오늘의 루프를 모두 종료되었습니다.\"</string>
+    <string name="today_loops_terminated">\"오늘의 루프가 모두 종료되었습니다.\"</string>
     <string name="unchecked_loops">어제, 확인하지 않은 루프가 *%d*개 있습니다.</string>
     <string name="response_rate">응답률</string>
     <string name="done_rate">완료율</string>
@@ -23,6 +23,7 @@
 
     <string name="total">전체</string>
 
+    <string name="save">저장</string>
     <string name="ok">확인</string>
     <string name="cancel">취소</string>
     <string name="add">추가</string>
@@ -31,6 +32,7 @@
     <string name="done">완료</string>
     <string name="skip">건너뜀</string>
     <string name="no_response">응답없음</string>
+    <string name="memo">메모</string>
     <string name="restore">복원</string>
     <string name="later">나중에</string>
     <string name="start">시작</string>
@@ -38,6 +40,7 @@
     <string name="end">종료</string>
     <string name="end_at">%s 종료</string>
     <string name="refresh">새로고침</string>
+    <string name="retrospect">회고</string>
 
     <string name="created">생성됨</string>
     <string name="created_date">생성일</string>

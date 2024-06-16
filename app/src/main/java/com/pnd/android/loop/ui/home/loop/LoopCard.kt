@@ -99,7 +99,7 @@ fun LoopCard(
     val commonBorderColor = AppColor.outline
     val border = remember(isMock, loop.color) {
         BorderStroke(
-            width = if (isMock) 1.dp else 0.5.dp,
+            width = 0.5.dp,
             color = if (isMock) mockBorerColor else commonBorderColor
         )
     }

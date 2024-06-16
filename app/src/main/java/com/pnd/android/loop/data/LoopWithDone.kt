@@ -70,7 +70,8 @@ data class LoopByDate(
     val date: LocalDate,
     val id: Int,
     val title: String,
-    val color: Int
+    val color: Int,
+    val retrospect: String?,
 )
 
 data class LoopWithStatistics(
@@ -109,7 +110,7 @@ interface LoopWithDoneDao {
     suspend fun allEnabledLoops(date: Long): List<LoopWithDone>
 
     @Query(
-        "SELECT date, id, title, color FROM loop_done LEFT JOIN loop ON loop.id == loop_done.loopId " +
+        "SELECT loop_done.date as date, id, title, color, text as retrospect FROM loop_done LEFT JOIN loop ON loop.id == loop_done.loopId LEFT JOIN loop_memo ON loop_done.loopId == loop_memo.loopId AND loop_done.date == loop_memo.date " +
                 "WHERE loop_done.done == ${DoneState.DONE} AND " +
                 ":from <= loop_done.date AND loop_done.date <= :to " +
                 "ORDER BY loop_done.date ASC, loop.id ASC"
@@ -121,7 +122,7 @@ interface LoopWithDoneDao {
 
 
     @Query(
-        "SELECT date, id, title, color FROM loop_done LEFT JOIN loop ON loop.id == loop_done.loopId " +
+        "SELECT loop_done.date as date, id, title, color, text as retrospect FROM loop_done LEFT JOIN loop ON loop.id == loop_done.loopId LEFT JOIN loop_memo ON loop_done.loopId == loop_memo.loopId AND loop_done.date == loop_memo.date " +
                 "WHERE  loop_done.done != ${DoneState.DONE} AND " +
                 "loop_done.done != ${DoneState.DISABLED} AND " +
                 ":from <= loop_done.date AND loop_done.date <= :to " +

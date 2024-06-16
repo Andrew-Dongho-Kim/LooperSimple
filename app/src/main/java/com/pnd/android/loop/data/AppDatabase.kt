@@ -1,5 +1,6 @@
 package com.pnd.android.loop.data
 
+import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverter
@@ -9,12 +10,25 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.pnd.android.loop.util.toLocalDate
 import java.time.LocalDate
 
-@Database(entities = [LoopVo::class, LoopDoneVo::class], version = 4)
+@Database(
+    version = 7,
+    entities = [
+        LoopVo::class,
+        LoopDoneVo::class,
+        LoopRetrospectVo::class
+    ],
+    autoMigrations = [
+        AutoMigration(from = 4, to = 5),
+        AutoMigration(from = 5, to = 6),
+        AutoMigration(from = 6, to = 7),
+    ],
+    exportSchema = true
+)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun loopDao(): LoopDao
     abstract fun loopDoneDao(): LoopDoneDao
-
+    abstract fun loopMemoDao(): LoopMemoDao
     abstract fun loopWithDoneDao(): LoopWithDoneDao
 }
 

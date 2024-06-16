@@ -7,6 +7,7 @@ import com.pnd.android.loop.data.AppDatabase
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.LoopVo
+import com.pnd.android.loop.data.LoopRetrospectVo
 import com.pnd.android.loop.data.isNotRespond
 import com.pnd.android.loop.util.isActive
 import com.pnd.android.loop.util.isActiveDay
@@ -25,6 +26,7 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.temporal.ChronoUnit
 import javax.inject.Inject
+import kotlin.math.min
 
 class LoopRepository @Inject constructor(
     appDb: AppDatabase,
@@ -35,6 +37,7 @@ class LoopRepository @Inject constructor(
     private val loopDao = appDb.loopDao()
     private val loopWithDoneDao = appDb.loopWithDoneDao()
     private val loopDoneDao = appDb.loopDoneDao()
+    private val loopMemoDao = appDb.loopMemoDao()
 
     val localDateTime = flow {
         while (true) {
@@ -45,12 +48,13 @@ class LoopRepository @Inject constructor(
 
     val localDate = flow {
         while (true) {
-            val delayInMs = LocalTime.now().until(LocalTime.MAX, ChronoUnit.MILLIS)
             val now = LocalDate.now()
+            val delayInMs = LocalTime.now().until(LocalTime.MAX, ChronoUnit.MILLIS)
+
             logger.d { "localDate is $now, delay:${delayInMs.toLocalTime()}" }
 
             emit(now)
-            delay(delayInMs)
+            delay(min(delayInMs, 6000))
         }
     }
 
@@ -134,4 +138,24 @@ class LoopRepository @Inject constructor(
             doneState = doneState
         )
     }
+
+    suspend fun getMemo(
+        loopId: Int,
+        localDate: LocalDate
+    ) = loopMemoDao.getMemo(
+        loopId = loopId,
+        localDate = localDate.toMs(),
+    )
+
+    suspend fun saveMemo(
+        loopId: Int,
+        localDate: LocalDate,
+        text: String
+    ) = loopMemoDao.saveMemo(
+        LoopRetrospectVo(
+            loopId = loopId,
+            date = localDate.toMs(),
+            text = text
+        )
+    )
 }

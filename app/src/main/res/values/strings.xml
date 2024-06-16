@@ -24,6 +24,7 @@
 
     <string name="total">Total</string>
 
+    <string name="save">Save</string>
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
     <string name="add">Add</string>
@@ -32,6 +33,7 @@
     <string name="done">DONE</string>
     <string name="skip">SKIP</string>
     <string name="no_response">No Response</string>
+    <string name="memo">Memo</string>
     <string name="restore">Restore</string>
     <string name="later">Later</string>
     <string name="start">Start</string>
@@ -39,6 +41,7 @@
     <string name="end">End</string>
     <string name="end_at">End at %s</string>
     <string name="refresh">Refresh</string>
+    <string name="retrospect">Retrospect</string>
 
     <string name="created">created</string>
     <string name="created_date">Created date</string>

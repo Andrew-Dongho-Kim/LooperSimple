@@ -5,35 +5,51 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.outlined.ArrowRightAlt
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.DensityMedium
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.data.LoopWithDone
 import com.pnd.android.loop.ui.common.isLargeScreen
+import com.pnd.android.loop.ui.home.BlurState
 import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
@@ -41,12 +57,16 @@ import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.compositeOverSurface
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
+import com.pnd.android.loop.ui.theme.surface
 import com.pnd.android.loop.util.formatHourMinute
+import com.pnd.android.loop.util.formatMonthDateDay
+import java.time.LocalDate
 
 @Composable
 fun LoopDoneSkipCard(
     modifier: Modifier = Modifier,
     section: Section,
+    blurState: BlurState,
     loopViewModel: LoopViewModel,
     onNavigateToDetailPage: (LoopBase) -> Unit,
     onNavigateToHistoryPage: () -> Unit,
@@ -62,6 +82,7 @@ fun LoopDoneSkipCard(
         if (loops.isNotEmpty()) {
             LoopDoneSkipCardContent(
                 modifier = Modifier.padding(top = 12.dp),
+                blurState = blurState,
                 loops = loops,
                 loopViewModel = loopViewModel,
                 onNavigateToDetailPage = onNavigateToDetailPage,
@@ -116,6 +137,7 @@ private fun DoneSkipCardHeader(
 @Composable
 private fun LoopDoneSkipCardContent(
     modifier: Modifier = Modifier,
+    blurState: BlurState,
     loops: List<LoopBase>,
     loopViewModel: LoopViewModel,
     onNavigateToDetailPage: (LoopBase) -> Unit,
@@ -134,6 +156,8 @@ private fun LoopDoneSkipCardContent(
 
     Column(modifier = modifier) {
         DoneSkipCard(
+            blurState = blurState,
+            loopViewModel = loopViewModel,
             loops = loopGroup[DoneState.DONE] ?: emptyList(),
             title = stringResource(id = R.string.done),
             icon = Icons.Filled.Done,
@@ -144,7 +168,9 @@ private fun LoopDoneSkipCardContent(
         )
 
         DoneSkipCard(
+            blurState = blurState,
             modifier = Modifier.padding(top = 12.dp),
+            loopViewModel = loopViewModel,
             loops = loopGroup[DoneState.SKIP] ?: emptyList(),
             title = stringResource(id = R.string.skip),
             icon = Icons.Filled.Clear,
@@ -159,6 +185,8 @@ private fun LoopDoneSkipCardContent(
 @Composable
 private fun DoneSkipCard(
     modifier: Modifier = Modifier,
+    blurState: BlurState,
+    loopViewModel: LoopViewModel,
     loops: List<LoopBase>,
     title: String,
     icon: ImageVector,
@@ -189,7 +217,21 @@ private fun DoneSkipCard(
             loops.forEach { loop ->
                 key(loop.id) {
                     DoneSkipItem(
+                        blurState = blurState,
                         loop = loop,
+                        onGetRetrospect = {
+                            loopViewModel.getMemo(
+                                loopId = loop.id,
+                                localDate = LocalDate.now()
+                            )?.text ?: ""
+                        },
+                        onSaveRetrospect = { text ->
+                            loopViewModel.saveMemo(
+                                loopId = loop.id,
+                                localDate = LocalDate.now(),
+                                text = text,
+                            )
+                        },
                         onNavigateToDetailPage = onNavigateToDetailPage,
                         onUndoDoneState = onUndoDoneState,
                     )
@@ -244,10 +286,15 @@ private fun DoneSkipHeader(
 @Composable
 private fun DoneSkipItem(
     modifier: Modifier = Modifier,
+    blurState: BlurState,
     loop: LoopBase,
+    onGetRetrospect: suspend () -> String,
+    onSaveRetrospect: (String) -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
     onUndoDoneState: (loop: LoopBase) -> Unit,
 ) {
+    var isRetrospectDialogOpened by rememberSaveable { mutableStateOf(false) }
+
     Row(
         modifier = modifier
             .padding(horizontal = 16.dp, vertical = 10.dp)
@@ -255,19 +302,6 @@ private fun DoneSkipItem(
         verticalAlignment = Alignment.CenterVertically,
 
         ) {
-        DoneSkipItemTitle(
-            modifier = Modifier.weight(1f),
-            title = loop.title
-        )
-
-        if (LocalConfiguration.current.isLargeScreen()) {
-            DoneSkipItemStartAndEndTime(
-                modifier = Modifier.padding(start = 4.dp),
-                loopStart = loop.loopStart,
-                loopEnd = loop.loopEnd
-            )
-        }
-
         LoopCardColor(
             modifier = Modifier
                 .padding(horizontal = 8.dp)
@@ -276,9 +310,45 @@ private fun DoneSkipItem(
             color = loop.color
         )
 
-        DoneSkipItemDoneStateButton(
+        DoneSkipItemTitle(
+            modifier = Modifier.weight(1f),
+            title = loop.title
+        )
+
+        if (LocalConfiguration.current.isLargeScreen()) {
+            DoneSkipItemStartAndEndTime(
+                modifier = Modifier.padding(horizontal = 8.dp),
+                loopStart = loop.loopStart,
+                loopEnd = loop.loopEnd
+            )
+        }
+
+        DoneSkipCardButton(
+            imageVector = Icons.AutoMirrored.Filled.Chat,
+            contentDescription = stringResource(id = R.string.memo),
+            onClick = {
+                isRetrospectDialogOpened = true
+                blurState.on()
+            },
+        )
+
+        DoneSkipCardButton(
+            modifier = Modifier.padding(start = 12.dp),
+            imageVector = Icons.Filled.Refresh,
+            contentDescription = stringResource(id = R.string.restore),
+            onClick = { onUndoDoneState(loop) },
+        )
+    }
+
+    if (isRetrospectDialogOpened) {
+        RetrospectDialog(
             loop = loop,
-            onUndoDonState = onUndoDoneState
+            onGetRetrospect = onGetRetrospect,
+            onSaveRetrospect = onSaveRetrospect,
+            onDismiss = {
+                isRetrospectDialogOpened = false
+                blurState.off()
+            },
         )
     }
 }
@@ -321,28 +391,137 @@ private fun DoneSkipItemStartAndEndTime(
 }
 
 @Composable
-private fun DoneSkipItemDoneStateButton(
+private fun DoneSkipCardButton(
     modifier: Modifier = Modifier,
-    loop: LoopBase,
-    onUndoDonState: (loop: LoopBase) -> Unit
+    imageVector: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
 ) {
     Image(
         modifier = modifier
-            .clickable { onUndoDonState(loop) }
+            .clip(shape = RoundShapes.small)
+            .clickable(onClick = onClick)
             .border(
                 width = 0.5.dp,
                 color = AppColor.onSurface.copy(alpha = 0.1f),
                 shape = RoundShapes.small
             )
-            .clip(shape = RoundShapes.small)
             .padding(horizontal = 10.dp, vertical = 4.dp)
             .size(16.dp),
-        imageVector = Icons.Filled.Refresh,
+        imageVector = imageVector,
         colorFilter = ColorFilter.tint(
             color = AppColor.onSurface.copy(
                 alpha = 0.7f
             )
         ),
-        contentDescription = stringResource(R.string.restore)
+        contentDescription = contentDescription
     )
+}
+
+@Composable
+private fun RetrospectDialog(
+    modifier: Modifier = Modifier,
+    loop: LoopBase,
+    onGetRetrospect: suspend () -> String,
+    onSaveRetrospect: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+
+    var retrospect by remember { mutableStateOf("") }
+    LaunchedEffect(key1 = loop.id) {
+        retrospect = onGetRetrospect()
+    }
+
+    AlertDialog(
+        modifier = modifier.padding(horizontal = 32.dp),
+        shape = RoundShapes.medium,
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = stringResource(id = R.string.retrospect),
+                style = AppTypography.titleLarge.copy(
+                    color = AppColor.onSurface
+                ),
+            )
+        },
+        text = {
+            RetrospectDialogContent(
+                loop = loop,
+                retrospect = retrospect,
+                onRetrospectChanged = { retrospect = it }
+            )
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(
+                    text = stringResource(id = R.string.cancel),
+                    style = AppTypography.titleMedium,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                onSaveRetrospect(retrospect)
+                onDismiss()
+            }) {
+                Text(
+                    text = stringResource(id = R.string.save),
+                    style = AppTypography.titleMedium,
+                )
+            }
+        },
+        textContentColor = AppColor.surface,
+        containerColor = AppColor.surface,
+        tonalElevation = 0.dp,
+        properties = DialogProperties(dismissOnClickOutside = false)
+    )
+}
+
+@Composable
+private fun RetrospectDialogContent(
+    modifier: Modifier = Modifier,
+    loop: LoopBase,
+    retrospect: String,
+    onRetrospectChanged: (String) -> Unit,
+) {
+    Column(modifier = modifier) {
+        Row {
+            Text(
+                modifier = Modifier.weight(1f),
+                text = loop.title,
+                style = AppTypography.bodyMedium.copy(
+                    color = AppColor.onSurface
+                )
+            )
+
+            Text(
+                modifier = Modifier.padding(start = 8.dp),
+                text = LocalDate.now().formatMonthDateDay(),
+                style = AppTypography.bodyMedium.copy(
+                    color = AppColor.onSurface
+                )
+            )
+        }
+
+        BasicTextField(
+            modifier = Modifier
+                .padding(top = 24.dp)
+                .fillMaxWidth()
+                .heightIn(min = 52.dp)
+                .border(
+                    width = 1.dp,
+                    color = AppColor.onSurface.copy(alpha = 0.2f),
+                    shape = RoundShapes.small
+                )
+                .padding(all = 8.dp),
+            value = retrospect,
+            onValueChange = { onRetrospectChanged(it) },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Text,
+                imeAction = ImeAction.Default
+            ),
+            cursorBrush = SolidColor(AppColor.onSurface),
+            textStyle = AppTypography.bodyMedium.copy(color = AppColor.onSurface)
+        )
+    }
 }
