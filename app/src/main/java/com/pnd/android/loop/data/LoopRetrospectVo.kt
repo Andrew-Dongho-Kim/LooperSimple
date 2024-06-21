@@ -30,16 +30,16 @@ data class LoopRetrospectVo(
 )
 
 @Dao
-interface LoopMemoDao {
+interface LoopRetrospectDao {
 
     @Query("SELECT * FROM loop_memo WHERE loopId=:loopId AND date=:localDate")
-    suspend fun getMemo(
+    suspend fun getRetrospect(
         loopId: Int,
         localDate: Long
     ): LoopRetrospectVo?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun saveMemo(
+    suspend fun saveRetrospect(
         memoVo: LoopRetrospectVo,
     )
 }

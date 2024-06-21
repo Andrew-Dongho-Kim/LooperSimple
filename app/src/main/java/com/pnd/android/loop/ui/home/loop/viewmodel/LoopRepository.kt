@@ -37,7 +37,7 @@ class LoopRepository @Inject constructor(
     private val loopDao = appDb.loopDao()
     private val loopWithDoneDao = appDb.loopWithDoneDao()
     private val loopDoneDao = appDb.loopDoneDao()
-    private val loopMemoDao = appDb.loopMemoDao()
+    private val loopMemoDao = appDb.loopRetrospectDao()
 
     val localDateTime = flow {
         while (true) {
@@ -142,7 +142,7 @@ class LoopRepository @Inject constructor(
     suspend fun getMemo(
         loopId: Int,
         localDate: LocalDate
-    ) = loopMemoDao.getMemo(
+    ) = loopMemoDao.getRetrospect(
         loopId = loopId,
         localDate = localDate.toMs(),
     )
@@ -151,7 +151,7 @@ class LoopRepository @Inject constructor(
         loopId: Int,
         localDate: LocalDate,
         text: String
-    ) = loopMemoDao.saveMemo(
+    ) = loopMemoDao.saveRetrospect(
         LoopRetrospectVo(
             loopId = loopId,
             date = localDate.toMs(),

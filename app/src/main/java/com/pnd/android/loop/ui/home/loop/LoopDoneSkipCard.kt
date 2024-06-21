@@ -295,6 +295,11 @@ private fun DoneSkipItem(
 ) {
     var isRetrospectDialogOpened by rememberSaveable { mutableStateOf(false) }
 
+    var retrospect by remember { mutableStateOf("") }
+    LaunchedEffect(key1 = loop.id) {
+        retrospect = onGetRetrospect()
+    }
+
     Row(
         modifier = modifier
             .padding(horizontal = 16.dp, vertical = 10.dp)
@@ -326,6 +331,7 @@ private fun DoneSkipItem(
         DoneSkipCardButton(
             imageVector = Icons.AutoMirrored.Filled.Chat,
             contentDescription = stringResource(id = R.string.memo),
+            tintColorAlpha = if (retrospect.isNotEmpty()) 0.7f else 0.3f,
             onClick = {
                 isRetrospectDialogOpened = true
                 blurState.on()
@@ -343,7 +349,8 @@ private fun DoneSkipItem(
     if (isRetrospectDialogOpened) {
         RetrospectDialog(
             loop = loop,
-            onGetRetrospect = onGetRetrospect,
+            retrospect = retrospect,
+            onRetrospectChanged = { retrospect = it },
             onSaveRetrospect = onSaveRetrospect,
             onDismiss = {
                 isRetrospectDialogOpened = false
@@ -395,6 +402,8 @@ private fun DoneSkipCardButton(
     modifier: Modifier = Modifier,
     imageVector: ImageVector,
     contentDescription: String,
+    tintColor: Color = AppColor.onSurface,
+    tintColorAlpha: Float = 0.7f,
     onClick: () -> Unit,
 ) {
     Image(
@@ -410,9 +419,7 @@ private fun DoneSkipCardButton(
             .size(16.dp),
         imageVector = imageVector,
         colorFilter = ColorFilter.tint(
-            color = AppColor.onSurface.copy(
-                alpha = 0.7f
-            )
+            color = tintColor.copy(alpha = tintColorAlpha)
         ),
         contentDescription = contentDescription
     )
@@ -422,16 +429,11 @@ private fun DoneSkipCardButton(
 private fun RetrospectDialog(
     modifier: Modifier = Modifier,
     loop: LoopBase,
-    onGetRetrospect: suspend () -> String,
+    retrospect: String,
+    onRetrospectChanged: (String) -> Unit,
     onSaveRetrospect: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
-
-    var retrospect by remember { mutableStateOf("") }
-    LaunchedEffect(key1 = loop.id) {
-        retrospect = onGetRetrospect()
-    }
-
     AlertDialog(
         modifier = modifier.padding(horizontal = 32.dp),
         shape = RoundShapes.medium,
@@ -448,7 +450,7 @@ private fun RetrospectDialog(
             RetrospectDialogContent(
                 loop = loop,
                 retrospect = retrospect,
-                onRetrospectChanged = { retrospect = it }
+                onRetrospectChanged = onRetrospectChanged
             )
         },
         dismissButton = {

@@ -28,7 +28,7 @@ import java.time.LocalDate
 abstract class AppDatabase : RoomDatabase() {
     abstract fun loopDao(): LoopDao
     abstract fun loopDoneDao(): LoopDoneDao
-    abstract fun loopMemoDao(): LoopMemoDao
+    abstract fun loopRetrospectDao(): LoopRetrospectDao
     abstract fun loopWithDoneDao(): LoopWithDoneDao
 }
 

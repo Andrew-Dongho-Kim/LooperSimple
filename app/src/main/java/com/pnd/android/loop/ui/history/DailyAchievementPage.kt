@@ -54,8 +54,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.pnd.android.loop.R
-import com.pnd.android.loop.data.LoopBase
-import com.pnd.android.loop.data.LoopWithDone
+import com.pnd.android.loop.data.FullLoopVo
 import com.pnd.android.loop.data.isDone
 import com.pnd.android.loop.data.isSkip
 import com.pnd.android.loop.ui.common.AppBarIcon
@@ -370,7 +369,7 @@ private fun DailyAchievementsRecords(
 @Composable
 private fun AchievementItem(
     modifier: Modifier = Modifier,
-    item: List<LoopWithDone>
+    item: List<FullLoopVo>
 ) {
     Column(modifier = modifier) {
         val itemDate = item[0].date.toLocalDate()
@@ -461,7 +460,7 @@ private fun NoAchievementItemSection(
 @Composable
 private fun AchievementItemSection(
     modifier: Modifier = Modifier,
-    loops: List<LoopWithDone>,
+    loops: List<FullLoopVo>,
     itemDate: LocalDate,
     title: String,
     backgroundColor: Color,
@@ -528,9 +527,10 @@ private fun AchievementItemSectionHeader(
 @Composable
 private fun AchievementItemSectionBody(
     modifier: Modifier = Modifier,
-    loop: LoopBase,
+    loop: FullLoopVo,
     itemDate: LocalDate,
 ) {
+
     Column(
         modifier = modifier.padding(
             start = 16.dp,
@@ -552,7 +552,7 @@ private fun AchievementItemSectionBody(
             Text(
                 modifier = Modifier.padding(start = 16.dp),
                 text = loop.title,
-                style = AppTypography.bodyMedium.copy(
+                style = AppTypography.bodyLarge.copy(
                     color = AppColor.onSurface
                 )
             )
@@ -568,5 +568,28 @@ private fun AchievementItemSectionBody(
                 )
             }
         }
+
+        if (loop.retrospect.isNotEmpty()) {
+            Retrospect(
+                modifier = Modifier.padding(
+                    top = 12.dp,
+                    start = 24.dp,
+                    bottom = 12.dp
+                ),
+                retrospect = loop.retrospect
+            )
+        }
     }
+}
+
+@Composable
+private fun Retrospect(
+    modifier: Modifier = Modifier,
+    retrospect: String
+) {
+    Text(
+        modifier = modifier,
+        text = retrospect,
+        style = AppTypography.bodyMedium.copy(color = AppColor.onSurface.copy(alpha = 0.7f))
+    )
 }

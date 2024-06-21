@@ -5,33 +5,34 @@ import androidx.paging.PagingState
 import com.pnd.android.loop.common.Logger
 import com.pnd.android.loop.data.AppDatabase
 import com.pnd.android.loop.data.Day.Companion.isOn
+import com.pnd.android.loop.data.FullLoopVo
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.LoopDoneVo.DoneState
-import com.pnd.android.loop.data.LoopWithDone
-import com.pnd.android.loop.data.toLoopWithDone
+import com.pnd.android.loop.data.toFullLoopVo
 import com.pnd.android.loop.util.dayForLoop
 import com.pnd.android.loop.util.toLocalDate
 import com.pnd.android.loop.util.toMs
 import java.time.DayOfWeek
 import java.time.LocalDate
 
-class HistoryPagingSource(
+class DailyAchievementPagingSource(
     appDb: AppDatabase,
     private val pageSize: Int,
-) : PagingSource<LocalDate, List<LoopWithDone>>() {
+) : PagingSource<LocalDate, List<FullLoopVo>>() {
 
     private val logger = Logger("HistoryPagingSource")
 
     private val loopDao = appDb.loopDao()
     private val loopDoneDao = appDb.loopDoneDao()
+    private val loopRetrospectDao = appDb.loopRetrospectDao()
 
     private lateinit var minDate: LocalDate
     private val maxDate = LocalDate.now().plusDays(1L)
 
     private val loopsByDayOfWeek = mutableMapOf<DayOfWeek, List<LoopBase>>()
 
-    override fun getRefreshKey(state: PagingState<LocalDate, List<LoopWithDone>>): LocalDate? {
+    override fun getRefreshKey(state: PagingState<LocalDate, List<FullLoopVo>>): LocalDate? {
         return state.anchorPosition?.let { anchorPosition ->
             val closestPage = state.closestPageToPosition(anchorPosition)
             closestPage?.prevKey?.plusDays(state.config.pageSize.toLong())
@@ -41,7 +42,7 @@ class HistoryPagingSource(
 
     override suspend fun load(
         params: LoadParams<LocalDate>
-    ): LoadResult<LocalDate, List<LoopWithDone>> {
+    ): LoadResult<LocalDate, List<FullLoopVo>> {
         return try {
             init()
             val curr = params.key ?: LocalDate.now().plusDays(1)
@@ -64,10 +65,10 @@ class HistoryPagingSource(
     private suspend fun load(
         prev: LocalDate?,
         curr: LocalDate
-    ): List<List<LoopWithDone>> {
+    ): List<List<FullLoopVo>> {
         val from = prev ?: return emptyList()
 
-        val results = mutableListOf<List<LoopWithDone>>()
+        val results = mutableListOf<List<FullLoopVo>>()
         var date = from
         while (date.isBefore(curr)) {
             val loops = loopsByDayOfWeek[date.dayOfWeek]
@@ -85,7 +86,12 @@ class HistoryPagingSource(
                             loopId = loop.id,
                             date = date.toMs()
                         )
-                        loop.toLoopWithDone(
+                        val retrospectVo = loopRetrospectDao.getRetrospect(
+                            loopId = loop.id,
+                            localDate = date.toMs(),
+                        )
+                        loop.toFullLoopVo(
+                            retrospectVo = retrospectVo,
                             doneVo = doneVo ?: LoopDoneVo(
                                 loopId = loop.id,
                                 done = if (loop.enabled) {
@@ -109,7 +115,7 @@ class HistoryPagingSource(
         val allLoops = loopDao.allLoops()
         minDate = allLoops.minOf { it.created }.toLocalDate()
 
-        for (day in DayOfWeek.values()) {
+        for (day in DayOfWeek.entries) {
             loopsByDayOfWeek[day] = allLoops.filter {
                 it.loopActiveDays.isOn(dayForLoop(day))
             }

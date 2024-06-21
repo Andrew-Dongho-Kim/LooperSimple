@@ -35,7 +35,7 @@ class DailyAchievementViewModel @Inject constructor(
     val achievementPager = Pager(
         PagingConfig(pageSize = PAGE_SIZE),
         pagingSourceFactory = {
-            HistoryPagingSource(
+            DailyAchievementPagingSource(
                 appDb = appDb,
                 pageSize = PAGE_SIZE,
             )
