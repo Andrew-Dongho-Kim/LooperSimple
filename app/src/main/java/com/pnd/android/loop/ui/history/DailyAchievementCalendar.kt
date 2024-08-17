@@ -227,9 +227,9 @@ private fun CalendarDateItem(
             .drawBehind {
                 if (viewMode == DailyAchievementPageViewMode.DESCRIPTION_TEXT && isInterest) {
                     val doneRate = (doneLoops.size.toFloat() / (doneLoops.size + noDoneLoops.size))
-                    if (doneRate > 0.5F) {
+                    if (doneRate > 0.1f) {
                         drawRoundRect(
-                            color = primaryColor.copy((0.3f * doneRate) * (0.3f * doneRate)),
+                            color = primaryColor.copy((0.4f * doneRate) * (0.4f * doneRate)),
                             cornerRadius = CornerRadius(
                                 x = 4.dp.toPx(),
                                 y = 4.dp.toPx()

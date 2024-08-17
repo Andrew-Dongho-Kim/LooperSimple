@@ -39,6 +39,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
@@ -62,6 +63,7 @@ import com.pnd.android.loop.ui.common.SimpleAppBar
 import com.pnd.android.loop.ui.common.findLastFullyVisibleItemIndex
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
+import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.background
 import com.pnd.android.loop.ui.theme.compositeOverOnSurface
 import com.pnd.android.loop.ui.theme.compositeOverSurface
@@ -104,7 +106,7 @@ fun DailyAchievementPage(
             coroutineScope.launch {
                 lazyListState.scrollToItem(
                     calculateListItemPosition(
-                        minDate = minDate,
+                        itemCount = lazyListState.layoutInfo.totalItemsCount,
                         selectedDate = selectedDate,
                     )
                 )
@@ -266,7 +268,6 @@ private fun UpdateSelectedDate(
         OnListScrolled(
             pagerState = pagerState,
             lazyListState = lazyListState,
-            minDate = minDate,
             onUpdateSelectedDate = onUpdateSelectedDate
         )
     } else if (pagerState.isScrollInProgress) {
@@ -284,13 +285,16 @@ private fun UpdateSelectedDate(
 private fun OnListScrolled(
     pagerState: PagerState,
     lazyListState: LazyListState,
-    minDate: LocalDate,
     onUpdateSelectedDate: (LocalDate) -> Unit,
 ) {
+    val total by remember {
+        derivedStateOf { lazyListState.layoutInfo.totalItemsCount }
+    }
     val index by remember {
         derivedStateOf { lazyListState.findLastFullyVisibleItemIndex() }
     }
-    val selectedDate = minDate.plusDays(index.toLong())
+
+    val selectedDate = LocalDate.now().minusDays((total - 1).toLong()).plusDays(index.toLong())
     onUpdateSelectedDate(selectedDate)
 
     LaunchedEffect(key1 = selectedDate.withDayOfMonth(1)) {
@@ -321,7 +325,7 @@ private fun OnPagerScrolled(
     LaunchedEffect(key1 = selectedDate) {
         lazyListState.scrollToItem(
             calculateListItemPosition(
-                minDate = minDate,
+                itemCount = lazyListState.layoutInfo.totalItemsCount,
                 selectedDate = selectedDate,
             )
         )
@@ -334,10 +338,13 @@ fun calculateTargetCalendarPage(selectedDate: LocalDate) = ChronoUnit.MONTHS.bet
 ).toInt()
 
 fun calculateListItemPosition(
-    minDate: LocalDate,
+    itemCount: Int,
     selectedDate: LocalDate,
 ) =
-    (selectedDate.toEpochDay() - minDate.toEpochDay()).toInt()
+    (selectedDate.toEpochDay() -
+            LocalDate.now().minusDays((itemCount - 1).toLong()).toEpochDay()
+            ).toInt()
+
 
 @Composable
 private fun DailyAchievementsRecords(
@@ -469,6 +476,7 @@ private fun AchievementItemSection(
 ) {
     Column(
         modifier = modifier
+            .clip(RoundShapes.small)
             .background(backgroundColor)
             .padding(vertical = 12.dp)
     ) {
@@ -507,6 +515,7 @@ private fun AchievementItemSectionHeader(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
+            modifier = Modifier.padding(start = 4.dp),
             text = "($itemCount) $title",
             style = AppTypography.titleMedium.copy(
                 color = AppColor.onSurface,

@@ -2,6 +2,7 @@ package com.pnd.android.loop.ui.home.loop.input.selector
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -48,11 +49,11 @@ fun Selectors(
         } else {
             dimensionResource(id = R.dimen.user_input_selector_content_height)
         },
+        animationSpec = tween(500),
         label = "selectorHeightAnimation"
     )
 
     val modifier = Modifier
-        .animateContentSize()
         .fillMaxWidth()
         .height(selectorHeight)
         .focusRequester(focusRequester)

@@ -1,5 +1,6 @@
 package com.pnd.android.loop.ui.common
 
+import android.util.Log
 import androidx.compose.foundation.lazy.LazyListState
 
 fun LazyListState.findFirstFullyVisibleItemIndex(): Int = findFullyVisibleItemIndex(false)
