@@ -14,9 +14,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -32,6 +33,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.pnd.android.loop.R
@@ -75,7 +78,7 @@ fun StatisticsPage(
         StatisticsPageContent(
             modifier = Modifier
                 .padding(contentPadding)
-                .padding(horizontal = 24.dp)
+                .padding(start = 12.dp, end = 24.dp)
                 .fillMaxWidth()
                 .fillMaxHeight(),
             statisticsViewModel = statisticsViewModel,
@@ -90,11 +93,22 @@ private fun StatisticsPageContent(
     statisticsViewModel: StatisticsViewModel,
     onNavigateToDetailPage: (Int) -> Unit,
 ) {
+    var selectedTab by remember { mutableStateOf(Tab.Total) }
     Column(modifier = modifier) {
         LoopsOrderByDoneRate(
             modifier = Modifier.height(400.dp),
             statisticsViewModel = statisticsViewModel,
+            selectedTab = selectedTab,
             onNavigateToDetailPage = onNavigateToDetailPage,
+        )
+
+        LoopsOrderTab(
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .background(color = AppColor.surface)
+                .padding(top = 24.dp),
+            selectedTab = selectedTab,
+            onTabSelected = { selectedTab = it },
         )
     }
 }
@@ -103,10 +117,9 @@ private fun StatisticsPageContent(
 private fun LoopsOrderByDoneRate(
     modifier: Modifier = Modifier,
     statisticsViewModel: StatisticsViewModel,
+    selectedTab: Tab,
     onNavigateToDetailPage: (Int) -> Unit,
 ) {
-    var selectedTab by remember { mutableStateOf(Tab.Total) }
-
     val loopsWithStatistics by statisticsViewModel
         .flowLoopsWithStatistics(
             from = selectedTab.from(),
@@ -114,37 +127,27 @@ private fun LoopsOrderByDoneRate(
         )
         .collectAsState(initial = emptyList())
 
-
-    Column(modifier = modifier) {
-        LazyColumn(
-            modifier = Modifier.weight(1f),
-            state = rememberLazyListState(),
-        ) {
-            items(
-                items = loopsWithStatistics,
-                key = { item -> item.id }
-            ) { item ->
-                LoopItemWithDoneRate(
-                    item = item,
-                    onNavigateToDetailPage = onNavigateToDetailPage,
-                )
-            }
+    LazyColumn(
+        modifier = modifier,
+        state = rememberLazyListState(),
+    ) {
+        itemsIndexed(
+            items = loopsWithStatistics,
+            key = { _, item -> item.id }
+        ) { index, item ->
+            LoopItemWithDoneRate(
+                order = index + 1,
+                item = item,
+                onNavigateToDetailPage = onNavigateToDetailPage,
+            )
         }
-        LoopsOrderTab(
-            modifier = Modifier
-                .align(Alignment.CenterHorizontally)
-                .background(color = AppColor.surface)
-                .padding(top = 24.dp),
-            selectedTab = selectedTab,
-            onTabSelected = { selectedTab = it }
-        )
     }
-
 }
 
 @Composable
 private fun LoopItemWithDoneRate(
     modifier: Modifier = Modifier,
+    order: Int,
     item: LoopWithStatistics,
     onNavigateToDetailPage: (Int) -> Unit,
 ) {
@@ -154,8 +157,19 @@ private fun LoopItemWithDoneRate(
             .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        val font = if (order <= 3) AppTypography.titleLarge else AppTypography.bodyMedium
+        Text(
+            modifier = Modifier.width(24.dp),
+            text = String.format("%2d", order),
+            style = font.copy(
+                color = AppColor.onSurface,
+                fontWeight = FontWeight.Normal,
+                textAlign = TextAlign.Center
+            )
+        )
         Box(
             modifier = Modifier
+                .padding(start = 16.dp)
                 .size(8.dp)
                 .background(
                     color = item.color.compositeOverOnSurface(),
@@ -164,7 +178,7 @@ private fun LoopItemWithDoneRate(
         )
         Text(
             modifier = Modifier
-                .padding(start = 16.dp)
+                .padding(start = 8.dp)
                 .weight(1f),
             text = item.title,
             style = AppTypography.bodyLarge.copy(

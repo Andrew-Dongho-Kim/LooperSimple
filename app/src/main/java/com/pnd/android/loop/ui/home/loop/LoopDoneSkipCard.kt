@@ -331,7 +331,8 @@ private fun DoneSkipItem(
         DoneSkipCardButton(
             imageVector = Icons.AutoMirrored.Filled.Chat,
             contentDescription = stringResource(id = R.string.memo),
-            tintColorAlpha = if (retrospect.isNotEmpty()) 0.7f else 0.3f,
+            tintColor = if (retrospect.isNotEmpty()) AppColor.primary else AppColor.onSurface,
+            tintColorAlpha = 0.7f,
             onClick = {
                 isRetrospectDialogOpened = true
                 blurState.on()

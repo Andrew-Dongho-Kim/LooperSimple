@@ -52,6 +52,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.pnd.android.loop.R
@@ -70,6 +71,7 @@ import com.pnd.android.loop.ui.theme.compositeOverSurface
 import com.pnd.android.loop.ui.theme.error
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
+import com.pnd.android.loop.ui.theme.surface
 import com.pnd.android.loop.util.formatMonthDateDay
 import com.pnd.android.loop.util.formatYearMonth
 import com.pnd.android.loop.util.toLocalDate
@@ -104,12 +106,12 @@ fun DailyAchievementPage(
                 return@func
             }
             coroutineScope.launch {
-                lazyListState.scrollToItem(
-                    calculateListItemPosition(
-                        itemCount = lazyListState.layoutInfo.totalItemsCount,
-                        selectedDate = selectedDate,
-                    )
+                val pos = calculateListItemPosition(
+                    itemCount = lazyListState.layoutInfo.totalItemsCount,
+                    selectedDate = selectedDate,
                 )
+                if (pos < 0) return@launch
+                lazyListState.scrollToItem(pos)
                 pagerState.scrollToPage(calculateTargetCalendarPage(selectedDate))
             }
             selectedDate = date
@@ -323,12 +325,12 @@ private fun OnPagerScrolled(
 
     onUpdateSelectedDate(selectedDate)
     LaunchedEffect(key1 = selectedDate) {
-        lazyListState.scrollToItem(
-            calculateListItemPosition(
-                itemCount = lazyListState.layoutInfo.totalItemsCount,
-                selectedDate = selectedDate,
-            )
+        val pos = calculateListItemPosition(
+            itemCount = lazyListState.layoutInfo.totalItemsCount,
+            selectedDate = selectedDate,
         )
+        if (pos < 0) return@LaunchedEffect
+        lazyListState.scrollToItem(pos)
     }
 }
 
@@ -580,11 +582,21 @@ private fun AchievementItemSectionBody(
 
         if (loop.retrospect.isNotEmpty()) {
             Retrospect(
-                modifier = Modifier.padding(
-                    top = 12.dp,
-                    start = 24.dp,
-                    bottom = 12.dp
-                ),
+                modifier = Modifier
+                    .padding(
+                        top = 8.dp,
+                        bottom = 8.dp,
+                        end = 24.dp,
+                    )
+                    .clip(RoundShapes.small)
+                    .background(color = AppColor.surface.copy(alpha = 0.35f))
+                    .fillMaxWidth()
+                    .padding(
+                        top = 12.dp,
+                        start = 24.dp,
+                        end = 24.dp,
+                        bottom = 12.dp
+                    ),
                 retrospect = loop.retrospect
             )
         }
@@ -596,9 +608,13 @@ private fun Retrospect(
     modifier: Modifier = Modifier,
     retrospect: String
 ) {
-    Text(
-        modifier = modifier,
-        text = retrospect,
-        style = AppTypography.bodyMedium.copy(color = AppColor.onSurface.copy(alpha = 0.7f))
-    )
+    Box(modifier = modifier) {
+        Text(
+            text = retrospect,
+            style = AppTypography.bodyMedium.copy(
+                color = AppColor.onSurface.copy(alpha = 0.7f),
+                lineHeight = 18.sp
+            )
+        )
+    }
 }
