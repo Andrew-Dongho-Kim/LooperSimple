@@ -4,9 +4,9 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
+import com.pnd.android.loop.common.NavigatePage
 import com.pnd.android.loop.data.AppDatabase
 import com.pnd.android.loop.data.DonePagingSource
-import com.pnd.android.loop.ui.Screen
 import com.pnd.android.loop.util.toMs
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDate
@@ -20,7 +20,7 @@ class LoopDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    private val loopId: Int = savedStateHandle[Screen.ARGS_ID] ?: -1
+    private val loopId: Int = savedStateHandle[NavigatePage.ARGS_ID] ?: -1
 
     private val loopDao = appDb.loopDao()
     private val loopDoneDao = appDb.loopDoneDao()

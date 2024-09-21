@@ -8,7 +8,6 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -25,6 +24,7 @@ import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.listSaver
@@ -226,7 +226,6 @@ private fun LazyListScope.sectionTodayEmpty(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 private fun LazyListScope.sectionTodayBody(
     section: Section.Today,
     blurState: BlurState,
@@ -257,14 +256,17 @@ private fun LazyListScope.sectionTodayBody(
             contentType = { ContentTypes.LOOP_CARD },
             key = { loop -> loop.id },
         ) { loop ->
+            val highlightId by loopViewModel.highlightId.collectAsState()
+
             LoopCardWithOption(
-                modifier = Modifier.animateItemPlacement(),
+                modifier = Modifier.animateItem(),
                 blurState = blurState,
                 loopViewModel = loopViewModel,
                 loop = loop,
                 onNavigateToDetailPage = onNavigateToDetailPage,
                 onEdit = onEdit,
-                syncWithTime = true,
+                isSyncTime = true,
+                isHighlighted = highlightId == loop.id
             )
         }
     }
@@ -408,7 +410,8 @@ private fun LazyListScope.sectionAll(
             loop = loop,
             onNavigateToDetailPage = onNavigateToDetailPage,
             onEdit = onEdit,
-            syncWithTime = false
+            isSyncTime = false,
+            isHighlighted = false
         )
     }
 }
@@ -451,7 +454,8 @@ private fun LazyListScope.sectionLater(
                 loop = loop,
                 onNavigateToDetailPage = onNavigateToDetailPage,
                 onEdit = onEdit,
-                syncWithTime = false
+                isSyncTime = false,
+                isHighlighted = false
             )
         }
     }

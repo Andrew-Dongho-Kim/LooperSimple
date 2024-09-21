@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.ui.unit.dp
 import androidx.glance.GlanceModifier
+import androidx.glance.action.actionParametersOf
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.background
@@ -15,6 +16,8 @@ import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.padding
 import androidx.glance.layout.size
 import com.pnd.android.loop.MainActivity
+import com.pnd.android.loop.appwidget.ACTION_PARAM_NAVIGATE
+import com.pnd.android.loop.common.NavigatePage
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.compositeOverOnSurface
@@ -55,7 +58,13 @@ private fun LoopWidgetItem(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .clickable(actionStartActivity<MainActivity>())
+            .clickable(
+                actionStartActivity<MainActivity>(
+                    parameters = actionParametersOf(
+                        ACTION_PARAM_NAVIGATE to NavigatePage.Home.withHighlight(highlightId = loop.id)
+                    )
+                )
+            )
             .padding(
                 top = 12.dp,
                 start = 4.dp,

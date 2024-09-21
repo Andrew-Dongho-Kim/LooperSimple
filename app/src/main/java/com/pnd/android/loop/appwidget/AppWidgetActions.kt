@@ -7,8 +7,10 @@ import androidx.glance.action.actionParametersOf
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import com.pnd.android.loop.ui.ARGS_NAVIGATE_ACTION
 
 val ACTION_PARAMS_LOOP_ID = ActionParameters.Key<Int>("params_loop_id")
+val ACTION_PARAM_NAVIGATE = ActionParameters.Key<String>(ARGS_NAVIGATE_ACTION)
 
 class AppWidgetRefreshAction : ActionCallback {
     override suspend fun onAction(

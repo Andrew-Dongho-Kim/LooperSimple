@@ -11,6 +11,7 @@ import com.google.ai.client.generativeai.type.ResponseStoppedException
 import com.google.ai.client.generativeai.type.generationConfig
 import com.pnd.android.loop.R
 import com.pnd.android.loop.appwidget.AppWidgetUpdateWorker
+import com.pnd.android.loop.common.NavigatePage
 import com.pnd.android.loop.common.log
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
@@ -19,8 +20,10 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flatMapLatest
@@ -87,6 +90,21 @@ class LoopViewModel @Inject constructor(
     private val allResponseCount = loopRepository.allRespondCount
     private val doneCount = loopRepository.doneCount
     private val skipCount = loopRepository.skipCount
+
+
+    private val _highlightId = MutableStateFlow(NavigatePage.UNKNOWN_ID)
+    val highlightId: StateFlow<Int> = _highlightId
+    private var resetHighlightJob: Job? = null
+
+    fun setHighlightId(id: Int) {
+        _highlightId.value = id
+        resetHighlightJob?.cancel()
+        resetHighlightJob = coroutineScope.launch {
+            delay(2_000L)
+            _highlightId.value = NavigatePage.UNKNOWN_ID
+            resetHighlightJob = null
+        }
+    }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val allResponseRate = allCount.flatMapLatest { all ->

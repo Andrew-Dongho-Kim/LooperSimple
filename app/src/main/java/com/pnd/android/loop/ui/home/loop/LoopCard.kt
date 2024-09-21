@@ -3,6 +3,7 @@ package com.pnd.android.loop.ui.home.loop
 import android.graphics.Path
 import android.graphics.PathDashPathEffect
 import android.graphics.PathMeasure
+import android.graphics.RuntimeShader
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -44,11 +45,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.asAndroidPath
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toComposePathEffect
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -82,6 +85,7 @@ import com.pnd.android.loop.util.intervalString
 import com.pnd.android.loop.util.isActive
 import com.pnd.android.loop.util.rememberDayColor
 
+
 private const val ACTIVE_EFFECT_SEGMENTS = 11f
 
 @Composable
@@ -90,7 +94,8 @@ fun LoopCard(
     loopViewModel: LoopViewModel,
     loop: LoopBase,
     onNavigateToDetailPage: (LoopBase) -> Unit,
-    syncWithTime: Boolean,
+    isSyncTime: Boolean,
+    isHighlighted: Boolean,
 ) {
     val isMock = loop.isMock
     val animateAlpha = animateCardAlphaWithMock(loopBase = loop)
@@ -112,6 +117,29 @@ fun LoopCard(
                     vertical = 8.dp
                 )
                 .fillMaxWidth()
+                .drawBehind {
+                    if (!isHighlighted) return@drawBehind
+
+                    val size = this.size
+                    val density = this.density
+                    val fontScale = this.fontScale
+                    drawContext.canvas.nativeCanvas.apply {
+                        drawPath(
+                            cardShape.createOutlinePath(
+                                density = Density(density, fontScale),
+                                size = size
+                            ).asAndroidPath(),
+                            android.graphics.Paint().apply {
+                                setShadowLayer(
+                                    4.dp.toPx(),
+                                    0f,
+                                    0f,
+                                    loop.color,
+                                )
+                            }
+                        )
+                    }
+                }
                 .clip(cardShape)
                 .clickable(enabled = !loop.isMock) {
                     onNavigateToDetailPage(loop)
@@ -131,7 +159,7 @@ fun LoopCard(
                     ),
                 loopViewModel = loopViewModel,
                 loop = loop,
-                syncWithTime = !isMock && syncWithTime,
+                syncWithTime = !isMock && isSyncTime,
             )
         }
     }
@@ -180,7 +208,6 @@ private fun LoopCardContent(
     }
 }
 
-
 @Composable
 private fun LoopCardActiveEffect(
     modifier: Modifier = Modifier,
@@ -198,7 +225,8 @@ private fun LoopCardActiveEffect(
 
     if (!isActive) return
 
-    val paint = remember { Paint() }
+    val outlineColor = loop.color.compositeOverOnSurface().copy(alpha = 0.7f)
+    val outlinePaint = remember(outlineColor) { Paint().apply { color = outlineColor } }
     val pathMeasure = remember { PathMeasure() }
     val cardShape = remember { CircularPolygonShape(12.dp) }
 
@@ -215,7 +243,7 @@ private fun LoopCardActiveEffect(
         ),
         label = "phase"
     )
-    val edgeColor = loop.color.compositeOverOnSurface().copy(alpha = 0.7f)
+
 
     Canvas(modifier = modifier) {
         val path = cardShape.createOutlinePath(
@@ -233,10 +261,13 @@ private fun LoopCardActiveEffect(
             PathDashPathEffect.Style.MORPH
         ).toComposePathEffect()
 
-        paint.color = edgeColor
-        paint.pathEffect = pathEffect
-
-        with(drawContext.canvas) { drawPath(path, paint) }
+        outlinePaint.pathEffect = pathEffect
+//        outlinePaint.shader = waveShader(
+//            size = size,
+//            color = loop.color,
+//            shiftX1 = 25f
+//        )
+        with(drawContext.canvas) { drawPath(path, outlinePaint) }
     }
 }
 

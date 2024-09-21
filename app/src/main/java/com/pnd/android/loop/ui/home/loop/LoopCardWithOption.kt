@@ -2,6 +2,7 @@ package com.pnd.android.loop.ui.home.loop
 
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.splineBasedDecay
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.AnchoredDraggableState
 import androidx.compose.foundation.gestures.DraggableAnchors
@@ -41,7 +42,8 @@ fun LoopCardWithOption(
     loop: LoopBase,
     onNavigateToDetailPage: (LoopBase) -> Unit,
     onEdit: (LoopBase) -> Unit,
-    syncWithTime: Boolean
+    isSyncTime: Boolean,
+    isHighlighted: Boolean
 ) {
     BoxWithConstraints(modifier = modifier) {
         val density = LocalDensity.current
@@ -55,9 +57,12 @@ fun LoopCardWithOption(
                 },
                 positionalThreshold = { distance -> distance * 0.7f },
                 velocityThreshold = { with(density) { 125.dp.toPx() } },
-                animationSpec = tween(
+                snapAnimationSpec = tween(
                     durationMillis = 100,
                     easing = FastOutSlowInEasing
+                ),
+                decayAnimationSpec = splineBasedDecay(
+                    density = density
                 )
             )
         }
@@ -112,7 +117,8 @@ fun LoopCardWithOption(
             loopViewModel = loopViewModel,
             loop = loop,
             onNavigateToDetailPage = onNavigateToDetailPage,
-            syncWithTime = syncWithTime
+            isSyncTime = isSyncTime,
+            isHighlighted = isHighlighted,
         )
     }
 }

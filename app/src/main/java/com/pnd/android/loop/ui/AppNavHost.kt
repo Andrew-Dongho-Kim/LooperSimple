@@ -1,5 +1,11 @@
 package com.pnd.android.loop.ui
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.Intent
+import android.util.Log
+import androidx.activity.ComponentActivity
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
@@ -8,54 +14,57 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.navigation.NavBackStackEntry
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.util.Consumer
 import androidx.navigation.NavHostController
-import androidx.navigation.NavType
+import androidx.navigation.NavOptions
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
-import com.pnd.android.loop.data.LoopBase
+import com.pnd.android.loop.common.NavigatePage
 import com.pnd.android.loop.ui.detail.DetailPage
 import com.pnd.android.loop.ui.history.DailyAchievementPage
 import com.pnd.android.loop.ui.home.Home
 import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.statisctics.StatisticsPage
 
-sealed class Screen(val route: String) {
-
-    data object Home : Screen("home")
-    data object DetailPage : Screen("detail/{$ARGS_ID}") {
-        val arguments = listOf(navArgument(ARGS_ID) { type = NavType.IntType })
-
-        fun id(backStackEntry: NavBackStackEntry) = backStackEntry.arguments?.getInt(ARGS_ID) ?: -1
-
-        fun navigate(
-            navController: NavHostController,
-            loop: LoopBase
-        ) = navigate(
-            navController = navController,
-            id = loop.id
-        )
-
-        fun navigate(
-            navController: NavHostController,
-            id: Int,
-        ) {
-            navController.navigate("detail/${id}")
-        }
-    }
-
-    data object DailyAchievementPage : Screen("daily_achievement")
-
-    data object StatisticsPage : Screen("statistics")
-    companion object {
-        const val ARGS_ID = "id"
-    }
+fun Context.findActivity(): ComponentActivity? {
+    var context = this
+    while (context is ContextWrapper && context !is Activity)
+        context = context.baseContext
+    return context as? ComponentActivity
 }
 
-fun NavHostController.navigate(screen: Screen) = this.navigate(screen.route)
+
+const val ARGS_NAVIGATE_ACTION = "args_navigate_action"
+
+@Composable
+fun IntentConsumer(
+    navController: NavHostController
+) {
+    val activity = LocalContext.current.findActivity() ?: return
+
+    DisposableEffect(key1 = activity, navController) {
+        val onNewIntentConsumer = Consumer<Intent> { intent ->
+            val navAction = intent.getStringExtra(ARGS_NAVIGATE_ACTION)
+            Log.d("IntentConsumer", "onNewIntent[$navAction]: $intent")
+
+            navAction ?: return@Consumer
+            navController.navigate(
+                navAction,
+                navOptions = NavOptions.Builder()
+                    .setLaunchSingleTop(true)
+                    .build()
+            )
+        }
+
+        activity.addOnNewIntentListener(onNewIntentConsumer)
+        onDispose { activity.removeOnNewIntentListener(onNewIntentConsumer) }
+    }
+}
 
 @Composable
 fun AppNavHost(
@@ -63,58 +72,64 @@ fun AppNavHost(
     navController: NavHostController = rememberNavController(),
     loopViewModel: LoopViewModel,
 ) {
+    val onNavigateUp: () -> Unit = remember { { navController.popBackStack() } }
+
+    IntentConsumer(navController = navController)
+
     NavHost(
         modifier = modifier,
         navController = navController,
-        startDestination = Screen.Home.route
+        startDestination = NavigatePage.Home.route
     ) {
         composable(
-            route = Screen.Home.route
-        ) {
+            route = NavigatePage.Home.route,
+            arguments = NavigatePage.Home.arguments
+        ) { backStackEntry ->
+            loopViewModel.setHighlightId(
+                backStackEntry.arguments?.getInt(NavigatePage.ARGS_HIGHLIGHT_ID)
+                    ?: NavigatePage.UNKNOWN_ID
+            )
+
             Home(
                 loopViewModel = loopViewModel,
                 onNavigateToDetailPage = { loop ->
-                    Screen.DetailPage.navigate(
+                    NavigatePage.DetailPage.navigate(
                         navController = navController,
                         loop = loop,
                     )
                 },
                 onNavigateToHistoryPage = {
-                    navController.navigate(Screen.DailyAchievementPage)
+                    navController.navigate(NavigatePage.DailyAchievementPage)
                 },
                 onNavigateToStatisticsPage = {
-                    navController.navigate(Screen.StatisticsPage)
+                    navController.navigate(NavigatePage.StatisticsPage)
                 }
             )
         }
 
         composable(
-            route = Screen.DetailPage.route,
-            arguments = Screen.DetailPage.arguments,
+            route = NavigatePage.DetailPage.route,
+            arguments = NavigatePage.DetailPage.arguments,
             enterTransition = { scaleIntoContainer() },
             exitTransition = { scaleOutOfContainer(INWARDS) },
             popEnterTransition = { scaleIntoContainer(OUTWARDS) },
             popExitTransition = { scaleOutOfContainer() }
         ) {
-            DetailPage(
-                onNavigateUp = { navController.popBackStack() }
-            )
+            DetailPage(onNavigateUp = onNavigateUp)
         }
 
         composable(
-            route = Screen.DailyAchievementPage.route,
+            route = NavigatePage.DailyAchievementPage.route,
             enterTransition = { scaleIntoContainer() },
             exitTransition = { scaleOutOfContainer(INWARDS) },
             popEnterTransition = { scaleIntoContainer(OUTWARDS) },
             popExitTransition = { scaleOutOfContainer() }
         ) {
-            DailyAchievementPage(
-                onNavigateUp = { navController.popBackStack() }
-            )
+            DailyAchievementPage(onNavigateUp = onNavigateUp)
         }
 
         composable(
-            route = Screen.StatisticsPage.route,
+            route = NavigatePage.StatisticsPage.route,
             enterTransition = { scaleIntoContainer() },
             exitTransition = { scaleOutOfContainer(INWARDS) },
             popEnterTransition = { scaleIntoContainer(OUTWARDS) },
@@ -122,12 +137,12 @@ fun AppNavHost(
         ) {
             StatisticsPage(
                 onNavigateToDetailPage = { id ->
-                    Screen.DetailPage.navigate(
+                    NavigatePage.DetailPage.navigate(
                         navController = navController,
                         id = id,
                     )
                 },
-                onNavigateUp = { navController.popBackStack() }
+                onNavigateUp = onNavigateUp
             )
         }
     }
