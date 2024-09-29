@@ -1,5 +1,6 @@
 package com.pnd.android.loop.data
 
+import android.util.Log
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import com.pnd.android.loop.common.Logger
@@ -7,7 +8,6 @@ import com.pnd.android.loop.util.toLocalDate
 import com.pnd.android.loop.util.toMs
 import java.time.DayOfWeek
 import java.time.LocalDate
-import java.util.TreeSet
 
 class DonePagingSource(
     appDb: AppDatabase,
@@ -68,7 +68,7 @@ class DonePagingSource(
     ): List<LoopDoneVo> {
         val from = prev ?: return emptyList()
 
-        val doneStates = loopDoneDao.allDoneStateBetween(
+        val doneStates = loopDoneDao.getAllBetween(
             loopId = loopId,
             from = from.toMs(),
             to = curr.toMs()
@@ -79,7 +79,7 @@ class DonePagingSource(
         var index = 0
         while (date.isBefore(curr)) {
             result.add(
-                if (index < doneStates.size && date.toMs() == doneStates[index].date) {
+                if (index < doneStates.size && date == doneStates[index].date.toLocalDate()) {
                     doneStates[index++]
                 } else {
                     LoopDoneVo(

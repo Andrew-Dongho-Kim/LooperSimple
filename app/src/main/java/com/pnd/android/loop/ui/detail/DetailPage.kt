@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Scaffold
@@ -37,6 +39,7 @@ import com.patrykandpatrick.vico.core.model.lineSeries
 import com.pnd.android.loop.BuildConfig
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
+import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.TimeStat
 import com.pnd.android.loop.data.timeStatAsFlow
 import com.pnd.android.loop.ui.common.SimpleAd
@@ -45,6 +48,7 @@ import com.pnd.android.loop.ui.common.chart.AdvancedLineChart
 import com.pnd.android.loop.ui.common.chart.BarChart
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
+import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.background
 import com.pnd.android.loop.ui.theme.compositeOverOnSurface
 import com.pnd.android.loop.ui.theme.error
@@ -127,22 +131,20 @@ private fun DetailPageContent(
             adId = adId
         )
 
+        LoopResponseDoneSkipRate(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = paddingVerticalSuperExtraLarge),
+            detailViewModel = detailViewModel,
+        )
+
         DoneHistoryGrid(
             modifier = Modifier
-                .padding(top = paddingVerticalExtraLarge)
+                .padding(top = paddingVerticalLarge)
                 .fillMaxWidth()
                 .height(264.dp),
             detailViewModel = detailViewModel,
             loop = loop,
-        )
-        LoopResponseDoneSkipRate(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    top = paddingVerticalNormal,
-                    bottom = paddingVerticalNormal,
-                ),
-            detailViewModel = detailViewModel,
         )
 
         DailyDoneRateChart(
@@ -164,6 +166,12 @@ private fun DetailPageContent(
                 top = paddingVerticalSuperExtraLarge
             ),
             detailViewModel = detailViewModel,
+        )
+
+        DetailPageDebug(
+            modifier = Modifier.padding(top = paddingVerticalExtraLarge),
+            detailViewModel = detailViewModel,
+            loop = loop
         )
     }
 }
@@ -315,14 +323,14 @@ private fun LoopRate(
     ) {
         Text(
             text = text,
-            style = AppTypography.bodyMedium.copy(
+            style = AppTypography.headlineSmall.copy(
                 color = AppColor.onSurface,
                 fontWeight = FontWeight.Medium,
             )
         )
 
         Text(
-            modifier = Modifier.padding(start = 12.dp),
+            modifier = Modifier.padding(start = 8.dp),
             text = String.format("%.2f%% (%d)", rate, count),
             style = AppTypography.bodyMedium.copy(
                 color = AppColor.onSurface
@@ -582,6 +590,68 @@ private fun rememberDayOfWeekDonRateChartBottomAxisFormatter()
     return remember {
         AxisValueFormatter { value, _, _ ->
             context.getString(DAYS_WITH_3CHARS[value.toInt()])
+        }
+    }
+}
+
+@Composable
+private fun DetailPageDebug(
+    modifier: Modifier = Modifier,
+    detailViewModel: LoopDetailViewModel,
+    loop: LoopBase
+) {
+    if (!BuildConfig.DEBUG) return
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(
+                color = AppColor.onSurface.copy(alpha = 0.1f),
+                shape = RoundShapes.medium
+            )
+            .padding(all = 12.dp)
+    ) {
+        Text(
+            text = "[DEBUG]",
+            style = AppTypography.titleMedium
+        )
+
+        Text(
+            modifier = Modifier.padding(top = 18.dp),
+            text = "Loop id: ${loop.id}",
+            style = AppTypography.titleMedium
+        )
+
+        val responses by detailViewModel.allResponses.collectAsState(initial = emptyList())
+        LazyColumn(
+            modifier = Modifier
+                .padding(top = 24.dp)
+                .fillMaxWidth()
+                .height(100.dp)
+        ) {
+            items(
+                items = responses,
+                key = { it.date },
+            ) { item ->
+
+                Row {
+                    Text(
+                        text = "${item.date.toLocalDate()}"
+                    )
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    Text(
+                        text = when (item.done) {
+                            LoopDoneVo.DoneState.DONE -> "O"
+                            LoopDoneVo.DoneState.SKIP -> "."
+                            LoopDoneVo.DoneState.NO_RESPONSE -> " "
+                            LoopDoneVo.DoneState.DISABLED -> "D"
+                            else -> "?"
+                        }
+                    )
+                }
+            }
         }
     }
 }

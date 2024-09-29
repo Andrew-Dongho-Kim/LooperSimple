@@ -1,5 +1,6 @@
 package com.pnd.android.loop.ui.detail
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -62,11 +63,7 @@ fun DoneHistoryGrid(
     LaunchedEffect(key1 = Unit) { lazyGridState.scrollToItem(index = Int.MAX_VALUE) }
 
     Column(modifier = modifier) {
-        DoneHistoryGridIconsDescription(
-            doneColor = loop.color
-        )
-
-        Row(modifier = Modifier.padding(top = 8.dp)) {
+        Row(modifier = Modifier.weight(1f)) {
             LazyHorizontalGrid(
                 modifier = Modifier.weight(1f),
                 state = lazyGridState,
@@ -86,9 +83,13 @@ fun DoneHistoryGrid(
                 }
             }
             DoneHistoryDayHeader(
-                modifier = Modifier.padding(start = 6.dp)
+                modifier = Modifier.padding(start = 12.dp)
             )
         }
+        DoneHistoryGridIconsDescription(
+            modifier = Modifier.padding(top = 8.dp),
+            doneColor = loop.color
+        )
     }
 }
 

@@ -4,9 +4,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.glance.GlanceModifier
-import androidx.glance.action.actionParametersOf
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
+import androidx.glance.action.mutableActionParametersOf
 import androidx.glance.appwidget.lazy.LazyColumn
 import androidx.glance.appwidget.lazy.items
 import androidx.glance.background
@@ -108,8 +108,8 @@ private fun LoopWidgetItem(
             .fillMaxWidth()
             .clickable(
                 actionStartActivity<MainActivity>(
-                    parameters = actionParametersOf(
-                        ACTION_PARAM_NAVIGATE to NavigatePage.Home.withHighlight(highlightId = loop.id)
+                    parameters = mutableActionParametersOf(
+                        ACTION_PARAM_NAVIGATE to NavigatePage.Home.to(highlightId = loop.id)
                     )
                 )
             )

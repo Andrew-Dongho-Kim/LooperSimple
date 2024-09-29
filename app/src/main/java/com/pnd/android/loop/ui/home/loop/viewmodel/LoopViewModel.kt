@@ -95,12 +95,18 @@ class LoopViewModel @Inject constructor(
     private val _highlightId = MutableStateFlow(NavigatePage.UNKNOWN_ID)
     val highlightId: StateFlow<Int> = _highlightId
     private var resetHighlightJob: Job? = null
+    private var savedHighlightId: Int = NavigatePage.UNKNOWN_ID
+    private var savedHighlightKey: Int = 0
 
-    fun setHighlightId(id: Int) {
+    fun setHighlightId(id: Int, highlightKey: Int) {
+        if (id == savedHighlightId && savedHighlightKey == highlightKey) return
+
         _highlightId.value = id
+        savedHighlightId = id
+        savedHighlightKey = highlightKey
         resetHighlightJob?.cancel()
         resetHighlightJob = coroutineScope.launch {
-            delay(2_000L)
+            delay(2_500L)
             _highlightId.value = NavigatePage.UNKNOWN_ID
             resetHighlightJob = null
         }

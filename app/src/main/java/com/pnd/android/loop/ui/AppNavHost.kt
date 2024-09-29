@@ -11,14 +11,15 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.util.Consumer
+import androidx.navigation.NavArgument
 import androidx.navigation.NavHostController
 import androidx.navigation.NavOptions
 import androidx.navigation.compose.NavHost
@@ -57,8 +58,10 @@ fun IntentConsumer(
                 navAction,
                 navOptions = NavOptions.Builder()
                     .setLaunchSingleTop(true)
+                    .setRestoreState(false)
                     .build()
             )
+            intent.extras?.remove(ARGS_NAVIGATE_ACTION)
         }
 
         activity.addOnNewIntentListener(onNewIntentConsumer)
@@ -85,10 +88,13 @@ fun AppNavHost(
             route = NavigatePage.Home.route,
             arguments = NavigatePage.Home.arguments
         ) { backStackEntry ->
-            loopViewModel.setHighlightId(
-                backStackEntry.arguments?.getInt(NavigatePage.ARGS_HIGHLIGHT_ID)
-                    ?: NavigatePage.UNKNOWN_ID
-            )
+
+            backStackEntry.arguments?.let { args ->
+                loopViewModel.setHighlightId(
+                    args.getInt(NavigatePage.ARGS_HIGHLIGHT_ID),
+                    args.getInt(NavigatePage.ARGS_RANDOM_KEY)
+                )
+            }
 
             Home(
                 loopViewModel = loopViewModel,
@@ -99,10 +105,10 @@ fun AppNavHost(
                     )
                 },
                 onNavigateToHistoryPage = {
-                    navController.navigate(NavigatePage.DailyAchievementPage)
+                    NavigatePage.DailyAchievementPage.navigate(navController)
                 },
                 onNavigateToStatisticsPage = {
-                    navController.navigate(NavigatePage.StatisticsPage)
+                    NavigatePage.StatisticsPage.navigate(navController)
                 }
             )
         }
@@ -110,30 +116,30 @@ fun AppNavHost(
         composable(
             route = NavigatePage.DetailPage.route,
             arguments = NavigatePage.DetailPage.arguments,
-            enterTransition = { scaleIntoContainer() },
-            exitTransition = { scaleOutOfContainer(INWARDS) },
-            popEnterTransition = { scaleIntoContainer(OUTWARDS) },
-            popExitTransition = { scaleOutOfContainer() }
+            enterTransition = { enterTransition() },
+            exitTransition = { exitTransition() },
+            popEnterTransition = { enterTransition() },
+            popExitTransition = { exitTransition() }
         ) {
             DetailPage(onNavigateUp = onNavigateUp)
         }
 
         composable(
             route = NavigatePage.DailyAchievementPage.route,
-            enterTransition = { scaleIntoContainer() },
-            exitTransition = { scaleOutOfContainer(INWARDS) },
-            popEnterTransition = { scaleIntoContainer(OUTWARDS) },
-            popExitTransition = { scaleOutOfContainer() }
+            enterTransition = { enterTransition() },
+            exitTransition = { exitTransition() },
+            popEnterTransition = { enterTransition() },
+            popExitTransition = { exitTransition() }
         ) {
             DailyAchievementPage(onNavigateUp = onNavigateUp)
         }
 
         composable(
             route = NavigatePage.StatisticsPage.route,
-            enterTransition = { scaleIntoContainer() },
-            exitTransition = { scaleOutOfContainer(INWARDS) },
-            popEnterTransition = { scaleIntoContainer(OUTWARDS) },
-            popExitTransition = { scaleOutOfContainer() }
+            enterTransition = { enterTransition() },
+            exitTransition = { exitTransition() },
+            popEnterTransition = { enterTransition() },
+            popExitTransition = { exitTransition() }
         ) {
             StatisticsPage(
                 onNavigateToDetailPage = { id ->
@@ -148,25 +154,20 @@ fun AppNavHost(
     }
 }
 
-private const val INWARDS = 0
-private const val OUTWARDS = 1
-private fun scaleIntoContainer(
-    direction: Int = INWARDS,
-    initialScale: Float = if (direction == OUTWARDS) 0.9f else 1.1f
-): EnterTransition {
-    return scaleIn(
-        animationSpec = tween(700),
-        initialScale = initialScale
-    ) + fadeIn(animationSpec = tween(700))
+private fun enterTransition(): EnterTransition {
+//    return
+//    scaleIn(
+//        animationSpec = tween(700),
+//        initialScale = initialScale
+//    ) +
+    return fadeIn(tween(1000)) + slideInVertically(tween(1000))
 }
 
-private fun scaleOutOfContainer(
-    direction: Int = OUTWARDS,
-    targetScale: Float = if (direction == INWARDS) 0.9f else 1.1f
-): ExitTransition {
-    return scaleOut(
-        animationSpec = tween(
-            durationMillis = 700,
-        ), targetScale = targetScale
-    ) + fadeOut(tween(700))
+private fun exitTransition(): ExitTransition {
+//    return scaleOut(
+//        animationSpec = tween(
+//            durationMillis = 700,
+//        ), targetScale = targetScale
+//    ) +
+    return fadeOut(tween(1000)) + slideOutVertically(tween(1000))
 }

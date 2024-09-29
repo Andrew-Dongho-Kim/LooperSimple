@@ -65,15 +65,18 @@ fun Int.isRespond() = this == DONE || this == SKIP
 @Dao
 interface LoopDoneDao {
 
-    @Query("SELECT * FROM loop_done WHERE loopId=:loopId AND :from <= date AND date <= :to")
-    suspend fun allDoneStateBetween(
+    @Query("SELECT * FROM loop_done WHERE loopId=:loopId ORDER BY date DESC")
+    fun flowGetAll(loopId: Int): Flow<List<LoopDoneVo>>
+
+    @Query("SELECT * FROM loop_done WHERE loopId=:loopId AND :from <= date AND date <= :to ORDER BY date ASC")
+    suspend fun getAllBetween(
         loopId: Int,
         from: Long,
         to: Long
     ): List<LoopDoneVo>
 
     @Query("SELECT * FROM loop_done WHERE loopId=:loopId AND done != $DISABLED")
-    suspend fun allEnabledDoneStates(
+    suspend fun getAllEnabled(
         loopId: Int,
     ): List<LoopDoneVo>
 
