@@ -5,17 +5,15 @@ import androidx.compose.runtime.Stable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.ai.client.generativeai.GenerativeModel
-import com.google.ai.client.generativeai.type.InvalidStateException
-import com.google.ai.client.generativeai.type.QuotaExceededException
-import com.google.ai.client.generativeai.type.ResponseStoppedException
 import com.google.ai.client.generativeai.type.generationConfig
-import com.pnd.android.loop.R
 import com.pnd.android.loop.appwidget.AppWidgetUpdateWorker
 import com.pnd.android.loop.common.NavigatePage
 import com.pnd.android.loop.common.log
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.LoopVo
+import com.pnd.android.loop.util.isActive
+import com.pnd.android.loop.util.isPast
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
@@ -28,6 +26,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
@@ -47,14 +46,16 @@ class LoopViewModel @Inject constructor(
     }
     private val coroutineScope = CoroutineScope(SupervisorJob() + coroutineExceptionHandler)
 
-    private val generativeModel = GenerativeModel(
-        modelName = "gemini-1.0-pro",
-        apiKey = GENERATIVE_AI_KEY,
-        generationConfig = generationConfig {
-            temperature = 0.7f
-        }
-    )
-    private val chat = generativeModel.startChat()
+    private val generativeModel by lazy {
+        GenerativeModel(
+            modelName = "gemini-1.0-pro",
+            apiKey = GENERATIVE_AI_KEY,
+            generationConfig = generationConfig {
+                temperature = 0.7f
+            }
+        )
+    }
+    private val chat by lazy { generativeModel.startChat() }
 
     private val _wiseSaying = MutableStateFlow("")
     val wiseSayingText get() = _wiseSaying.value
@@ -62,17 +63,17 @@ class LoopViewModel @Inject constructor(
 
     fun loadWiseSaying() {
         viewModelScope.launch {
-            try {
-                val response =
-                    chat.sendMessage(application.getString(R.string.prompt_for_wise_saying))
-                _wiseSaying.emit(response.text ?: "")
-            } catch (e: ResponseStoppedException) {
-                // don't anything, just catch
-            } catch (e: InvalidStateException) {
-                // don't anything, just catch
-            } catch (e: QuotaExceededException) {
-                // don't anything, just catch
-            }
+//            try {
+//                val response =
+//                    chat.sendMessage(application.getString(R.string.prompt_for_wise_saying))
+//                _wiseSaying.emit(response.text ?: "")
+//            } catch (e: ResponseStoppedException) {
+//                // don't anything, just catch
+//            } catch (e: InvalidStateException) {
+//                // don't anything, just catch
+//            } catch (e: QuotaExceededException) {
+//                // don't anything, just catch
+//            }
         }
     }
 
@@ -80,7 +81,11 @@ class LoopViewModel @Inject constructor(
     val localDateTime = loopRepository.localDateTime
 
     val loopsNoResponseYesterday = loopRepository.loopsNoResponseYesterday
-    val allLoopsWithDoneStates = loopRepository.allLoopsWithDoneStates
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val allLoopsWithDoneStates = loopRepository.allLoopsWithDoneStates.mapLatest { loops ->
+        loops.sortedWith(TodayLoopOrder())
+    }
 
     val countInActive = loopRepository.countInActive
     val countInToday = loopRepository.countInToday
@@ -195,5 +200,25 @@ class LoopViewModel @Inject constructor(
     fun syncAlarms() {
         loopRepository.syncAlarms()
         AppWidgetUpdateWorker.updateWidget(application)
+    }
+
+    class TodayLoopOrder : Comparator<LoopBase> {
+        override fun compare(loop1: LoopBase, loop2: LoopBase): Int {
+            var comp = compareActive(loop1, loop2)
+            if (comp != 0) return comp
+
+            comp = comparePast(loop1, loop2)
+            if (comp != 0) return comp
+
+            return (loop1.loopEnd - loop2.loopEnd).toInt()
+        }
+        private fun compareActive(loop1: LoopBase, loop2: LoopBase) =
+            loop1.activeValue() - loop2.activeValue()
+
+        private fun comparePast(loop1:LoopBase, loop2:LoopBase) =
+            loop1.pastValue() - loop2.pastValue()
+
+        private fun LoopBase.activeValue() = if (isActive()) 0 else 1
+        private fun LoopBase.pastValue() = if(isPast()) 1 else 0
     }
 }

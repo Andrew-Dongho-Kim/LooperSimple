@@ -36,6 +36,16 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:host="home"
+                    android:scheme="lsimp" />
+            </intent-filter>
         </activity>
 
         <receiver android:name=".alarm.LoopScheduler$AlarmReceiver" />
@@ -54,8 +64,7 @@
         <provider
             android:name="androidx.startup.InitializationProvider"
             android:authorities="com.pnd.android.loop.androidx-startup"
-            tools:node="remove">
-        </provider>
+            tools:node="remove"></provider>
     </application>
 
 </manifest>

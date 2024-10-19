@@ -80,7 +80,7 @@ fun LoopOptions(
 
         Spacer(modifier = Modifier.weight(1f))
 
-        EnableSwitch(
+        LoopOnOffSwitch(
             modifier = Modifier.padding(end = 12.dp),
             enabled = enabled,
             onEnabled = onEnabled,
@@ -129,7 +129,7 @@ private fun OptionIcon(
 }
 
 @Composable
-private fun EnableSwitch(
+fun LoopOnOffSwitch(
     modifier: Modifier = Modifier,
     enabled: Boolean,
     onEnabled: (Boolean) -> Unit,

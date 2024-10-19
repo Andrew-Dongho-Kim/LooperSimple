@@ -1,14 +1,15 @@
 package com.pnd.android.loop.util
 
-import androidx.compose.material3.ColorScheme
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import com.pnd.android.loop.ui.theme.AppColor
+import com.pnd.android.loop.ui.theme.primary
 
 // Regex containing the syntax tokens
 val symbolPattern by lazy {
@@ -37,7 +38,8 @@ typealias SymbolAnnotation = Pair<AnnotatedString, StringAnnotation?>
  */
 @Composable
 fun annotatedString(
-    text: String
+    text: String,
+    color: Color = AppColor.primary
 ): AnnotatedString {
     val tokens = symbolPattern.findAll(text)
 
@@ -49,7 +51,7 @@ fun annotatedString(
 
             val (annotatedString, stringAnnotation) = getSymbolAnnotation(
                 matchResult = token,
-                colors = MaterialTheme.colorScheme,
+                color = color,
             )
             append(annotatedString)
 
@@ -77,14 +79,14 @@ fun annotatedString(
  */
 private fun getSymbolAnnotation(
     matchResult: MatchResult,
-    colors: ColorScheme,
+    color: Color,
 ): SymbolAnnotation {
     return when (matchResult.value.first()) {
         '@' -> SymbolAnnotation(
             AnnotatedString(
                 text = matchResult.value,
                 spanStyle = SpanStyle(
-                    color = colors.primary,
+                    color = color,
                     fontWeight = FontWeight.Bold
                 )
             ),
@@ -100,7 +102,7 @@ private fun getSymbolAnnotation(
             AnnotatedString(
                 text = matchResult.value.trim('#'),
                 spanStyle = SpanStyle(
-                    color = colors.primary,
+                    color = color,
                     fontWeight = FontWeight.Bold
                 )
             ),
@@ -140,7 +142,7 @@ private fun getSymbolAnnotation(
             AnnotatedString(
                 text = matchResult.value,
                 spanStyle = SpanStyle(
-                    color = colors.primary
+                    color = color
                 )
             ),
             StringAnnotation(

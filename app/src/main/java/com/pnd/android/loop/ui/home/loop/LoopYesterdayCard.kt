@@ -13,10 +13,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.ContentAlpha
-import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -161,7 +160,7 @@ private fun LoopTitle(
         modifier = modifier,
         text = title,
         style = AppTypography.bodyMedium.copy(
-            color = AppColor.onSurface.copy(alpha = ContentAlpha.medium)
+            color = AppColor.onSurface.copy(alpha = 0.8f)
         )
     )
 }

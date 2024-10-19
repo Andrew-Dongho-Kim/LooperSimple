@@ -237,7 +237,7 @@ fun LoopWidgetEmpty(
                 id = if (loopsTotal == 0) {
                     R.string.desc_no_loops
                 } else {
-                    R.string.today_loops_terminated
+                    R.string.today_loops_finished
                 }
             ),
             style = TextStyle(

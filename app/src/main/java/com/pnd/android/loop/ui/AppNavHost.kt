@@ -19,12 +19,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.util.Consumer
-import androidx.navigation.NavArgument
 import androidx.navigation.NavHostController
 import androidx.navigation.NavOptions
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navDeepLink
 import com.pnd.android.loop.common.NavigatePage
 import com.pnd.android.loop.ui.detail.DetailPage
 import com.pnd.android.loop.ui.history.DailyAchievementPage
@@ -86,7 +86,12 @@ fun AppNavHost(
     ) {
         composable(
             route = NavigatePage.Home.route,
-            arguments = NavigatePage.Home.arguments
+            arguments = NavigatePage.Home.arguments,
+            deepLinks = listOf(
+                navDeepLink {
+                    uriPattern = NavigatePage.Home.deepLinkPattern()
+                }
+            )
         ) { backStackEntry ->
 
             backStackEntry.arguments?.let { args ->

@@ -59,7 +59,11 @@ sealed class TimeStat {
         }
     }
 
-    data object Finished : TimeStat()
+    data object Finished : TimeStat() {
+        override fun asString(context: Context, isAbb: Boolean): String {
+            return context.getString(R.string.finished)
+        }
+    }
 
     open fun asString(context: Context, isAbb: Boolean) = ""
     fun isPast(): Boolean {

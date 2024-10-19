@@ -1,12 +1,13 @@
 package com.pnd.android.loop.appwidget.ui
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.ui.unit.dp
 import androidx.glance.GlanceModifier
-import androidx.glance.action.actionStartActivity
+import androidx.glance.LocalContext
 import androidx.glance.action.clickable
-import androidx.glance.action.mutableActionParametersOf
 import androidx.glance.background
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Column
@@ -15,8 +16,6 @@ import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.padding
 import androidx.glance.layout.size
-import com.pnd.android.loop.MainActivity
-import com.pnd.android.loop.appwidget.ACTION_PARAM_NAVIGATE
 import com.pnd.android.loop.common.NavigatePage
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.ui.theme.AppColor
@@ -55,16 +54,21 @@ private fun LoopWidgetItem(
     modifier: GlanceModifier = GlanceModifier,
     loop: LoopBase,
 ) {
+    val context = LocalContext.current
     Column(
         modifier = modifier
             .fillMaxSize()
-            .clickable(
-                actionStartActivity<MainActivity>(
-                    parameters = mutableActionParametersOf(
-                        ACTION_PARAM_NAVIGATE to NavigatePage.Home.to(highlightId = loop.id)
-                    )
+            .clickable {
+                context.startActivity(
+                    Intent(
+                        Intent.ACTION_VIEW,
+                        Uri.parse(NavigatePage.Home.deepLink(highlightId = loop.id))
+                    ).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                    }
                 )
-            )
+            }
             .padding(
                 top = 12.dp,
                 start = 4.dp,

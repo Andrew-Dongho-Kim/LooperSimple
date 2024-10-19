@@ -8,6 +8,7 @@ import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.LoopVo
 import com.pnd.android.loop.data.LoopRetrospectVo
+import com.pnd.android.loop.data.isDisabled
 import com.pnd.android.loop.data.isNotRespond
 import com.pnd.android.loop.util.isActive
 import com.pnd.android.loop.util.isActiveDay
@@ -69,6 +70,7 @@ class LoopRepository @Inject constructor(
         emitAll(loopWithDoneDao.flowAllLoops(currDate.minusDays(1).toLocalTime()))
     }.map { loops ->
         loops.filter { loop ->
+            !loop.isDisabled &&
             loop.isNotRespond &&
             loop.created.toLocalDate().isBefore(LocalDate.now()) &&
             loop.isActiveDay(LocalDate.now().minusDays(1))

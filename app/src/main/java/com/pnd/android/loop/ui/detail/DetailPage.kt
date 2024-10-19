@@ -26,6 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -46,6 +47,8 @@ import com.pnd.android.loop.ui.common.SimpleAd
 import com.pnd.android.loop.ui.common.SimpleAppBar
 import com.pnd.android.loop.ui.common.chart.AdvancedLineChart
 import com.pnd.android.loop.ui.common.chart.BarChart
+import com.pnd.android.loop.ui.home.loop.LoopDoneOrSkip
+import com.pnd.android.loop.ui.home.loop.LoopOnOffSwitch
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.RoundShapes
@@ -68,6 +71,7 @@ private val adId = if (BuildConfig.DEBUG) {
     "ca-app-pub-2341430172816266/5981213088"
 }
 
+private val paddingHorizontalNormal = 16.dp
 private val paddingVerticalNormal = 14.dp
 private val paddingVerticalLarge = 24.dp
 private val paddingVerticalExtraLarge = 48.dp
@@ -91,9 +95,16 @@ fun DetailPage(
                 modifier = Modifier
                     .statusBarsPadding(),
                 title = loop.title,
-                onNavigateUp = onNavigateUp
+                onNavigateUp = onNavigateUp,
+                actions = {
+                    LoopOnOffSwitch(
+                        modifier = Modifier.padding(end = 24.dp),
+                        enabled = loop.enabled,
+                        onEnabled = { enabled -> detailViewModel.enableLoop(loop, enabled) }
+                    )
+                }
             )
-        }
+        },
     )
     { contentPadding ->
         Box(modifier = Modifier.padding(contentPadding)) {
@@ -117,8 +128,13 @@ private fun DetailPageContent(
             .fillMaxWidth()
             .verticalScroll(state = rememberScrollState())
     ) {
+        LoopState(
+            detailViewModel = detailViewModel,
+            loop = loop,
+        )
 
         LoopStartAndEndTime(
+            modifier = Modifier.padding(top = paddingVerticalLarge),
             loop = loop
         )
         LoopCreatedDate(
@@ -177,6 +193,52 @@ private fun DetailPageContent(
 }
 
 @Composable
+private fun LoopState(
+    modifier: Modifier = Modifier,
+    detailViewModel: LoopDetailViewModel,
+    loop: LoopBase,
+) {    
+    if (!loop.enabled) return
+    Column(
+        modifier = modifier
+            .padding(all = 12.dp)
+            .fillMaxWidth()
+    ) {
+
+        Row {
+            var timeStat by remember { mutableStateOf<TimeStat>(TimeStat.NotToday) }
+            LaunchedEffect(loop.id) {
+                loop.timeStatAsFlow().collect { timeStat = it }
+            }
+
+            Text(
+                text = annotatedString(
+                    text = timeStat.asString(LocalContext.current, false),
+                    color = Color(loop.color).copy(alpha = 0.5f).compositeOverOnSurface(),
+                ),
+                style = AppTypography.headlineMedium.copy(
+                    color = AppColor.onSurface
+                )
+            )
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            if (timeStat.isPast()) {
+                LoopDoneOrSkip(
+                    modifier = Modifier.height(36.dp),
+                    onDone = { done ->
+                        detailViewModel.doneLoop(
+                            loop = loop,
+                            doneState = if (done) LoopDoneVo.DoneState.DONE else LoopDoneVo.DoneState.SKIP
+                        )
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun LoopCreatedDate(
     modifier: Modifier = Modifier,
     created: Long,
@@ -197,7 +259,7 @@ private fun LoopCreatedDate(
         Text(
             modifier = Modifier
                 .weight(1f)
-                .padding(start = 12.dp),
+                .padding(start = paddingHorizontalNormal),
             text = createdDate.formatYearMonthDateDays(),
             style = AppTypography.bodyMedium.copy(
                 color = AppColor.onSurface
@@ -222,10 +284,6 @@ private fun LoopStartAndEndTime(
     modifier: Modifier = Modifier,
     loop: LoopBase
 ) {
-    var timeStat by remember { mutableStateOf<TimeStat>(TimeStat.NotToday) }
-    LaunchedEffect(loop) {
-        loop.timeStatAsFlow().collect { timeStat = it }
-    }
 
     Column(modifier = modifier) {
         Row(
@@ -239,18 +297,9 @@ private fun LoopStartAndEndTime(
                 )
             )
             Text(
-                modifier = Modifier.padding(start = 12.dp),
+                modifier = Modifier.padding(start = paddingHorizontalNormal),
                 text = loop.loopStart.formatHourMinute(),
                 style = AppTypography.bodyMedium.copy(
-                    color = AppColor.onSurface
-                )
-            )
-            Spacer(
-                modifier = Modifier.weight(1f),
-            )
-            Text(
-                text = annotatedString(timeStat.asString(LocalContext.current, false)),
-                style = AppTypography.headlineSmall.copy(
                     color = AppColor.onSurface
                 )
             )
@@ -268,7 +317,7 @@ private fun LoopStartAndEndTime(
                 )
             )
             Text(
-                modifier = Modifier.padding(start = 12.dp),
+                modifier = Modifier.padding(start = paddingHorizontalNormal),
                 text = loop.loopEnd.formatHourMinute(),
                 style = AppTypography.bodyMedium.copy(
                     color = AppColor.onSurface
@@ -285,16 +334,8 @@ private fun LoopResponseDoneSkipRate(
 ) {
     Row(modifier = modifier.horizontalScroll(state = rememberScrollState())) {
         val duration by detailViewModel.allEnabledCount.collectAsState(initial = 0)
-        val responseCount by detailViewModel.respondCount.collectAsState(initial = 0)
-        LoopRate(
-            text = stringResource(id = R.string.response_rate),
-            rate = if (duration == 0) 0f else (responseCount.toFloat() / duration) * 100,
-            count = responseCount,
-        )
-
         val doneCount by detailViewModel.doneCount.collectAsState(initial = 0)
         LoopRate(
-            modifier = Modifier.padding(start = 24.dp),
             text = stringResource(id = R.string.done_rate),
             rate = if (duration == 0) 0f else (doneCount.toFloat() / duration) * 100,
             count = doneCount,
@@ -306,6 +347,14 @@ private fun LoopResponseDoneSkipRate(
             text = stringResource(id = R.string.skip_rate),
             rate = if (duration == 0) 0f else (skipCount.toFloat() / duration) * 100,
             count = skipCount,
+        )
+
+        val responseCount by detailViewModel.respondCount.collectAsState(initial = 0)
+        LoopRate(
+            modifier = Modifier.padding(start = 24.dp),
+            text = stringResource(id = R.string.response_rate),
+            rate = if (duration == 0) 0f else (responseCount.toFloat() / duration) * 100,
+            count = responseCount,
         )
     }
 }

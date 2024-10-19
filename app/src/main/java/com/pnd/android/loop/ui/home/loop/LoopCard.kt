@@ -3,7 +3,6 @@ package com.pnd.android.loop.ui.home.loop
 import android.graphics.Path
 import android.graphics.PathDashPathEffect
 import android.graphics.PathMeasure
-import android.graphics.RuntimeShader
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -125,18 +124,22 @@ fun LoopCard(
                     val fontScale = this.fontScale
                     drawContext.canvas.nativeCanvas.apply {
                         drawPath(
-                            cardShape.createOutlinePath(
-                                density = Density(density, fontScale),
-                                size = size
-                            ).asAndroidPath(),
-                            android.graphics.Paint().apply {
-                                setShadowLayer(
-                                    4.dp.toPx(),
-                                    0f,
-                                    0f,
-                                    loop.color,
+                            cardShape
+                                .createOutlinePath(
+                                    density = Density(density, fontScale),
+                                    size = size
                                 )
-                            }
+                                .asAndroidPath(),
+                            android.graphics
+                                .Paint()
+                                .apply {
+                                    setShadowLayer(
+                                        4.dp.toPx(),
+                                        0f,
+                                        0f,
+                                        loop.color,
+                                    )
+                                }
                         )
                     }
                 }
@@ -298,7 +301,7 @@ fun LoopCardBody(
     syncWithTime: Boolean,
 ) {
     var timeStat by remember { mutableStateOf<TimeStat>(TimeStat.NotToday) }
-    LaunchedEffect(loop) {
+    LaunchedEffect(loop.id) {
         loop.timeStatAsFlow().collect { timeStat = it }
     }
 

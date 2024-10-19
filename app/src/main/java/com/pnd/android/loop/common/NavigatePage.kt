@@ -13,6 +13,9 @@ sealed class NavigatePage(val route: String) {
     data object Home : NavigatePage(
         route = "home?$ARGS_HIGHLIGHT_ID={$ARGS_HIGHLIGHT_ID}&$ARGS_RANDOM_KEY={$ARGS_RANDOM_KEY}"
     ) {
+
+        const val HOST = "home"
+
         val arguments = listOf(
             navArgument(ARGS_HIGHLIGHT_ID) {
                 type = NavType.IntType
@@ -24,8 +27,12 @@ sealed class NavigatePage(val route: String) {
             }
         )
 
+        fun deepLinkPattern() = uriPattern(route)
+        fun deepLink(highlightId: Int = UNKNOWN_ID) =
+            "${uriPattern(HOST)}?$ARGS_HIGHLIGHT_ID=$highlightId&$ARGS_RANDOM_KEY=${Random.nextInt()}"
+
         fun to(highlightId: Int = UNKNOWN_ID) =
-            "home?$ARGS_HIGHLIGHT_ID=$highlightId&$ARGS_RANDOM_KEY=${Random.nextInt()}"
+            "$HOST?$ARGS_HIGHLIGHT_ID=$highlightId&$ARGS_RANDOM_KEY=${Random.nextInt()}"
     }
 
     data object DetailPage : NavigatePage("detail/{$ARGS_ID}") {
@@ -67,9 +74,13 @@ sealed class NavigatePage(val route: String) {
     }
 
     companion object {
+        const val SCHEME = "lsimp"
+
         const val ARGS_HIGHLIGHT_ID = "highlightId"
         const val ARGS_RANDOM_KEY = "randomKey"
         const val ARGS_ID = "id"
         const val UNKNOWN_ID = -1
+
+        fun uriPattern(host: String) = "$SCHEME://$host"
     }
 }
