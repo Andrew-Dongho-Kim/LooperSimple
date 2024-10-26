@@ -1,6 +1,5 @@
-package com.pnd.android.loop.ui.home.loop.input.selector
+package com.pnd.android.loop.ui.home.input.selector
 
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
@@ -21,8 +20,8 @@ import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.ui.home.BlurState
-import com.pnd.android.loop.ui.home.loop.input.InputSelector
-import com.pnd.android.loop.ui.home.loop.input.UserInputState
+import com.pnd.android.loop.ui.home.input.InputSelector
+import com.pnd.android.loop.ui.home.input.UserInputState
 import com.pnd.android.loop.ui.theme.compositeOverSurface
 import com.pnd.android.loop.util.rememberImeOpenState
 import kotlinx.coroutines.launch

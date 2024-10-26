@@ -1,4 +1,4 @@
-package com.pnd.android.loop.ui.home.loop.input.selector
+package com.pnd.android.loop.ui.home.input.selector
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -18,7 +18,6 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -31,7 +30,6 @@ import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.compositeOverOnSurface
 import com.pnd.android.loop.ui.theme.onSurface
-import com.pnd.android.loop.ui.theme.surface
 import kotlin.math.min
 import kotlin.math.roundToInt
 

@@ -1,4 +1,4 @@
-package com.pnd.android.loop.ui.home.loop
+package com.pnd.android.loop.ui.home
 
 import android.content.Context
 import androidx.compose.animation.AnimatedVisibility
@@ -47,9 +47,8 @@ import com.pnd.android.loop.BuildConfig
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.ui.common.ExpandableNativeAd
-import com.pnd.android.loop.ui.home.BlurState
-import com.pnd.android.loop.ui.home.loop.timeline.LoopTimeline
-import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
+import com.pnd.android.loop.ui.home.timeline.LoopTimeline
+import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.elevatedSurface
@@ -245,7 +244,7 @@ private fun LazyListScope.sectionTodayBody(
                 modifier = Modifier.padding(top = 24.dp),
                 blurState = blurState,
                 loopViewModel = loopViewModel,
-                loops = loops,
+                loops = loops.filter { loop -> loop.enabled },
                 onNavigateToDetailPage = onNavigateToDetailPage,
                 onEdit = onEdit,
             )

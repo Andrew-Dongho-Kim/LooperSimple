@@ -1,4 +1,4 @@
-package com.pnd.android.loop.ui.home.loop.viewmodel
+package com.pnd.android.loop.ui.home.viewmodel
 
 import com.pnd.android.loop.alarm.LoopScheduler
 import com.pnd.android.loop.alarm.LoopScheduler.Companion.scheduleStart
@@ -6,8 +6,9 @@ import com.pnd.android.loop.common.log
 import com.pnd.android.loop.data.AppDatabase
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
-import com.pnd.android.loop.data.LoopVo
 import com.pnd.android.loop.data.LoopRetrospectVo
+import com.pnd.android.loop.data.LoopVo
+import com.pnd.android.loop.data.LoopWithDone
 import com.pnd.android.loop.data.isDisabled
 import com.pnd.android.loop.data.isNotRespond
 import com.pnd.android.loop.util.isActive
@@ -15,12 +16,17 @@ import com.pnd.android.loop.util.isActiveDay
 import com.pnd.android.loop.util.toLocalDate
 import com.pnd.android.loop.util.toLocalTime
 import com.pnd.android.loop.util.toMs
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.transform
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -39,28 +45,37 @@ class LoopRepository @Inject constructor(
     private val loopWithDoneDao = appDb.loopWithDoneDao()
     private val loopDoneDao = appDb.loopDoneDao()
     private val loopMemoDao = appDb.loopRetrospectDao()
+    private val coroutineScope = CoroutineScope(SupervisorJob())
 
     val localDateTime = flow {
         while (true) {
             emit(LocalDateTime.now())
             delay(1000L)
         }
-    }
+    }.stateIn(
+        scope = coroutineScope,
+        started = SharingStarted.WhileSubscribed(5_000L),
+        initialValue = LocalDateTime.now()
+    )
 
     val localDate = flow {
         while (true) {
-            val now = LocalDate.now()
-            val delayInMs = LocalTime.now().until(LocalTime.MAX, ChronoUnit.MILLIS)
+            val delayInMs = min(
+                LocalTime.now().until(LocalTime.MAX, ChronoUnit.MILLIS),
+                60_000L
+            )
 
-            logger.d { "localDate is $now, delay:${delayInMs.toLocalTime()}" }
-
-            emit(now)
-            delay(min(delayInMs, 6000))
+            logger.d { "delay:${delayInMs.toLocalTime()}" }
+            emit(LocalDate.now())
+            delay(delayInMs)
         }
-    }
+    }.stateIn(
+        scope = coroutineScope,
+        started = SharingStarted.WhileSubscribed(5_000L),
+        initialValue = LocalDate.now()
+    )
 
-    val allLoopsWithDoneStates = localDate.transform { currDate ->
-        logger.d { "loops with done: $currDate" }
+    val allLoopsWithDoneStates: Flow<List<LoopWithDone>> = localDate.transform { currDate ->
         emit(loopWithDoneDao.allLoops(currDate.toLocalTime()))
         emitAll(loopWithDoneDao.flowAllLoops(currDate.toLocalTime()))
     }

@@ -47,8 +47,8 @@ import com.pnd.android.loop.ui.common.SimpleAd
 import com.pnd.android.loop.ui.common.SimpleAppBar
 import com.pnd.android.loop.ui.common.chart.AdvancedLineChart
 import com.pnd.android.loop.ui.common.chart.BarChart
-import com.pnd.android.loop.ui.home.loop.LoopDoneOrSkip
-import com.pnd.android.loop.ui.home.loop.LoopOnOffSwitch
+import com.pnd.android.loop.ui.home.LoopDoneOrSkip
+import com.pnd.android.loop.ui.home.LoopOnOffSwitch
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.RoundShapes

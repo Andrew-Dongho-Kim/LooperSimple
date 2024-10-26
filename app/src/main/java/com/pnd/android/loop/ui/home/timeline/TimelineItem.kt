@@ -1,4 +1,4 @@
-package com.pnd.android.loop.ui.home.loop.timeline
+package com.pnd.android.loop.ui.home.timeline
 
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -41,7 +41,7 @@ import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.ui.common.Tooltip
 import com.pnd.android.loop.ui.home.BlurState
-import com.pnd.android.loop.ui.home.loop.DeleteLoopDialog
+import com.pnd.android.loop.ui.home.DeleteLoopDialog
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.RoundShapes

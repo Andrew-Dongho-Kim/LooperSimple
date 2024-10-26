@@ -29,7 +29,7 @@ import com.pnd.android.loop.common.NavigatePage
 import com.pnd.android.loop.ui.detail.DetailPage
 import com.pnd.android.loop.ui.history.DailyAchievementPage
 import com.pnd.android.loop.ui.home.Home
-import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
+import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.statisctics.StatisticsPage
 
 fun Context.findActivity(): ComponentActivity? {

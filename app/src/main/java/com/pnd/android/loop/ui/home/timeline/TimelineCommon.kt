@@ -1,4 +1,4 @@
-package com.pnd.android.loop.ui.home.loop.timeline
+package com.pnd.android.loop.ui.home.timeline
 
 import androidx.compose.material.MaterialTheme
 import androidx.compose.runtime.Composable

@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.ui.common.AppBar
 import com.pnd.android.loop.ui.common.AppBarIcon
-import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
+import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.onSurface

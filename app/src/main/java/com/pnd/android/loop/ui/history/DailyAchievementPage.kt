@@ -1,7 +1,6 @@
 package com.pnd.android.loop.ui.history
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -79,7 +78,6 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun DailyAchievementPage(
     modifier: Modifier = Modifier,
@@ -208,8 +206,6 @@ private fun AppBarDateIcon(
     }
 }
 
-
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun DailyAchievementPageContent(
     modifier: Modifier = Modifier,
@@ -257,8 +253,6 @@ private fun DailyAchievementPageContent(
     }
 }
 
-
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun UpdateSelectedDate(
     pagerState: PagerState,
@@ -282,7 +276,6 @@ private fun UpdateSelectedDate(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun OnListScrolled(
     pagerState: PagerState,
@@ -304,7 +297,6 @@ private fun OnListScrolled(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun OnPagerScrolled(
     pagerState: PagerState,
@@ -478,7 +470,7 @@ private fun AchievementItemSection(
 ) {
     Column(
         modifier = modifier
-            .clip(RoundShapes.small)
+            .clip(RoundShapes.medium)
             .background(backgroundColor)
             .padding(vertical = 12.dp)
     ) {
@@ -588,7 +580,7 @@ private fun AchievementItemSectionBody(
                         bottom = 8.dp,
                         end = 24.dp,
                     )
-                    .clip(RoundShapes.small)
+                    .clip(RoundShapes.medium)
                     .background(color = AppColor.surface.copy(alpha = 0.35f))
                     .fillMaxWidth()
                     .padding(

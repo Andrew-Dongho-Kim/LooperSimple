@@ -1,4 +1,4 @@
-package com.pnd.android.loop.ui.home.loop.input
+package com.pnd.android.loop.ui.home.input
 
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState

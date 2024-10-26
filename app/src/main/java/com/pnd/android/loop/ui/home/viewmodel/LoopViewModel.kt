@@ -1,4 +1,4 @@
-package com.pnd.android.loop.ui.home.loop.viewmodel
+package com.pnd.android.loop.ui.home.viewmodel
 
 import android.app.Application
 import androidx.compose.runtime.Stable
@@ -12,8 +12,7 @@ import com.pnd.android.loop.common.log
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.LoopVo
-import com.pnd.android.loop.util.isActive
-import com.pnd.android.loop.util.isPast
+import com.pnd.android.loop.data.TodayLoopOrder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
@@ -200,25 +199,5 @@ class LoopViewModel @Inject constructor(
     fun syncAlarms() {
         loopRepository.syncAlarms()
         AppWidgetUpdateWorker.updateWidget(application)
-    }
-
-    class TodayLoopOrder : Comparator<LoopBase> {
-        override fun compare(loop1: LoopBase, loop2: LoopBase): Int {
-            var comp = compareActive(loop1, loop2)
-            if (comp != 0) return comp
-
-            comp = comparePast(loop1, loop2)
-            if (comp != 0) return comp
-
-            return (loop1.loopEnd - loop2.loopEnd).toInt()
-        }
-        private fun compareActive(loop1: LoopBase, loop2: LoopBase) =
-            loop1.activeValue() - loop2.activeValue()
-
-        private fun comparePast(loop1:LoopBase, loop2:LoopBase) =
-            loop1.pastValue() - loop2.pastValue()
-
-        private fun LoopBase.activeValue() = if (isActive()) 0 else 1
-        private fun LoopBase.pastValue() = if(isPast()) 1 else 0
     }
 }

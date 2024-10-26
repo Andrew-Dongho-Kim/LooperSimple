@@ -1,4 +1,4 @@
-package com.pnd.android.loop.ui.home.loop
+package com.pnd.android.loop.ui.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -29,10 +29,8 @@ import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.isDisabled
 import com.pnd.android.loop.data.isNotRespond
 import com.pnd.android.loop.data.isRespond
-import com.pnd.android.loop.ui.home.BlurState
-import com.pnd.android.loop.ui.home.MODE_ALL_LOOPS
-import com.pnd.android.loop.ui.home.loop.input.UserInputState
-import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
+import com.pnd.android.loop.ui.home.input.UserInputState
+import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.background
@@ -112,7 +110,7 @@ private fun LoopViewModel.observeSectionsAsState(
         remember { mutableStateOf(emptyList()) }
     } else {
         val resultLoops = ArrayList<LoopBase>(loops)
-        if (inputState.mode == UserInputState.Mode.Edit) {
+        if (inputState.mode == com.pnd.android.loop.ui.home.input.UserInputState.Mode.Edit) {
             val edited = inputState.value
             val index = resultLoops.indexOfFirst { it.id == edited.id }
             resultLoops[index] = inputState.value

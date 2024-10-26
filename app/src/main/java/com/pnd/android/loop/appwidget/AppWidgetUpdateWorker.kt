@@ -17,6 +17,7 @@ import com.pnd.android.loop.data.AppDatabase
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.LoopDoneVo.DoneState
+import com.pnd.android.loop.data.TodayLoopOrder
 import com.pnd.android.loop.data.isNotRespond
 import com.pnd.android.loop.data.putTo
 import com.pnd.android.loop.util.isActiveDay
@@ -68,7 +69,9 @@ class AppWidgetUpdateWorker @AssistedInject constructor(
         val loops = loopWithDoneDao.allEnabledLoops(date = LocalDate.now().toMs())
         updateWidget(
             context = context,
-            loops = loops.filter { loop -> loop.isActiveDay() }
+            loops = loops.filter { loop ->
+                loop.isActiveDay()
+            }.sortedWith(TodayLoopOrder())
         )
 
         return Result.success()

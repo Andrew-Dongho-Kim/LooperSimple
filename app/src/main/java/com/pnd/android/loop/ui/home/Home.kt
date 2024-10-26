@@ -37,11 +37,10 @@ import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopBase.Companion.MAX_LOOPS_TO_DO_SIMULTANEOUSLY
 import com.pnd.android.loop.data.asLoopVo
-import com.pnd.android.loop.ui.home.loop.Loops
-import com.pnd.android.loop.ui.home.loop.input.UserInput
-import com.pnd.android.loop.ui.home.loop.input.UserInputState
-import com.pnd.android.loop.ui.home.loop.input.rememberUserInputState
-import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
+import com.pnd.android.loop.ui.home.input.UserInput
+import com.pnd.android.loop.ui.home.input.UserInputState
+import com.pnd.android.loop.ui.home.input.rememberUserInputState
+import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.background
 import com.pnd.android.loop.ui.theme.onSurface

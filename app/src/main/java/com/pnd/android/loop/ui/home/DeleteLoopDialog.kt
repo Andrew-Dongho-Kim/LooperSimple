@@ -1,4 +1,4 @@
-package com.pnd.android.loop.ui.home.loop
+package com.pnd.android.loop.ui.home
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog

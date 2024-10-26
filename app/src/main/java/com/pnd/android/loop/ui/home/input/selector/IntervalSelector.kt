@@ -1,4 +1,4 @@
-package com.pnd.android.loop.ui.home.loop.input.selector
+package com.pnd.android.loop.ui.home.input.selector
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.rememberScrollState

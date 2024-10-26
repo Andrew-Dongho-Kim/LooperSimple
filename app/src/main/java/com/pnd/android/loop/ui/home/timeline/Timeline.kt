@@ -1,4 +1,4 @@
-package com.pnd.android.loop.ui.home.loop.timeline
+package com.pnd.android.loop.ui.home.timeline
 
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
@@ -26,7 +26,7 @@ import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.ui.common.VerticalDashedDivider
 import com.pnd.android.loop.ui.common.VerticalDivider
 import com.pnd.android.loop.ui.home.BlurState
-import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
+import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.WineRed
 import com.pnd.android.loop.ui.theme.onSurface

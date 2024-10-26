@@ -1,4 +1,4 @@
-package com.pnd.android.loop.ui.home.loop.input
+package com.pnd.android.loop.ui.home.input
 
 import android.content.Context
 import androidx.compose.runtime.Composable

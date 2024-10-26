@@ -1,4 +1,4 @@
-package com.pnd.android.loop.ui.home.loop.input
+package com.pnd.android.loop.ui.home.input
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
@@ -16,7 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.ui.home.BlurState
-import com.pnd.android.loop.ui.home.loop.input.selector.Selectors
+import com.pnd.android.loop.ui.home.input.selector.Selectors
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.surface

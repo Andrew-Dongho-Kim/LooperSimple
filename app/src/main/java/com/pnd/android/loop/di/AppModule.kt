@@ -11,7 +11,7 @@ import com.pnd.android.loop.data.AppDatabase
 import com.pnd.android.loop.data.MIGRATION_1_2
 import com.pnd.android.loop.data.MIGRATION_2_3
 import com.pnd.android.loop.data.MIGRATION_3_4
-import com.pnd.android.loop.ui.home.loop.viewmodel.LoopRepository
+import com.pnd.android.loop.ui.home.viewmodel.LoopRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

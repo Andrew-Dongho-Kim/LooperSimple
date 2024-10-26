@@ -1,4 +1,4 @@
-package com.pnd.android.loop.ui.home.loop
+package com.pnd.android.loop.ui.home
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
@@ -49,8 +49,7 @@ import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.data.LoopWithDone
 import com.pnd.android.loop.ui.common.isLargeScreen
-import com.pnd.android.loop.ui.home.BlurState
-import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
+import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.RoundShapes

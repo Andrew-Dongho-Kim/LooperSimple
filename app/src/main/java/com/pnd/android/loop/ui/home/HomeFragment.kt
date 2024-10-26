@@ -10,7 +10,7 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import com.pnd.android.loop.ui.AppNavHost
-import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
+import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
 import com.pnd.android.loop.util.LocalBackPressedDispatcher
 import dagger.hilt.android.AndroidEntryPoint
 

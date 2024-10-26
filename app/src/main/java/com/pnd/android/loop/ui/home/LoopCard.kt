@@ -1,4 +1,4 @@
-package com.pnd.android.loop.ui.home.loop
+package com.pnd.android.loop.ui.home
 
 import android.graphics.Path
 import android.graphics.PathDashPathEffect
@@ -67,7 +67,7 @@ import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.data.NO_REPEAT
 import com.pnd.android.loop.data.TimeStat
 import com.pnd.android.loop.data.timeStatAsFlow
-import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
+import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.shape.CircularPolygonShape
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography

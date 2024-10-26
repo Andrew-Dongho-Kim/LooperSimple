@@ -39,7 +39,6 @@ class DailyAchievementPagingSource(
                 ?: closestPage?.nextKey?.plusDays(state.config.pageSize.toLong())
         }
     }
-
     override suspend fun load(
         params: LoadParams<LocalDate>
     ): LoadResult<LocalDate, List<FullLoopVo>> {

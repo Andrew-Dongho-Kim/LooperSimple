@@ -12,7 +12,7 @@ import com.pnd.android.loop.data.DonePagingSource
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.asLoopVo
-import com.pnd.android.loop.ui.home.loop.viewmodel.LoopRepository
+import com.pnd.android.loop.ui.home.viewmodel.LoopRepository
 import com.pnd.android.loop.util.toMs
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope

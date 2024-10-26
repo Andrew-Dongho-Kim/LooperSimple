@@ -1,4 +1,4 @@
-package com.pnd.android.loop.ui.home.loop
+package com.pnd.android.loop.ui.home
 
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -26,8 +26,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.asLoopVo
-import com.pnd.android.loop.ui.home.BlurState
-import com.pnd.android.loop.ui.home.loop.viewmodel.LoopViewModel
+import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 

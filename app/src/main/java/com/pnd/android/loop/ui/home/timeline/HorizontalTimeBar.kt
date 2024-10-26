@@ -1,4 +1,4 @@
-package com.pnd.android.loop.ui.home.loop.timeline
+package com.pnd.android.loop.ui.home.timeline
 
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
