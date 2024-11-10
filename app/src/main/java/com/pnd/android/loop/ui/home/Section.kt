@@ -520,9 +520,7 @@ sealed class Section(val key: String) {
     open val size
         get() = items.value.size
 
-    class Statistics : Section(key = "StatisticsCard") {
-        override val size = 1
-    }
+    class Statistics : Section(key = "StatisticsCard")
 
     class Yesterday(
         isSelected: Boolean = false

@@ -1,7 +1,12 @@
 package com.pnd.android.loop.ui.home.input
 
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.EnterExitState
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -10,16 +15,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.FiberManualRecord
@@ -29,6 +32,7 @@ import androidx.compose.material.icons.twotone.HourglassBottom
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -36,9 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -49,36 +51,33 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
+import com.pnd.android.loop.ui.home.input.SharedElementsOfUserInput.TRANSITION_DURATION
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.compositeOverOnSurface
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.ui.theme.surface
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun UserInputButtons(
     modifier: Modifier = Modifier,
     inputState: UserInputState,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope,
     onSubmitted: () -> Unit,
 ) {
-    val overrideModifier = if (inputState.isVisible) {
-        modifier.clickable(enabled = false, onClick = {})
-    } else {
-        modifier
-    }
-
     Row(
-        modifier = overrideModifier
+        modifier = modifier
             .background(color = Color.Transparent)
             .height(56.dp)
             .padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (inputState.isVisible) {
-            UserInputSelectorButtons(
-                inputState = inputState,
-            )
-        }
+        UserInputSelectorButtons(
+            inputState = inputState,
+        )
+
         Spacer(modifier = Modifier.weight(1f))
 
         if (!inputState.isModeNone) {
@@ -92,6 +91,8 @@ fun UserInputButtons(
         if (inputState.isModeNone) {
             UserInputOpenButton(
                 inputState = inputState,
+                sharedTransitionScope = sharedTransitionScope,
+                animatedVisibilityScope = animatedVisibilityScope
             )
         }
     }
@@ -221,54 +222,77 @@ private fun UserInputSubmitButton(
 }
 
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 private fun UserInputOpenButton(
     modifier: Modifier = Modifier,
     inputState: UserInputState,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
-    Box(
-        modifier = Modifier
-            .width(90.dp)
-            .height(110.dp)
-    ) {
-        if (!inputState.isOpen) {
-            Box(
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .fillMaxWidth()
-                    .fillMaxHeight()
-                    .background(color = AppColor.surface.copy(alpha = 0.4f))
-                    .graphicsLayer {
-                        this.renderEffect = BlurEffect(
-                            radiusX = 100f,
-                            radiusY = 100f,
-                            edgeTreatment = TileMode.Clamp
-                        )
-                    })
-        }
+    with(sharedTransitionScope) {
         val context = LocalContext.current
-        Button(
-            modifier = modifier.align(if (inputState.isOpen) Alignment.BottomEnd else Alignment.Center),
-            onClick = { inputState.toggleOpen(context) },
+        Surface(
+            modifier = modifier
+                .size(
+                    width = ButtonDefaults.MinWidth,
+                    height = ButtonDefaults.MinHeight,
+                )
+                .clip(CircleShape)
+                .clickable {
+                    inputState.toggleOpen(context)
+                }
+                .sharedBounds(
+                    sharedContentState = rememberSharedContentState(
+                        key = SharedElementsOfUserInput.KEY_BUTTON_BACKGROUND,
+                    ),
+                    animatedVisibilityScope = animatedVisibilityScope,
+                    resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds,
+                ),
             shape = CircleShape,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = AppColor.surface,
-            ),
             border = BorderStroke(
                 width = 0.5.dp,
-                color = AppColor.onSurface.copy(alpha = 0.3f)
-            ),
-            contentPadding = PaddingValues(0.dp)
+                color = AppColor.onSurface.copy(alpha = 0.3f),
+            )
         ) {
-            Icon(
-                imageVector = if (inputState.isOpen) {
-                    Icons.AutoMirrored.Outlined.ArrowForward
-                } else {
-                    Icons.AutoMirrored.Outlined.ArrowBack
+            val imageRotation by animatedVisibilityScope.transition.animateFloat(
+                transitionSpec = {
+                    tween(
+                        delayMillis = 250,
+                        durationMillis = TRANSITION_DURATION,
+                    )
                 },
-                tint = AppColor.primary.copy(alpha = 0.8f),
+                label = "imageRotation"
+            ) { state ->
+                when (state) {
+                    EnterExitState.PreEnter -> 180f
+                    EnterExitState.PostExit, EnterExitState.Visible -> 0f
+                }
+            }
+
+            Icon(
+                modifier = Modifier
+                    .wrapContentWidth()
+                    .wrapContentHeight()
+                    .sharedElement(
+                        state = rememberSharedContentState(
+                            key = SharedElementsOfUserInput.KEY_BUTTON_IMAGE,
+                        ),
+                        animatedVisibilityScope = animatedVisibilityScope,
+                        boundsTransform = { _, _ ->
+                            tween(
+                                durationMillis = SharedElementsOfUserInput.TRANSITION_DURATION,
+                            )
+                        }
+                    )
+                    .graphicsLayer {
+                        rotationZ = imageRotation
+                    },
+                imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
+                tint = AppColor.primary,
                 contentDescription = ""
             )
         }
     }
+
 }

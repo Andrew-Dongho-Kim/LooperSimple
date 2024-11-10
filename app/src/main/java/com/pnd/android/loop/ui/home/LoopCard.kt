@@ -265,11 +265,6 @@ private fun LoopCardActiveEffect(
         ).toComposePathEffect()
 
         outlinePaint.pathEffect = pathEffect
-//        outlinePaint.shader = waveShader(
-//            size = size,
-//            color = loop.color,
-//            shiftX1 = 25f
-//        )
         with(drawContext.canvas) { drawPath(path, outlinePaint) }
     }
 }
