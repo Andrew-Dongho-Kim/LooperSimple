@@ -11,6 +11,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.core.content.edit
 import com.pnd.android.loop.data.LoopBase
+import com.pnd.android.loop.data.LoopVo
 import com.pnd.android.loop.data.asLoop
 import com.pnd.android.loop.data.putTo
 
@@ -20,7 +21,7 @@ class UserInputState(
     currSelector: InputSelector = InputSelector.NONE,
     isOpen: Boolean,
     mode: Mode = Mode.None,
-    value: LoopBase = LoopBase.default(isMock = true)
+    value: LoopBase = LoopVo.create(isMock = true)
 ) {
     enum class Mode { None, New, Edit }
 
@@ -64,18 +65,18 @@ class UserInputState(
     fun update(
         title: TextFieldValue = this.textFieldValue,
         color: Int = value.color,
-        loopStart: Long = value.loopStart,
-        loopEnd: Long = value.loopEnd,
-        loopActiveDays: Int = value.loopActiveDays,
+        loopStart: Long = value.startInDay,
+        loopEnd: Long = value.endInDay,
+        loopActiveDays: Int = value.activeDays,
         interval: Long = value.interval,
         enabled: Boolean = value.enabled,
     ) {
         value = value.copyAs(
             title = title.text,
             color = color,
-            loopStart = loopStart,
-            loopEnd = loopEnd,
-            loopActiveDays = loopActiveDays,
+            startInDay = loopStart,
+            endInDay = loopEnd,
+            activeDays = loopActiveDays,
             interval = interval,
             enabled = enabled,
             isMock = value.isMock,
@@ -110,7 +111,7 @@ class UserInputState(
         prevSelector = currSelector
         currSelector = InputSelector.NONE
 
-        if (withValue) value = LoopBase.default(isMock = true)
+        if (withValue) value = LoopVo.create(isMock = true)
         textFieldValue = TextFieldValue(value.title)
     }
 

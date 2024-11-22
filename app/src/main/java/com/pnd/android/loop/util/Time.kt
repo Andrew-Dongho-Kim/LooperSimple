@@ -7,24 +7,22 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.pnd.android.loop.R
-import com.pnd.android.loop.data.Day
-import com.pnd.android.loop.data.Day.Companion.EVERYDAY
-import com.pnd.android.loop.data.Day.Companion.FRIDAY
-import com.pnd.android.loop.data.Day.Companion.MONDAY
-import com.pnd.android.loop.data.Day.Companion.SATURDAY
-import com.pnd.android.loop.data.Day.Companion.SUNDAY
-import com.pnd.android.loop.data.Day.Companion.THURSDAY
-import com.pnd.android.loop.data.Day.Companion.TUESDAY
-import com.pnd.android.loop.data.Day.Companion.WEDNESDAY
-import com.pnd.android.loop.data.Day.Companion.WEEKDAYS
-import com.pnd.android.loop.data.Day.Companion.WEEKENDS
-import com.pnd.android.loop.data.Day.Companion.isOn
+import com.pnd.android.loop.data.LoopDay
+import com.pnd.android.loop.data.LoopDay.Companion.EVERYDAY
+import com.pnd.android.loop.data.LoopDay.Companion.FRIDAY
+import com.pnd.android.loop.data.LoopDay.Companion.MONDAY
+import com.pnd.android.loop.data.LoopDay.Companion.SATURDAY
+import com.pnd.android.loop.data.LoopDay.Companion.SUNDAY
+import com.pnd.android.loop.data.LoopDay.Companion.THURSDAY
+import com.pnd.android.loop.data.LoopDay.Companion.TUESDAY
+import com.pnd.android.loop.data.LoopDay.Companion.WEDNESDAY
+import com.pnd.android.loop.data.LoopDay.Companion.WEEKDAYS
+import com.pnd.android.loop.data.LoopDay.Companion.WEEKENDS
+import com.pnd.android.loop.data.LoopDay.Companion.isOn
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.ui.theme.AppColor
-import com.pnd.android.loop.ui.theme.Blue500
 import com.pnd.android.loop.ui.theme.BlueGreen
 import com.pnd.android.loop.ui.theme.Red300
-import com.pnd.android.loop.ui.theme.Red500
 import com.pnd.android.loop.ui.theme.onSurface
 import java.time.DayOfWeek
 import java.time.Instant
@@ -94,12 +92,12 @@ val DAY_STRING_MAP = mapOf(
 @Composable
 fun LoopBase.formatStartEndTime(context: Context = LocalContext.current) =
     "${
-        loopStart.formatHourMinute(
+        startInDay.formatHourMinute(
             context = context,
             withAmPm = false
         )
     } ~ ${
-        loopEnd.formatHourMinute(
+        endInDay.formatHourMinute(
             context = context,
             withAmPm = false
         )
@@ -197,9 +195,9 @@ fun LocalDate.isSameMonth(other: LocalDate): Boolean {
     return me.year == other.year && me.month == other.month
 }
 
-fun dayForLoop(localDate: LocalDate = LocalDate.now()): @Day Int = dayForLoop(localDate.dayOfWeek)
+fun dayForLoop(localDate: LocalDate = LocalDate.now()): @LoopDay Int = dayForLoop(localDate.dayOfWeek)
 
-fun dayForLoop(dayOfWeek: DayOfWeek): @Day Int = when (dayOfWeek) {
+fun dayForLoop(dayOfWeek: DayOfWeek): @LoopDay Int = when (dayOfWeek) {
     DayOfWeek.SUNDAY -> SUNDAY
     DayOfWeek.MONDAY -> MONDAY
     DayOfWeek.TUESDAY -> TUESDAY
@@ -235,7 +233,7 @@ fun LoopBase.isPast(localDateTime: LocalDateTime = LocalDateTime.now()): Boolean
     val localTime = localDateTime.toLocalTime()
     val timeInMs = TimeUnit.MILLISECONDS.convert(localTime.toNanoOfDay(), TimeUnit.NANOSECONDS)
 
-    val end = if (loopStart > loopEnd) loopEnd + MS_1DAY else loopEnd
+    val end = if (startInDay > endInDay) endInDay + MS_1DAY else endInDay
     return timeInMs >= end
 }
 
@@ -246,15 +244,15 @@ fun LoopBase.isActive(localDateTime: LocalDateTime = LocalDateTime.now()): Boole
 }
 
 fun LoopBase.isActiveDay(localDate: LocalDate = LocalDate.now()): Boolean {
-    return loopActiveDays.isOn(dayForLoop(localDate))
+    return activeDays.isOn(dayForLoop(localDate))
 }
 
 fun LoopBase.isActiveTime(localDateTime: LocalDateTime = LocalDateTime.now()): Boolean {
     val localTime = localDateTime.toLocalTime()
     val timeInMs = TimeUnit.MILLISECONDS.convert(localTime.toNanoOfDay(), TimeUnit.NANOSECONDS)
 
-    val start = loopStart
-    val end = if (loopStart > loopEnd) loopEnd + MS_1DAY else loopEnd
+    val start = startInDay
+    val end = if (startInDay > endInDay) endInDay + MS_1DAY else endInDay
     return timeInMs in start..end
 }
 

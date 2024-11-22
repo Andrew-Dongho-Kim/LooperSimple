@@ -1,6 +1,5 @@
 package com.pnd.android.loop.ui.detail
 
-import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -36,7 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.pnd.android.loop.R
-import com.pnd.android.loop.data.Day.Companion.isOn
+import com.pnd.android.loop.data.LoopDay.Companion.isOn
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.LoopDoneVo.DoneState
@@ -78,7 +77,7 @@ fun DoneHistoryGrid(
                         created = loop.created,
                         doneVo = item,
                         color = loop.color.compositeOverOnSurface(),
-                        activeDays = loop.loopActiveDays
+                        activeDays = loop.activeDays
                     )
                 }
             }

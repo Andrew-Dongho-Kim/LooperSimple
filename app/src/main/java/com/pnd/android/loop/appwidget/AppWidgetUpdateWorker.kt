@@ -40,7 +40,7 @@ class AppWidgetUpdateWorker @AssistedInject constructor(
 
     private val logger = Logger("AppWidgetUpdateWorker")
 
-    private val loopWithDoneDao = appDb.loopWithDoneDao()
+    private val loopWithDoneDao = appDb.fullLoopDao()
     private val loopDoneDao = appDb.loopDoneDao()
 
     override suspend fun doWork(): Result {

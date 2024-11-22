@@ -14,7 +14,7 @@ sealed class NavigatePage(val route: String) {
         route = "home?$ARGS_HIGHLIGHT_ID={$ARGS_HIGHLIGHT_ID}&$ARGS_RANDOM_KEY={$ARGS_RANDOM_KEY}"
     ) {
 
-        const val HOST = "home"
+        private const val HOST = "home"
 
         val arguments = listOf(
             navArgument(ARGS_HIGHLIGHT_ID) {
@@ -74,7 +74,7 @@ sealed class NavigatePage(val route: String) {
     }
 
     companion object {
-        const val SCHEME = "lsimp"
+        private const val SCHEME = "lsimp"
 
         const val ARGS_HIGHLIGHT_ID = "highlightId"
         const val ARGS_RANDOM_KEY = "randomKey"

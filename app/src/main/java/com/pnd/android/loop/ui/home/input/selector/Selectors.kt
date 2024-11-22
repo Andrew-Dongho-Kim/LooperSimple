@@ -94,9 +94,9 @@ private fun Selector(
         InputSelector.ALARM_INTERVAL -> IntervalSelector(
             modifier = modifier,
             selectedInterval = loop.interval,
-            maxInterval = loop.loopEnd - loop.loopStart,
+            maxInterval = loop.endInDay - loop.startInDay,
             onIntervalSelected = onIntervalChanged@{ interval ->
-                if (loop.loopEnd - loop.loopStart <= interval) {
+                if (loop.endInDay - loop.startInDay <= interval) {
                     coroutineScope.launch {
                         snackBarHostState.showSnackbar(
                             message = "BBBBB!"
@@ -112,15 +112,15 @@ private fun Selector(
         InputSelector.START_END_TIME -> StartEndTimeSelector(
             modifier = modifier,
             blurState = blurState,
-            selectedStartTime = loop.loopStart,
+            selectedStartTime = loop.startInDay,
             onStartTimeSelected = onStartTimeSelected@{ loopStart ->
                 inputState.update(loopStart = loopStart)
             },
-            selectedEndTime = loop.loopEnd,
+            selectedEndTime = loop.endInDay,
             onEndTimeSelected = onEndTimeSelected@{ loopEnd ->
                 inputState.update(loopEnd = loopEnd)
             },
-            selectedDays = loop.loopActiveDays,
+            selectedDays = loop.activeDays,
             onSelectedDayChanged = onDayChanged@{ activeDays ->
                 if (activeDays == 0) {
                     coroutineScope.launch {

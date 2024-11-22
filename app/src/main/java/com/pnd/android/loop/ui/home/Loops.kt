@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.asLoopVo
+import com.pnd.android.loop.data.common.MAX_LOOPS_TOGETHER
 import com.pnd.android.loop.data.isDisabled
 import com.pnd.android.loop.data.isNotRespond
 import com.pnd.android.loop.data.isRespond
@@ -317,11 +318,11 @@ private suspend fun ensureLoop(
         return false
     }
 
-    if (loopViewModel.maxOfIntersects(loop) >= LoopBase.MAX_LOOPS_TO_DO_SIMULTANEOUSLY) {
+    if (loopViewModel.maxOfIntersects(loop) >= MAX_LOOPS_TOGETHER) {
         hostState.showSnackbar(
             message = context.getString(
                 R.string.warning_up_to_max_loops,
-                LoopBase.MAX_LOOPS_TO_DO_SIMULTANEOUSLY
+                MAX_LOOPS_TOGETHER
             )
         )
         return false

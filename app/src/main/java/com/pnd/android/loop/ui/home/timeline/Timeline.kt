@@ -210,8 +210,8 @@ private fun rememberTimelineSlots(loops: List<LoopBase>) = remember(loops) {
 
 private fun isIntersect(slot: List<LoopBase>, another: LoopBase): Boolean {
     slot.forEach { loop ->
-        if (loop.loopStart <= another.loopStart && another.loopStart < loop.loopEnd) return true
-        if (loop.loopStart < another.loopEnd && another.loopEnd <= loop.loopEnd) return true
+        if (loop.startInDay <= another.startInDay && another.startInDay < loop.endInDay) return true
+        if (loop.startInDay < another.endInDay && another.endInDay <= loop.endInDay) return true
     }
     return false
 }

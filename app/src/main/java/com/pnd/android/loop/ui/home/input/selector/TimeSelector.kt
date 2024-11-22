@@ -29,9 +29,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
-import com.pnd.android.loop.data.Day.Companion.fromIndex
-import com.pnd.android.loop.data.Day.Companion.isOn
-import com.pnd.android.loop.data.Day.Companion.toggle
+import com.pnd.android.loop.data.LoopDay.Companion.fromIndex
+import com.pnd.android.loop.data.LoopDay.Companion.isOn
+import com.pnd.android.loop.data.LoopDay.Companion.toggle
 import com.pnd.android.loop.ui.home.BlurState
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography

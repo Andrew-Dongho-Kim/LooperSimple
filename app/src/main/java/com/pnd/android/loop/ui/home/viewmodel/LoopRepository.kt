@@ -42,7 +42,7 @@ class LoopRepository @Inject constructor(
     private val logger = log("LoopRepository")
 
     private val loopDao = appDb.loopDao()
-    private val loopWithDoneDao = appDb.loopWithDoneDao()
+    private val loopWithDoneDao = appDb.fullLoopDao()
     private val loopDoneDao = appDb.loopDoneDao()
     private val loopMemoDao = appDb.loopRetrospectDao()
     private val coroutineScope = CoroutineScope(SupervisorJob())

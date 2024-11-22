@@ -4,7 +4,7 @@ import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import com.pnd.android.loop.common.Logger
 import com.pnd.android.loop.data.AppDatabase
-import com.pnd.android.loop.data.Day.Companion.isOn
+import com.pnd.android.loop.data.LoopDay.Companion.isOn
 import com.pnd.android.loop.data.FullLoopVo
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
@@ -116,7 +116,7 @@ class DailyAchievementPagingSource(
 
         for (day in DayOfWeek.entries) {
             loopsByDayOfWeek[day] = allLoops.filter {
-                it.loopActiveDays.isOn(dayForLoop(day))
+                it.activeDays.isOn(dayForLoop(day))
             }
         }
         logger.d { "init loopsByDayOfWeek:$loopsByDayOfWeek" }

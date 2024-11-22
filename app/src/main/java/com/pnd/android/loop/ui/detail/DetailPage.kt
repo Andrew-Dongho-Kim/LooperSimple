@@ -41,6 +41,7 @@ import com.pnd.android.loop.BuildConfig
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
+import com.pnd.android.loop.data.LoopVo
 import com.pnd.android.loop.data.TimeStat
 import com.pnd.android.loop.data.timeStatAsFlow
 import com.pnd.android.loop.ui.common.SimpleAd
@@ -84,7 +85,7 @@ fun DetailPage(
     detailViewModel: LoopDetailViewModel = hiltViewModel(),
     onNavigateUp: () -> Unit,
 ) {
-    val loop by detailViewModel.loop.collectAsState(LoopBase.default())
+    val loop by detailViewModel.loop.collectAsState(LoopVo.create())
     Scaffold(
         modifier = modifier
             .fillMaxWidth()
@@ -197,7 +198,7 @@ private fun LoopState(
     modifier: Modifier = Modifier,
     detailViewModel: LoopDetailViewModel,
     loop: LoopBase,
-) {    
+) {
     if (!loop.enabled) return
     Column(
         modifier = modifier
@@ -298,7 +299,7 @@ private fun LoopStartAndEndTime(
             )
             Text(
                 modifier = Modifier.padding(start = paddingHorizontalNormal),
-                text = loop.loopStart.formatHourMinute(),
+                text = loop.startInDay.formatHourMinute(),
                 style = AppTypography.bodyMedium.copy(
                     color = AppColor.onSurface
                 )
@@ -318,7 +319,7 @@ private fun LoopStartAndEndTime(
             )
             Text(
                 modifier = Modifier.padding(start = paddingHorizontalNormal),
-                text = loop.loopEnd.formatHourMinute(),
+                text = loop.endInDay.formatHourMinute(),
                 style = AppTypography.bodyMedium.copy(
                     color = AppColor.onSurface
                 )
@@ -394,7 +395,7 @@ private fun DailyDoneRateChart(
     detailViewModel: LoopDetailViewModel,
 ) {
     Column(modifier = modifier) {
-        val loop by detailViewModel.loop.collectAsState(initial = LoopBase.default())
+        val loop by detailViewModel.loop.collectAsState(initial = LoopVo.create())
 
         Text(
             modifier = Modifier.padding(bottom = paddingVerticalNormal),
@@ -475,7 +476,7 @@ private fun MonthlyDoneRateChart(
     detailViewModel: LoopDetailViewModel,
 ) {
     Column(modifier = modifier) {
-        val loop by detailViewModel.loop.collectAsState(initial = LoopBase.default())
+        val loop by detailViewModel.loop.collectAsState(initial = LoopVo.create())
 
         Text(
             modifier = Modifier.padding(bottom = paddingVerticalNormal),
@@ -564,7 +565,7 @@ private fun DayOfWeekDoneRateChart(
     detailViewModel: LoopDetailViewModel,
 ) {
     Column(modifier = modifier) {
-        val loop by detailViewModel.loop.collectAsState(initial = LoopBase.default())
+        val loop by detailViewModel.loop.collectAsState(initial = LoopVo.create())
 
         Text(
             modifier = Modifier.padding(bottom = paddingVerticalNormal),

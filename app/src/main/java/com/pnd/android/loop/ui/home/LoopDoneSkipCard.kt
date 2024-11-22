@@ -322,8 +322,8 @@ private fun DoneSkipItem(
         if (LocalConfiguration.current.isLargeScreen()) {
             DoneSkipItemStartAndEndTime(
                 modifier = Modifier.padding(horizontal = 8.dp),
-                loopStart = loop.loopStart,
-                loopEnd = loop.loopEnd
+                loopStart = loop.startInDay,
+                loopEnd = loop.endInDay
             )
         }
 

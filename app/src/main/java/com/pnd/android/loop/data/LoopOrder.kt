@@ -3,7 +3,6 @@ package com.pnd.android.loop.data
 import com.pnd.android.loop.util.isActive
 import com.pnd.android.loop.util.isPast
 
-
 class TodayLoopOrder : Comparator<LoopBase> {
     override fun compare(loop1: LoopBase, loop2: LoopBase): Int {
         var comp = compareEnabled(loop1, loop2)
@@ -15,7 +14,7 @@ class TodayLoopOrder : Comparator<LoopBase> {
         comp = comparePast(loop1, loop2)
         if (comp != 0) return comp
 
-        return (loop1.loopEnd - loop2.loopEnd).toInt()
+        return (loop1.endInDay - loop2.endInDay).toInt()
     }
 
     private fun compareEnabled(loop1: LoopBase, loop2: LoopBase) =

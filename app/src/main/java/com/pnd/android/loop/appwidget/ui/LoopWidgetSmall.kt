@@ -107,6 +107,6 @@ private fun LoopWidgetItem(
 
 private fun pickOneLoop(loops: List<LoopBase>): LoopBase {
     val now = LocalTime.now().toMs()
-    val endedLoop = loops.minBy { it.loopEnd }
-    return if (endedLoop.loopEnd <= now) endedLoop else loops.minBy { it.loopStart }
+    val endedLoop = loops.minBy { it.endInDay }
+    return if (endedLoop.endInDay <= now) endedLoop else loops.minBy { it.startInDay }
 }

@@ -76,8 +76,8 @@ sealed class TimeStat {
 }
 
 fun LoopBase.timeStatAsFlow() = flow {
-    val startTime = loopStart.toLocalTime()
-    val endTime = loopEnd.toLocalTime()
+    val startTime = startInDay.toLocalTime()
+    val endTime = endInDay.toLocalTime()
 
     while (currentCoroutineContext().isActive) {
         val now = LocalTime.now()

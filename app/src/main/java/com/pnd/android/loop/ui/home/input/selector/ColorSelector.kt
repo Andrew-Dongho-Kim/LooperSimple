@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
+import com.pnd.android.loop.data.common.SUPPORTED_COLORS
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.compositeOverOnSurface
 import com.pnd.android.loop.ui.theme.onSurface
@@ -47,7 +48,7 @@ fun ColorSelector(
             .padding(top = 12.dp)
             .semantics { contentDescription = description }
     ) {
-        val colors = LoopBase.SUPPORTED_COLORS
+        val colors = SUPPORTED_COLORS
         val numberOfRows = (colors.size + COLOR_COLUMNS - 1) / COLOR_COLUMNS
 
         repeat(numberOfRows) { row ->
@@ -73,7 +74,7 @@ private fun ColorRows(
             .padding(bottom = 8.dp),
         horizontalArrangement = spaceEvenlyStart
     ) {
-        val colors = LoopBase.SUPPORTED_COLORS
+        val colors = SUPPORTED_COLORS
         val numberOfColumns = min((colors.size - COLOR_COLUMNS * row), COLOR_COLUMNS)
 
         repeat(numberOfColumns) { column ->

@@ -1,19 +1,23 @@
 package com.pnd.android.loop.data
 
-import android.database.sqlite.SQLiteConstraintException
+import android.content.Intent
 import androidx.compose.runtime.Immutable
-import androidx.lifecycle.LiveData
-import androidx.room.Dao
 import androidx.room.Entity
 import androidx.room.Ignore
-import androidx.room.Insert
 import androidx.room.PrimaryKey
-import androidx.room.Query
-import androidx.room.Update
-import com.pnd.android.loop.data.Day.Companion.ALL
-import com.pnd.android.loop.data.Day.Companion.isOn
-import kotlinx.coroutines.flow.Flow
+import com.pnd.android.loop.data.common.DEFAULT_ACTIVE_DAYS
+import com.pnd.android.loop.data.common.DEFAULT_COLOR
+import com.pnd.android.loop.data.common.DEFAULT_CREATED
+import com.pnd.android.loop.data.common.DEFAULT_ENABLED
+import com.pnd.android.loop.data.common.DEFAULT_INTERVAL
+import com.pnd.android.loop.data.common.DEFAULT_IS_MOCK
+import com.pnd.android.loop.data.common.DEFAULT_TITLE
+import com.pnd.android.loop.data.common.defaultEndInDay
+import com.pnd.android.loop.data.common.defaultStartInDay
+import com.pnd.android.loop.util.toMs
+import java.time.LocalTime
 
+// JvmOverloads is necessary because of ignore field for room
 @Immutable
 @Entity(tableName = "loop")
 data class LoopVo @JvmOverloads constructor(
@@ -22,9 +26,9 @@ data class LoopVo @JvmOverloads constructor(
     override val title: String,
     override val color: Int,
     override val created: Long,
-    override val loopStart: Long,
-    override val loopEnd: Long,
-    override val loopActiveDays: Int,
+    override val startInDay: Long,
+    override val endInDay: Long,
+    override val activeDays: Int,
     override val interval: Long,
     override val enabled: Boolean,
     @Ignore override val isMock: Boolean = false,
@@ -35,9 +39,9 @@ data class LoopVo @JvmOverloads constructor(
         title: String,
         color: Int,
         created: Long,
-        loopStart: Long,
-        loopEnd: Long,
-        loopActiveDays: Int,
+        startInDay: Long,
+        endInDay: Long,
+        activeDays: Int,
         interval: Long,
         enabled: Boolean,
         isMock: Boolean,
@@ -46,13 +50,50 @@ data class LoopVo @JvmOverloads constructor(
         title = title,
         color = color,
         created = created,
-        loopStart = loopStart,
-        loopEnd = loopEnd,
-        loopActiveDays = loopActiveDays,
+        startInDay = startInDay,
+        endInDay = endInDay,
+        activeDays = activeDays,
         interval = interval,
         enabled = enabled,
         isMock = isMock,
     )
+
+    companion object Factory {
+        const val START_ANY_TIME = -1L
+
+        fun create(
+            id: Int = 0,
+            title: String = DEFAULT_TITLE,
+            color: Int = DEFAULT_COLOR,
+            created: Long = DEFAULT_CREATED,
+            startInDay: Long = defaultStartInDay,
+            endInDay: Long = defaultEndInDay,
+            activeDays: Int = DEFAULT_ACTIVE_DAYS,
+            interval: Long = DEFAULT_INTERVAL,
+            enabled: Boolean = DEFAULT_ENABLED,
+            isMock: Boolean = DEFAULT_IS_MOCK,
+        ) = LoopVo(
+            id = id,
+            title = title,
+            color = color,
+            created = created,
+            startInDay = startInDay,
+            endInDay = endInDay,
+            activeDays = activeDays,
+            interval = interval,
+            enabled = enabled,
+            isMock = isMock
+        )
+
+        const val MIDNIGHT_RESERVATION_ID = -10
+        fun midnight(): LoopBase = create(
+            id = MIDNIGHT_RESERVATION_ID,
+            title = "Midnight Sync",
+            startInDay = LocalTime.MAX.toMs(),
+            endInDay = LocalTime.MAX.toMs(),
+            isMock = true
+        )
+    }
 }
 
 fun LoopBase.asLoopVo(
@@ -60,66 +101,90 @@ fun LoopBase.asLoopVo(
     title: String = this.title,
     color: Int = this.color,
     created: Long = this.created,
-    loopStart: Long = this.loopStart,
-    loopEnd: Long = this.loopEnd,
-    loopActiveDays: Int = this.loopActiveDays,
+    loopStart: Long = this.startInDay,
+    loopEnd: Long = this.endInDay,
+    loopActiveDays: Int = this.activeDays,
     interval: Long = this.interval,
     enabled: Boolean = this.enabled
-) = LoopVo(
+) = LoopVo.create(
     id = id,
     title = title,
     color = color,
     created = created,
-    loopStart = loopStart,
-    loopEnd = loopEnd,
-    loopActiveDays = loopActiveDays,
+    startInDay = loopStart,
+    endInDay = loopEnd,
+    activeDays = loopActiveDays,
     interval = interval,
     enabled = enabled,
 )
 
-
-@Dao
-interface LoopDao {
-    @Query("SELECT * FROM loop ORDER BY loopStart ASC, loopEnd ASC")
-    fun allLoopsLiveData(): LiveData<List<LoopVo>>
-
-    @Query("SELECT * FROM loop WHERE id=:loopId")
-    suspend fun loop(loopId: Int): LoopVo
-
-    @Query("SELECT * FROM loop WHERE id=:loopId")
-    fun flowLoop(loopId: Int): Flow<LoopVo>
-
-    @Query("SELECT min(created) FROM loop")
-    fun flowMinCreatedTime(): Flow<Long>
-
-    @Query("SELECT * FROM loop")
-    suspend fun allLoops(): List<LoopVo>
-
-    @Insert
-    suspend fun insert(vararg loops: LoopVo): List<Long>
-
-    @Update
-    suspend fun update(vararg loops: LoopVo)
-
-    suspend fun addOrUpdate(vararg loops: LoopVo) =
-        try {
-            insert(*loops).map { it.toInt() }
-        } catch (e: SQLiteConstraintException) {
-            update(*loops)
-            loops.map { loop -> loop.id }
-        }
-
-    @Query("DELETE FROM loop WHERE id = :id")
-    suspend fun remove(id: Int)
-
-    suspend fun maxOfIntersects(loopToCompare: LoopBase) =
-        ALL.filter { day -> loopToCompare.loopActiveDays.isOn(day) }
-            .map { day ->
-                allLoops()
-                    .filter { loop -> loop.loopActiveDays.isOn(day) }
-                    .filter { loop -> loop.isIntersect(loopToCompare) }
-            }
-            .maxOfOrNull { loops -> loops.size }
-            ?: 0
-
+fun LoopBase.putTo(intent: Intent) {
+    intent.putExtra(EXTRA_ID, id)
+    intent.putExtra(EXTRA_COLOR, color)
+    intent.putExtra(EXTRA_TITLE, title)
+    intent.putExtra(EXTRA_LOOP_CREATED, created)
+    intent.putExtra(EXTRA_LOOP_START, startInDay)
+    intent.putExtra(EXTRA_LOOP_END, endInDay)
+    intent.putExtra(EXTRA_LOOP_ACTIVE_DAYS, activeDays)
+    intent.putExtra(EXTRA_LOOP_INTERVAL, interval)
+    intent.putExtra(EXTRA_LOOP_ENABLED, enabled)
+    intent.putExtra(EXTRA_LOOP_IS_MOCK, isMock)
 }
+
+fun LoopBase.putTo(map: MutableMap<String, Any?>) {
+    map[EXTRA_ID] = id
+    map[EXTRA_TITLE] = title
+    map[EXTRA_COLOR] = color
+    map[EXTRA_LOOP_CREATED] = created
+    map[EXTRA_LOOP_START] = startInDay
+    map[EXTRA_LOOP_END] = endInDay
+    map[EXTRA_LOOP_ACTIVE_DAYS] = activeDays
+    map[EXTRA_LOOP_INTERVAL] = interval
+    map[EXTRA_LOOP_ENABLED] = enabled
+    map[EXTRA_LOOP_IS_MOCK] = isMock
+}
+
+fun Intent.asLoop(): LoopBase {
+    return LoopVo(
+        id = getIntExtra(EXTRA_ID, 0),
+        title = getStringExtra(EXTRA_TITLE) ?: DEFAULT_TITLE,
+        color = getIntExtra(EXTRA_COLOR, DEFAULT_COLOR),
+        created = getLongExtra(EXTRA_LOOP_CREATED, DEFAULT_CREATED),
+        startInDay = getLongExtra(EXTRA_LOOP_START, defaultStartInDay),
+        endInDay = getLongExtra(EXTRA_LOOP_END, defaultEndInDay),
+        activeDays = getIntExtra(EXTRA_LOOP_ACTIVE_DAYS, DEFAULT_ACTIVE_DAYS),
+        interval = getLongExtra(EXTRA_LOOP_INTERVAL, DEFAULT_INTERVAL),
+        enabled = getBooleanExtra(EXTRA_LOOP_ENABLED, DEFAULT_ENABLED),
+        isMock = getBooleanExtra(EXTRA_LOOP_IS_MOCK, DEFAULT_IS_MOCK),
+    )
+}
+
+fun Map<String, Any?>.asLoop(): LoopBase {
+    return LoopVo(
+        id = getOrDefault(EXTRA_ID, 0) as Int,
+        title = getOrDefault(EXTRA_TITLE, DEFAULT_TITLE) as String,
+        color = getOrDefault(EXTRA_COLOR, DEFAULT_COLOR) as Int,
+        created = getOrDefault(EXTRA_LOOP_CREATED, DEFAULT_CREATED) as Long,
+        startInDay = getOrDefault(EXTRA_LOOP_START, defaultStartInDay) as Long,
+        endInDay = getOrDefault(EXTRA_LOOP_END, defaultEndInDay) as Long,
+        activeDays = getOrDefault(
+            EXTRA_LOOP_ACTIVE_DAYS,
+            DEFAULT_ACTIVE_DAYS
+        ) as Int,
+        interval = getOrDefault(EXTRA_LOOP_INTERVAL, DEFAULT_INTERVAL) as Long,
+        enabled = getOrDefault(EXTRA_LOOP_ENABLED, DEFAULT_ENABLED) as Boolean,
+        isMock = getOrDefault(EXTRA_LOOP_IS_MOCK, DEFAULT_IS_MOCK) as Boolean,
+    )
+}
+
+private const val EXTRA_ID = "extra_loop_id"
+private const val EXTRA_COLOR = "extra_loop_color"
+private const val EXTRA_TITLE = "extra_loop_title"
+private const val EXTRA_LOOP_CREATED = "extra_loop_created"
+private const val EXTRA_LOOP_START = "extra_loop_start"
+private const val EXTRA_LOOP_END = "extra_loop_end"
+private const val EXTRA_LOOP_ACTIVE_DAYS = "extra_loop_active_days"
+private const val EXTRA_LOOP_INTERVAL = "extra_loop_interval"
+private const val EXTRA_LOOP_ENABLED = "extra_loop_enabled"
+private const val EXTRA_LOOP_IS_MOCK = "extra_loop_is_mock"
+

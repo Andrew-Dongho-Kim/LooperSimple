@@ -98,15 +98,15 @@ fun LoopStartEndTime(
 fun LoopBase.toStartOrEndTime(): String {
     val now = LocalTime.now().toMs()
 
-    return if (now < loopStart) {
+    return if (now < startInDay) {
         stringResourceGlance(
             id = R.string.start_at,
-            loopStart.formatHourMinute(context = LocalContext.current)
+            startInDay.formatHourMinute(context = LocalContext.current)
         )
     } else {
         stringResourceGlance(
             id = R.string.end_at,
-            loopEnd.formatHourMinute(context = LocalContext.current)
+            endInDay.formatHourMinute(context = LocalContext.current)
         )
     }
 }

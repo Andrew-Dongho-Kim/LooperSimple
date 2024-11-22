@@ -10,13 +10,15 @@ import com.pnd.android.loop.alarm.notification.NotificationHelper
 import com.pnd.android.loop.appwidget.AppWidgetUpdateWorker
 import com.pnd.android.loop.common.log
 import com.pnd.android.loop.data.AppDatabase
-import com.pnd.android.loop.data.Day
 import com.pnd.android.loop.data.LoopBase
+import com.pnd.android.loop.data.LoopDay
 import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.LoopDoneVo.DoneState
-import com.pnd.android.loop.data.NO_REPEAT
+import com.pnd.android.loop.data.LoopVo
+import com.pnd.android.loop.data.LoopVo.Factory.MIDNIGHT_RESERVATION_ID
 import com.pnd.android.loop.data.asLoop
 import com.pnd.android.loop.data.asLoopVo
+import com.pnd.android.loop.data.common.NO_REPEAT
 import com.pnd.android.loop.data.description
 import com.pnd.android.loop.data.putTo
 import com.pnd.android.loop.util.dayForLoop
@@ -177,7 +179,7 @@ class LoopScheduler @Inject constructor(
         private fun handleActionLoopSync(context: Context, intent: Intent) {
             val loop = intent.asLoop()
 
-            if (loop.id == LoopBase.MIDNIGHT_RESERVATION_ID) {
+            if (loop.id == MIDNIGHT_RESERVATION_ID) {
                 alarmController.syncLoops()
 
                 // TEMP CODE
@@ -205,7 +207,7 @@ class LoopScheduler @Inject constructor(
                 """ -->
                 |Received alarm id:${loop.id} 
                 | title:${loop.title},
-                | today:${Day.toString(today)},
+                | today:${LoopDay.toString(today)},
                 | isAllowedDay:$isAllowedDay, 
                 | isAllowedTime:$isAllowedTime""".trimMargin()
             }
@@ -226,7 +228,7 @@ class LoopScheduler @Inject constructor(
 
         private fun reserveRepeat(loop: LoopBase) {
             val now = msNow
-            if (now + loop.interval >= loop.loopEnd) {
+            if (now + loop.interval >= loop.endInDay) {
                 alarmController.reserveAlarm(scheduleEnd(loop))
             } else {
                 alarmController.reserveAlarm(scheduleRepeat(loop))
@@ -250,26 +252,26 @@ class LoopScheduler @Inject constructor(
 
         fun scheduleStart(loop: LoopBase) = LoopSchedule(
             action = ACTION_LOOP_START,
-            after = loop.loopStart - msNow,
+            after = loop.startInDay - msNow,
             loop = loop
         )
 
         fun scheduleEnd(loop: LoopBase) = LoopSchedule(
             action = ACTION_LOOP_END,
-            after = loop.loopEnd - msNow,
+            after = loop.endInDay - msNow,
             loop = loop
         )
 
         fun scheduleRepeat(loop: LoopBase) = LoopSchedule(
             action = ACTION_LOOP_REPEAT,
-            after = loop.interval - ((msNow - loop.loopStart) % loop.interval),
+            after = loop.interval - ((msNow - loop.startInDay) % loop.interval),
             loop = loop
         )
 
         fun scheduleSync() = LoopSchedule(
             action = ACTION_LOOP_SYNC,
-            after = LoopBase.midnight().loopStart - msNow,
-            loop = LoopBase.midnight()
+            after = LoopVo.midnight().startInDay - msNow,
+            loop = LoopVo.midnight()
         )
 
         data class LoopSchedule internal constructor(

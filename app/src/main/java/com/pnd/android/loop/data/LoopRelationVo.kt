@@ -1,14 +1,19 @@
 package com.pnd.android.loop.data
 
-import androidx.compose.runtime.Immutable
 import androidx.room.Entity
 import androidx.room.ForeignKey
 
-@Immutable
 @Entity(
-    tableName = "loop_memo",
-    primaryKeys = ["loopId", "date"],
+    tableName = "loop_relation",
+    primaryKeys = ["loopGroupId", "loopId"],
     foreignKeys = [
+        ForeignKey(
+            entity = LoopGroupVo::class,
+            parentColumns = ["id"],
+            childColumns = ["loopGroupId"],
+            onUpdate = ForeignKey.CASCADE,
+            onDelete = ForeignKey.CASCADE,
+        ),
         ForeignKey(
             entity = LoopVo::class,
             parentColumns = ["id"],
@@ -17,10 +22,9 @@ import androidx.room.ForeignKey
             onDelete = ForeignKey.CASCADE,
         )
     ]
-)
-data class LoopRetrospectVo(
-    val loopId: Int,
-    val date: Long,
-    val text: String?,
-)
 
+)
+data class LoopRelationVo(
+    val loopGroupId: Int,
+    val loopId: Int,
+)

@@ -60,12 +60,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
-import com.pnd.android.loop.data.Day
-import com.pnd.android.loop.data.Day.Companion.isOn
 import com.pnd.android.loop.data.LoopBase
+import com.pnd.android.loop.data.LoopDay
+import com.pnd.android.loop.data.LoopDay.Companion.isOn
 import com.pnd.android.loop.data.LoopDoneVo.DoneState
-import com.pnd.android.loop.data.NO_REPEAT
 import com.pnd.android.loop.data.TimeStat
+import com.pnd.android.loop.data.common.NO_REPEAT
 import com.pnd.android.loop.data.timeStatAsFlow
 import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.shape.CircularPolygonShape
@@ -449,10 +449,10 @@ fun LoopCardActiveDays(
     modifier: Modifier = Modifier,
     loop: LoopBase,
 ) {
-    if (loop.loopActiveDays in arrayOf(
-            Day.EVERYDAY,
-            Day.WEEKDAYS,
-            Day.WEEKENDS
+    if (loop.activeDays in arrayOf(
+            LoopDay.EVERYDAY,
+            LoopDay.WEEKDAYS,
+            LoopDay.WEEKENDS
         )
     ) {
         LoopCardActiveDaysPronoun(
@@ -474,7 +474,7 @@ private fun LoopCardActiveDaysPronoun(
 ) {
     Text(
         modifier = modifier.padding(end = 2.dp),
-        text = stringResource(DAY_STRING_MAP[loop.loopActiveDays]!!),
+        text = stringResource(DAY_STRING_MAP[loop.activeDays]!!),
         style = AppTypography.labelMedium.copy(
             color = AppColor.primary
         )
@@ -491,8 +491,8 @@ private fun LoopCardActiveDaysCommon(
         verticalAlignment = Alignment.Bottom
     ) {
         ABB_DAYS.forEachIndexed { index, dayResId ->
-            val day = Day.fromIndex(index)
-            val selected = loop.loopActiveDays.isOn(day)
+            val day = LoopDay.fromIndex(index)
+            val selected = loop.activeDays.isOn(day)
 
             ActiveDayText(
                 modifier = Modifier.padding(horizontal = 1.dp),

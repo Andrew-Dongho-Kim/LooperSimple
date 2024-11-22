@@ -27,7 +27,7 @@ class DailyAchievementViewModel @Inject constructor(
 ) : AndroidViewModel(app) {
 
     private val loopDao = appDb.loopDao()
-    private val loopWithDoneDao = appDb.loopWithDoneDao()
+    private val loopWithDoneDao = appDb.fullLoopDao()
 
     val flowMinCreatedDate = loopDao.flowMinCreatedTime()
         .map { it.toLocalDate() }

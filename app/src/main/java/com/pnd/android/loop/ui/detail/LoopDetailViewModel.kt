@@ -8,7 +8,6 @@ import androidx.paging.PagingConfig
 import com.pnd.android.loop.appwidget.AppWidgetUpdateWorker
 import com.pnd.android.loop.common.NavigatePage
 import com.pnd.android.loop.data.AppDatabase
-import com.pnd.android.loop.data.DonePagingSource
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.asLoopVo
