@@ -148,7 +148,7 @@ private fun TimelineLoops(
         slots.forEach { slot ->
             Box(modifier = Modifier.height(timelineItemHeightDp)) {
                 slot.forEach { loop ->
-                    key(loop.id) {
+                    key(loop.loopId) {
                         TimelineItem(
                             modifier = Modifier.offset {
                                 IntOffset(x = loop.timelineOffsetStart().roundToPx(), y = 0)
@@ -157,7 +157,7 @@ private fun TimelineLoops(
                             loop = loop,
                             onNavigateToDetailPage = onNavigateToDetailPage,
                             onEdit = onEdit,
-                            onDelete = { loop -> loopViewModel.removeLoop(loop) }
+                            onDelete = { loop -> loopViewModel.deleteLoop(loop) }
                         )
                     }
                 }

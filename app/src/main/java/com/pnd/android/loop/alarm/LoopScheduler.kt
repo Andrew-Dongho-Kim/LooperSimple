@@ -68,7 +68,7 @@ class LoopScheduler @Inject constructor(
 
         val pendingIntent = PendingIntent.getBroadcast(
             context,
-            loop.id,
+            loop.loopId,
             alarmIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
         )
@@ -85,7 +85,7 @@ class LoopScheduler @Inject constructor(
     fun syncLoops() {
         logger.d { "start sync" }
         coroutineScope.launch {
-            loopDao.allLoops().forEach { loop ->
+            loopDao.getAllLoops().forEach { loop ->
                 fillNoResponse(loop)
                 if (loop.enabled) {
                     reserveAlarm(scheduleStart(loop))
@@ -111,7 +111,7 @@ class LoopScheduler @Inject constructor(
 
             loopDoneDao.addIfAbsent(
                 LoopDoneVo(
-                    loopId = loop.id,
+                    loopId = loop.loopId,
                     date = date.toMs(),
                     done = if (loop.enabled) {
                         DoneState.NO_RESPONSE
@@ -129,7 +129,7 @@ class LoopScheduler @Inject constructor(
         if (loop.enabled) {
             coroutineScope.launch { loopDao.addOrUpdate(loop.asLoopVo(enabled = false)) }
         }
-        logger.d { " - cancel id:${loop.id}, title:${loop.title}" }
+        logger.d { " - cancel id:${loop.loopId}, title:${loop.title}" }
 
         val alarmIntent = Intent(context, AlarmReceiver::class.java).apply {
             action = ACTION_LOOP_START
@@ -137,7 +137,7 @@ class LoopScheduler @Inject constructor(
         val pendingIntent =
             PendingIntent.getBroadcast(
                 context,
-                loop.id,
+                loop.loopId,
                 alarmIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
             )
@@ -179,7 +179,7 @@ class LoopScheduler @Inject constructor(
         private fun handleActionLoopSync(context: Context, intent: Intent) {
             val loop = intent.asLoop()
 
-            if (loop.id == MIDNIGHT_RESERVATION_ID) {
+            if (loop.loopId == MIDNIGHT_RESERVATION_ID) {
                 alarmController.syncLoops()
 
                 // TEMP CODE
@@ -205,7 +205,7 @@ class LoopScheduler @Inject constructor(
             val today = dayForLoop(LocalDate.now())
             logger.d {
                 """ -->
-                |Received alarm id:${loop.id} 
+                |Received alarm id:${loop.loopId} 
                 | title:${loop.title},
                 | today:${LoopDay.toString(today)},
                 | isAllowedDay:$isAllowedDay, 

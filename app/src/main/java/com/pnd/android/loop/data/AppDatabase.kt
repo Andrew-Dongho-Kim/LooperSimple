@@ -6,6 +6,7 @@ import androidx.room.TypeConverters
 import com.pnd.android.loop.data.dao.FullLoopDao
 import com.pnd.android.loop.data.dao.LoopDao
 import com.pnd.android.loop.data.dao.LoopDoneDao
+import com.pnd.android.loop.data.dao.LoopGroupDao
 import com.pnd.android.loop.data.dao.LoopRetrospectDao
 import com.pnd.android.loop.data.dao.RoomTypeConverters
 
@@ -26,6 +27,7 @@ import com.pnd.android.loop.data.dao.RoomTypeConverters
 @TypeConverters(RoomTypeConverters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun loopDao(): LoopDao
+    abstract fun loopGroupDao(): LoopGroupDao
     abstract fun loopDoneDao(): LoopDoneDao
     abstract fun loopRetrospectDao(): LoopRetrospectDao
     abstract fun fullLoopDao(): FullLoopDao

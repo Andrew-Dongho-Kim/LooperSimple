@@ -152,9 +152,9 @@ class LoopViewModel @Inject constructor(
         }
     }
 
-    fun removeLoop(loop: LoopBase) {
+    fun deleteLoop(loop: LoopBase) {
         coroutineScope.launch {
-            loopRepository.removeLoop(loop)
+            loopRepository.deleteLoop(loop)
             AppWidgetUpdateWorker.updateWidget(application)
         }
     }

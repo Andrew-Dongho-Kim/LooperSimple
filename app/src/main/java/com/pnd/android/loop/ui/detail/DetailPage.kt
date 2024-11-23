@@ -208,7 +208,7 @@ private fun LoopState(
 
         Row {
             var timeStat by remember { mutableStateOf<TimeStat>(TimeStat.NotToday) }
-            LaunchedEffect(loop.id) {
+            LaunchedEffect(loop.loopId) {
                 loop.timeStatAsFlow().collect { timeStat = it }
             }
 
@@ -227,10 +227,10 @@ private fun LoopState(
             if (timeStat.isPast()) {
                 LoopDoneOrSkip(
                     modifier = Modifier.height(36.dp),
-                    onDone = { done ->
+                    onDone = { doneState ->
                         detailViewModel.doneLoop(
                             loop = loop,
-                            doneState = if (done) LoopDoneVo.DoneState.DONE else LoopDoneVo.DoneState.SKIP
+                            doneState = doneState
                         )
                     },
                 )
@@ -435,8 +435,8 @@ private fun rememberDailyDoneRateModel(
         val x = mutableListOf<Int>()
         val y = mutableListOf<Float>()
         while (date.isAfter(createdDate)) {
-            val doneCount = detailViewModel.doneCountBefore(loop.id, date)
-            val allCount = detailViewModel.allEnabledCountBefore(loop.id, date)
+            val doneCount = detailViewModel.doneCountBefore(loop.loopId, date)
+            val allCount = detailViewModel.allEnabledCountBefore(loop.loopId, date)
             val rate = doneCount.toFloat() / allCount
             x.add(days++)
             y.add(rate * 100)
@@ -516,12 +516,12 @@ private fun rememberMonthlyDoneRate(
             val firstDateOfMonth = date.withDayOfMonth(1)
 
             val allCount = detailViewModel.allEnabledCountBetween(
-                loopId = loop.id,
+                loopId = loop.loopId,
                 from = firstDateOfMonth,
                 to = date
             )
             val doneCount = detailViewModel.doneCountBetween(
-                loopId = loop.id,
+                loopId = loop.loopId,
                 from = firstDateOfMonth,
                 to = date
             )
@@ -601,7 +601,7 @@ private fun rememberDayOfWeekDoneRate(
 
     val modelProducer = remember(loop) { CartesianChartModelProducer.build() }
     LaunchedEffect(key1 = loop) {
-        val allEnabledDoneStates = detailViewModel.allEnabledDoneStates(loop.id)
+        val allEnabledDoneStates = detailViewModel.allEnabledDoneStates(loop.loopId)
         val doneStatesByDayOfWeek = allEnabledDoneStates.groupBy { doneVo ->
             doneVo.date.toLocalDate().dayOfWeek
         }
@@ -668,7 +668,7 @@ private fun DetailPageDebug(
 
         Text(
             modifier = Modifier.padding(top = 18.dp),
-            text = "Loop id: ${loop.id}",
+            text = "Loop id: ${loop.loopId}",
             style = AppTypography.titleMedium
         )
 

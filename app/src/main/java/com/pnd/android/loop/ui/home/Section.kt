@@ -65,6 +65,7 @@ fun LazyListScope.section(
     section: Section,
     blurState: BlurState,
     loopViewModel: LoopViewModel,
+    onNavigateToGroupPage: () -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
     onNavigateToHistoryPage: () -> Unit,
     onNavigateToStatisticsPage: () -> Unit,
@@ -76,6 +77,7 @@ fun LazyListScope.section(
             loopViewModel = loopViewModel,
             onNavigateToStatisticsPage = onNavigateToStatisticsPage,
             onNavigateToHistoryPage = onNavigateToHistoryPage,
+            onNavigateToGroupPage = onNavigateToGroupPage,
         )
 
         is Section.Today -> sectionToday(
@@ -124,6 +126,7 @@ fun LazyListScope.section(
 private fun LazyListScope.sectionStatistics(
     section: Section.Statistics,
     loopViewModel: LoopViewModel,
+    onNavigateToGroupPage: () -> Unit,
     onNavigateToStatisticsPage: () -> Unit,
     onNavigateToHistoryPage: () -> Unit,
 ) {
@@ -141,6 +144,7 @@ private fun LazyListScope.sectionStatistics(
                     bottom = 12.dp
                 ),
             loopViewModel = loopViewModel,
+            onNavigateToGroupPage = onNavigateToGroupPage,
             onNavigateToStatisticsPage = onNavigateToStatisticsPage,
             onNavigateToHistoryPage = onNavigateToHistoryPage,
         )
@@ -204,6 +208,7 @@ private fun LazyListScope.sectionTodayEmpty(
     ) {
         Box(
             modifier = modifier
+                .padding(vertical = 48.dp)
                 .fillMaxWidth()
                 .padding(
                     horizontal = 4.dp,
@@ -253,7 +258,7 @@ private fun LazyListScope.sectionTodayBody(
         items(
             items = loops,
             contentType = { ContentTypes.LOOP_CARD },
-            key = { loop -> loop.id },
+            key = { loop -> loop.loopId },
         ) { loop ->
             val highlightId by loopViewModel.highlightId.collectAsState()
 
@@ -265,7 +270,7 @@ private fun LazyListScope.sectionTodayBody(
                 onNavigateToDetailPage = onNavigateToDetailPage,
                 onEdit = onEdit,
                 isSyncTime = true,
-                isHighlighted = highlightId == loop.id
+                isHighlighted = highlightId == loop.loopId
             )
         }
     }
@@ -401,16 +406,16 @@ private fun LazyListScope.sectionAll(
     items(
         items = loops,
         contentType = { ContentTypes.LOOP_CARD },
-        key = { loop -> loop.id }
+        key = { loop -> loop.loopId }
     ) { loop ->
         LoopCardWithOption(
             blurState = blurState,
             loopViewModel = loopViewModel,
             loop = loop,
-            onNavigateToDetailPage = onNavigateToDetailPage,
             onEdit = onEdit,
             isSyncTime = false,
-            isHighlighted = false
+            isHighlighted = false,
+            onNavigateToDetailPage = onNavigateToDetailPage,
         )
     }
 }
@@ -440,7 +445,7 @@ private fun LazyListScope.sectionLater(
     items(
         items = loops,
         contentType = { ContentTypes.LOOP_CARD },
-        key = { loop -> loop.id },
+        key = { loop -> loop.loopId },
     ) { loop ->
         AnimatedVisibility(
             visible = isExpanded,

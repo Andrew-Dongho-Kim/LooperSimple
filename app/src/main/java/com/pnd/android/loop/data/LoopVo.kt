@@ -22,7 +22,7 @@ import java.time.LocalTime
 @Entity(tableName = "loop")
 data class LoopVo @JvmOverloads constructor(
     @PrimaryKey(autoGenerate = true)
-    override val id: Int,
+    override val loopId: Int,
     override val title: String,
     override val color: Int,
     override val created: Long,
@@ -35,7 +35,7 @@ data class LoopVo @JvmOverloads constructor(
 ) : LoopBase {
 
     override fun copyAs(
-        id: Int,
+        loopId: Int,
         title: String,
         color: Int,
         created: Long,
@@ -46,7 +46,7 @@ data class LoopVo @JvmOverloads constructor(
         enabled: Boolean,
         isMock: Boolean,
     ): LoopBase = LoopVo(
-        id = id,
+        loopId = loopId,
         title = title,
         color = color,
         created = created,
@@ -73,7 +73,7 @@ data class LoopVo @JvmOverloads constructor(
             enabled: Boolean = DEFAULT_ENABLED,
             isMock: Boolean = DEFAULT_IS_MOCK,
         ) = LoopVo(
-            id = id,
+            loopId = id,
             title = title,
             color = color,
             created = created,
@@ -97,7 +97,7 @@ data class LoopVo @JvmOverloads constructor(
 }
 
 fun LoopBase.asLoopVo(
-    id: Int = this.id,
+    id: Int = this.loopId,
     title: String = this.title,
     color: Int = this.color,
     created: Long = this.created,
@@ -119,7 +119,7 @@ fun LoopBase.asLoopVo(
 )
 
 fun LoopBase.putTo(intent: Intent) {
-    intent.putExtra(EXTRA_ID, id)
+    intent.putExtra(EXTRA_ID, loopId)
     intent.putExtra(EXTRA_COLOR, color)
     intent.putExtra(EXTRA_TITLE, title)
     intent.putExtra(EXTRA_LOOP_CREATED, created)
@@ -132,7 +132,7 @@ fun LoopBase.putTo(intent: Intent) {
 }
 
 fun LoopBase.putTo(map: MutableMap<String, Any?>) {
-    map[EXTRA_ID] = id
+    map[EXTRA_ID] = loopId
     map[EXTRA_TITLE] = title
     map[EXTRA_COLOR] = color
     map[EXTRA_LOOP_CREATED] = created
@@ -146,7 +146,7 @@ fun LoopBase.putTo(map: MutableMap<String, Any?>) {
 
 fun Intent.asLoop(): LoopBase {
     return LoopVo(
-        id = getIntExtra(EXTRA_ID, 0),
+        loopId = getIntExtra(EXTRA_ID, 0),
         title = getStringExtra(EXTRA_TITLE) ?: DEFAULT_TITLE,
         color = getIntExtra(EXTRA_COLOR, DEFAULT_COLOR),
         created = getLongExtra(EXTRA_LOOP_CREATED, DEFAULT_CREATED),
@@ -161,7 +161,7 @@ fun Intent.asLoop(): LoopBase {
 
 fun Map<String, Any?>.asLoop(): LoopBase {
     return LoopVo(
-        id = getOrDefault(EXTRA_ID, 0) as Int,
+        loopId = getOrDefault(EXTRA_ID, 0) as Int,
         title = getOrDefault(EXTRA_TITLE, DEFAULT_TITLE) as String,
         color = getOrDefault(EXTRA_COLOR, DEFAULT_COLOR) as Int,
         created = getOrDefault(EXTRA_LOOP_CREATED, DEFAULT_CREATED) as Long,

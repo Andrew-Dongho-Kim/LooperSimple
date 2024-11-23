@@ -39,7 +39,7 @@ fun LoopWidgetSmall(
         )
     } else {
         val loop = pickOneLoop(loops)
-        key(loop.id) {
+        key(loop.loopId) {
             LoopWidgetItem(
                 modifier = modifier.background(AppColor.surface.copy(alpha = 0.7f)),
                 loop = loop
@@ -62,7 +62,7 @@ private fun LoopWidgetItem(
                 context.startActivity(
                     Intent(
                         Intent.ACTION_VIEW,
-                        Uri.parse(NavigatePage.Home.deepLink(highlightId = loop.id))
+                        Uri.parse(NavigatePage.Home.deepLink(highlightId = loop.loopId))
                     ).apply {
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
@@ -98,7 +98,7 @@ private fun LoopWidgetItem(
         if (isPast) {
             LoopDoneOrSkip(
                 modifier = GlanceModifier.padding(top = 8.dp),
-                loopId = loop.id
+                loopId = loop.loopId
             )
         }
     }

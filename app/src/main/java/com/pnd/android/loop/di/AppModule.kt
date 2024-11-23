@@ -8,6 +8,7 @@ import androidx.room.Room
 import com.pnd.android.loop.alarm.LoopScheduler
 import com.pnd.android.loop.alarm.notification.NotificationHelper
 import com.pnd.android.loop.data.AppDatabase
+import com.pnd.android.loop.ui.home.group.LoopGroupRepository
 import com.pnd.android.loop.ui.home.viewmodel.LoopRepository
 import dagger.Module
 import dagger.Provides
@@ -62,6 +63,13 @@ class AppModule {
             appDb = appDb,
             alarmController = alarmController
         )
+    }
+
+    @Provides
+    fun provideLoopGroupRepository(
+        appDb: AppDatabase
+    ): LoopGroupRepository {
+        return LoopGroupRepository(appDb = appDb)
     }
 
 }

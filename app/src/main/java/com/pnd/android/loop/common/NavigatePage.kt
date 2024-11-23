@@ -1,5 +1,6 @@
 package com.pnd.android.loop.common
 
+import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -10,13 +11,15 @@ import kotlin.random.Random
 
 sealed class NavigatePage(val route: String) {
 
+    open val arguments: List<NamedNavArgument> = emptyList()
+
     data object Home : NavigatePage(
         route = "home?$ARGS_HIGHLIGHT_ID={$ARGS_HIGHLIGHT_ID}&$ARGS_RANDOM_KEY={$ARGS_RANDOM_KEY}"
     ) {
 
         private const val HOST = "home"
 
-        val arguments = listOf(
+        override val arguments = listOf(
             navArgument(ARGS_HIGHLIGHT_ID) {
                 type = NavType.IntType
                 defaultValue = UNKNOWN_ID
@@ -36,7 +39,7 @@ sealed class NavigatePage(val route: String) {
     }
 
     data object DetailPage : NavigatePage("detail/{$ARGS_ID}") {
-        val arguments = listOf(
+        override val arguments = listOf(
             navArgument(ARGS_ID) {
                 type = NavType.IntType
             }
@@ -50,7 +53,7 @@ sealed class NavigatePage(val route: String) {
             loop: LoopBase
         ) = navigate(
             navController = navController,
-            id = loop.id
+            id = loop.loopId
         )
 
         fun navigate(
@@ -58,6 +61,12 @@ sealed class NavigatePage(val route: String) {
             id: Int,
         ) {
             navController.navigate("detail/${id}")
+        }
+    }
+
+    data object GroupPage : NavigatePage("group") {
+        fun navigate(navController: NavHostController) {
+            navController.navigate(route)
         }
     }
 

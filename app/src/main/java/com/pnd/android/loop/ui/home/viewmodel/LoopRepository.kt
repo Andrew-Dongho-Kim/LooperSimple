@@ -76,13 +76,13 @@ class LoopRepository @Inject constructor(
     )
 
     val allLoopsWithDoneStates: Flow<List<LoopWithDone>> = localDate.transform { currDate ->
-        emit(loopWithDoneDao.allLoops(currDate.toLocalTime()))
-        emitAll(loopWithDoneDao.flowAllLoops(currDate.toLocalTime()))
+        emit(loopWithDoneDao.getAllLoops(currDate.toLocalTime()))
+        emitAll(loopWithDoneDao.getAllLoopsFlow(currDate.toLocalTime()))
     }
 
     // @formatter:off
     val loopsNoResponseYesterday = localDate.transform { currDate ->
-        emitAll(loopWithDoneDao.flowAllLoops(currDate.minusDays(1).toLocalTime()))
+        emitAll(loopWithDoneDao.getAllLoopsFlow(currDate.minusDays(1).toLocalTime()))
     }.map { loops ->
         loops.filter { loop ->
             !loop.isDisabled &&
@@ -105,23 +105,23 @@ class LoopRepository @Inject constructor(
         loops.filter { loop -> loop.isNotRespond && loop.isActiveDay() }.size
     }
 
-    val allEnabledCount = loopDoneDao.flowAllEnabledCount()
-    val allRespondCount = loopDoneDao.flowRespondCount()
-    val doneCount = loopDoneDao.flowDoneCount()
-    val skipCount = loopDoneDao.flowSkipCount()
+    val allEnabledCount = loopDoneDao.getAllEnabledCountFlow()
+    val allRespondCount = loopDoneDao.getRespondCountFlow()
+    val doneCount = loopDoneDao.getDoneCountFlow()
+    val skipCount = loopDoneDao.getSkipCountFlow()
 
     fun syncAlarms() = alarmController.syncLoops()
 
-    suspend fun maxOfIntersects(loop: LoopBase) = loopDao.maxOfIntersects(loopToCompare = loop)
+    suspend fun maxOfIntersects(loop: LoopBase) = loopDao.numberOfLoopsAtTheSameTime(loop = loop)
 
     suspend fun addOrUpdateLoop(vararg loops: LoopVo) {
         loopDao.addOrUpdate(*loops).forEachIndexed { index, id ->
-            val loop = loops[index].copy(id = id)
+            val loop = loops[index].copy(loopId = id)
             logger.d { "$loop is added or updated" }
 
             loopDoneDao.addOrUpdate(
                 LoopDoneVo(
-                    loopId = loop.id,
+                    loopId = loop.loopId,
                     date = LocalDate.now().toMs(),
                     done = if (loop.enabled) {
                         LoopDoneVo.DoneState.NO_RESPONSE
@@ -139,9 +139,9 @@ class LoopRepository @Inject constructor(
         }
     }
 
-    suspend fun removeLoop(loop: LoopBase) {
+    suspend fun deleteLoop(loop: LoopBase) {
         alarmController.cancelAlarm(loop)
-        loopDao.remove(loop.id)
+        loopDao.delete(loop.loopId)
     }
 
     suspend fun doneLoop(
@@ -168,7 +168,7 @@ class LoopRepository @Inject constructor(
         loopId: Int,
         localDate: LocalDate,
         text: String
-    ) = loopMemoDao.saveRetrospect(
+    ) = loopMemoDao.insert(
         LoopRetrospectVo(
             loopId = loopId,
             date = localDate.toMs(),

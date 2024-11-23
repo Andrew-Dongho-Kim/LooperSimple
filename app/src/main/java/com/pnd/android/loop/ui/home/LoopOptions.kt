@@ -18,10 +18,6 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,15 +38,12 @@ import com.pnd.android.loop.ui.theme.onSurfaceLight
 @Composable
 fun LoopOptions(
     modifier: Modifier = Modifier,
-    blurState: BlurState,
-    title: String,
     color: Color,
     enabled: Boolean,
-    onEnabled: (Boolean) -> Unit,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
+    onShowDeleteDialog: (Boolean) -> Unit,
+    onEnabledLoop: (Boolean) -> Unit,
+    onEditLoop: () -> Unit,
 ) {
-    var showDeleteDialog by rememberSaveable { mutableStateOf(false) }
     Row(
         modifier = modifier
             .background(
@@ -65,16 +58,13 @@ fun LoopOptions(
         OptionIcon(
             imageVector = Icons.Outlined.ModeEdit,
             text = stringResource(R.string.edit),
-            onClick = onEdit
+            onClick = onEditLoop
         )
 
         OptionIcon(
             imageVector = Icons.Outlined.Delete,
             text = stringResource(R.string.delete),
-            onClick = {
-                showDeleteDialog = true
-                blurState.on()
-            }
+            onClick = { onShowDeleteDialog(true) }
         )
 
         Spacer(modifier = Modifier.weight(1f))
@@ -82,17 +72,7 @@ fun LoopOptions(
         LoopOnOffSwitch(
             modifier = Modifier.padding(end = 12.dp),
             enabled = enabled,
-            onEnabled = onEnabled,
-        )
-    }
-    if (showDeleteDialog) {
-        DeleteLoopDialog(
-            loopTitle = title,
-            onDismiss = {
-                showDeleteDialog = false
-                blurState.off()
-            },
-            onDelete = onDelete
+            onEnabled = onEnabledLoop,
         )
     }
 }

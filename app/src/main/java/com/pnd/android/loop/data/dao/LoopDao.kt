@@ -6,29 +6,31 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
+import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDay
 import com.pnd.android.loop.data.LoopDay.Companion.isOn
-import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopVo
 import com.pnd.android.loop.data.isTogether
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface LoopDao {
+
     @Query("SELECT * FROM loop ORDER BY startInDay ASC, endInDay ASC")
-    fun allLoopsLiveData(): LiveData<List<LoopVo>>
+    suspend fun getAllLoops(): List<LoopVo>
 
-    @Query("SELECT * FROM loop WHERE id=:loopId")
-    suspend fun loop(loopId: Int): LoopVo
+    @Query("SELECT * FROM loop ORDER BY startInDay ASC, endInDay ASC")
+    fun getAllLoopsLiveData(): LiveData<List<LoopVo>>
 
-    @Query("SELECT * FROM loop WHERE id=:loopId")
-    fun flowLoop(loopId: Int): Flow<LoopVo>
+    @Query("SELECT * FROM loop WHERE loopId=:loopId")
+    suspend fun getLoop(loopId: Int): LoopVo
+
+    @Query("SELECT * FROM loop WHERE loopId=:loopId")
+    fun getLoopFlow(loopId: Int): Flow<LoopVo>
 
     @Query("SELECT min(created) FROM loop")
-    fun flowMinCreatedTime(): Flow<Long>
+    fun getMinCreatedTimeFlow(): Flow<Long>
 
-    @Query("SELECT * FROM loop")
-    suspend fun allLoops(): List<LoopVo>
 
     @Insert
     suspend fun insert(vararg loops: LoopVo): List<Long>
@@ -41,18 +43,18 @@ interface LoopDao {
             insert(*loops).map { it.toInt() }
         } catch (e: SQLiteConstraintException) {
             update(*loops)
-            loops.map { loop -> loop.id }
+            loops.map { loop -> loop.loopId }
         }
 
-    @Query("DELETE FROM loop WHERE id = :id")
-    suspend fun remove(id: Int)
+    @Query("DELETE FROM loop WHERE loopId = :id")
+    suspend fun delete(id: Int)
 
-    suspend fun maxOfIntersects(loopToCompare: LoopBase) =
-        LoopDay.ALL.filter { day -> loopToCompare.activeDays.isOn(day) }
+    suspend fun numberOfLoopsAtTheSameTime(loop: LoopBase) =
+        LoopDay.ALL.filter { day -> loop.activeDays.isOn(day) }
             .map { day ->
-                allLoops()
+                getAllLoops()
                     .filter { loop -> loop.activeDays.isOn(day) }
-                    .filter { loop -> loop.isTogether(loopToCompare) }
+                    .filter { loop -> loop.isTogether(loop) }
             }
             .maxOfOrNull { loops -> loops.size }
             ?: 0

@@ -11,7 +11,7 @@ import androidx.room.ForeignKey
     foreignKeys = [
         ForeignKey(
             entity = LoopVo::class,
-            parentColumns = ["id"],
+            parentColumns = ["loopId"],
             childColumns = ["loopId"],
             onUpdate = ForeignKey.CASCADE,
             onDelete = ForeignKey.CASCADE,

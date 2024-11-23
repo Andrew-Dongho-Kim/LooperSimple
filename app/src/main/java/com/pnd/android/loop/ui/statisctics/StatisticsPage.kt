@@ -133,7 +133,7 @@ private fun LoopsOrderByDoneRate(
     ) {
         itemsIndexed(
             items = loopsWithStatistics,
-            key = { _, item -> item.id }
+            key = { _, item -> item.loopId }
         ) { index, item ->
             LoopItemWithDoneRate(
                 order = index + 1,
@@ -153,7 +153,7 @@ private fun LoopItemWithDoneRate(
 ) {
     Row(
         modifier = modifier
-            .clickable { onNavigateToDetailPage(item.id) }
+            .clickable { onNavigateToDetailPage(item.loopId) }
             .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

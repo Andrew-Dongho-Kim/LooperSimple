@@ -485,7 +485,7 @@ private fun AchievementItemSection(
             iconColor = iconColor
         )
         loops.forEach { loop ->
-            key(loop.id) {
+            key(loop.loopId) {
                 AchievementItemSectionBody(
                     loop = loop,
                     itemDate = itemDate,

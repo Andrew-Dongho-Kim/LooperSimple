@@ -29,7 +29,7 @@ class DailyAchievementViewModel @Inject constructor(
     private val loopDao = appDb.loopDao()
     private val loopWithDoneDao = appDb.fullLoopDao()
 
-    val flowMinCreatedDate = loopDao.flowMinCreatedTime()
+    val flowMinCreatedDate = loopDao.getMinCreatedTimeFlow()
         .map { it.toLocalDate() }
 
     val achievementPager = Pager(
@@ -61,14 +61,14 @@ class DailyAchievementViewModel @Inject constructor(
     }
 
     // inclusive all
-    fun flowsDoneLoopsByDate(from: LocalDate, to: LocalDate) = loopWithDoneDao.flowDoneLoopsByDate(
+    fun flowsDoneLoopsByDate(from: LocalDate, to: LocalDate) = loopWithDoneDao.getDoneLoopsByDateFlow(
         from = from.toMs(),
         to = to.toMs(),
     ).map { doneLoops ->
         doneLoops.groupBy { it.date }
     }
 
-    fun flowsNoDonLoopsByDate(from: LocalDate, to: LocalDate) = loopWithDoneDao.flowNoDoneLoopsByDate(
+    fun flowsNoDonLoopsByDate(from: LocalDate, to: LocalDate) = loopWithDoneDao.getNoDoneLoopsByDateFlow(
         from = from.toMs(),
         to = to.toMs(),
     ).map { doneLoops ->

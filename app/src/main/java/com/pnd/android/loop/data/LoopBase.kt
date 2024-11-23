@@ -1,24 +1,14 @@
 package com.pnd.android.loop.data
 
 import android.content.Context
-import android.content.Intent
 import androidx.compose.runtime.Immutable
 import com.pnd.android.loop.data.LoopDoneVo.DoneState
-import com.pnd.android.loop.data.common.DEFAULT_ACTIVE_DAYS
-import com.pnd.android.loop.data.common.DEFAULT_COLOR
-import com.pnd.android.loop.data.common.DEFAULT_CREATED
-import com.pnd.android.loop.data.common.DEFAULT_ENABLED
-import com.pnd.android.loop.data.common.DEFAULT_INTERVAL
-import com.pnd.android.loop.data.common.DEFAULT_IS_MOCK
-import com.pnd.android.loop.data.common.DEFAULT_TITLE
-import com.pnd.android.loop.data.common.defaultEndInDay
-import com.pnd.android.loop.data.common.defaultStartInDay
 import com.pnd.android.loop.util.intervalString
 import com.pnd.android.loop.util.toLocalTime
 
 @Immutable
 interface LoopBase {
-    val id: Int
+    val loopId: Int
     val title: String
     val color: Int
     val created: Long
@@ -29,7 +19,7 @@ interface LoopBase {
     val enabled: Boolean
     val isMock: Boolean
     fun copyAs(
-        id: Int = this.id,
+        loopId: Int = this.loopId,
         title: String = this.title,
         color: Int = this.color,
         created: Long = this.created,

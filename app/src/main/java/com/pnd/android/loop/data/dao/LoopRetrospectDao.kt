@@ -16,7 +16,7 @@ interface LoopRetrospectDao {
     ): LoopRetrospectVo?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun saveRetrospect(
+    suspend fun insert(
         memoVo: LoopRetrospectVo,
     )
 }

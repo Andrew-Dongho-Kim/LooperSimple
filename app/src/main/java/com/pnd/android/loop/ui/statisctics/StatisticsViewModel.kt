@@ -12,7 +12,7 @@ class StatisticsViewModel @Inject constructor(
 
     private val loopWithDoneDao = appDb.fullLoopDao()
 
-    fun flowLoopsWithStatistics(from: Long, to: Long) = loopWithDoneDao.flowLoopsWithStatistics(
+    fun flowLoopsWithStatistics(from: Long, to: Long) = loopWithDoneDao.getLoopsWithStatisticsFlow(
         from = from,
         to = to
     )

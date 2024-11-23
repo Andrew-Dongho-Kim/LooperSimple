@@ -38,14 +38,14 @@ class LoopDetailViewModel @Inject constructor(
     private val loopDao = appDb.loopDao()
     private val loopDoneDao = appDb.loopDoneDao()
 
-    val loop = loopDao.flowLoop(loopId)
+    val loop = loopDao.getLoopFlow(loopId)
 
-    val allEnabledCount = loopDoneDao.flowAllEnabledCount(loopId)
-    val respondCount = loopDoneDao.flowRespondCount(loopId)
-    val doneCount = loopDoneDao.flowDoneCount(loopId)
-    val skipCount = loopDoneDao.flowSkipCount(loopId)
+    val allEnabledCount = loopDoneDao.getAllEnabledCountFlow(loopId)
+    val respondCount = loopDoneDao.getRespondCountFlow(loopId)
+    val doneCount = loopDoneDao.getDoneCountFlow(loopId)
+    val skipCount = loopDoneDao.getSkipCountFlow(loopId)
 
-    val allResponses = loopDoneDao.flowGetAll(loopId);
+    val allResponses = loopDoneDao.getAllFlow(loopId);
     val donePager = Pager(
         PagingConfig(pageSize = PAGE_SIZE),
         pagingSourceFactory = {
@@ -61,16 +61,16 @@ class LoopDetailViewModel @Inject constructor(
         loopDoneDao.getAllEnabled(loopId = loopId)
 
     suspend fun allEnabledCountBefore(loopId: Int, date: LocalDate) =
-        loopDoneDao.allEnabledCountBefore(loopId, date.toMs())
+        loopDoneDao.getAllEnabledCountBefore(loopId, date.toMs())
 
     suspend fun doneCountBefore(loopId: Int, date: LocalDate) =
-        loopDoneDao.doneCountBefore(loopId, date.toMs())
+        loopDoneDao.getDoneCountBefore(loopId, date.toMs())
 
     suspend fun allEnabledCountBetween(loopId: Int, from: LocalDate, to: LocalDate) =
-        loopDoneDao.allEnabledCountBetween(loopId, from.toMs(), to.toMs())
+        loopDoneDao.getAllEnabledCountBetween(loopId, from.toMs(), to.toMs())
 
     suspend fun doneCountBetween(loopId: Int, from: LocalDate, to: LocalDate) =
-        loopDoneDao.doneCountBetween(loopId, from.toMs(), to.toMs())
+        loopDoneDao.getDoneCountBetween(loopId, from.toMs(), to.toMs())
 
     fun doneLoop(
         loop: LoopBase,

@@ -14,7 +14,7 @@ import java.time.ZoneId
 interface LoopDoneDao {
 
     @Query("SELECT * FROM loop_done WHERE loopId=:loopId ORDER BY date DESC")
-    fun flowGetAll(loopId: Int): Flow<List<LoopDoneVo>>
+    fun getAllFlow(loopId: Int): Flow<List<LoopDoneVo>>
 
     @Query("SELECT * FROM loop_done WHERE loopId=:loopId AND :from <= date AND date <= :to ORDER BY date ASC")
     suspend fun getAllBetween(
@@ -35,40 +35,40 @@ interface LoopDoneDao {
     ): LoopDoneVo?
 
     @Query("SELECT COUNT(*) FROM loop_done WHERE done != ${LoopDoneVo.DoneState.DISABLED}")
-    fun flowAllEnabledCount(): Flow<Int>
+    fun getAllEnabledCountFlow(): Flow<Int>
 
     @Query("SELECT COUNT(*) FROM loop_done WHERE loopId=:loopId AND done != ${LoopDoneVo.DoneState.DISABLED}")
-    fun flowAllEnabledCount(loopId: Int): Flow<Int>
+    fun getAllEnabledCountFlow(loopId: Int): Flow<Int>
 
     @Query("SELECT COUNT(*) FROM loop_done WHERE loopId=:loopId AND done != ${LoopDoneVo.DoneState.DISABLED} AND :from >= date")
-    suspend fun allEnabledCountBefore(loopId: Int, from: Long): Int
+    suspend fun getAllEnabledCountBefore(loopId: Int, from: Long): Int
 
     @Query("SELECT COUNT(*) FROM loop_done WHERE loopId=:loopId AND done != ${LoopDoneVo.DoneState.DISABLED} AND :from <= date AND date <= :to")
-    suspend fun allEnabledCountBetween(loopId: Int, from: Long, to: Long): Int
+    suspend fun getAllEnabledCountBetween(loopId: Int, from: Long, to: Long): Int
 
     @Query("SELECT COUNT(*) FROM loop_done WHERE (done == ${LoopDoneVo.DoneState.DONE} OR done == ${LoopDoneVo.DoneState.SKIP})")
-    fun flowRespondCount(): Flow<Int>
+    fun getRespondCountFlow(): Flow<Int>
 
     @Query("SELECT COUNT(*) FROM loop_done WHERE loopId=:loopId AND (done == ${LoopDoneVo.DoneState.DONE} OR done == ${LoopDoneVo.DoneState.SKIP})")
-    fun flowRespondCount(loopId: Int): Flow<Int>
+    fun getRespondCountFlow(loopId: Int): Flow<Int>
 
     @Query("SELECT COUNT(*) FROM loop_done WHERE done == ${LoopDoneVo.DoneState.DONE}")
-    fun flowDoneCount(): Flow<Int>
+    fun getDoneCountFlow(): Flow<Int>
 
     @Query("SELECT COUNT(*) FROM loop_done WHERE done == ${LoopDoneVo.DoneState.DONE} AND loopId=:loopId")
-    fun flowDoneCount(loopId: Int): Flow<Int>
+    fun getDoneCountFlow(loopId: Int): Flow<Int>
 
     @Query("SELECT COUNT(*) FROM loop_done WHERE done == ${LoopDoneVo.DoneState.DONE} AND loopId=:loopId AND :from >= date")
-    suspend fun doneCountBefore(loopId: Int, from: Long): Int
+    suspend fun getDoneCountBefore(loopId: Int, from: Long): Int
 
     @Query("SELECT COUNT(*) FROM loop_done WHERE done == ${LoopDoneVo.DoneState.DONE} AND loopId=:loopId AND :from <= date AND date <= :to")
-    suspend fun doneCountBetween(loopId: Int, from: Long, to: Long): Int
+    suspend fun getDoneCountBetween(loopId: Int, from: Long, to: Long): Int
 
     @Query("SELECT COUNT(*) FROM loop_done WHERE done == ${LoopDoneVo.DoneState.SKIP}")
-    fun flowSkipCount(): Flow<Int>
+    fun getSkipCountFlow(): Flow<Int>
 
     @Query("SELECT COUNT(*) FROM loop_done WHERE done == ${LoopDoneVo.DoneState.SKIP} AND loopId=:loopId")
-    fun flowSkipCount(loopId: Int): Flow<Int>
+    fun getSkipCountFlow(loopId: Int): Flow<Int>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun addOrUpdate(doneVo: LoopDoneVo)
@@ -86,7 +86,7 @@ interface LoopDoneDao {
     ) =
         addOrUpdate(
             LoopDoneVo(
-                loopId = loop.id,
+                loopId = loop.loopId,
                 date = localDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(),
                 done = doneState
             )

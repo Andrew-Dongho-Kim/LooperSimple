@@ -2,6 +2,7 @@ package com.pnd.android.loop.data
 
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Index
 
 @Entity(
     tableName = "loop_relation",
@@ -9,20 +10,20 @@ import androidx.room.ForeignKey
     foreignKeys = [
         ForeignKey(
             entity = LoopGroupVo::class,
-            parentColumns = ["id"],
+            parentColumns = ["loopGroupId"],
             childColumns = ["loopGroupId"],
             onUpdate = ForeignKey.CASCADE,
             onDelete = ForeignKey.CASCADE,
         ),
         ForeignKey(
             entity = LoopVo::class,
-            parentColumns = ["id"],
+            parentColumns = ["loopId"],
             childColumns = ["loopId"],
             onUpdate = ForeignKey.CASCADE,
             onDelete = ForeignKey.CASCADE,
         )
-    ]
-
+    ],
+    indices = [Index(value = arrayOf("loopGroupId")), Index(value = arrayOf("loopId"))]
 )
 data class LoopRelationVo(
     val loopGroupId: Int,

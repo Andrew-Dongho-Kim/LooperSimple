@@ -21,7 +21,7 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.SnackbarHostState
@@ -41,6 +41,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.ui.home.BlurState
+import com.pnd.android.loop.ui.home.input.SharedElementsOfUserInput.KEY_BUTTON_IMAGE
 import com.pnd.android.loop.ui.home.input.SharedElementsOfUserInput.TRANSITION_DURATION
 import com.pnd.android.loop.ui.home.input.selector.Selectors
 import com.pnd.android.loop.ui.theme.AppColor
@@ -228,19 +229,19 @@ private fun UserInputExpandButton(
                         .wrapContentHeight()
                         .sharedElement(
                             state = rememberSharedContentState(
-                                key = SharedElementsOfUserInput.KEY_BUTTON_IMAGE
+                                key = KEY_BUTTON_IMAGE
                             ),
                             animatedVisibilityScope = animatedVisibilityScope,
                             boundsTransform = { _, _ ->
                                 tween(
-                                    durationMillis = SharedElementsOfUserInput.TRANSITION_DURATION,
+                                    durationMillis = TRANSITION_DURATION,
                                 )
                             }
                         )
                         .graphicsLayer {
                             rotationZ = imageRotation
                         },
-                    imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                    imageVector = Icons.Outlined.Add,
                     tint = AppColor.primary,
                     contentDescription = ""
                 )

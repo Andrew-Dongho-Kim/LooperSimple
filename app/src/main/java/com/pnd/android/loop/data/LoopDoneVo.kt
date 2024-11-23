@@ -17,7 +17,7 @@ import com.pnd.android.loop.data.LoopDoneVo.DoneState.Companion.SKIP
     foreignKeys = [
         ForeignKey(
             entity = LoopVo::class,
-            parentColumns = ["id"],
+            parentColumns = ["loopId"],
             childColumns = ["loopId"],
             onUpdate = CASCADE,
             onDelete = CASCADE,

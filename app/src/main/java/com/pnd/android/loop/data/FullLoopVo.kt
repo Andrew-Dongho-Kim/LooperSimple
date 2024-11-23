@@ -3,7 +3,7 @@ package com.pnd.android.loop.data
 import androidx.room.Ignore
 
 data class FullLoopVo @JvmOverloads constructor(
-    override val id: Int,
+    override val loopId: Int,
     override val color: Int,
     override val title: String,
     override val created: Long,
@@ -19,7 +19,7 @@ data class FullLoopVo @JvmOverloads constructor(
 ) : LoopBase {
 
     override fun copyAs(
-        id: Int,
+        loopId: Int,
         title: String,
         color: Int,
         created: Long,
@@ -30,7 +30,7 @@ data class FullLoopVo @JvmOverloads constructor(
         enabled: Boolean,
         isMock: Boolean,
     ): LoopBase = LoopWithDone(
-        id = id,
+        loopId = loopId,
         title = title,
         color = color,
         created = created,
@@ -49,7 +49,7 @@ fun LoopBase.toFullLoopVo(
     retrospectVo: LoopRetrospectVo?,
     doneVo: LoopDoneVo
 ) = FullLoopVo(
-    id = id,
+    loopId = loopId,
     title = title,
     color = color,
     created = created,

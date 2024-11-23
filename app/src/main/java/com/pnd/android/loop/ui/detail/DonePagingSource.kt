@@ -99,7 +99,7 @@ class DonePagingSource(
     private suspend fun initIfNeed() {
         if (::loop.isInitialized) return
 
-        loop = loopDao.loop(loopId = loopId)
+        loop = loopDao.getLoop(loopId = loopId)
         logger.d { "paging source for loop:$loop" }
     }
 

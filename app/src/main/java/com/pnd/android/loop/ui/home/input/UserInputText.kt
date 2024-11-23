@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.ContentAlpha
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -97,7 +96,7 @@ private fun EmptyTextField(
         modifier = modifier.padding(start = 16.dp),
         text = stringResource(R.string.desc_enter_loop_title),
         style = AppTypography.bodyMedium.copy(
-            color = AppColor.onSurface.copy(alpha = ContentAlpha.disabled)
+            color = AppColor.onSurface.copy(alpha = 0.3f)
         )
     )
 }

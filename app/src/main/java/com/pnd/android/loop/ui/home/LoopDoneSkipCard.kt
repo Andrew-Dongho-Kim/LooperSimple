@@ -214,19 +214,19 @@ private fun DoneSkipCard(
             modifier = Modifier.padding(top = 4.dp)
         ) {
             loops.forEach { loop ->
-                key(loop.id) {
+                key(loop.loopId) {
                     DoneSkipItem(
                         blurState = blurState,
                         loop = loop,
                         onGetRetrospect = {
                             loopViewModel.getMemo(
-                                loopId = loop.id,
+                                loopId = loop.loopId,
                                 localDate = LocalDate.now()
                             )?.text ?: ""
                         },
                         onSaveRetrospect = { text ->
                             loopViewModel.saveMemo(
-                                loopId = loop.id,
+                                loopId = loop.loopId,
                                 localDate = LocalDate.now(),
                                 text = text,
                             )
@@ -295,7 +295,7 @@ private fun DoneSkipItem(
     var isRetrospectDialogOpened by rememberSaveable { mutableStateOf(false) }
 
     var retrospect by remember { mutableStateOf("") }
-    LaunchedEffect(key1 = loop.id) {
+    LaunchedEffect(key1 = loop.loopId) {
         retrospect = onGetRetrospect()
     }
 

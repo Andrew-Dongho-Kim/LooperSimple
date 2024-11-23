@@ -15,8 +15,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -25,24 +30,83 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.data.LoopBase
+import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.asLoopVo
 import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
+import com.pnd.android.loop.util.isActive
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 private enum class DragAnchors { Start, Center, End }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun LoopCardWithOption(
     modifier: Modifier = Modifier,
     blurState: BlurState,
     loopViewModel: LoopViewModel,
     loop: LoopBase,
-    onNavigateToDetailPage: (LoopBase) -> Unit,
-    onEdit: (LoopBase) -> Unit,
     isSyncTime: Boolean,
-    isHighlighted: Boolean
+    isHighlighted: Boolean,
+    onEdit: (LoopBase) -> Unit,
+    onNavigateToDetailPage: (LoopBase) -> Unit,
+) {
+    var isActive by remember { mutableStateOf(false) }
+    LaunchedEffect(loop, loopViewModel) {
+        loopViewModel.localDateTime.collect { currTime ->
+            isActive = loop.isActive(currTime)
+        }
+    }
+
+    var showDeleteDialog by rememberSaveable { mutableStateOf(false) }
+    if (showDeleteDialog) {
+        DeleteLoopDialog(
+            loopTitle = loop.title,
+            onDismiss = {
+                showDeleteDialog = false
+                blurState.off()
+            },
+            onDelete = { loopViewModel.deleteLoop(loop) }
+        )
+    }
+
+    LoopCardWithOption(
+        modifier = modifier,
+        loop = loop,
+        isActive = isActive,
+        isSyncTime = isSyncTime,
+        isHighlighted = isHighlighted,
+        onEnabled = { enabled ->
+            val updated = loop.copyAs(enabled = enabled).asLoopVo()
+            loopViewModel.addOrUpdateLoop(updated)
+        },
+        onDone = { doneState ->
+            loopViewModel.doneLoop(
+                loop = loop,
+                doneState = doneState
+            )
+        },
+        onEdit = onEdit,
+        onShowDeleteDialog = {
+            showDeleteDialog = true
+            blurState.on()
+        },
+        onNavigateToDetailPage = onNavigateToDetailPage
+    )
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun LoopCardWithOption(
+    modifier: Modifier = Modifier,
+    loop: LoopBase,
+    isActive: Boolean,
+    isSyncTime: Boolean,
+    isHighlighted: Boolean,
+    onEnabled: (Boolean) -> Unit,
+    onDone: (@LoopDoneVo.DoneState Int) -> Unit,
+    onEdit: (LoopBase) -> Unit,
+    onShowDeleteDialog: (Boolean) -> Unit,
+    onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
     BoxWithConstraints(modifier = modifier) {
         val density = LocalDensity.current
@@ -81,20 +145,18 @@ fun LoopCardWithOption(
                     )
                     .fillMaxWidth()
                     .height(42.dp),
-                blurState = blurState,
-                title = loop.title,
+
                 color = Color(loop.color),
                 enabled = loop.enabled,
-                onEnabled = { enabled ->
-                    val updated = loop.copyAs(enabled = enabled).asLoopVo()
-                    loopViewModel.addOrUpdateLoop(updated)
+                onEnabledLoop = { enabled ->
+                    onEnabled(enabled)
                     coroutineScope.launch { state.animateTo(DragAnchors.Center) }
                 },
-                onEdit = {
+                onEditLoop = {
                     onEdit(loop)
                     coroutineScope.launch { state.animateTo(DragAnchors.Center) }
                 },
-                onDelete = { loopViewModel.removeLoop(loop) }
+                onShowDeleteDialog = onShowDeleteDialog,
             )
         }
 
@@ -113,11 +175,12 @@ fun LoopCardWithOption(
                     orientation = Orientation.Horizontal,
                     enabled = !loop.isMock
                 ),
-            loopViewModel = loopViewModel,
             loop = loop,
-            onNavigateToDetailPage = onNavigateToDetailPage,
+            isActive = isActive,
             isSyncTime = isSyncTime,
             isHighlighted = isHighlighted,
+            onDone = onDone,
+            onNavigateToDetailPage = onNavigateToDetailPage,
         )
     }
 }

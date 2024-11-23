@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material.icons.outlined.GroupWork
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -36,6 +37,7 @@ import com.pnd.android.loop.ui.theme.primary
 fun LoopStatisticsCard(
     modifier: Modifier = Modifier,
     loopViewModel: LoopViewModel,
+    onNavigateToGroupPage: () -> Unit,
     onNavigateToStatisticsPage: () -> Unit,
     onNavigateToHistoryPage: () -> Unit,
 ) {
@@ -75,6 +77,7 @@ fun LoopStatisticsCard(
                 vertical = 8.dp,
                 horizontal = 12.dp,
             ),
+            onNavigateToGroupPage = onNavigateToGroupPage,
             onNavigateToStatisticsPage = onNavigateToStatisticsPage,
             onNavigateToHistoryPage = onNavigateToHistoryPage,
         )
@@ -85,6 +88,7 @@ fun LoopStatisticsCard(
 @Composable
 private fun PageIcons(
     modifier: Modifier = Modifier,
+    onNavigateToGroupPage: () -> Unit,
     onNavigateToStatisticsPage: () -> Unit,
     onNavigateToHistoryPage: () -> Unit,
 ) {
@@ -92,6 +96,13 @@ private fun PageIcons(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        PageIcon(
+            modifier = Modifier.weight(1f),
+            icon = Icons.Outlined.GroupWork,
+            iconText = stringResource(id = R.string.group),
+            onNavigateToPage = onNavigateToGroupPage
+        )
+
         PageIcon(
             modifier = Modifier.weight(1f),
             icon = Icons.Outlined.BarChart,

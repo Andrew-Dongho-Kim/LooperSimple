@@ -5,7 +5,7 @@ import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import java.time.LocalDate
 
 data class LoopWithDone @JvmOverloads constructor(
-    override val id: Int,
+    override val loopId: Int,
     override val color: Int,
     override val title: String,
     override val created: Long,
@@ -19,7 +19,7 @@ data class LoopWithDone @JvmOverloads constructor(
     @Ignore override val isMock: Boolean = false,
 ) : LoopBase {
     override fun copyAs(
-        id: Int,
+        loopId: Int,
         title: String,
         color: Int,
         created: Long,
@@ -30,7 +30,7 @@ data class LoopWithDone @JvmOverloads constructor(
         enabled: Boolean,
         isMock: Boolean,
     ): LoopBase = LoopWithDone(
-        id = id,
+        loopId = loopId,
         title = title,
         color = color,
         created = created,
@@ -48,7 +48,7 @@ data class LoopWithDone @JvmOverloads constructor(
 fun LoopBase.toLoopWithDone(
     doneVo: LoopDoneVo
 ) = LoopWithDone(
-    id = id,
+    loopId = loopId,
     title = title,
     color = color,
     created = created,
@@ -64,14 +64,14 @@ fun LoopBase.toLoopWithDone(
 
 data class LoopByDate(
     val date: LocalDate,
-    val id: Int,
+    val loopId: Int,
     val title: String,
     val color: Int,
     val retrospect: String?,
 )
 
 data class LoopWithStatistics(
-    val id: Int,
+    val loopId: Int,
     val title: String,
     val color: Int,
     val doneRate: Float,

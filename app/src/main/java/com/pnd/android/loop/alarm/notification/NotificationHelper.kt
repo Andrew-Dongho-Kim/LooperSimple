@@ -52,10 +52,10 @@ class NotificationHelper @Inject constructor(
             .setSound(null)
             .setAutoCancel(true)
 
-        nm.notify(loop.id, builder.build())
+        nm.notify(loop.loopId, builder.build())
     }
 
     fun cancel(loop: LoopBase) {
-        nm.cancel(loop.id)
+        nm.cancel(loop.loopId)
     }
 }

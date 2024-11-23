@@ -82,17 +82,17 @@ class DailyAchievementPagingSource(
                         !loop.created.toLocalDate().isAfter(date)
                     }.map { loop ->
                         val doneVo = loopDoneDao.getDoneState(
-                            loopId = loop.id,
+                            loopId = loop.loopId,
                             date = date.toMs()
                         )
                         val retrospectVo = loopRetrospectDao.getRetrospect(
-                            loopId = loop.id,
+                            loopId = loop.loopId,
                             localDate = date.toMs(),
                         )
                         loop.toFullLoopVo(
                             retrospectVo = retrospectVo,
                             doneVo = doneVo ?: LoopDoneVo(
-                                loopId = loop.id,
+                                loopId = loop.loopId,
                                 done = if (loop.enabled) {
                                     DoneState.NO_RESPONSE
                                 } else {
@@ -111,7 +111,7 @@ class DailyAchievementPagingSource(
     private suspend fun init() {
         if (loopsByDayOfWeek.isNotEmpty()) return
 
-        val allLoops = loopDao.allLoops()
+        val allLoops = loopDao.getAllLoops()
         minDate = allLoops.minOf { it.created }.toLocalDate()
 
         for (day in DayOfWeek.entries) {

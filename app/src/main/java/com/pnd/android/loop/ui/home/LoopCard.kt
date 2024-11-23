@@ -27,24 +27,27 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.ContentAlpha
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Paint
@@ -59,15 +62,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDay
 import com.pnd.android.loop.data.LoopDay.Companion.isOn
-import com.pnd.android.loop.data.LoopDoneVo.DoneState
+import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.TimeStat
 import com.pnd.android.loop.data.common.NO_REPEAT
 import com.pnd.android.loop.data.timeStatAsFlow
-import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.shape.CircularPolygonShape
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
@@ -81,7 +84,6 @@ import com.pnd.android.loop.util.DAY_STRING_MAP
 import com.pnd.android.loop.util.annotatedString
 import com.pnd.android.loop.util.formatStartEndTime
 import com.pnd.android.loop.util.intervalString
-import com.pnd.android.loop.util.isActive
 import com.pnd.android.loop.util.rememberDayColor
 
 
@@ -90,11 +92,12 @@ private const val ACTIVE_EFFECT_SEGMENTS = 11f
 @Composable
 fun LoopCard(
     modifier: Modifier = Modifier,
-    loopViewModel: LoopViewModel,
     loop: LoopBase,
-    onNavigateToDetailPage: (LoopBase) -> Unit,
+    isActive: Boolean,
     isSyncTime: Boolean,
     isHighlighted: Boolean,
+    onNavigateToDetailPage: (LoopBase) -> Unit,
+    onDone: (doneState: Int) -> Unit
 ) {
     val isMock = loop.isMock
     val animateAlpha = animateCardAlphaWithMock(loopBase = loop)
@@ -158,11 +161,12 @@ fun LoopCard(
                 modifier = Modifier
                     .height(54.dp)
                     .alpha(
-                        if (loop.enabled) ContentAlpha.high else ContentAlpha.disabled
+                        if (loop.enabled) 0.8f else 0.3f
                     ),
-                loopViewModel = loopViewModel,
                 loop = loop,
                 syncWithTime = !isMock && isSyncTime,
+                isActive = isActive,
+                onDone = onDone,
             )
         }
     }
@@ -171,9 +175,10 @@ fun LoopCard(
 @Composable
 private fun LoopCardContent(
     modifier: Modifier = Modifier,
-    loopViewModel: LoopViewModel,
     loop: LoopBase,
     syncWithTime: Boolean,
+    isActive: Boolean,
+    onDone: (doneState: @LoopDoneVo.DoneState Int) -> Unit,
 ) {
 
     BoxWithConstraints(modifier = modifier) {
@@ -193,9 +198,13 @@ private fun LoopCardContent(
                 modifier = Modifier
                     .padding(top = 4.dp)
                     .weight(1f),
-                loopViewModel = loopViewModel,
                 loop = loop,
                 syncWithTime = syncWithTime,
+                onDone = onDone,
+            )
+
+            LoopCardMenu(
+                modifier = Modifier.padding(end = 12.dp)
             )
         }
 
@@ -204,8 +213,8 @@ private fun LoopCardContent(
                 modifier = Modifier
                     .width(maxWidth)
                     .height(maxHeight),
-                loopViewModel = loopViewModel,
                 loop = loop,
+                isActive = isActive
             )
         }
     }
@@ -214,18 +223,10 @@ private fun LoopCardContent(
 @Composable
 private fun LoopCardActiveEffect(
     modifier: Modifier = Modifier,
-    loopViewModel: LoopViewModel,
     loop: LoopBase,
+    isActive: Boolean,
 ) {
     if (loop.isMock) return
-
-    var isActive by remember { mutableStateOf(false) }
-    LaunchedEffect(loop, loopViewModel) {
-        loopViewModel.localDateTime.collect { currTime ->
-            isActive = loop.isActive(currTime)
-        }
-    }
-
     if (!isActive) return
 
     val outlineColor = loop.color.compositeOverOnSurface().copy(alpha = 0.7f)
@@ -291,12 +292,12 @@ fun LoopCardColor(
 @Composable
 fun LoopCardBody(
     modifier: Modifier = Modifier,
-    loopViewModel: LoopViewModel,
     loop: LoopBase,
     syncWithTime: Boolean,
+    onDone: (doneState: @LoopDoneVo.DoneState Int) -> Unit
 ) {
     var timeStat by remember { mutableStateOf<TimeStat>(TimeStat.NotToday) }
-    LaunchedEffect(loop.id) {
+    LaunchedEffect(loop.loopId) {
         loop.timeStatAsFlow().collect { timeStat = it }
     }
 
@@ -335,33 +336,96 @@ fun LoopCardBody(
         if (syncWithTime && loop.enabled && timeStat.isPast()) {
             LoopDoneOrSkip(
                 modifier = Modifier.height(36.dp),
-                onDone = { done ->
-                    loopViewModel.doneLoop(
-                        loop = loop,
-                        doneState = if (done) DoneState.DONE else DoneState.SKIP
-                    )
-                },
+                onDone = onDone,
             )
         }
     }
 }
 
 @Composable
+private fun LoopCardMenu(
+    modifier: Modifier = Modifier,
+) {
+    var isPopupMenuOpen by rememberSaveable { mutableStateOf(false) }
+
+    Box(modifier = modifier
+        .clip(CircleShape)
+        .clickable { isPopupMenuOpen = true }
+        .padding(all = 8.dp)) {
+        Icon(
+            modifier = Modifier.size(24.dp),
+            imageVector = Icons.Outlined.MoreVert,
+            tint = AppColor.onSurface.copy(alpha = 0.8f),
+            contentDescription = stringResource(id = R.string.more)
+        )
+    }
+
+    LoopCardPopupMenu(
+        isOpen = isPopupMenuOpen,
+        onDismiss = { isPopupMenuOpen = false }
+    )
+}
+
+@Composable
+private fun LoopCardPopupMenu(
+    modifier: Modifier = Modifier,
+    isOpen: Boolean,
+    onDismiss: () -> Unit,
+) {
+    if (!isOpen) return
+    Popup(
+        alignment = Alignment.TopEnd,
+        onDismissRequest = onDismiss
+    ) {
+        Column(
+            modifier = modifier
+                .shadow(elevation = 1.5.dp)
+                .background(color = AppColor.surface)
+        ) {
+            LoopCardPopupMenuItem(
+                text = stringResource(id = R.string.add_to_group),
+                onClick = {}
+            )
+        }
+    }
+}
+
+@Composable
+private fun LoopCardPopupMenuItem(
+    modifier: Modifier = Modifier,
+    text: String,
+    onClick: () -> Unit,
+) {
+    Text(
+        modifier = modifier
+            .clickable(onClick = onClick)
+            .padding(
+                horizontal = 12.dp,
+                vertical = 4.dp
+            ),
+        text = text,
+        style = AppTypography.bodyMedium.copy(
+            color = AppColor.onSurface.copy(alpha = 0.8f)
+        )
+    )
+}
+
+@Composable
 fun LoopDoneOrSkip(
     modifier: Modifier = Modifier,
-    onDone: (done: Boolean) -> Unit,
+    onDone: (doneState: @LoopDoneVo.DoneState Int) -> Unit,
 ) {
 
     Row(modifier = modifier) {
         Image(
             modifier = Modifier
-                .clickable { onDone(true) }
+                .clickable { onDone(LoopDoneVo.DoneState.DONE) }
                 .fillMaxHeight()
                 .aspectRatio(1f)
                 .padding(8.dp),
             imageVector = Icons.Filled.Done,
             colorFilter = ColorFilter.tint(
-                AppColor.primary.copy(alpha = ContentAlpha.medium)
+                AppColor.primary.copy(alpha = 0.7f)
             ),
             contentDescription = stringResource(id = R.string.done)
         )
@@ -369,14 +433,14 @@ fun LoopDoneOrSkip(
         Image(
             modifier = Modifier
                 .padding(start = 4.dp)
-                .clickable { onDone(false) }
+                .clickable { onDone(LoopDoneVo.DoneState.SKIP) }
                 .fillMaxHeight()
                 .aspectRatio(1f)
                 .padding(8.dp),
             imageVector = Icons.Filled.Close,
             colorFilter = ColorFilter.tint(
                 AppColor.onSurface.copy(
-                    alpha = ContentAlpha.medium
+                    alpha = 0.7f
                 )
             ),
             contentDescription = stringResource(id = R.string.skip)
@@ -529,7 +593,7 @@ private fun ActiveDayText(
             text = dayText,
             style = AppTypography.labelMedium.copy(
                 color = rememberDayColor(day = day).copy(
-                    alpha = if (selected) ContentAlpha.high else ContentAlpha.disabled,
+                    alpha = if (selected) 0.8f else 0.3f,
                 ),
                 fontWeight = FontWeight.Normal
             )
@@ -539,12 +603,12 @@ private fun ActiveDayText(
 
 @Composable
 private fun colorBody1Text(): Color {
-    return AppColor.onSurface.copy(alpha = ContentAlpha.high)
+    return AppColor.onSurface.copy(alpha = 0.8f)
 }
 
 @Composable
 private fun colorBody2Text(): Color {
-    return AppColor.onSurface.copy(alpha = ContentAlpha.medium)
+    return AppColor.onSurface.copy(alpha = 0.7f)
 }
 
 

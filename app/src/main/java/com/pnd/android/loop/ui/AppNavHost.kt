@@ -19,6 +19,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.util.Consumer
+import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavOptions
 import androidx.navigation.compose.NavHost
@@ -29,6 +30,7 @@ import com.pnd.android.loop.common.NavigatePage
 import com.pnd.android.loop.ui.detail.DetailPage
 import com.pnd.android.loop.ui.history.DailyAchievementPage
 import com.pnd.android.loop.ui.home.Home
+import com.pnd.android.loop.ui.home.group.GroupPage
 import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.statisctics.StatisticsPage
 
@@ -103,6 +105,9 @@ fun AppNavHost(
 
             Home(
                 loopViewModel = loopViewModel,
+                onNavigateToGroupPage = {
+                    NavigatePage.GroupPage.navigate(navController)
+                },
                 onNavigateToDetailPage = { loop ->
                     NavigatePage.DetailPage.navigate(
                         navController = navController,
@@ -118,34 +123,22 @@ fun AppNavHost(
             )
         }
 
-        composable(
-            route = NavigatePage.DetailPage.route,
-            arguments = NavigatePage.DetailPage.arguments,
-            enterTransition = { enterTransition() },
-            exitTransition = { exitTransition() },
-            popEnterTransition = { enterTransition() },
-            popExitTransition = { exitTransition() }
-        ) {
+        page(page = NavigatePage.GroupPage) {
+            GroupPage(
+                loopViewModel = loopViewModel,
+                onNavigateUp = onNavigateUp
+            )
+        }
+
+        page(page = NavigatePage.DetailPage) {
             DetailPage(onNavigateUp = onNavigateUp)
         }
 
-        composable(
-            route = NavigatePage.DailyAchievementPage.route,
-            enterTransition = { enterTransition() },
-            exitTransition = { exitTransition() },
-            popEnterTransition = { enterTransition() },
-            popExitTransition = { exitTransition() }
-        ) {
+        page(page = NavigatePage.DailyAchievementPage) {
             DailyAchievementPage(onNavigateUp = onNavigateUp)
         }
 
-        composable(
-            route = NavigatePage.StatisticsPage.route,
-            enterTransition = { enterTransition() },
-            exitTransition = { exitTransition() },
-            popEnterTransition = { enterTransition() },
-            popExitTransition = { exitTransition() }
-        ) {
+        page(page = NavigatePage.StatisticsPage) {
             StatisticsPage(
                 onNavigateToDetailPage = { id ->
                     NavigatePage.DetailPage.navigate(
@@ -158,6 +151,24 @@ fun AppNavHost(
         }
     }
 }
+
+
+private fun NavGraphBuilder.page(
+    page: NavigatePage,
+    content: @Composable () -> Unit,
+) {
+    composable(
+        route = page.route,
+        arguments = page.arguments,
+        enterTransition = { enterTransition() },
+        exitTransition = { exitTransition() },
+        popEnterTransition = { enterTransition() },
+        popExitTransition = { exitTransition() }
+    ) {
+        content()
+    }
+}
+
 
 private fun enterTransition(): EnterTransition {
 //    return

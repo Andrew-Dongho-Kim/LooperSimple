@@ -66,7 +66,7 @@ class AppWidgetUpdateWorker @AssistedInject constructor(
             )
         }
 
-        val loops = loopWithDoneDao.allEnabledLoops(date = LocalDate.now().toMs())
+        val loops = loopWithDoneDao.getAllEnabledLoops(date = LocalDate.now().toMs())
         updateWidget(
             context = context,
             loops = loops.filter { loop ->

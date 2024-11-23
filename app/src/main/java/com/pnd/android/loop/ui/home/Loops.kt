@@ -59,6 +59,7 @@ fun Loops(
     inputState: UserInputState,
     snackBarHostState: SnackbarHostState,
     loopViewModel: LoopViewModel,
+    onNavigateToGroupPage: () -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
     onNavigateToHistoryPage: () -> Unit,
     onNavigateToStatisticsPage: () -> Unit,
@@ -75,6 +76,7 @@ fun Loops(
             inputState = inputState,
             lazyListState = lazyListState,
             loopViewModel = loopViewModel,
+            onNavigateToGroupPage = onNavigateToGroupPage,
             onNavigateToDetailPage = onNavigateToDetailPage,
             onNavigateToHistoryPage = onNavigateToHistoryPage,
             onNavigateToStatisticsPage = onNavigateToStatisticsPage,
@@ -136,6 +138,7 @@ fun Loops(
     inputState: UserInputState,
     lazyListState: LazyListState,
     loopViewModel: LoopViewModel,
+    onNavigateToGroupPage: () -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
     onNavigateToHistoryPage: () -> Unit,
     onNavigateToStatisticsPage: () -> Unit,
@@ -145,7 +148,9 @@ fun Loops(
 
     Box(modifier = modifier.background(AppColor.background)) {
         if (sections.isEmpty()) {
-            EmptyLoops(modifier = Modifier.fillMaxSize())
+            EmptyLoops(
+                modifier = Modifier.fillMaxSize()
+            )
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxWidth(),
@@ -156,6 +161,7 @@ fun Loops(
                         section = section,
                         blurState = blurState,
                         loopViewModel = loopViewModel,
+                        onNavigateToGroupPage = onNavigateToGroupPage,
                         onNavigateToDetailPage = onNavigateToDetailPage,
                         onNavigateToHistoryPage = onNavigateToHistoryPage,
                         onNavigateToStatisticsPage = onNavigateToStatisticsPage,
@@ -203,7 +209,7 @@ private fun LoopViewModel.observeSectionsAsState(
         val resultLoops = ArrayList<LoopBase>(loops)
         if (inputState.mode == UserInputState.Mode.Edit) {
             val edited = inputState.value
-            val index = resultLoops.indexOfFirst { it.id == edited.id }
+            val index = resultLoops.indexOfFirst { it.loopId == edited.loopId }
             resultLoops[index] = inputState.value
         }
 
