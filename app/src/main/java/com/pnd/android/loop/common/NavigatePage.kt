@@ -64,6 +64,24 @@ sealed class NavigatePage(val route: String) {
         }
     }
 
+    data object GroupPicker : NavigatePage("group_picker/{$ARGS_ID}") {
+        override val arguments = listOf(
+            navArgument(ARGS_ID) {
+                type = NavType.IntType
+            }
+        )
+
+        fun id(backStackEntry: NavBackStackEntry) =
+            backStackEntry.arguments?.getInt(ARGS_ID) ?: UNKNOWN_ID
+
+        fun navigate(
+            navController: NavHostController,
+            loop: LoopBase
+        ) {
+            navController.navigate("group_picker/${loop.loopId}")
+        }
+    }
+
     data object GroupPage : NavigatePage("group") {
         fun navigate(navController: NavHostController) {
             navController.navigate(route)

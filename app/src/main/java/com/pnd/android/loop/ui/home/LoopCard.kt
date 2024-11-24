@@ -89,15 +89,15 @@ import com.pnd.android.loop.util.rememberDayColor
 
 private const val ACTIVE_EFFECT_SEGMENTS = 11f
 
+
 @Composable
 fun LoopCard(
     modifier: Modifier = Modifier,
     loop: LoopBase,
-    isActive: Boolean,
-    isSyncTime: Boolean,
-    isHighlighted: Boolean,
+    cardValues: LoopCardValues,
+    onDone: (doneState: Int) -> Unit,
+    onNavigateToGroupPicker: (LoopBase) -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
-    onDone: (doneState: Int) -> Unit
 ) {
     val isMock = loop.isMock
     val animateAlpha = animateCardAlphaWithMock(loopBase = loop)
@@ -114,13 +114,9 @@ fun LoopCard(
         val cardShape = remember { CircularPolygonShape(12.dp) }
         Card(
             modifier = Modifier
-                .padding(
-                    horizontal = 24.dp,
-                    vertical = 8.dp
-                )
                 .fillMaxWidth()
                 .drawBehind {
-                    if (!isHighlighted) return@drawBehind
+                    if (!cardValues.isHighlighted) return@drawBehind
 
                     val size = this.size
                     val density = this.density
@@ -164,9 +160,9 @@ fun LoopCard(
                         if (loop.enabled) 0.8f else 0.3f
                     ),
                 loop = loop,
-                syncWithTime = !isMock && isSyncTime,
-                isActive = isActive,
+                cardValues = cardValues,
                 onDone = onDone,
+                onNavigateToGroupPicker = onNavigateToGroupPicker,
             )
         }
     }
@@ -176,9 +172,9 @@ fun LoopCard(
 private fun LoopCardContent(
     modifier: Modifier = Modifier,
     loop: LoopBase,
-    syncWithTime: Boolean,
-    isActive: Boolean,
+    cardValues: LoopCardValues,
     onDone: (doneState: @LoopDoneVo.DoneState Int) -> Unit,
+    onNavigateToGroupPicker: (LoopBase) -> Unit,
 ) {
 
     BoxWithConstraints(modifier = modifier) {
@@ -199,24 +195,24 @@ private fun LoopCardContent(
                     .padding(top = 4.dp)
                     .weight(1f),
                 loop = loop,
-                syncWithTime = syncWithTime,
+                cardValues = cardValues,
                 onDone = onDone,
             )
 
             LoopCardMenu(
-                modifier = Modifier.padding(end = 12.dp)
+                modifier = Modifier.padding(end = 12.dp),
+                cardValues = cardValues,
+                onNavigateToGroupPicker = { onNavigateToGroupPicker(loop) },
             )
         }
 
-        if (syncWithTime) {
-            LoopCardActiveEffect(
-                modifier = Modifier
-                    .width(maxWidth)
-                    .height(maxHeight),
-                loop = loop,
-                isActive = isActive
-            )
-        }
+        LoopCardActiveEffect(
+            modifier = Modifier
+                .width(maxWidth)
+                .height(maxHeight),
+            loop = loop,
+            cardValues = cardValues
+        )
     }
 }
 
@@ -224,10 +220,11 @@ private fun LoopCardContent(
 private fun LoopCardActiveEffect(
     modifier: Modifier = Modifier,
     loop: LoopBase,
-    isActive: Boolean,
+    cardValues: LoopCardValues,
 ) {
     if (loop.isMock) return
-    if (!isActive) return
+    if (!cardValues.syncWithTime) return
+    if (!cardValues.isActive) return
 
     val outlineColor = loop.color.compositeOverOnSurface().copy(alpha = 0.7f)
     val outlinePaint = remember(outlineColor) { Paint().apply { color = outlineColor } }
@@ -293,13 +290,14 @@ fun LoopCardColor(
 fun LoopCardBody(
     modifier: Modifier = Modifier,
     loop: LoopBase,
-    syncWithTime: Boolean,
+    cardValues: LoopCardValues,
     onDone: (doneState: @LoopDoneVo.DoneState Int) -> Unit
 ) {
     var timeStat by remember { mutableStateOf<TimeStat>(TimeStat.NotToday) }
     LaunchedEffect(loop.loopId) {
         loop.timeStatAsFlow().collect { timeStat = it }
     }
+    val syncWithTime = !loop.isMock && cardValues.syncWithTime
 
     Row(
         modifier = modifier.padding(start = 16.dp),
@@ -317,6 +315,7 @@ fun LoopCardBody(
                     modifier = Modifier.weight(1f),
                     loop = loop,
                     timeStat = timeStat,
+                    syncWithTime = syncWithTime,
                 )
 
                 if (!syncWithTime) {
@@ -345,6 +344,8 @@ fun LoopCardBody(
 @Composable
 private fun LoopCardMenu(
     modifier: Modifier = Modifier,
+    onNavigateToGroupPicker: () -> Unit,
+    cardValues: LoopCardValues,
 ) {
     var isPopupMenuOpen by rememberSaveable { mutableStateOf(false) }
 
@@ -352,17 +353,24 @@ private fun LoopCardMenu(
         .clip(CircleShape)
         .clickable { isPopupMenuOpen = true }
         .padding(all = 8.dp)) {
-        Icon(
-            modifier = Modifier.size(24.dp),
-            imageVector = Icons.Outlined.MoreVert,
-            tint = AppColor.onSurface.copy(alpha = 0.8f),
-            contentDescription = stringResource(id = R.string.more)
-        )
+
+        if (cardValues.showAddToGroup) {
+            Icon(
+                modifier = Modifier.size(24.dp),
+                imageVector = Icons.Outlined.MoreVert,
+                tint = AppColor.onSurface.copy(alpha = 0.8f),
+                contentDescription = stringResource(id = R.string.more)
+            )
+        }
     }
 
     LoopCardPopupMenu(
         isOpen = isPopupMenuOpen,
-        onDismiss = { isPopupMenuOpen = false }
+        onNavigateToGroupPicker = {
+            onNavigateToGroupPicker()
+            isPopupMenuOpen = false
+        },
+        onDismiss = { isPopupMenuOpen = false },
     )
 }
 
@@ -370,6 +378,7 @@ private fun LoopCardMenu(
 private fun LoopCardPopupMenu(
     modifier: Modifier = Modifier,
     isOpen: Boolean,
+    onNavigateToGroupPicker: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     if (!isOpen) return
@@ -384,7 +393,7 @@ private fun LoopCardPopupMenu(
         ) {
             LoopCardPopupMenuItem(
                 text = stringResource(id = R.string.add_to_group),
-                onClick = {}
+                onClick = onNavigateToGroupPicker
             )
         }
     }
@@ -490,10 +499,12 @@ private fun LoopCardInterval(
 private fun LoopCardStartEndTime(
     modifier: Modifier,
     loop: LoopBase,
-    timeStat: TimeStat
+    timeStat: TimeStat,
+    syncWithTime: Boolean,
 ) {
     val timeText = if (
         loop.isMock ||
+        !syncWithTime ||
         (timeStat.isPast() || timeStat.isNotToday())
     ) {
         annotatedString(loop.formatStartEndTime())

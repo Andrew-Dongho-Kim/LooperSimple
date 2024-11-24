@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,15 +40,23 @@ import kotlin.math.roundToInt
 
 private enum class DragAnchors { Start, Center, End }
 
+@Immutable
+data class LoopCardValues(
+    val syncWithTime: Boolean = true,
+    val isActive: Boolean = false,
+    val isHighlighted: Boolean = false,
+    val showAddToGroup: Boolean = true,
+)
+
 @Composable
 fun LoopCardWithOption(
     modifier: Modifier = Modifier,
     blurState: BlurState,
     loopViewModel: LoopViewModel,
     loop: LoopBase,
-    isSyncTime: Boolean,
-    isHighlighted: Boolean,
+    cardValues: LoopCardValues,
     onEdit: (LoopBase) -> Unit,
+    onNavigateToGroupPicker: (LoopBase) -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
     var isActive by remember { mutableStateOf(false) }
@@ -72,9 +81,7 @@ fun LoopCardWithOption(
     LoopCardWithOption(
         modifier = modifier,
         loop = loop,
-        isActive = isActive,
-        isSyncTime = isSyncTime,
-        isHighlighted = isHighlighted,
+        cardValues = cardValues.copy(isActive = isActive),
         onEnabled = { enabled ->
             val updated = loop.copyAs(enabled = enabled).asLoopVo()
             loopViewModel.addOrUpdateLoop(updated)
@@ -90,6 +97,7 @@ fun LoopCardWithOption(
             showDeleteDialog = true
             blurState.on()
         },
+        onNavigateToGroupPicker = onNavigateToGroupPicker,
         onNavigateToDetailPage = onNavigateToDetailPage
     )
 }
@@ -99,13 +107,12 @@ fun LoopCardWithOption(
 fun LoopCardWithOption(
     modifier: Modifier = Modifier,
     loop: LoopBase,
-    isActive: Boolean,
-    isSyncTime: Boolean,
-    isHighlighted: Boolean,
+    cardValues: LoopCardValues,
     onEnabled: (Boolean) -> Unit,
     onDone: (@LoopDoneVo.DoneState Int) -> Unit,
     onEdit: (LoopBase) -> Unit,
     onShowDeleteDialog: (Boolean) -> Unit,
+    onNavigateToGroupPicker: (LoopBase) -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
     BoxWithConstraints(modifier = modifier) {
@@ -141,7 +148,7 @@ fun LoopCardWithOption(
                     }
                     .padding(
                         vertical = 8.dp,
-                        horizontal = 36.dp,
+                        horizontal = 12.dp,
                     )
                     .fillMaxWidth()
                     .height(42.dp),
@@ -176,10 +183,9 @@ fun LoopCardWithOption(
                     enabled = !loop.isMock
                 ),
             loop = loop,
-            isActive = isActive,
-            isSyncTime = isSyncTime,
-            isHighlighted = isHighlighted,
+            cardValues = cardValues,
             onDone = onDone,
+            onNavigateToGroupPicker = onNavigateToGroupPicker,
             onNavigateToDetailPage = onNavigateToDetailPage,
         )
     }

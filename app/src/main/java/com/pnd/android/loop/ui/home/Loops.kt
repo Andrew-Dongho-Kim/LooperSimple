@@ -59,6 +59,7 @@ fun Loops(
     inputState: UserInputState,
     snackBarHostState: SnackbarHostState,
     loopViewModel: LoopViewModel,
+    onNavigateToGroupPicker: (LoopBase) -> Unit,
     onNavigateToGroupPage: () -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
     onNavigateToHistoryPage: () -> Unit,
@@ -76,6 +77,7 @@ fun Loops(
             inputState = inputState,
             lazyListState = lazyListState,
             loopViewModel = loopViewModel,
+            onNavigateToGroupPicker = onNavigateToGroupPicker,
             onNavigateToGroupPage = onNavigateToGroupPage,
             onNavigateToDetailPage = onNavigateToDetailPage,
             onNavigateToHistoryPage = onNavigateToHistoryPage,
@@ -138,6 +140,7 @@ fun Loops(
     inputState: UserInputState,
     lazyListState: LazyListState,
     loopViewModel: LoopViewModel,
+    onNavigateToGroupPicker: (LoopBase) -> Unit,
     onNavigateToGroupPage: () -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
     onNavigateToHistoryPage: () -> Unit,
@@ -161,11 +164,12 @@ fun Loops(
                         section = section,
                         blurState = blurState,
                         loopViewModel = loopViewModel,
+                        onEdit = onEdit,
+                        onNavigateToGroupPicker = onNavigateToGroupPicker,
                         onNavigateToGroupPage = onNavigateToGroupPage,
                         onNavigateToDetailPage = onNavigateToDetailPage,
                         onNavigateToHistoryPage = onNavigateToHistoryPage,
                         onNavigateToStatisticsPage = onNavigateToStatisticsPage,
-                        onEdit = onEdit,
                     )
                 }
                 item {

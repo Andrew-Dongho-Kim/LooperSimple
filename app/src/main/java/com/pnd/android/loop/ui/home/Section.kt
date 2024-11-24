@@ -65,11 +65,12 @@ fun LazyListScope.section(
     section: Section,
     blurState: BlurState,
     loopViewModel: LoopViewModel,
+    onEdit: (LoopBase) -> Unit,
+    onNavigateToGroupPicker: (LoopBase) -> Unit,
     onNavigateToGroupPage: () -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
     onNavigateToHistoryPage: () -> Unit,
     onNavigateToStatisticsPage: () -> Unit,
-    onEdit: (LoopBase) -> Unit,
 ) {
     when (section) {
         is Section.Statistics -> sectionStatistics(
@@ -84,8 +85,9 @@ fun LazyListScope.section(
             section = section,
             blurState = blurState,
             loopViewModel = loopViewModel,
-            onNavigateToDetailPage = onNavigateToDetailPage,
             onEdit = onEdit,
+            onNavigateToGroupPicker = onNavigateToGroupPicker,
+            onNavigateToDetailPage = onNavigateToDetailPage,
         )
 
         is Section.Yesterday -> sectionYesterday(
@@ -108,18 +110,19 @@ fun LazyListScope.section(
             section = section,
             blurState = blurState,
             loopViewModel = loopViewModel,
-            onNavigateToDetailPage = onNavigateToDetailPage,
             onEdit = onEdit,
+            onNavigateToGroupPicker = onNavigateToGroupPicker,
+            onNavigateToDetailPage = onNavigateToDetailPage,
         )
 
         is Section.All -> sectionAll(
             section = section,
             blurState = blurState,
             loopViewModel = loopViewModel,
-            onNavigateToDetailPage = onNavigateToDetailPage,
             onEdit = onEdit,
+            onNavigateToGroupPicker = onNavigateToGroupPicker,
+            onNavigateToDetailPage = onNavigateToDetailPage,
         )
-
     }
 }
 
@@ -179,8 +182,9 @@ private fun LazyListScope.sectionToday(
     section: Section.Today,
     blurState: BlurState,
     loopViewModel: LoopViewModel,
-    onNavigateToDetailPage: (LoopBase) -> Unit,
     onEdit: (LoopBase) -> Unit,
+    onNavigateToGroupPicker: (LoopBase) -> Unit,
+    onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
     val loops by section.items
 
@@ -192,11 +196,11 @@ private fun LazyListScope.sectionToday(
             blurState = blurState,
             loopViewModel = loopViewModel,
             loops = loops,
+            onEdit = onEdit,
+            onNavigateToGroupPicker = onNavigateToGroupPicker,
             onNavigateToDetailPage = onNavigateToDetailPage,
-            onEdit = onEdit
         )
     }
-
 }
 
 private fun LazyListScope.sectionTodayEmpty(
@@ -235,8 +239,9 @@ private fun LazyListScope.sectionTodayBody(
     blurState: BlurState,
     loopViewModel: LoopViewModel,
     loops: List<LoopBase>,
-    onNavigateToDetailPage: (LoopBase) -> Unit,
     onEdit: (LoopBase) -> Unit,
+    onNavigateToGroupPicker: (LoopBase) -> Unit,
+    onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
 
     val isSelected by section.isSelected
@@ -263,14 +268,22 @@ private fun LazyListScope.sectionTodayBody(
             val highlightId by loopViewModel.highlightId.collectAsState()
 
             LoopCardWithOption(
-                modifier = Modifier.animateItem(),
+                modifier = Modifier
+                    .animateItem()
+                    .padding(
+                        horizontal = 24.dp,
+                        vertical = 8.dp
+                    ),
                 blurState = blurState,
                 loopViewModel = loopViewModel,
                 loop = loop,
-                onNavigateToDetailPage = onNavigateToDetailPage,
+                cardValues = LoopCardValues(
+                    syncWithTime = true,
+                    isHighlighted = highlightId == loop.loopId,
+                ),
                 onEdit = onEdit,
-                isSyncTime = true,
-                isHighlighted = highlightId == loop.loopId
+                onNavigateToGroupPicker = onNavigateToGroupPicker,
+                onNavigateToDetailPage = onNavigateToDetailPage,
             )
         }
     }
@@ -399,9 +412,11 @@ private fun LazyListScope.sectionAll(
     section: Section.All,
     blurState: BlurState,
     loopViewModel: LoopViewModel,
-    onNavigateToDetailPage: (LoopBase) -> Unit,
     onEdit: (LoopBase) -> Unit,
-) {
+    onNavigateToGroupPicker: (LoopBase) -> Unit,
+    onNavigateToDetailPage: (LoopBase) -> Unit,
+
+    ) {
     val loops by section.items
     items(
         items = loops,
@@ -409,12 +424,20 @@ private fun LazyListScope.sectionAll(
         key = { loop -> loop.loopId }
     ) { loop ->
         LoopCardWithOption(
+            modifier = Modifier
+                .padding(
+                    horizontal = 24.dp,
+                    vertical = 8.dp
+                ),
             blurState = blurState,
             loopViewModel = loopViewModel,
             loop = loop,
             onEdit = onEdit,
-            isSyncTime = false,
-            isHighlighted = false,
+            cardValues = LoopCardValues(
+                syncWithTime = false,
+                isHighlighted = false,
+            ),
+            onNavigateToGroupPicker = onNavigateToGroupPicker,
             onNavigateToDetailPage = onNavigateToDetailPage,
         )
     }
@@ -424,8 +447,9 @@ private fun LazyListScope.sectionLater(
     section: Section.Later,
     blurState: BlurState,
     loopViewModel: LoopViewModel,
-    onNavigateToDetailPage: (LoopBase) -> Unit,
     onEdit: (LoopBase) -> Unit,
+    onNavigateToGroupPicker: (LoopBase) -> Unit,
+    onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
     var isExpanded by section.isExpanded
     item(
@@ -453,13 +477,21 @@ private fun LazyListScope.sectionLater(
             exit = fadeOut(tween(duration)) + shrinkVertically(tween(duration))
         ) {
             LoopCardWithOption(
+                modifier = Modifier
+                    .padding(
+                        horizontal = 24.dp,
+                        vertical = 8.dp
+                    ),
                 blurState = blurState,
                 loopViewModel = loopViewModel,
                 loop = loop,
-                onNavigateToDetailPage = onNavigateToDetailPage,
+                cardValues = LoopCardValues(
+                    syncWithTime = false,
+                    isHighlighted = false
+                ),
                 onEdit = onEdit,
-                isSyncTime = false,
-                isHighlighted = false
+                onNavigateToGroupPicker = onNavigateToGroupPicker,
+                onNavigateToDetailPage = onNavigateToDetailPage,
             )
         }
     }

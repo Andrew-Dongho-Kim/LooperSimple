@@ -3,8 +3,12 @@
 
     <string name="group">Group</string>
     <string name="add_group">Add a group</string>
+    <string name="delete_group">Delete the group</string>
     <string name="add_to_group">Add to group</string>
+    <string name="remove_from_group">Remove from group</string>
     <string name="enter_group_title">Enter group title</string>
+    <string name="remove_from_group_message">Do you want to remove \"%s\" loop from \"%s\" group</string>
+    <string name="delete_group_message">Do you want to delete \"%s\" group?</string>
 
     <string name="loop">loop</string>
     <string name="loops">%d loops</string>

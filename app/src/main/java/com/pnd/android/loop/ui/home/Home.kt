@@ -33,6 +33,7 @@ import com.pnd.android.loop.ui.theme.surface
 fun Home(
     modifier: Modifier = Modifier,
     loopViewModel: LoopViewModel,
+    onNavigateToGroupPicker: (LoopBase) -> Unit,
     onNavigateToGroupPage: () -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
     onNavigateToHistoryPage: () -> Unit,
@@ -85,6 +86,7 @@ fun Home(
             inputState = inputState,
             snackBarHostState = snackBarHostState,
             loopViewModel = loopViewModel,
+            onNavigateToGroupPicker = onNavigateToGroupPicker,
             onNavigateToGroupPage = onNavigateToGroupPage,
             onNavigateToDetailPage = onNavigateToDetailPage,
             onNavigateToHistoryPage = onNavigateToHistoryPage,

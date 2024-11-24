@@ -13,6 +13,9 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface LoopGroupDao {
 
+    @Query("SELECT * FROM loop_group")
+    fun getAllGroupsFlow(): Flow<List<LoopGroupVo>>
+
     @Transaction
     @Query("SELECT * FROM loop_group")
     fun getAllGroupsWithLoopsFlow(): Flow<List<LoopGroupWithLoops>>
@@ -30,6 +33,12 @@ interface LoopGroupDao {
     @Update
     suspend fun update(vararg loops: LoopGroupVo)
 
-    @Query("DELETE FROM loop_group WHERE loopGroupId=:groupId")
-    suspend fun remove(groupId: Int)
+    @Query("DELETE FROM loop_group WHERE loopGroupId=:loopGroupId")
+    suspend fun delete(loopGroupId: Int)
+
+    @Query("DELETE FROM loop_relation WHERE loopGroupId=:loopGroupId AND loopId=:loopId")
+    suspend fun removeFromGroup(
+        loopGroupId: Int,
+        loopId: Int
+    )
 }

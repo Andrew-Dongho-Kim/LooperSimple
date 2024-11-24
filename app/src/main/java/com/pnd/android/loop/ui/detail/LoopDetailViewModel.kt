@@ -32,7 +32,6 @@ class LoopDetailViewModel @Inject constructor(
 
     private val coroutineScope = CoroutineScope(SupervisorJob())
 
-
     private val loopId: Int = savedStateHandle[NavigatePage.ARGS_ID] ?: -1
 
     private val loopDao = appDb.loopDao()

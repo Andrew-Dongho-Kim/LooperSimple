@@ -19,6 +19,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.util.Consumer
+import androidx.fragment.app.FragmentManager.BackStackEntry
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavOptions
@@ -26,11 +28,13 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navDeepLink
+import androidx.navigation.toRoute
 import com.pnd.android.loop.common.NavigatePage
 import com.pnd.android.loop.ui.detail.DetailPage
 import com.pnd.android.loop.ui.history.DailyAchievementPage
 import com.pnd.android.loop.ui.home.Home
 import com.pnd.android.loop.ui.home.group.GroupPage
+import com.pnd.android.loop.ui.home.group.GroupPicker
 import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.statisctics.StatisticsPage
 
@@ -105,6 +109,12 @@ fun AppNavHost(
 
             Home(
                 loopViewModel = loopViewModel,
+                onNavigateToGroupPicker = { loop ->
+                    NavigatePage.GroupPicker.navigate(
+                        navController = navController,
+                        loop = loop,
+                    )
+                },
                 onNavigateToGroupPage = {
                     NavigatePage.GroupPage.navigate(navController)
                 },
@@ -120,6 +130,13 @@ fun AppNavHost(
                 onNavigateToStatisticsPage = {
                     NavigatePage.StatisticsPage.navigate(navController)
                 }
+            )
+        }
+
+        page(page = NavigatePage.GroupPicker) { backStackEntry ->
+            GroupPicker(
+                loopId = backStackEntry.arguments?.getInt(NavigatePage.ARGS_ID) ?: -1,
+                onNavigateUp = onNavigateUp
             )
         }
 
@@ -155,7 +172,7 @@ fun AppNavHost(
 
 private fun NavGraphBuilder.page(
     page: NavigatePage,
-    content: @Composable () -> Unit,
+    content: @Composable (NavBackStackEntry) -> Unit,
 ) {
     composable(
         route = page.route,
@@ -165,7 +182,7 @@ private fun NavGraphBuilder.page(
         popEnterTransition = { enterTransition() },
         popExitTransition = { exitTransition() }
     ) {
-        content()
+        content(it)
     }
 }
 
