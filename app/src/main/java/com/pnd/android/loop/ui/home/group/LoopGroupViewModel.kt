@@ -26,7 +26,16 @@ class LoopGroupViewModel @Inject constructor(
             }
         }
 
-    fun getGroupWithLoopsFlow(groupId: Int) = repository.getGroupWithLoopsFlow(groupId = groupId)
+    fun getGroupWithLoopsFlow(groupId: Int) =
+        repository.getGroupWithLoopsFlow(loopGroupId = groupId)
+
+    fun hasLoopInGroupFlow(
+        loopGroupId: Int,
+        loopId: Int
+    ) = repository.hasLoopInGroupFlow(
+        loopGroupId = loopGroupId,
+        loopId = loopId,
+    )
 
     fun addGroup(title: String) {
         viewModelScope.launch {
@@ -66,7 +75,7 @@ class LoopGroupViewModel @Inject constructor(
     }
 
     fun deleteGroup(
-        loopGroupId:Int,
+        loopGroupId: Int,
     ) {
         viewModelScope.launch {
             repository.deleteGroup(

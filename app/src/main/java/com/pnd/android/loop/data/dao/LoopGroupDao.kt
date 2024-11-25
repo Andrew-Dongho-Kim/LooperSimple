@@ -24,6 +24,12 @@ interface LoopGroupDao {
     @Query("SELECT * FROM loop_relation WHERE loopGroupId=:groupId")
     fun getGroupWithLoopsFlow(groupId: Int): Flow<List<LoopGroupWithLoops>>
 
+    @Query("SELECT * FROM loop_relation WHERE loopGroupId=:loopGroupId AND loopId=:loopId")
+    fun getRelationFlow(
+        loopGroupId: Int,
+        loopId: Int
+    ): Flow<LoopRelationVo?>
+
     @Insert
     suspend fun insert(vararg relations: LoopRelationVo): List<Long>
 

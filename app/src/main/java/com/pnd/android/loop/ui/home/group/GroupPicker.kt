@@ -3,6 +3,7 @@ package com.pnd.android.loop.ui.home.group
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -20,7 +21,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -32,6 +36,7 @@ import com.pnd.android.loop.ui.common.SimpleAppBar
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.background
+import com.pnd.android.loop.ui.theme.error
 import com.pnd.android.loop.ui.theme.onSurface
 
 
@@ -87,9 +92,16 @@ private fun GroupPickerContent(
             items = groups,
             key = { _, group -> group.loopGroupId }
         ) { index, group ->
+
+            val hasLoopInGroup by loopGroupViewModel.hasLoopInGroupFlow(
+                loopGroupId = group.loopGroupId,
+                loopId = loopId
+            ).collectAsStateWithLifecycle(initialValue = false)
+
             GroupItem(
                 modifier = Modifier.padding(all = 8.dp),
                 group = group,
+                hasLoopInGroup = hasLoopInGroup,
                 onGroupSelected = { loopGroupId ->
                     loopGroupViewModel.addToGroup(
                         loopGroupId = loopGroupId,
@@ -113,17 +125,36 @@ private fun GroupPickerContent(
 private fun GroupItem(
     modifier: Modifier = Modifier,
     group: LoopGroupVo,
+    hasLoopInGroup: Boolean,
     onGroupSelected: (groupId: Int) -> Unit
 ) {
-    Text(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable { onGroupSelected(group.loopGroupId) }
-            .padding(start = 24.dp)
-            .padding(vertical = 12.dp),
-        text = group.groupTitle,
-        style = AppTypography.titleMedium.copy(color = AppColor.onSurface)
-    )
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            modifier = Modifier
+                .weight(weight = 1f)
+                .clickable(enabled = !hasLoopInGroup) { onGroupSelected(group.loopGroupId) }
+                .graphicsLayer {
+                    alpha = if (hasLoopInGroup) 0.3f else 1.0f
+                }
+                .padding(start = 24.dp)
+                .padding(vertical = 12.dp),
+            text = group.groupTitle,
+            style = AppTypography.titleMedium.copy(color = AppColor.onSurface)
+        )
+
+        if (hasLoopInGroup) {
+            Text(
+                modifier = Modifier
+                    .alpha(0.3f)
+                    .padding(end = 24.dp),
+                text = stringResource(id = R.string.already_added),
+                style = AppTypography.bodySmall.copy(color = AppColor.error)
+            )
+        }
+    }
 }
 
 @Composable

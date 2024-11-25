@@ -165,13 +165,13 @@ fun Map<String, Any?>.asLoop(): LoopBase {
         title = getOrDefault(EXTRA_TITLE, DEFAULT_TITLE) as String,
         color = getOrDefault(EXTRA_COLOR, DEFAULT_COLOR) as Int,
         created = getOrDefault(EXTRA_LOOP_CREATED, DEFAULT_CREATED) as Long,
-        startInDay = getOrDefault(EXTRA_LOOP_START, defaultStartInDay) as Long,
-        endInDay = getOrDefault(EXTRA_LOOP_END, defaultEndInDay) as Long,
+        startInDay = (getOrDefault(EXTRA_LOOP_START, defaultStartInDay) as Number).toLong(),
+        endInDay = (getOrDefault(EXTRA_LOOP_END, defaultEndInDay) as Number).toLong(),
         activeDays = getOrDefault(
             EXTRA_LOOP_ACTIVE_DAYS,
             DEFAULT_ACTIVE_DAYS
         ) as Int,
-        interval = getOrDefault(EXTRA_LOOP_INTERVAL, DEFAULT_INTERVAL) as Long,
+        interval = (getOrDefault(EXTRA_LOOP_INTERVAL, DEFAULT_INTERVAL) as Number).toLong(),
         enabled = getOrDefault(EXTRA_LOOP_ENABLED, DEFAULT_ENABLED) as Boolean,
         isMock = getOrDefault(EXTRA_LOOP_IS_MOCK, DEFAULT_IS_MOCK) as Boolean,
     )

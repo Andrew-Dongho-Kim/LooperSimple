@@ -29,7 +29,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -121,11 +120,11 @@ private fun Groups(
 
     val lazyListState = rememberLazyListState()
 
-    var showDeleteGroupDialog by rememberSaveable { mutableStateOf(false) }
-    var showRemoveFromGroupDialog by rememberSaveable { mutableStateOf(false) }
+    var showDeleteGroupDialog by remember { mutableStateOf(false) }
+    var showRemoveFromGroupDialog by remember { mutableStateOf(false) }
 
-    var deleteGroup by rememberSaveable { mutableStateOf<LoopGroupVo?>(null) }
-    var deleteLoop by rememberSaveable { mutableStateOf<LoopBase?>(null) }
+    var deleteGroup by remember { mutableStateOf<LoopGroupVo?>(null) }
+    var deleteLoop by remember { mutableStateOf<LoopBase?>(null) }
 
     LazyColumn(
         modifier = modifier,

@@ -1,6 +1,7 @@
 package com.pnd.android.loop.ui.home
 
 import android.content.Context
+import androidx.annotation.IntDef
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -12,7 +13,9 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListScope
@@ -26,6 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.setValue
@@ -47,6 +51,8 @@ import com.pnd.android.loop.BuildConfig
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.ui.common.ExpandableNativeAd
+import com.pnd.android.loop.ui.home.Section.AllAndTodayTab.Companion.TAB_ALL
+import com.pnd.android.loop.ui.home.Section.AllAndTodayTab.Companion.TAB_TODAY
 import com.pnd.android.loop.ui.home.timeline.LoopTimeline
 import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.theme.AppColor
@@ -73,7 +79,7 @@ fun LazyListScope.section(
     onNavigateToStatisticsPage: () -> Unit,
 ) {
     when (section) {
-        is Section.Statistics -> sectionStatistics(
+        is Section.HeaderCard -> sectionHeader(
             section = section,
             loopViewModel = loopViewModel,
             onNavigateToStatisticsPage = onNavigateToStatisticsPage,
@@ -123,11 +129,15 @@ fun LazyListScope.section(
             onNavigateToGroupPicker = onNavigateToGroupPicker,
             onNavigateToDetailPage = onNavigateToDetailPage,
         )
+
+        is Section.AllAndTodayTab -> sectionAllAndTodayTab(
+            section = section
+        )
     }
 }
 
-private fun LazyListScope.sectionStatistics(
-    section: Section.Statistics,
+private fun LazyListScope.sectionHeader(
+    section: Section.HeaderCard,
     loopViewModel: LoopViewModel,
     onNavigateToGroupPage: () -> Unit,
     onNavigateToStatisticsPage: () -> Unit,
@@ -137,7 +147,7 @@ private fun LazyListScope.sectionStatistics(
         contentType = ContentTypes.STATISTICS_CARD,
         key = section.key
     ) {
-        LoopStatisticsCard(
+        LoopHeaderCard(
             modifier = Modifier
                 .padding(
                     horizontal = 12.dp,
@@ -408,6 +418,54 @@ private fun LazyListScope.sectionDoneSkip(
     }
 }
 
+private fun LazyListScope.sectionAllAndTodayTab(
+    section: Section.AllAndTodayTab
+) {
+    item {
+        Row(
+            modifier = Modifier
+                .padding(
+                    horizontal = 12.dp,
+                )
+                .padding(bottom = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+
+            SectionTabText(
+                text = stringResource(id = R.string.today_loops),
+                isSelected = section.selectedTab == TAB_TODAY,
+                onClick = { section.selectedTab = TAB_TODAY }
+            )
+            SectionTabText(
+                text = stringResource(id = R.string.all_loops),
+                isSelected = section.selectedTab == TAB_ALL,
+                onClick = { section.selectedTab = TAB_ALL }
+            )
+        }
+    }
+}
+
+@Composable
+private fun SectionTabText(
+    modifier: Modifier = Modifier,
+    text: String,
+    isSelected: Boolean,
+    onClick: () -> Unit = {}
+) {
+    val textStyle = if (isSelected) AppTypography.titleMedium else AppTypography.bodyMedium
+    Text(
+        modifier = modifier
+            .clickable(onClick = onClick)
+            .padding(all = 8.dp),
+        text = text,
+        style = textStyle.copy(
+            color = AppColor.onSurface,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+            fontStyle = FontStyle.Italic
+        )
+    )
+}
+
 private fun LazyListScope.sectionAll(
     section: Section.All,
     blurState: BlurState,
@@ -440,6 +498,9 @@ private fun LazyListScope.sectionAll(
             onNavigateToGroupPicker = onNavigateToGroupPicker,
             onNavigateToDetailPage = onNavigateToDetailPage,
         )
+    }
+    item {
+        Spacer(modifier = Modifier.height(20.dp))
     }
 }
 
@@ -557,7 +618,7 @@ sealed class Section(val key: String) {
     open val size
         get() = items.value.size
 
-    class Statistics : Section(key = "StatisticsCard")
+    class HeaderCard : Section(key = "HeaderCard")
 
     class Yesterday(
         isSelected: Boolean = false
@@ -619,6 +680,35 @@ sealed class Section(val key: String) {
                 restore = { list ->
                     Today(
                         isSelected = list[0]
+                    )
+                }
+            )
+        }
+    }
+
+    class AllAndTodayTab(
+        @Tab tab: Int = TAB_TODAY
+    ) : Section(
+        key = "AllAndTodayTabSection",
+    ) {
+        override val size = 1
+
+        var selectedTab by mutableIntStateOf(tab)
+
+        companion object {
+            const val TAB_ALL = 0
+            const val TAB_TODAY = 1
+
+            @IntDef(TAB_ALL, TAB_TODAY)
+            annotation class Tab
+
+            val Saver = listSaver(
+                save = {
+                    listOf(it.selectedTab)
+                },
+                restore = { list ->
+                    AllAndTodayTab(
+                        tab = list[0]
                     )
                 }
             )

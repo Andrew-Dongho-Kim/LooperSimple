@@ -161,10 +161,9 @@ class UserInputState(
 @Composable
 fun rememberUserInputState(context: Context) = rememberSaveable(saver = UserInputState.Saver) {
     UserInputState(
-        isOpen = true,
-//        context
-//            .getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
-//            .getBoolean(KEY_IS_USER_INPUT_OPEN, true)
+        isOpen = context
+            .getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+            .getBoolean(KEY_IS_USER_INPUT_OPEN, true)
     )
 }
 

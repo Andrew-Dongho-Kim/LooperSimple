@@ -34,7 +34,7 @@ import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
 
 @Composable
-fun LoopStatisticsCard(
+fun LoopHeaderCard(
     modifier: Modifier = Modifier,
     loopViewModel: LoopViewModel,
     onNavigateToGroupPage: () -> Unit,
