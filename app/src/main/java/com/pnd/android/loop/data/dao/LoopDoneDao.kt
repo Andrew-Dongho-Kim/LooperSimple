@@ -73,6 +73,9 @@ interface LoopDoneDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun addOrUpdate(doneVo: LoopDoneVo)
 
+    @Query("DELETE FROM loop_done WHERE loopId=:loopId AND date=:date")
+    suspend fun delete(loopId: Int, date:Long)
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun addIfAbsent(doneVo: LoopDoneVo)
 

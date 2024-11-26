@@ -232,6 +232,7 @@ private fun HomeContent(
                 modifier = Modifier.fillMaxSize()
             )
         } else {
+            val context = LocalContext.current
             LazyColumn(
                 modifier = Modifier.fillMaxWidth(),
                 state = lazyListState,
@@ -242,6 +243,9 @@ private fun HomeContent(
                         blurState = blurState,
                         loopViewModel = loopViewModel,
                         onEdit = onEdit,
+                        onSectionTabChanged = { tab ->
+                            if (tab == TAB_TODAY) inputState.close(context)
+                        },
                         onNavigateToGroupPicker = onNavigateToGroupPicker,
                         onNavigateToGroupPage = onNavigateToGroupPage,
                         onNavigateToDetailPage = onNavigateToDetailPage,
@@ -409,7 +413,7 @@ private suspend fun ensureLoop(
         return false
     }
 
-    if (loopViewModel.maxOfIntersects(loop) >= MAX_LOOPS_TOGETHER) {
+    if (loopViewModel.numberOfLoopsAtTheSameTime(loop) > MAX_LOOPS_TOGETHER) {
         hostState.showSnackbar(
             message = context.getString(
                 R.string.warning_up_to_max_loops,

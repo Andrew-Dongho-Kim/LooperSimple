@@ -7,7 +7,7 @@ import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
 import com.pnd.android.loop.data.LoopBase
-import com.pnd.android.loop.data.LoopDay
+import com.pnd.android.loop.data.LoopDay.Companion.all
 import com.pnd.android.loop.data.LoopDay.Companion.isOn
 import com.pnd.android.loop.data.LoopVo
 import com.pnd.android.loop.data.isTogether
@@ -49,12 +49,13 @@ interface LoopDao {
     @Query("DELETE FROM loop WHERE loopId = :id")
     suspend fun delete(id: Int)
 
-    suspend fun numberOfLoopsAtTheSameTime(loop: LoopBase) =
-        LoopDay.ALL.filter { day -> loop.activeDays.isOn(day) }
+    suspend fun numberOfLoopsAtTheSameTime(another: LoopBase) =
+        another.activeDays
+            .all()
             .map { day ->
                 getAllLoops()
                     .filter { loop -> loop.activeDays.isOn(day) }
-                    .filter { loop -> loop.isTogether(loop) }
+                    .filter { loop -> loop.isTogether(another) }
             }
             .maxOfOrNull { loops -> loops.size }
             ?: 0

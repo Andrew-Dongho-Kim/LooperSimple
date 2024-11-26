@@ -112,24 +112,33 @@ class LoopRepository @Inject constructor(
 
     fun syncAlarms() = alarmController.syncLoops()
 
-    suspend fun maxOfIntersects(loop: LoopBase) = loopDao.numberOfLoopsAtTheSameTime(loop = loop)
+    suspend fun numberOfLoopsAtTheSameTime(loop: LoopBase) =
+        loopDao.numberOfLoopsAtTheSameTime(another = loop)
 
     suspend fun addOrUpdateLoop(vararg loops: LoopVo) {
         loopDao.addOrUpdate(*loops).forEachIndexed { index, id ->
             val loop = loops[index].copy(loopId = id)
             logger.d { "$loop is added or updated" }
 
-            loopDoneDao.addOrUpdate(
-                LoopDoneVo(
-                    loopId = loop.loopId,
-                    date = LocalDate.now().toMs(),
-                    done = if (loop.enabled) {
-                        LoopDoneVo.DoneState.NO_RESPONSE
-                    } else {
-                        LoopDoneVo.DoneState.DISABLED
-                    }
+
+            if (loop.isActiveDay() || !loop.enabled) {
+                loopDoneDao.addOrUpdate(
+                    LoopDoneVo(
+                        loopId = loop.loopId,
+                        date = LocalDate.now().toMs(),
+                        done = if (loop.enabled) {
+                            LoopDoneVo.DoneState.NO_RESPONSE
+                        } else {
+                            LoopDoneVo.DoneState.DISABLED
+                        }
+                    )
                 )
-            )
+            } else {
+                loopDoneDao.delete(
+                    loopId = loop.loopId,
+                    date = LocalDate.now().toMs()
+                )
+            }
 
             if (loop.enabled) {
                 alarmController.reserveAlarm(scheduleStart(loop))

@@ -23,7 +23,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Timeline
+import androidx.compose.material.icons.outlined.SyncAlt
 import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
@@ -72,6 +74,7 @@ fun LazyListScope.section(
     blurState: BlurState,
     loopViewModel: LoopViewModel,
     onEdit: (LoopBase) -> Unit,
+    onSectionTabChanged: (Int) -> Unit,
     onNavigateToGroupPicker: (LoopBase) -> Unit,
     onNavigateToGroupPage: () -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
@@ -131,7 +134,8 @@ fun LazyListScope.section(
         )
 
         is Section.AllAndTodayTab -> sectionAllAndTodayTab(
-            section = section
+            section = section,
+            onTabChanged = onSectionTabChanged
         )
     }
 }
@@ -419,7 +423,8 @@ private fun LazyListScope.sectionDoneSkip(
 }
 
 private fun LazyListScope.sectionAllAndTodayTab(
-    section: Section.AllAndTodayTab
+    section: Section.AllAndTodayTab,
+    onTabChanged: (tab: Int) -> Unit = {},
 ) {
     item {
         Row(
@@ -427,43 +432,41 @@ private fun LazyListScope.sectionAllAndTodayTab(
                 .padding(
                     horizontal = 12.dp,
                 )
-                .padding(bottom = 4.dp),
+                .padding(bottom = 4.dp)
+                .clickable {
+                    section.selectedTab = when (section.selectedTab) {
+                        TAB_TODAY -> TAB_ALL
+                        else -> TAB_TODAY
+                    }
+                    onTabChanged(section.selectedTab)
+                },
             verticalAlignment = Alignment.CenterVertically
         ) {
+            Text(
+                modifier = Modifier
 
-            SectionTabText(
-                text = stringResource(id = R.string.today_loops),
-                isSelected = section.selectedTab == TAB_TODAY,
-                onClick = { section.selectedTab = TAB_TODAY }
+                    .padding(all = 8.dp),
+                text = stringResource(
+                    id = when (section.selectedTab) {
+                        TAB_TODAY -> R.string.today_loops
+                        else -> R.string.all_loops
+                    }
+                ),
+                style = AppTypography.titleMedium.copy(
+                    color = AppColor.onSurface,
+                    fontWeight = FontWeight.Bold,
+//                    fontStyle = FontStyle.Italic
+                )
             )
-            SectionTabText(
-                text = stringResource(id = R.string.all_loops),
-                isSelected = section.selectedTab == TAB_ALL,
-                onClick = { section.selectedTab = TAB_ALL }
+
+            Icon(
+                modifier = Modifier.size(18.dp),
+                imageVector = Icons.Outlined.SyncAlt,
+                tint = AppColor.onSurface.copy(alpha = 0.8f),
+                contentDescription = null
             )
         }
     }
-}
-
-@Composable
-private fun SectionTabText(
-    modifier: Modifier = Modifier,
-    text: String,
-    isSelected: Boolean,
-    onClick: () -> Unit = {}
-) {
-    val textStyle = if (isSelected) AppTypography.titleMedium else AppTypography.bodyMedium
-    Text(
-        modifier = modifier
-            .clickable(onClick = onClick)
-            .padding(all = 8.dp),
-        text = text,
-        style = textStyle.copy(
-            color = AppColor.onSurface,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-            fontStyle = FontStyle.Italic
-        )
-    )
 }
 
 private fun LazyListScope.sectionAll(

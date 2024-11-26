@@ -61,6 +61,7 @@ annotation class LoopDay {
             else -> throw IllegalStateException("Unknown day : $day")
         }
 
+        fun Int.all() = ALL.filter{ day -> isOn(day) }
         fun Int.isOn(@LoopDay day: Int) = (this and day) == day
 
         fun Int.set(@LoopDay day: Int) = this or day

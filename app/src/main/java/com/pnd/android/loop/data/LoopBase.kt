@@ -33,8 +33,8 @@ interface LoopBase {
 }
 
 fun LoopBase.isTogether(loop: LoopBase) =
-    loop.endInDay in (startInDay + 1)..endInDay ||
-            loop.startInDay in startInDay..<endInDay
+    (startInDay <= loop.startInDay && loop.startInDay < endInDay) ||
+            (startInDay < loop.endInDay && loop.endInDay < endInDay)
 
 fun LoopBase.description(context: Context) =
     """ -->

@@ -91,6 +91,12 @@ class UserInputState(
         pref.edit { putBoolean(KEY_IS_USER_INPUT_OPEN, isOpen) }
     }
 
+    fun close(context: Context) {
+        isOpen = false
+        val pref = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+        pref.edit { putBoolean(KEY_IS_USER_INPUT_OPEN, false) }
+    }
+
     fun setTextFieldFocused(focused: Boolean) {
         hasTextFieldFocused = focused
         ensureState()
