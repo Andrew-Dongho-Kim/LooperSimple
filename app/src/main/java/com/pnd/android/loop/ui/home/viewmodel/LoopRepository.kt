@@ -37,7 +37,7 @@ import kotlin.math.min
 
 class LoopRepository @Inject constructor(
     appDb: AppDatabase,
-    private val alarmController: LoopScheduler,
+    private val loopScheduler: LoopScheduler,
 ) {
     private val logger = log("LoopRepository")
 
@@ -110,7 +110,7 @@ class LoopRepository @Inject constructor(
     val doneCount = loopDoneDao.getDoneCountFlow()
     val skipCount = loopDoneDao.getSkipCountFlow()
 
-    fun syncAlarms() = alarmController.syncLoops()
+    fun syncLoops() = loopScheduler.syncLoops()
 
     suspend fun numberOfLoopsAtTheSameTime(loop: LoopBase) =
         loopDao.numberOfLoopsAtTheSameTime(another = loop)
@@ -141,15 +141,15 @@ class LoopRepository @Inject constructor(
             }
 
             if (loop.enabled) {
-                alarmController.reserveAlarm(scheduleStart(loop))
+                loopScheduler.reserveAlarm(scheduleStart(loop))
             } else {
-                alarmController.cancelAlarm(loop)
+                loopScheduler.cancelAlarm(loop)
             }
         }
     }
 
     suspend fun deleteLoop(loop: LoopBase) {
-        alarmController.cancelAlarm(loop)
+        loopScheduler.cancelAlarm(loop)
         loopDao.delete(loop.loopId)
     }
 

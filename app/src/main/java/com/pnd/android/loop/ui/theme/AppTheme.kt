@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 private val darkColorScheme = lightColorScheme(
     primary = Blue400,
     onPrimary = Black99,
+    secondary = Yellow80,
     surface = Black99,
     onSurface = AppColor.onSurfaceDark,
     background = Black99,

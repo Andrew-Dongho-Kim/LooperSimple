@@ -28,7 +28,7 @@ import androidx.glance.layout.width
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
-import com.pnd.android.loop.MainActivity
+import com.pnd.android.loop.HomeActivity
 import com.pnd.android.loop.R
 import com.pnd.android.loop.appwidget.ACTION_PARAMS_LOOP_ID
 import com.pnd.android.loop.appwidget.AppWidgetDoneAction
@@ -193,7 +193,7 @@ fun LocalDateHeader(
     loops: List<LoopBase>,
     todayTotal: Int,
 ) {
-    Column(modifier = modifier.clickable(actionStartActivity<MainActivity>())) {
+    Column(modifier = modifier.clickable(actionStartActivity<HomeActivity>())) {
         Text(
             text = localDate.formatYearMonthDateDaysGlance(),
             style = TextStyle(
@@ -229,7 +229,7 @@ fun LoopWidgetEmpty(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 4.dp)
-            .clickable(actionStartActivity<MainActivity>()),
+            .clickable(actionStartActivity<HomeActivity>()),
         contentAlignment = Alignment.Center
     ) {
         Text(

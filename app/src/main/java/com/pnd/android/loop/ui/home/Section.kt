@@ -455,7 +455,6 @@ private fun LazyListScope.sectionAllAndTodayTab(
                 style = AppTypography.titleMedium.copy(
                     color = AppColor.onSurface,
                     fontWeight = FontWeight.Bold,
-//                    fontStyle = FontStyle.Italic
                 )
             )
 

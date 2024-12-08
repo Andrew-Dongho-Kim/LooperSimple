@@ -27,7 +27,6 @@ class AppModule {
         AppDatabase::class.java,
         "app_db"
     )
-        .fallbackToDestructiveMigrationOnDowngrade()
         .enableMultiInstanceInvalidation()
         .build()
 
@@ -61,7 +60,7 @@ class AppModule {
     ): LoopRepository {
         return LoopRepository(
             appDb = appDb,
-            alarmController = alarmController
+            loopScheduler = alarmController
         )
     }
 

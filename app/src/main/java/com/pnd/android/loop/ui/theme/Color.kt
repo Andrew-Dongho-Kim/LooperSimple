@@ -135,6 +135,9 @@ object AppColor
 
 val AppColor.primary
     @Composable get() = MaterialTheme.colorScheme.primary
+
+val AppColor.secondary
+    @Composable get() = MaterialTheme.colorScheme.secondary
 val AppColor.error
     @Composable get() = MaterialTheme.colorScheme.error
 val AppColor.background
@@ -154,3 +157,6 @@ val AppColor.outline
 
 val AppColor.outlineVariant
     @Composable get() = MaterialTheme.colorScheme.outlineVariant
+
+val AppColor.divider
+    @Composable get() = AppColor.onSurface.copy(alpha = 0.3f)

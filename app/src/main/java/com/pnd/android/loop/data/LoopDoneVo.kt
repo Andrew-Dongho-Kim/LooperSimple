@@ -2,6 +2,7 @@ package com.pnd.android.loop.data
 
 import androidx.annotation.IntDef
 import androidx.compose.runtime.Immutable
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.ForeignKey.Companion.CASCADE
@@ -27,6 +28,10 @@ import com.pnd.android.loop.data.LoopDoneVo.DoneState.Companion.SKIP
 data class LoopDoneVo(
     val loopId: Int,
     val date: Long,
+    @ColumnInfo(defaultValue = "0")
+    val startInDay: Long = 0L,
+    @ColumnInfo(defaultValue = "0")
+    val endInDay: Long = 0L,
     val done: Int = NO_RESPONSE
 ) {
     fun isDisabled() = done.isDisabled()

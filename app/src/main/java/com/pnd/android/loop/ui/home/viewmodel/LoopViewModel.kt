@@ -196,8 +196,8 @@ class LoopViewModel @Inject constructor(
         }
     }
 
-    fun syncAlarms() {
-        loopRepository.syncAlarms()
+    fun syncLoops() {
+        loopRepository.syncLoops()
         AppWidgetUpdateWorker.updateWidget(application)
     }
 }

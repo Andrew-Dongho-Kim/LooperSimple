@@ -12,7 +12,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.pnd.android.loop.LooperSimpleApplication
-import com.pnd.android.loop.MainActivity
+import com.pnd.android.loop.HomeActivity
 import com.pnd.android.loop.TestTag
 import com.pnd.android.loop.alarm.LoopScheduler
 import com.pnd.android.loop.data.AppDatabase
@@ -31,7 +31,7 @@ import org.junit.Test
 @HiltAndroidTest
 class HomeTest {
     @get:Rule
-    val composerRule = createAndroidComposeRule<MainActivity>()
+    val composerRule = createAndroidComposeRule<HomeActivity>()
 
     @get:Rule
     val hiltRule = HiltAndroidRule(this)

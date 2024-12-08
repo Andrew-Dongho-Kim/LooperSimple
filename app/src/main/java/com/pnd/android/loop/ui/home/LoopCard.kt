@@ -36,7 +36,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -70,7 +69,7 @@ import com.pnd.android.loop.data.LoopDay.Companion.isOn
 import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.TimeStat
 import com.pnd.android.loop.data.common.NO_REPEAT
-import com.pnd.android.loop.data.timeStatAsFlow
+import com.pnd.android.loop.data.currentTimeStat
 import com.pnd.android.loop.ui.shape.CircularPolygonShape
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
@@ -186,7 +185,7 @@ private fun LoopCardContent(
             verticalAlignment = Alignment.CenterVertically
         ) {
             LoopCardColor(
-                modifier = Modifier.size(10.dp),
+                modifier = Modifier.size(12.dp),
                 color = loop.color
             )
 
@@ -274,13 +273,9 @@ fun LoopCardColor(
 ) {
     Box(
         modifier = modifier
-            .background(
-                color = color.compositeOverOnSurface(),
-                shape = CircleShape
-            )
             .border(
-                width = 0.5.dp,
-                color = AppColor.onSurface.copy(alpha = 0.2f),
+                width = 1.5.dp,
+                color = color.compositeOverOnSurface(),
                 shape = CircleShape
             )
     )
@@ -293,10 +288,7 @@ fun LoopCardBody(
     cardValues: LoopCardValues,
     onDone: (doneState: @LoopDoneVo.DoneState Int) -> Unit
 ) {
-    var timeStat by remember { mutableStateOf<TimeStat>(TimeStat.NotToday) }
-    LaunchedEffect(loop.loopId) {
-        loop.timeStatAsFlow().collect { timeStat = it }
-    }
+    val timeStat = loop.currentTimeStat
     val syncWithTime = !loop.isMock && cardValues.syncWithTime
 
     Row(

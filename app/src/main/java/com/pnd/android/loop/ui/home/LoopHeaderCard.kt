@@ -9,9 +9,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.GroupWork
-import androidx.compose.material.icons.outlined.History
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
@@ -112,7 +112,7 @@ private fun PageIcons(
 
         PageIcon(
             modifier = Modifier.weight(1f),
-            icon = Icons.Outlined.History,
+            icon = Icons.Filled.CalendarMonth,
             iconText = stringResource(id = R.string.daily_record),
             onNavigateToPage = onNavigateToHistoryPage,
         )

@@ -21,9 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -42,8 +40,7 @@ import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.LoopVo
-import com.pnd.android.loop.data.TimeStat
-import com.pnd.android.loop.data.timeStatAsFlow
+import com.pnd.android.loop.data.currentTimeStat
 import com.pnd.android.loop.ui.common.SimpleAd
 import com.pnd.android.loop.ui.common.SimpleAppBar
 import com.pnd.android.loop.ui.common.chart.AdvancedLineChart
@@ -207,10 +204,7 @@ private fun LoopState(
     ) {
 
         Row {
-            var timeStat by remember { mutableStateOf<TimeStat>(TimeStat.NotToday) }
-            LaunchedEffect(loop.loopId) {
-                loop.timeStatAsFlow().collect { timeStat = it }
-            }
+            val timeStat = loop.currentTimeStat
 
             Text(
                 text = annotatedString(

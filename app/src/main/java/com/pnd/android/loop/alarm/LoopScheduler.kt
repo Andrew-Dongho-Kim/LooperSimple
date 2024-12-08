@@ -5,6 +5,7 @@ import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.SystemClock
 import com.pnd.android.loop.alarm.notification.NotificationHelper
 import com.pnd.android.loop.appwidget.AppWidgetUpdateWorker
@@ -42,11 +43,16 @@ class LoopScheduler @Inject constructor(
     private val alarmManager: AlarmManager,
     appDb: AppDatabase
 ) {
-    private val logger = log("AlarmController")
+    private val logger = log("LoopScheduler")
 
     private val coroutineScope = CoroutineScope(SupervisorJob())
     private val loopDao = appDb.loopDao()
     private val loopDoneDao = appDb.loopDoneDao()
+
+    private fun canScheduleExactAlarms(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return true
+        return alarmManager.canScheduleExactAlarms()
+    }
 
     fun reserveAlarm(
         loopSchedule: LoopSchedule
@@ -54,9 +60,6 @@ class LoopScheduler @Inject constructor(
         val (action, after, loop) = loopSchedule
         if (after <= 0) return
 
-        logger.d {
-            " - repeat after:${dh2m2(after)} ${loop.description(context)}"
-        }
 
         val systemElapsed = SystemClock.elapsedRealtime()
         val reservedTime = systemElapsed + after
@@ -73,12 +76,19 @@ class LoopScheduler @Inject constructor(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
         )
 
-        if (alarmManager.canScheduleExactAlarms()) {
+        if (canScheduleExactAlarms()) {
             alarmManager.setExact(
                 AlarmManager.ELAPSED_REALTIME_WAKEUP,
                 reservedTime,
                 pendingIntent
             )
+            logger.d {
+                " - repeat after:${dh2m2(after)} ${loop.description(context)}"
+            }
+
+        } else {
+
+            logger.e { "can't schedule exact alarm" }
         }
     }
 
