@@ -74,7 +74,7 @@ interface LoopDoneDao {
     suspend fun addOrUpdate(doneVo: LoopDoneVo)
 
     @Query("DELETE FROM loop_done WHERE loopId=:loopId AND date=:date")
-    suspend fun delete(loopId: Int, date:Long)
+    suspend fun delete(loopId: Int, date: Long)
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun addIfAbsent(doneVo: LoopDoneVo)
@@ -91,6 +91,8 @@ interface LoopDoneDao {
             LoopDoneVo(
                 loopId = loop.loopId,
                 date = localDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(),
+                startInDay = loop.startInDay,
+                endInDay = loop.endInDay,
                 done = doneState
             )
         )

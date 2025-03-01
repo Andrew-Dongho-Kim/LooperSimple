@@ -7,14 +7,13 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
@@ -36,7 +35,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color.Companion.Transparent
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -88,10 +89,15 @@ fun TimePickerDialog(
 
     BasicAlertDialog(
         modifier = Modifier
-            .fillMaxWidth()
-            .fillMaxHeight(),
+            .wrapContentHeight()
+            .clip(RoundedCornerShape(size = 8.dp))
+            .shadow(
+                elevation = 0.5.dp,
+                clip = true
+            )
+            .background(color = AppColor.surface),
         properties = DialogProperties(
-            usePlatformDefaultWidth = false
+            usePlatformDefaultWidth = true
         ),
         onDismissRequest = onDismiss
     ) {
@@ -141,13 +147,11 @@ private fun TimePickerDialogContent(
 ) {
     Column(
         modifier = modifier
-            .fillMaxWidth()
-            .fillMaxHeight()
-            .background(color = AppColor.surface)
+            .wrapContentHeight()
     ) {
         TimePickerStartEndTime(
             modifier = Modifier
-                .fillMaxWidth()
+                .wrapContentWidth()
                 .padding(
                     start = 24.dp,
                     end = 24.dp,
@@ -159,6 +163,26 @@ private fun TimePickerDialogContent(
             isStart = isStart,
             onTimeTypeSelected = onTimeTypeSelected,
         )
+
+        if (errorState != ErrorState.Ok) {
+            Text(
+                modifier = Modifier.padding(
+                    top = 12.dp,
+                    start = 24.dp,
+                    bottom = 12.dp,
+                ),
+                text = stringResource(
+                    id = if (errorState == ErrorState.StartError) {
+                        R.string.warning_start_time_should_be_before_end_time
+                    } else {
+                        R.string.warning_end_time_should_be_after_start_time
+                    }
+                ),
+                style = AppTypography.labelLarge.copy(
+                    color = AppColor.error
+                )
+            )
+        }
 
         TimePicker(
             modifier = Modifier
@@ -182,12 +206,14 @@ private fun TimePickerDialogContent(
             )
         )
 
-        Spacer(modifier = Modifier.weight(1f))
-
         TimePickerOkCancelButtons(
             modifier = Modifier
                 .align(Alignment.End)
-                .padding(bottom = 32.dp, end = 32.dp),
+                .padding(
+                    top = 48.dp,
+                    bottom = 32.dp,
+                    end = 32.dp
+                ),
             errorState = errorState,
             onStartTimeSelected = onStartTimeSelected,
             onEndTimeSelected = onEndTimeSelected,
@@ -258,7 +284,6 @@ private fun TimePickerStartEndTime(
     ) {
 
         TimePickerTimeText(
-            modifier = Modifier.fillMaxWidth(),
             title = stringResource(id = R.string.start),
             localTime = LocalTime.of(startTimePickerState.hour, startTimePickerState.minute),
             isSelected = isStart,
@@ -267,33 +292,12 @@ private fun TimePickerStartEndTime(
         )
 
         TimePickerTimeText(
-            modifier = Modifier.fillMaxWidth(),
             title = stringResource(id = R.string.end),
             localTime = LocalTime.of(endTimePickerState.hour, endTimePickerState.minute),
             isSelected = !isStart,
             isError = errorState == ErrorState.EndError,
             onClick = { onTimeTypeSelected(false) },
         )
-
-        if (errorState != ErrorState.Ok) {
-            Text(
-                modifier = Modifier.padding(
-                    top = 12.dp,
-                    start = 8.dp,
-                    bottom = 12.dp,
-                ),
-                text = stringResource(
-                    id = if (errorState == ErrorState.StartError) {
-                        R.string.warning_start_time_should_be_before_end_time
-                    } else {
-                        R.string.warning_end_time_should_be_after_start_time
-                    }
-                ),
-                style = AppTypography.bodyMedium.copy(
-                    color = AppColor.error
-                )
-            )
-        }
     }
 }
 
@@ -315,19 +319,22 @@ private fun TimePickerTimeText(
 
         Icon(
             modifier = Modifier
+                .background(color = if (isSelected) selectedBackground else Transparent)
                 .padding(
                     start = 8.dp,
                 )
-                .size(18.dp),
+                .width(18.dp)
+                .fillMaxHeight(),
             imageVector = Icons.Outlined.Check,
-            tint = if (isSelected) AppColor.primary else Color.Transparent,
+            tint = if (isSelected) AppColor.primary else Transparent,
             contentDescription = null
         )
         Text(
             modifier = Modifier
                 .fillMaxHeight()
                 .wrapContentHeight(Alignment.CenterVertically)
-                .widthIn(min = 80.dp)
+                .background(color = if (isSelected) selectedBackground else Transparent)
+                .widthIn(min = 70.dp)
                 .padding(
                     horizontal = 12.dp,
                     vertical = 8.dp

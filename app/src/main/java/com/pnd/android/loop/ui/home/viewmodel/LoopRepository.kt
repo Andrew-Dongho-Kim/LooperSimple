@@ -126,6 +126,8 @@ class LoopRepository @Inject constructor(
                     LoopDoneVo(
                         loopId = loop.loopId,
                         date = LocalDate.now().toMs(),
+                        startInDay = loop.startInDay,
+                        endInDay = loop.endInDay,
                         done = if (loop.enabled) {
                             LoopDoneVo.DoneState.NO_RESPONSE
                         } else {

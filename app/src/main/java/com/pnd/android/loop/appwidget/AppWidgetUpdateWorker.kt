@@ -40,16 +40,20 @@ class AppWidgetUpdateWorker @AssistedInject constructor(
 
     private val logger = Logger("AppWidgetUpdateWorker")
 
-    private val loopWithDoneDao = appDb.fullLoopDao()
+    private val fullLoopDao = appDb.fullLoopDao()
+    private val loopDao = appDb.loopDao()
     private val loopDoneDao = appDb.loopDoneDao()
 
     override suspend fun doWork(): Result {
         val doneLoopId = params.inputData.getInt(DONE_LOOP, -1)
         if (doneLoopId != -1) {
+            val loop = loopDao.getLoop(doneLoopId)
             loopDoneDao.addOrUpdate(
                 LoopDoneVo(
                     loopId = doneLoopId,
                     date = LocalDate.now().toMs(),
+                    startInDay = loop.startInDay,
+                    endInDay = loop.endInDay,
                     done = DoneState.DONE
                 )
             )
@@ -57,16 +61,19 @@ class AppWidgetUpdateWorker @AssistedInject constructor(
 
         val skipLoopId = params.inputData.getInt(SKIP_LOOP, -1)
         if (skipLoopId != -1) {
+            val loop = loopDao.getLoop(skipLoopId)
             loopDoneDao.addOrUpdate(
                 LoopDoneVo(
                     loopId = skipLoopId,
                     date = LocalDate.now().toMs(),
+                    startInDay = loop.startInDay,
+                    endInDay = loop.endInDay,
                     done = DoneState.SKIP
                 )
             )
         }
 
-        val loops = loopWithDoneDao.getAllEnabledLoops(date = LocalDate.now().toMs())
+        val loops = fullLoopDao.getAllEnabledLoops(date = LocalDate.now().toMs())
         updateWidget(
             context = context,
             loops = loops.filter { loop ->

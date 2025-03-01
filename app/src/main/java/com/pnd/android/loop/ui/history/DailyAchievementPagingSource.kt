@@ -4,9 +4,9 @@ import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import com.pnd.android.loop.common.Logger
 import com.pnd.android.loop.data.AppDatabase
-import com.pnd.android.loop.data.LoopDay.Companion.isOn
 import com.pnd.android.loop.data.FullLoopVo
 import com.pnd.android.loop.data.LoopBase
+import com.pnd.android.loop.data.LoopDay.Companion.isOn
 import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.data.toFullLoopVo
@@ -39,6 +39,7 @@ class DailyAchievementPagingSource(
                 ?: closestPage?.nextKey?.plusDays(state.config.pageSize.toLong())
         }
     }
+
     override suspend fun load(
         params: LoadParams<LocalDate>
     ): LoadResult<LocalDate, List<FullLoopVo>> {
@@ -93,6 +94,8 @@ class DailyAchievementPagingSource(
                             retrospectVo = retrospectVo,
                             doneVo = doneVo ?: LoopDoneVo(
                                 loopId = loop.loopId,
+                                startInDay = loop.startInDay,
+                                endInDay = loop.endInDay,
                                 done = if (loop.enabled) {
                                     DoneState.NO_RESPONSE
                                 } else {
