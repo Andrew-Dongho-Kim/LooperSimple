@@ -15,6 +15,7 @@ data class FullLoopVo @JvmOverloads constructor(
     val date: Long,
     val retrospect: String,
     @LoopDoneVo.DoneState val done: Int,
+    override val isAnyTime: Boolean = false,
     @Ignore override val isMock: Boolean = false,
 ) : LoopBase {
 
@@ -28,6 +29,7 @@ data class FullLoopVo @JvmOverloads constructor(
         activeDays: Int,
         interval: Long,
         enabled: Boolean,
+        isAnyTime: Boolean,
         isMock: Boolean,
     ): LoopBase = LoopWithDone(
         loopId = loopId,
@@ -41,6 +43,7 @@ data class FullLoopVo @JvmOverloads constructor(
         enabled = enabled,
         date = this.date,
         done = this.done,
+        isAnyTime = isAnyTime,
         isMock = isMock,
     )
 }

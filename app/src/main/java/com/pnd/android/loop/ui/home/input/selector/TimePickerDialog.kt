@@ -3,10 +3,10 @@ package com.pnd.android.loop.ui.home.input.selector
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material3.BasicAlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -37,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color.Companion.Transparent
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -47,12 +49,12 @@ import com.pnd.android.loop.R
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.background
-import com.pnd.android.loop.ui.theme.compositeOverSurface
 import com.pnd.android.loop.ui.theme.divider
 import com.pnd.android.loop.ui.theme.error
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.onSurfaceDark
 import com.pnd.android.loop.ui.theme.primary
+import com.pnd.android.loop.ui.theme.secondary
 import com.pnd.android.loop.ui.theme.surface
 import com.pnd.android.loop.util.formatHourMinute
 import com.pnd.android.loop.util.toMs
@@ -66,6 +68,8 @@ fun TimePickerDialog(
     onStartTimeSelected: (Long) -> Unit,
     localTimeEnd: LocalTime,
     onEndTimeSelected: (Long) -> Unit,
+    isAnyTime: Boolean,
+    onIsAnyTimeCheckChanged: (Boolean) -> Unit,
     isStart: Boolean,
     onDismiss: () -> Unit
 ) {
@@ -85,6 +89,7 @@ fun TimePickerDialog(
         startTimePickerState = startTimePickerState,
         endTimePickerState = endTimePickerState,
         isStart = isStartTime,
+        isAnyTime = isAnyTime,
     )
 
     BasicAlertDialog(
@@ -95,7 +100,7 @@ fun TimePickerDialog(
                 elevation = 0.5.dp,
                 clip = true
             )
-            .background(color = AppColor.surface),
+            .background(color = AppColor.surface.copy(alpha = 0.9f)),
         properties = DialogProperties(
             usePlatformDefaultWidth = true
         ),
@@ -123,6 +128,8 @@ fun TimePickerDialog(
                     ).toMs()
                 )
             },
+            isAnyTime = isAnyTime,
+            onIsAnyTimeCheckChanged = onIsAnyTimeCheckChanged,
             isStart = isStartTime,
             onTimeTypeSelected = { isStart -> isStartTime = isStart },
             onDismiss = onDismiss,
@@ -141,6 +148,8 @@ private fun TimePickerDialogContent(
     onStartTimeSelected: () -> Unit,
     endTimePickerState: TimePickerState,
     onEndTimeSelected: () -> Unit,
+    isAnyTime: Boolean,
+    onIsAnyTimeCheckChanged: (Boolean) -> Unit,
     isStart: Boolean,
     onTimeTypeSelected: (Boolean) -> Unit,
     onDismiss: () -> Unit,
@@ -160,8 +169,10 @@ private fun TimePickerDialogContent(
             errorState = errorState,
             startTimePickerState = startTimePickerState,
             endTimePickerState = endTimePickerState,
-            isStart = isStart,
+            isAnyTime = isAnyTime,
+            onIsAnyTimeCheckChanged = onIsAnyTimeCheckChanged,
             onTimeTypeSelected = onTimeTypeSelected,
+            isStart = isStart,
         )
 
         if (errorState != ErrorState.Ok) {
@@ -203,7 +214,7 @@ private fun TimePickerDialogContent(
                 timeSelectorUnselectedContainerColor = AppColor.surface,
                 timeSelectorSelectedContentColor = AppColor.onSurface,
                 timeSelectorUnselectedContentColor = AppColor.onSurface,
-            )
+            ),
         )
 
         TimePickerOkCancelButtons(
@@ -267,36 +278,75 @@ private fun TimePickerOkCancelButtons(
 @Composable
 private fun TimePickerStartEndTime(
     modifier: Modifier = Modifier,
+    errorState: ErrorState,
     startTimePickerState: TimePickerState,
     endTimePickerState: TimePickerState,
-    errorState: ErrorState,
-    isStart: Boolean,
+    isAnyTime: Boolean,
+    onIsAnyTimeCheckChanged: (Boolean) -> Unit,
     onTimeTypeSelected: (Boolean) -> Unit,
+    isStart: Boolean,
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(
+            modifier = Modifier
+                .border(
+                    width = 0.5.dp,
+                    color = AppColor.divider,
+                    shape = RoundedCornerShape(size = 4.dp)
+                )
+        ) {
+            TimePickerTimeText(
+                title = stringResource(id = R.string.start),
+                localTime = LocalTime.of(startTimePickerState.hour, startTimePickerState.minute),
+                isAnyTime = isAnyTime,
+                isSelected = isStart,
+                isStart = true,
+                isError = errorState == ErrorState.StartError,
+                onClick = { onTimeTypeSelected(true) },
+            )
+
+            TimePickerTimeText(
+                title = stringResource(id = R.string.end),
+                localTime = LocalTime.of(endTimePickerState.hour, endTimePickerState.minute),
+                isAnyTime = isAnyTime,
+                isSelected = !isStart,
+                isStart = false,
+                isError = errorState == ErrorState.EndError,
+                onClick = { onTimeTypeSelected(false) },
+            )
+        }
+        Spacer(modifier = Modifier.weight(weight = 1f))
+
+        AnyTimeCheckBox(
+            isAnyTime = isAnyTime,
+            onIsAnyTimeCheckChanged = onIsAnyTimeCheckChanged
+        )
+    }
+}
+
+@Composable
+private fun AnyTimeCheckBox(
+    modifier: Modifier = Modifier,
+    isAnyTime: Boolean,
+    onIsAnyTimeCheckChanged: (Boolean) -> Unit,
 ) {
     Column(
-        modifier = modifier
-            .padding(top = 24.dp)
-            .border(
-                width = 0.5.dp,
-                color = AppColor.divider,
-                shape = RoundedCornerShape(size = 4.dp)
-            )
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-
-        TimePickerTimeText(
-            title = stringResource(id = R.string.start),
-            localTime = LocalTime.of(startTimePickerState.hour, startTimePickerState.minute),
-            isSelected = isStart,
-            isError = errorState == ErrorState.StartError,
-            onClick = { onTimeTypeSelected(true) },
+        Checkbox(
+            checked = isAnyTime,
+            onCheckedChange = onIsAnyTimeCheckChanged
         )
 
-        TimePickerTimeText(
-            title = stringResource(id = R.string.end),
-            localTime = LocalTime.of(endTimePickerState.hour, endTimePickerState.minute),
-            isSelected = !isStart,
-            isError = errorState == ErrorState.EndError,
-            onClick = { onTimeTypeSelected(false) },
+        Text(
+            text = stringResource(id = R.string.anytime),
+            style = AppTypography.bodyMedium.copy(
+                color = AppColor.onSurface
+            )
         )
     }
 }
@@ -306,7 +356,9 @@ private fun TimePickerTimeText(
     modifier: Modifier = Modifier,
     title: String,
     localTime: LocalTime,
+    isAnyTime: Boolean,
     isSelected: Boolean,
+    isStart: Boolean,
     isError: Boolean,
     onClick: () -> Unit,
 ) {
@@ -319,21 +371,28 @@ private fun TimePickerTimeText(
 
         Icon(
             modifier = Modifier
-                .background(color = if (isSelected) selectedBackground else Transparent)
+                .background(
+                    color = if (isSelected) AppColor.primary else Transparent,
+                    shape = if (isStart) {
+                        RoundedCornerShape(topStart = 4.dp)
+                    } else {
+                        RoundedCornerShape(bottomStart = 4.dp)
+                    }
+                )
                 .padding(
                     start = 8.dp,
                 )
                 .width(18.dp)
                 .fillMaxHeight(),
             imageVector = Icons.Outlined.Check,
-            tint = if (isSelected) AppColor.primary else Transparent,
+            tint = if (isSelected) Color.White else Transparent,
             contentDescription = null
         )
         Text(
             modifier = Modifier
                 .fillMaxHeight()
                 .wrapContentHeight(Alignment.CenterVertically)
-                .background(color = if (isSelected) selectedBackground else Transparent)
+                .background(color = if (isSelected) AppColor.primary else Transparent)
                 .widthIn(min = 70.dp)
                 .padding(
                     horizontal = 12.dp,
@@ -341,7 +400,7 @@ private fun TimePickerTimeText(
                 ),
             text = title,
             style = AppTypography.titleMedium.copy(
-                color = AppColor.onSurface,
+                color = if (isSelected) Color.White else AppColor.onSurface,
                 fontWeight = FontWeight.Normal
             )
         )
@@ -354,8 +413,9 @@ private fun TimePickerTimeText(
                 .padding(
                     horizontal = 12.dp,
                     vertical = 8.dp,
-                ),
-            text = localTime.formatHourMinute(),
+                )
+                .widthIn(min = 80.dp),
+            text = if (isAnyTime) stringResource(id = R.string.anytime) else localTime.formatHourMinute(),
             style = AppTypography.titleMedium.copy(
                 color = if (isError) AppColor.error else AppColor.onSurface,
                 fontWeight = FontWeight.Normal
@@ -370,8 +430,11 @@ private fun rememberErrorState(
     startTimePickerState: TimePickerState,
     endTimePickerState: TimePickerState,
     isStart: Boolean,
-) = remember(isStart) {
+    isAnyTime: Boolean,
+) = remember(isStart, isAnyTime) {
     derivedStateOf {
+        if (isAnyTime) return@derivedStateOf ErrorState.Ok
+
         val start = startTimePickerState.hour * 60 + startTimePickerState.minute
         val end = endTimePickerState.hour * 60 + endTimePickerState.minute
 
@@ -389,9 +452,10 @@ private fun rememberErrorState(
 }
 
 val selectedBackground
-    @Composable get() = AppColor.primary.compositeOverSurface(
-        alpha = if (isSystemInDarkTheme()) 0.2f else 0.1f
-    )
+    @Composable get() = AppColor.secondary
+//        .compositeOverSurface(
+//        alpha = if (isSystemInDarkTheme()) 0.2f else 0.1f
+//    )
 
 private enum class ErrorState {
     Ok, StartError, EndError
@@ -408,6 +472,8 @@ fun TimePickerPreview() {
         onStartTimeSelected = {},
         localTimeEnd = LocalTime.now().plusHours(1),
         onEndTimeSelected = {},
+        isAnyTime = false,
+        onIsAnyTimeCheckChanged = {},
         isStart = true,
         onDismiss = {},
     )

@@ -1,8 +1,8 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 3,
-    "identityHash": "3e945e65008683764f55852dae0290ed",
+    "version": 4,
+    "identityHash": "60e85689f78e163a0ad0716ccab1861d",
     "entities": [
       {
         "tableName": "loop",
@@ -275,7 +275,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '3e945e65008683764f55852dae0290ed')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '60e85689f78e163a0ad0716ccab1861d')"
     ]
   }
 }

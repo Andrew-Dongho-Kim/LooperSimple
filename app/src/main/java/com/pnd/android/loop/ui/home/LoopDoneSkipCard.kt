@@ -13,9 +13,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
-import androidx.compose.material.icons.automirrored.outlined.ArrowRightAlt
 import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.DensityMedium
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
@@ -53,7 +51,6 @@ import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.RoundShapes
-import com.pnd.android.loop.ui.theme.compositeOverSurface
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.ui.theme.surface
@@ -73,11 +70,6 @@ fun LoopDoneSkipCard(
     val loops by section.items
 
     Column(modifier = modifier) {
-        DoneSkipCardHeader(
-            modifier = Modifier.padding(horizontal = 16.dp),
-            onNavigateToHistoryPage = onNavigateToHistoryPage,
-        )
-
         if (loops.isNotEmpty()) {
             LoopDoneSkipCardContent(
                 modifier = Modifier.padding(top = 12.dp),
@@ -90,48 +82,6 @@ fun LoopDoneSkipCard(
         }
     }
 }
-
-@Composable
-private fun DoneSkipCardHeader(
-    modifier: Modifier = Modifier,
-    onNavigateToHistoryPage: () -> Unit,
-) {
-    Row(
-        modifier = modifier
-            .clickable { onNavigateToHistoryPage() }
-            .padding(vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Image(
-            imageVector = Icons.Filled.DensityMedium,
-            colorFilter = ColorFilter.tint(
-                color = AppColor.onSurface.compositeOverSurface(
-                    alpha = 0.7f
-                )
-            ),
-            contentDescription = ""
-        )
-        Text(
-            modifier = Modifier
-                .padding(start = 8.dp)
-                .weight(1f),
-            text = stringResource(id = R.string.view_daily_record),
-            style = AppTypography.titleMedium.copy(
-                color = AppColor.onSurface
-            )
-        )
-        Image(
-            imageVector = Icons.AutoMirrored.Outlined.ArrowRightAlt,
-            colorFilter = ColorFilter.tint(
-                color = AppColor.onSurface.compositeOverSurface(
-                    alpha = 0.7f
-                )
-            ),
-            contentDescription = ""
-        )
-    }
-}
-
 
 @Composable
 private fun LoopDoneSkipCardContent(

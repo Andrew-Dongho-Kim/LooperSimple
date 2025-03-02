@@ -17,6 +17,7 @@ interface LoopBase {
     val activeDays: Int
     val interval: Long
     val enabled: Boolean
+    val isAnyTime: Boolean
     val isMock: Boolean
     fun copyAs(
         loopId: Int = this.loopId,
@@ -28,13 +29,13 @@ interface LoopBase {
         activeDays: Int = this.activeDays,
         interval: Long = this.interval,
         enabled: Boolean = this.enabled,
+        isAnyTime: Boolean = this.isAnyTime,
         isMock: Boolean = false,
     ): LoopBase
 }
 
 fun LoopBase.isTogether(loop: LoopBase) =
-    (startInDay <= loop.startInDay && loop.startInDay < endInDay) ||
-            (startInDay < loop.endInDay && loop.endInDay < endInDay)
+    (loop.startInDay in startInDay..<endInDay) || (loop.endInDay in (startInDay + 1)..<endInDay)
 
 fun LoopBase.description(context: Context) =
     """ -->

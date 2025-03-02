@@ -123,6 +123,8 @@ class LoopScheduler @Inject constructor(
                 LoopDoneVo(
                     loopId = loop.loopId,
                     date = date.toMs(),
+                    startInDay = loop.startInDay,
+                    endInDay = loop.endInDay,
                     done = if (loop.enabled) {
                         DoneState.NO_RESPONSE
                     } else {

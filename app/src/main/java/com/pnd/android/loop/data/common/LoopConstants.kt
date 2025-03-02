@@ -12,6 +12,7 @@ const val DEFAULT_COLOR = 0xff000099.toInt()
 const val DEFAULT_ACTIVE_DAYS = LoopDay.EVERYDAY
 const val DEFAULT_INTERVAL = NO_REPEAT
 const val DEFAULT_ENABLED = true
+const val DEFAULT_IS_ANY_TIME = false
 const val DEFAULT_IS_MOCK = false
 
 val defaultStartInDay

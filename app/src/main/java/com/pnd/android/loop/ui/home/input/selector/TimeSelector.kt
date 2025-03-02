@@ -16,7 +16,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowRightAlt
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -30,13 +29,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopDay.Companion.fromIndex
 import com.pnd.android.loop.data.LoopDay.Companion.isOn
 import com.pnd.android.loop.data.LoopDay.Companion.toggle
 import com.pnd.android.loop.ui.home.BlurState
+import com.pnd.android.loop.ui.home.rememberBlurState
 import com.pnd.android.loop.ui.theme.AppColor
+import com.pnd.android.loop.ui.theme.AppTheme
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.onSurface
@@ -45,11 +47,15 @@ import com.pnd.android.loop.util.ABB_DAYS
 import com.pnd.android.loop.util.formatHourMinute
 import com.pnd.android.loop.util.rememberDayColor
 import com.pnd.android.loop.util.toLocalTime
+import com.pnd.android.loop.util.toMs
+import java.time.LocalTime
 
 @Composable
 fun StartEndTimeSelector(
     modifier: Modifier = Modifier,
     blurState: BlurState,
+    isAnyTimeChecked: Boolean,
+    onIsAnyTimeCheckChanged: (Boolean) -> Unit,
     selectedStartTime: Long,
     onStartTimeSelected: (Long) -> Unit,
     selectedEndTime: Long,
@@ -65,6 +71,8 @@ fun StartEndTimeSelector(
 
         StartAndEndTimeSelector(
             blurState = blurState,
+            isAnyTime = isAnyTimeChecked,
+            onIsAnyTimeCheckChanged = onIsAnyTimeCheckChanged,
             selectedStartTime = selectedStartTime,
             onStartTimeSelected = onStartTimeSelected,
             selectedEndTime = selectedEndTime,
@@ -82,12 +90,13 @@ fun StartEndTimeSelector(
 private fun StartAndEndTimeSelector(
     modifier: Modifier = Modifier,
     blurState: BlurState,
+    isAnyTime: Boolean,
+    onIsAnyTimeCheckChanged: (Boolean) -> Unit,
     selectedStartTime: Long,
     onStartTimeSelected: (Long) -> Unit,
     selectedEndTime: Long,
     onEndTimeSelected: (Long) -> Unit,
 ) {
-
     Row(
         modifier = modifier.padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -100,7 +109,9 @@ private fun StartAndEndTimeSelector(
             onStartTimeSelected = onStartTimeSelected,
             selectedEndTime = selectedEndTime,
             onEndTimeSelected = onEndTimeSelected,
-            isStart = true
+            isAnyTime = isAnyTime,
+            onIsAnyTimeCheckChanged = onIsAnyTimeCheckChanged,
+            isStart = true,
         )
         Image(
             imageVector = Icons.AutoMirrored.Filled.ArrowRightAlt,
@@ -117,6 +128,8 @@ private fun StartAndEndTimeSelector(
             onStartTimeSelected = onStartTimeSelected,
             selectedEndTime = selectedEndTime,
             onEndTimeSelected = onEndTimeSelected,
+            isAnyTime = isAnyTime,
+            onIsAnyTimeCheckChanged = onIsAnyTimeCheckChanged,
             isStart = false,
         )
     }
@@ -131,6 +144,8 @@ private fun TimeDisplay(
     onStartTimeSelected: (Long) -> Unit,
     selectedEndTime: Long,
     onEndTimeSelected: (Long) -> Unit,
+    isAnyTime: Boolean,
+    onIsAnyTimeCheckChanged: (Boolean) -> Unit,
     isStart: Boolean,
 ) {
     var isOpened by rememberSaveable { mutableStateOf(false) }
@@ -155,8 +170,13 @@ private fun TimeDisplay(
                     isOpened = true
                     blurState.on()
                 }
-                .padding(horizontal = 24.dp, vertical = 12.dp),
-            text = time.formatHourMinute(withAmPm = true),
+                .padding(top = 12.dp)
+                .padding(horizontal = 24.dp),
+            text = if (isAnyTime) {
+                stringResource(id = R.string.anytime)
+            } else {
+                time.formatHourMinute(withAmPm = true)
+            },
             style = AppTypography.titleLarge.copy(
                 color = AppColor.onSurface.copy(
                     alpha = 0.6f
@@ -171,6 +191,8 @@ private fun TimeDisplay(
             onStartTimeSelected = onStartTimeSelected,
             localTimeEnd = selectedEndTime.toLocalTime(),
             onEndTimeSelected = onEndTimeSelected,
+            isAnyTime = isAnyTime,
+            onIsAnyTimeCheckChanged = onIsAnyTimeCheckChanged,
             isStart = isStart,
             onDismiss = {
                 isOpened = false
@@ -251,4 +273,43 @@ private fun DateItemText(
             textAlign = TextAlign.Center
         )
     )
+}
+
+@Preview(
+    backgroundColor = 0xfffafafa,
+    showBackground = true
+)
+@Composable
+private fun AnyTimePreview() {
+    AppTheme {
+        StartAndEndTimeSelector(
+            blurState = rememberBlurState(),
+            isAnyTime = true,
+            onIsAnyTimeCheckChanged = {},
+            selectedStartTime = LocalTime.now().toMs(),
+            onStartTimeSelected = {},
+            selectedEndTime = LocalTime.now().plusHours(1).toMs(),
+            onEndTimeSelected = {}
+        )
+    }
+}
+
+
+@Preview(
+    backgroundColor = 0xfffafafa,
+    showBackground = true
+)
+@Composable
+private fun StartAndEndTimeSelectorPreview() {
+    AppTheme {
+        StartAndEndTimeSelector(
+            blurState = rememberBlurState(),
+            isAnyTime = false,
+            onIsAnyTimeCheckChanged = {},
+            selectedStartTime = LocalTime.now().toMs(),
+            onStartTimeSelected = {},
+            selectedEndTime = LocalTime.now().plusHours(1).toMs(),
+            onEndTimeSelected = {}
+        )
+    }
 }

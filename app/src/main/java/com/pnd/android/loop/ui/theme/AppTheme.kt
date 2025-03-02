@@ -53,6 +53,7 @@ private val darkColorScheme = lightColorScheme(
 private val lightColorScheme = lightColorScheme(
     primary = Blue500,
     onPrimary = White99,
+    secondary = Yellow700,
     surface = White99,
     onSurface = AppColor.onSurfaceLight,
     background = White99,

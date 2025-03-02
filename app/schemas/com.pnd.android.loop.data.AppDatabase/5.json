@@ -1,12 +1,12 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 3,
-    "identityHash": "3e945e65008683764f55852dae0290ed",
+    "version": 5,
+    "identityHash": "60e85689f78e163a0ad0716ccab1861d",
     "entities": [
       {
         "tableName": "loop",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`loopId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `title` TEXT NOT NULL, `color` INTEGER NOT NULL, `created` INTEGER NOT NULL, `startInDay` INTEGER NOT NULL, `endInDay` INTEGER NOT NULL, `activeDays` INTEGER NOT NULL, `interval` INTEGER NOT NULL, `enabled` INTEGER NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`loopId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `title` TEXT NOT NULL, `color` INTEGER NOT NULL, `created` INTEGER NOT NULL, `startInDay` INTEGER NOT NULL, `endInDay` INTEGER NOT NULL, `activeDays` INTEGER NOT NULL, `interval` INTEGER NOT NULL, `enabled` INTEGER NOT NULL, `isAnyTime` INTEGER NOT NULL DEFAULT false)",
         "fields": [
           {
             "fieldPath": "loopId",
@@ -61,6 +61,13 @@
             "columnName": "enabled",
             "affinity": "INTEGER",
             "notNull": true
+          },
+          {
+            "fieldPath": "isAnyTime",
+            "columnName": "isAnyTime",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "false"
           }
         ],
         "primaryKey": {
@@ -275,7 +282,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '3e945e65008683764f55852dae0290ed')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '60e85689f78e163a0ad0716ccab1861d')"
     ]
   }
 }

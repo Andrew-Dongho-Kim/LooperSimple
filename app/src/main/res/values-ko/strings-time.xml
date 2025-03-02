@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="today">오늘</string>
+    <string name="anytime">아무때나</string>
 
     <string name="mon">월</string>
     <string name="tue">화</string>

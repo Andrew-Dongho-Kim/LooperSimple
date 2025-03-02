@@ -144,56 +144,6 @@
         "foreignKeys": []
       },
       {
-        "tableName": "loop_record",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`recordId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `loopId` INTEGER NOT NULL, `startInDay` INTEGER NOT NULL, `endInDay` INTEGER NOT NULL, FOREIGN KEY(`loopId`) REFERENCES `loop`(`loopId`) ON UPDATE CASCADE ON DELETE CASCADE )",
-        "fields": [
-          {
-            "fieldPath": "recordId",
-            "columnName": "recordId",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "loopId",
-            "columnName": "loopId",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "startInDay",
-            "columnName": "startInDay",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "endInDay",
-            "columnName": "endInDay",
-            "affinity": "INTEGER",
-            "notNull": true
-          }
-        ],
-        "primaryKey": {
-          "autoGenerate": true,
-          "columnNames": [
-            "recordId"
-          ]
-        },
-        "indices": [],
-        "foreignKeys": [
-          {
-            "table": "loop",
-            "onDelete": "CASCADE",
-            "onUpdate": "CASCADE",
-            "columns": [
-              "loopId"
-            ],
-            "referencedColumns": [
-              "loopId"
-            ]
-          }
-        ]
-      },
-      {
         "tableName": "loop_relation",
         "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`loopGroupId` INTEGER NOT NULL, `loopId` INTEGER NOT NULL, PRIMARY KEY(`loopGroupId`, `loopId`), FOREIGN KEY(`loopGroupId`) REFERENCES `loop_group`(`loopGroupId`) ON UPDATE CASCADE ON DELETE CASCADE , FOREIGN KEY(`loopId`) REFERENCES `loop`(`loopId`) ON UPDATE CASCADE ON DELETE CASCADE )",
         "fields": [

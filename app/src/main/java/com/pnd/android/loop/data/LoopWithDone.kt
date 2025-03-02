@@ -16,6 +16,7 @@ data class LoopWithDone @JvmOverloads constructor(
     override val enabled: Boolean,
     val date: Long,
     @DoneState val done: Int,
+    override val isAnyTime: Boolean,
     @Ignore override val isMock: Boolean = false,
 ) : LoopBase {
     override fun copyAs(
@@ -28,6 +29,7 @@ data class LoopWithDone @JvmOverloads constructor(
         activeDays: Int,
         interval: Long,
         enabled: Boolean,
+        isAnyTime: Boolean,
         isMock: Boolean,
     ): LoopBase = LoopWithDone(
         loopId = loopId,
@@ -41,6 +43,7 @@ data class LoopWithDone @JvmOverloads constructor(
         enabled = enabled,
         date = this.date,
         done = this.done,
+        isAnyTime = isAnyTime,
         isMock = isMock,
     )
 }
@@ -59,6 +62,7 @@ fun LoopBase.toLoopWithDone(
     enabled = enabled,
     date = doneVo.date,
     done = doneVo.done,
+    isAnyTime = isAnyTime,
     isMock = isMock
 )
 

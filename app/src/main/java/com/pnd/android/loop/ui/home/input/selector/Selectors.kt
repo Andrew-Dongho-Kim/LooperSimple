@@ -112,6 +112,10 @@ private fun Selector(
         InputSelector.START_END_TIME -> StartEndTimeSelector(
             modifier = modifier,
             blurState = blurState,
+            isAnyTimeChecked = loop.isAnyTime,
+            onIsAnyTimeCheckChanged = { isAnyTime ->
+                inputState.update(isAnyTime = isAnyTime)
+            },
             selectedStartTime = loop.startInDay,
             onStartTimeSelected = onStartTimeSelected@{ loopStart ->
                 inputState.update(loopStart = loopStart)

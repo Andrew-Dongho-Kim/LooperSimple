@@ -18,7 +18,7 @@
     <string name="today_loop_state">Active:%d, Remain:%d, Total:%d</string>
     <string name="desc_no_loops">There are no loops.</string>
     <string name="finished">Finished</string>
-    <string name="today_loops_finished">\"All of today\'s loops are finished\"</string>
+    <string name="today_loops_finished">Finished!</string>
     <string name="unchecked_loops">Yesterday, there were *%d* unchecked loops.</string>
     <string name="response_rate">Response</string>
     <string name="done_rate">Done</string>

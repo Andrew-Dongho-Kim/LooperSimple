@@ -65,6 +65,7 @@ class UserInputState(
     fun update(
         title: TextFieldValue = this.textFieldValue,
         color: Int = value.color,
+        isAnyTime: Boolean = value.isAnyTime,
         loopStart: Long = value.startInDay,
         loopEnd: Long = value.endInDay,
         loopActiveDays: Int = value.activeDays,
@@ -74,6 +75,7 @@ class UserInputState(
         value = value.copyAs(
             title = title.text,
             color = color,
+            isAnyTime = isAnyTime,
             startInDay = loopStart,
             endInDay = loopEnd,
             activeDays = loopActiveDays,

@@ -2,6 +2,7 @@ package com.pnd.android.loop.data
 
 import android.content.Intent
 import androidx.compose.runtime.Immutable
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Ignore
 import androidx.room.PrimaryKey
@@ -10,6 +11,7 @@ import com.pnd.android.loop.data.common.DEFAULT_COLOR
 import com.pnd.android.loop.data.common.DEFAULT_CREATED
 import com.pnd.android.loop.data.common.DEFAULT_ENABLED
 import com.pnd.android.loop.data.common.DEFAULT_INTERVAL
+import com.pnd.android.loop.data.common.DEFAULT_IS_ANY_TIME
 import com.pnd.android.loop.data.common.DEFAULT_IS_MOCK
 import com.pnd.android.loop.data.common.DEFAULT_TITLE
 import com.pnd.android.loop.data.common.defaultEndInDay
@@ -31,6 +33,8 @@ data class LoopVo @JvmOverloads constructor(
     override val activeDays: Int,
     override val interval: Long,
     override val enabled: Boolean,
+    @ColumnInfo(defaultValue = "false")
+    override val isAnyTime: Boolean,
     @Ignore override val isMock: Boolean = false,
 ) : LoopBase {
 
@@ -44,6 +48,7 @@ data class LoopVo @JvmOverloads constructor(
         activeDays: Int,
         interval: Long,
         enabled: Boolean,
+        isAnyTime: Boolean,
         isMock: Boolean,
     ): LoopBase = LoopVo(
         loopId = loopId,
@@ -55,11 +60,12 @@ data class LoopVo @JvmOverloads constructor(
         activeDays = activeDays,
         interval = interval,
         enabled = enabled,
+        isAnyTime = isAnyTime,
         isMock = isMock,
     )
 
     companion object Factory {
-        const val START_ANY_TIME = -1L
+        private const val ANY_TIME = -1L
 
         fun create(
             id: Int = 0,
@@ -71,6 +77,7 @@ data class LoopVo @JvmOverloads constructor(
             activeDays: Int = DEFAULT_ACTIVE_DAYS,
             interval: Long = DEFAULT_INTERVAL,
             enabled: Boolean = DEFAULT_ENABLED,
+            isAnyTime: Boolean = DEFAULT_IS_ANY_TIME,
             isMock: Boolean = DEFAULT_IS_MOCK,
         ) = LoopVo(
             loopId = id,
@@ -82,7 +89,30 @@ data class LoopVo @JvmOverloads constructor(
             activeDays = activeDays,
             interval = interval,
             enabled = enabled,
+            isAnyTime = isAnyTime,
             isMock = isMock
+        )
+
+        fun anytime(
+            id: Int = 0,
+            title: String = DEFAULT_TITLE,
+            color: Int = DEFAULT_COLOR,
+            created: Long = DEFAULT_CREATED,
+            activeDays: Int = DEFAULT_ACTIVE_DAYS,
+            interval: Long = DEFAULT_INTERVAL,
+            enabled: Boolean = DEFAULT_ENABLED,
+            isMock: Boolean = DEFAULT_IS_MOCK,
+        ) = create(
+            id = id,
+            title = title,
+            color = color,
+            created = created,
+            startInDay = ANY_TIME,
+            endInDay = ANY_TIME,
+            activeDays = activeDays,
+            interval = interval,
+            enabled = enabled,
+            isMock = isMock,
         )
 
         const val MIDNIGHT_RESERVATION_ID = -10
@@ -155,6 +185,7 @@ fun Intent.asLoop(): LoopBase {
         activeDays = getIntExtra(EXTRA_LOOP_ACTIVE_DAYS, DEFAULT_ACTIVE_DAYS),
         interval = getLongExtra(EXTRA_LOOP_INTERVAL, DEFAULT_INTERVAL),
         enabled = getBooleanExtra(EXTRA_LOOP_ENABLED, DEFAULT_ENABLED),
+        isAnyTime = getBooleanExtra(EXTRA_LOOP_IS_ANY_TIME, DEFAULT_IS_ANY_TIME),
         isMock = getBooleanExtra(EXTRA_LOOP_IS_MOCK, DEFAULT_IS_MOCK),
     )
 }
@@ -173,6 +204,7 @@ fun Map<String, Any?>.asLoop(): LoopBase {
         ) as Int,
         interval = (getOrDefault(EXTRA_LOOP_INTERVAL, DEFAULT_INTERVAL) as Number).toLong(),
         enabled = getOrDefault(EXTRA_LOOP_ENABLED, DEFAULT_ENABLED) as Boolean,
+        isAnyTime = getOrDefault(EXTRA_LOOP_IS_ANY_TIME, DEFAULT_IS_ANY_TIME) as Boolean,
         isMock = getOrDefault(EXTRA_LOOP_IS_MOCK, DEFAULT_IS_MOCK) as Boolean,
     )
 }
@@ -186,5 +218,6 @@ private const val EXTRA_LOOP_END = "extra_loop_end"
 private const val EXTRA_LOOP_ACTIVE_DAYS = "extra_loop_active_days"
 private const val EXTRA_LOOP_INTERVAL = "extra_loop_interval"
 private const val EXTRA_LOOP_ENABLED = "extra_loop_enabled"
+private const val EXTRA_LOOP_IS_ANY_TIME = "extra_loop_is_any_time"
 private const val EXTRA_LOOP_IS_MOCK = "extra_loop_is_mock"
 
