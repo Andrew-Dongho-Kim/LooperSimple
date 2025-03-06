@@ -30,6 +30,7 @@ import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.WineRed
 import com.pnd.android.loop.ui.theme.onSurface
+import com.pnd.android.loop.util.toMs
 import java.time.LocalTime
 import kotlin.math.max
 
@@ -200,18 +201,34 @@ private fun ScrollToLocalTime(
 @Composable
 private fun rememberTimelineSlots(loops: List<LoopBase>) = remember(loops) {
     val slots = List(MAX_TIME_SLOTS) { mutableListOf<LoopBase>() }
-    loops.forEach { loop ->
-        val properSlot = slots.findLast { slot -> !isIntersect(slot, loop) }
-        properSlot?.add(loop)
-    }
+    val minLocalTime = LocalTime.MIN.toMs()
+    val maxLocalTime = LocalTime.MAX.toMs()
+    loops
+        .sortedBy { loop -> // 역순 정렬
+            val startMe = if (loop.startInDay < 0) minLocalTime else loop.startInDay
+            val endMe = if (loop.endInDay < 0) maxLocalTime else loop.endInDay
+
+            startMe - endMe
+        }
+        .forEach { loop ->
+            val properSlot = slots.findLast { slot -> !isIntersect(slot, loop) }
+            properSlot?.add(loop)
+        }
     slots.filter { it.isNotEmpty() }
 }
 
 
 private fun isIntersect(slot: List<LoopBase>, another: LoopBase): Boolean {
+    val minLocalTime = LocalTime.MIN.toMs()
+    val maxLocalTime = LocalTime.MAX.toMs()
     slot.forEach { loop ->
-        if (loop.startInDay <= another.startInDay && another.startInDay < loop.endInDay) return true
-        if (loop.startInDay < another.endInDay && another.endInDay <= loop.endInDay) return true
+        val startMe = if (loop.startInDay < 0) minLocalTime else loop.startInDay
+        val endMe = if (loop.endInDay < 0) maxLocalTime else loop.endInDay
+
+        val startOther = if (another.startInDay < 0) minLocalTime else another.startInDay
+        val endOther = if (another.endInDay < 0) maxLocalTime else another.endInDay
+
+        if (endMe > startOther && endOther > startMe) return true
     }
     return false
 }

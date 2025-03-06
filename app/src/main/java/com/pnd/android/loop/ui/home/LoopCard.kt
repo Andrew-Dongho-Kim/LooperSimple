@@ -494,19 +494,18 @@ private fun LoopCardStartEndTime(
     timeStat: TimeStat,
     syncWithTime: Boolean,
 ) {
-    val timeText = if (
-        loop.isMock ||
-        !syncWithTime ||
-        (timeStat.isPast() || timeStat.isNotToday())
-    ) {
-        annotatedString(loop.formatStartEndTime())
-    } else {
-        annotatedString(timeStat.asString(LocalContext.current, false))
+
+    val timeText = when {
+        loop.isMock -> loop.formatStartEndTime()
+        !syncWithTime -> loop.formatStartEndTime()
+        timeStat.isPast() -> loop.formatStartEndTime()
+        timeStat.isNotToday() -> loop.formatStartEndTime()
+        else -> timeStat.asString(LocalContext.current, false)
     }
 
     Text(
         modifier = modifier,
-        text = timeText,
+        text = annotatedString(timeText),
         style = AppTypography.labelMedium.copy(color = colorBody2Text()),
     )
 }

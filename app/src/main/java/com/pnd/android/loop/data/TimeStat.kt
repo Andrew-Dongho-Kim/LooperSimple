@@ -9,6 +9,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.pnd.android.loop.R
 import com.pnd.android.loop.common.Logger
+import com.pnd.android.loop.data.LoopVo.Factory.ANY_TIME
 import com.pnd.android.loop.util.MS_1MIN
 import com.pnd.android.loop.util.isActiveDay
 import com.pnd.android.loop.util.toLocalTime
@@ -26,25 +27,34 @@ private val logger = Logger(tag = "TimeStat")
 sealed class TimeStat {
 
     data object NotToday : TimeStat()
-    class BeforeStart(val time: LocalTime) : TimeStat() {
+    class BeforeStart(
+        val time: LocalTime,
+        val isAnyTime: Boolean,
+    ) : TimeStat() {
         override fun asString(context: Context, isAbb: Boolean): String {
             return if (isAbb) abb(context) else full(context)
         }
 
-        private fun abb(context: Context) = if (time.hour > 0) {
-            context.getString(R.string.time_stat_before_start_hours, time.hour)
-        } else if (time.minute >= 5) {
-            context.getString(R.string.time_stat_before_start_mins, time.minute)
-        } else {
-            context.getString(R.string.time_stat_before_start_soon)
+        private fun abb(context: Context) = when {
+            isAnyTime -> context.getString(R.string.anytime)
+            time.hour > 0 -> context.getString(R.string.time_stat_before_start_hours, time.hour)
+            time.minute >= 5 -> context.getString(R.string.time_stat_before_start_mins, time.minute)
+            else -> context.getString(R.string.time_stat_before_start_soon)
         }
 
-        private fun full(context: Context) = if (time.hour > 0) {
-            context.getString(R.string.time_stat_full_before_start_hours, time.hour)
-        } else if (time.minute >= 5) {
-            context.getString(R.string.time_stat_full_before_start_mins, time.minute)
-        } else {
-            context.getString(R.string.time_stat_full_before_start_soon)
+        private fun full(context: Context) = when {
+            isAnyTime -> context.getString(R.string.anytime)
+            time.hour > 0 -> context.getString(
+                R.string.time_stat_full_before_start_hours,
+                time.hour
+            )
+
+            time.minute >= 5 -> context.getString(
+                R.string.time_stat_full_before_start_mins,
+                time.minute
+            )
+
+            else -> context.getString(R.string.time_stat_full_before_start_soon)
         }
     }
 
@@ -66,15 +76,22 @@ sealed class TimeStat {
         }
     }
 
-    data object Finished : TimeStat() {
+    data class Finished(
+        private val startTime: LocalTime,
+        private val endTime: LocalTime,
+        private val isAnyTime: Boolean,
+    ) : TimeStat() {
         override fun asString(context: Context, isAbb: Boolean): String {
+            if (isAnyTime) {
+                return context.getString(R.string.finished)
+            }
             return context.getString(R.string.finished)
         }
     }
 
     open fun asString(context: Context, isAbb: Boolean) = ""
     fun isPast(): Boolean {
-        return this == Finished
+        return this is Finished
     }
 
     fun isNotToday(): Boolean {
@@ -95,24 +112,27 @@ val LoopBase.currentTimeStat: TimeStat
 
 private val LoopBase.timeStatFlow
     get() = flow {
-        val startTime = startInDay.toLocalTime()
-        val endTime = endInDay.toLocalTime()
+        val startTime = if (isAnyTime) LocalTime.MIN else startInDay.toLocalTime()
+        val endTime = if (isAnyTime) LocalTime.MIN else endInDay.toLocalTime()
 
         while (currentCoroutineContext().isActive) {
-            val now = LocalTime.now()
-
             val delayInMs = when {
+
                 !isActiveDay() -> none(
                     title = title
                 )
 
-                now.isAfter(endTime) -> after(
-                    title = title
+                isFinished() -> finished(
+                    title = title,
+                    startTime = startTime,
+                    endTime = endTime,
+                    isAnyTime = isAnyTime
                 )
 
-                now.isBefore(startTime) -> before(
+                isBeforeStart() -> before(
                     title = title,
-                    startTime = startTime
+                    startTime = startTime,
+                    isAnyTime = isAnyTime
                 )
 
                 else -> inProgress(
@@ -125,11 +145,36 @@ private val LoopBase.timeStatFlow
         }
     }
 
-private suspend fun FlowCollector<TimeStat>.after(
-    title: String
+private fun LoopBase.isBeforeStart(): Boolean {
+    if (isAnyTime) return startInDay == ANY_TIME
+
+    val now = LocalTime.now()
+    val startTime = startInDay.toLocalTime()
+    return now.isBefore(startTime)
+}
+
+private fun LoopBase.isFinished(): Boolean {
+    if (isAnyTime) return startInDay != ANY_TIME && endInDay != ANY_TIME
+
+    val now = LocalTime.now()
+    val endTime = endInDay.toLocalTime()
+    return now.isAfter(endTime)
+}
+
+private suspend fun FlowCollector<TimeStat>.finished(
+    title: String,
+    startTime: LocalTime,
+    endTime: LocalTime,
+    isAnyTime: Boolean
 ): Long {
     val now = LocalTime.now()
-    emit(TimeStat.Finished)
+    emit(
+        TimeStat.Finished(
+            startTime = startTime,
+            endTime = endTime,
+            isAnyTime = isAnyTime,
+        )
+    )
 
     val delayInMs = min(MS_1MIN, now.until(LocalTime.MAX, ChronoUnit.MILLIS))
     logger.d { "[TimeStat] ($title) after delayInMs : $delayInMs" }
@@ -139,13 +184,19 @@ private suspend fun FlowCollector<TimeStat>.after(
 
 private suspend fun FlowCollector<TimeStat>.before(
     title: String,
-    startTime: LocalTime
+    startTime: LocalTime,
+    isAnyTime: Boolean,
 ): Long {
     val now = LocalTime.now()
-    val afterMs = now.until(startTime, ChronoUnit.MILLIS)
+    val afterMs = if (isAnyTime) 1000L else now.until(startTime, ChronoUnit.MILLIS)
 
     val delayInMs: Long = if (afterMs > 0) {
-        emit(TimeStat.BeforeStart(afterMs.toLocalTime()))
+        emit(
+            TimeStat.BeforeStart(
+                time = afterMs.toLocalTime(),
+                isAnyTime = isAnyTime,
+            )
+        )
         afterMs % MS_1MIN
     } else {
         1000L

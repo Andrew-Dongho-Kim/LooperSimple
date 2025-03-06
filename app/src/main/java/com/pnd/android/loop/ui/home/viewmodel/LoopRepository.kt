@@ -86,6 +86,7 @@ class LoopRepository @Inject constructor(
     }.map { loops ->
         loops.filter { loop ->
             !loop.isDisabled &&
+            !loop.isAnyTime &&
             loop.isNotRespond &&
             loop.created.toLocalDate().isBefore(LocalDate.now()) &&
             loop.isActiveDay(LocalDate.now().minusDays(1))

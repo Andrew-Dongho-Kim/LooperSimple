@@ -19,6 +19,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
+import com.pnd.android.loop.data.LoopVo.Factory.ANY_TIME
 import com.pnd.android.loop.ui.home.BlurState
 import com.pnd.android.loop.ui.home.input.InputSelector
 import com.pnd.android.loop.ui.home.input.UserInputState
@@ -113,16 +114,16 @@ private fun Selector(
             modifier = modifier,
             blurState = blurState,
             isAnyTimeChecked = loop.isAnyTime,
-            onIsAnyTimeCheckChanged = { isAnyTime ->
+            onIsAnyTimeCheckChanged = onIsAnyTimeCheckChanged@{ isAnyTime ->
                 inputState.update(isAnyTime = isAnyTime)
             },
             selectedStartTime = loop.startInDay,
             onStartTimeSelected = onStartTimeSelected@{ loopStart ->
-                inputState.update(loopStart = loopStart)
+                inputState.update(loopStart = if (loop.isAnyTime) ANY_TIME else loopStart)
             },
             selectedEndTime = loop.endInDay,
             onEndTimeSelected = onEndTimeSelected@{ loopEnd ->
-                inputState.update(loopEnd = loopEnd)
+                inputState.update(loopEnd = if (loop.isAnyTime) ANY_TIME else loopEnd)
             },
             selectedDays = loop.activeDays,
             onSelectedDayChanged = onDayChanged@{ activeDays ->

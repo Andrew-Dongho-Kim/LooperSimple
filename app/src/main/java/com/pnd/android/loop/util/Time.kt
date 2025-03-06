@@ -90,8 +90,9 @@ val DAY_STRING_MAP = mapOf(
 )
 
 @Composable
-fun LoopBase.formatStartEndTime(context: Context = LocalContext.current) =
-    "${
+fun LoopBase.formatStartEndTime(context: Context = LocalContext.current) = when {
+    isAnyTime -> stringResource(id = R.string.anytime)
+    else -> "${
         startInDay.formatHourMinute(
             context = context,
             withAmPm = false
@@ -102,6 +103,7 @@ fun LoopBase.formatStartEndTime(context: Context = LocalContext.current) =
             withAmPm = false
         )
     }"
+}
 
 @Composable
 fun LocalDate.formatYearMonthDateDays(): String {
@@ -195,7 +197,8 @@ fun LocalDate.isSameMonth(other: LocalDate): Boolean {
     return me.year == other.year && me.month == other.month
 }
 
-fun dayForLoop(localDate: LocalDate = LocalDate.now()): @LoopDay Int = dayForLoop(localDate.dayOfWeek)
+fun dayForLoop(localDate: LocalDate = LocalDate.now()): @LoopDay Int =
+    dayForLoop(localDate.dayOfWeek)
 
 fun dayForLoop(dayOfWeek: DayOfWeek): @LoopDay Int = when (dayOfWeek) {
     DayOfWeek.SUNDAY -> SUNDAY

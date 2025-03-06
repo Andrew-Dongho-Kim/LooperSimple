@@ -57,12 +57,12 @@ fun LocalTime.timelineOffsetStart() =
 
 
 fun LoopBase.timelineOffsetStart() =
-    startInDay.toLocalTime().timelineOffsetStart()
+    (if (startInDay < 0) LocalTime.MIN else startInDay.toLocalTime()).timelineOffsetStart()
 
 
 fun LoopBase.timelineWidth(): Dp {
-    val startTime = startInDay.toLocalTime()
-    val endTime = endInDay.toLocalTime()
+    val startTime = if (startInDay < 0) LocalTime.MIN else startInDay.toLocalTime()
+    val endTime = if (endInDay < 0) LocalTime.MAX else endInDay.toLocalTime()
 
     return timelineItemWidthDp.times(
         (endTime.hour - startTime.hour) + ((endTime.minute - startTime.minute) / 60f)

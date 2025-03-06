@@ -37,7 +37,6 @@ import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.util.annotatedString
 import java.time.LocalDate
 
-
 @Composable
 fun LoopYesterdayCard(
     modifier: Modifier = Modifier,

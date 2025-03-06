@@ -65,7 +65,7 @@ data class LoopVo @JvmOverloads constructor(
     )
 
     companion object Factory {
-        private const val ANY_TIME = -1L
+        const val ANY_TIME = -1L
 
         fun create(
             id: Int = 0,
@@ -135,7 +135,9 @@ fun LoopBase.asLoopVo(
     loopEnd: Long = this.endInDay,
     loopActiveDays: Int = this.activeDays,
     interval: Long = this.interval,
-    enabled: Boolean = this.enabled
+    enabled: Boolean = this.enabled,
+    isAnyTime: Boolean = this.isAnyTime,
+    isMock: Boolean = this.isMock,
 ) = LoopVo.create(
     id = id,
     title = title,
@@ -146,6 +148,8 @@ fun LoopBase.asLoopVo(
     activeDays = loopActiveDays,
     interval = interval,
     enabled = enabled,
+    isAnyTime = isAnyTime,
+    isMock = isMock
 )
 
 fun LoopBase.putTo(intent: Intent) {

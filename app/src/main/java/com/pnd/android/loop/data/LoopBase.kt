@@ -3,6 +3,7 @@ package com.pnd.android.loop.data
 import android.content.Context
 import androidx.compose.runtime.Immutable
 import com.pnd.android.loop.data.LoopDoneVo.DoneState
+import com.pnd.android.loop.data.LoopVo.Factory.ANY_TIME
 import com.pnd.android.loop.util.intervalString
 import com.pnd.android.loop.util.toLocalTime
 
@@ -33,6 +34,7 @@ interface LoopBase {
         isMock: Boolean = false,
     ): LoopBase
 }
+
 
 fun LoopBase.isTogether(loop: LoopBase) =
     (loop.startInDay in startInDay..<endInDay) || (loop.endInDay in (startInDay + 1)..<endInDay)
