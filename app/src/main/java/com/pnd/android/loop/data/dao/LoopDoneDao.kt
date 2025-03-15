@@ -6,6 +6,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
+import com.pnd.android.loop.data.LoopVo.Factory.ANY_TIME
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
 import java.time.ZoneId
@@ -91,8 +92,16 @@ interface LoopDoneDao {
             LoopDoneVo(
                 loopId = loop.loopId,
                 date = localDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(),
-                startInDay = loop.startInDay,
-                endInDay = loop.endInDay,
+                startInDay = if (loop.isAnyTime && doneState == LoopDoneVo.DoneState.NO_RESPONSE) {
+                    ANY_TIME
+                } else {
+                    loop.startInDay
+                },
+                endInDay = if (loop.isAnyTime && doneState == LoopDoneVo.DoneState.NO_RESPONSE) {
+                    ANY_TIME
+                } else {
+                    loop.endInDay
+                },
                 done = doneState
             )
         )

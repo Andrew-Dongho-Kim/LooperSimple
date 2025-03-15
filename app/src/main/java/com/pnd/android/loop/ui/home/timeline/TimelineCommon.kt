@@ -9,6 +9,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -43,7 +44,7 @@ fun measureTextWidth(text: String, style: TextStyle): Dp {
 }
 
 val timeBarFontStyle
-    @Composable get() = MaterialTheme.typography.caption
+    @Composable get() = MaterialTheme.typography.caption.copy(fontWeight = FontWeight.Bold)
 
 val timeBarFontSizePx
     @Composable get() = with(LocalDensity.current) { timeBarFontStyle.fontSize.toPx() }

@@ -50,6 +50,7 @@
     <string name="restore">복원</string>
     <string name="later">나중에</string>
     <string name="start">시작</string>
+    <string name="stop">멈춤</string>
     <string name="start_at">%s 시작</string>
     <string name="end">종료</string>
     <string name="end_at">%s 종료</string>

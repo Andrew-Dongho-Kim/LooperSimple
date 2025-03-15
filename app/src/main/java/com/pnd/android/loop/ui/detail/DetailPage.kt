@@ -221,7 +221,8 @@ private fun LoopState(
             if (timeStat.isPast()) {
                 LoopDoneOrSkip(
                     modifier = Modifier.height(36.dp),
-                    onDone = { doneState ->
+                    loop = loop,
+                    onStateChanged = { loop, doneState ->
                         detailViewModel.doneLoop(
                             loop = loop,
                             doneState = doneState
@@ -293,7 +294,7 @@ private fun LoopStartAndEndTime(
             )
             Text(
                 modifier = Modifier.padding(start = paddingHorizontalNormal),
-                text = loop.startInDay.formatHourMinute(),
+                text = if (loop.isAnyTime) stringResource(id = R.string.anytime) else loop.startInDay.formatHourMinute(),
                 style = AppTypography.bodyMedium.copy(
                     color = AppColor.onSurface
                 )
@@ -313,7 +314,7 @@ private fun LoopStartAndEndTime(
             )
             Text(
                 modifier = Modifier.padding(start = paddingHorizontalNormal),
-                text = loop.endInDay.formatHourMinute(),
+                text = if (loop.isAnyTime) stringResource(id = R.string.anytime) else loop.endInDay.formatHourMinute(),
                 style = AppTypography.bodyMedium.copy(
                     color = AppColor.onSurface
                 )

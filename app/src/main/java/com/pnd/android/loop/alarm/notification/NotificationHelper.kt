@@ -15,7 +15,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 
 
-const val CHANNEL_ID = "com.pnd.android.loop.SimpleLooper"
+const val CHANNEL_ID = "com.pnd.android.loop.LooperSimple"
 
 class NotificationHelper @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -26,7 +26,7 @@ class NotificationHelper @Inject constructor(
         val channel = NotificationChannel(
             CHANNEL_ID,
             context.getString(R.string.loop),
-            NotificationManager.IMPORTANCE_LOW
+            NotificationManager.IMPORTANCE_DEFAULT
         )
         nm.createNotificationChannel(channel)
     }
@@ -45,6 +45,7 @@ class NotificationHelper @Inject constructor(
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.app_icon)
             .setContentTitle(loop.title)
+            
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setDefaults(0)

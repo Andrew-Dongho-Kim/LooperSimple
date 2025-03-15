@@ -67,7 +67,7 @@ fun LoopYesterdayCard(
                 LoopYesterdayItem(
                     modifier = if (index == 0) Modifier.padding(top = 12.dp) else Modifier,
                     loop = loop,
-                    onDone = { doneState ->
+                    onStateChanged = { loop, doneState ->
                         loopViewModel.doneLoop(
                             loop = loop,
                             localDate = LocalDate.now().minusDays(1),
@@ -127,7 +127,7 @@ private fun LoopYesterdayHeader(
 private fun LoopYesterdayItem(
     modifier: Modifier = Modifier,
     loop: LoopBase,
-    onDone: (@LoopDoneVo.DoneState Int) -> Unit,
+    onStateChanged: (LoopBase, @LoopDoneVo.DoneState Int) -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
     Row(
@@ -145,7 +145,8 @@ private fun LoopYesterdayItem(
         Spacer(modifier = Modifier.weight(1f))
         LoopDoneOrSkip(
             modifier = Modifier.height(36.dp),
-            onDone = onDone,
+            loop = loop,
+            onStateChanged = onStateChanged,
         )
     }
 }

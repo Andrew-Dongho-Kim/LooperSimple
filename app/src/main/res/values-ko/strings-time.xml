@@ -79,6 +79,12 @@
     <string name="time_stat_remain_hours">#%d 시간 남음</string>
     <string name="time_stat_remain_mins">#%d 분 남음</string>
 
+    <string name="time_stat_passed_hours">#%d 시간 지남</string>
+    <string name="time_stat_passed_mins">#%d 분 지남</string>
+
     <string name="time_stat_full_remain_hours">#%d 시간 남음</string>
     <string name="time_stat_full_remain_mins">#%d 분 남음</string>
+
+    <string name="time_stat_full_passed_hours">#%d 시간 지남</string>
+    <string name="time_stat_full_passed_mins">#%d 분 지남</string>
 </resources>

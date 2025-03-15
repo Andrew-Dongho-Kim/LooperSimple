@@ -123,6 +123,12 @@
     <string name="time_stat_remain_hours">#%d hrs left</string>
     <string name="time_stat_remain_mins">#%d min left</string>
 
+    <string name="time_stat_passed_hours">#%d hrs passed</string>
+    <string name="time_stat_passed_mins">#%d min passed</string>
+
     <string name="time_stat_full_remain_hours">#%d hours left</string>
     <string name="time_stat_full_remain_mins">#%d minutes left</string>
+
+    <string name="time_stat_full_passed_hours">#%d hours passed</string>
+    <string name="time_stat_full_passed_mins">#%d minutes passsed</string>
 </resources>

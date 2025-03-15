@@ -54,5 +54,6 @@ fun LoopBase.description(context: Context) =
 val LoopBase.doneState get() = (this as? LoopWithDone)?.done
 val LoopBase.isRespond get() = doneState == DoneState.DONE || doneState == DoneState.SKIP
 val LoopBase.isNotRespond get() = doneState == DoneState.NO_RESPONSE
+val LoopBase.isInProgressState get() = doneState == DoneState.IN_PROGRESS
 val LoopBase.isDisabled get() = doneState == DoneState.DISABLED
 

@@ -3,6 +3,7 @@ package com.pnd.android.loop.ui.home
 import android.graphics.Path
 import android.graphics.PathDashPathEffect
 import android.graphics.PathMeasure
+import android.util.Log
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -30,6 +31,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -84,6 +87,8 @@ import com.pnd.android.loop.util.annotatedString
 import com.pnd.android.loop.util.formatStartEndTime
 import com.pnd.android.loop.util.intervalString
 import com.pnd.android.loop.util.rememberDayColor
+import com.pnd.android.loop.util.toMs
+import java.time.LocalTime
 
 
 private const val ACTIVE_EFFECT_SEGMENTS = 11f
@@ -94,7 +99,7 @@ fun LoopCard(
     modifier: Modifier = Modifier,
     loop: LoopBase,
     cardValues: LoopCardValues,
-    onDone: (doneState: Int) -> Unit,
+    onStateChanged: (loop: LoopBase, doneState: Int) -> Unit,
     onNavigateToGroupPicker: (LoopBase) -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
@@ -160,7 +165,7 @@ fun LoopCard(
                     ),
                 loop = loop,
                 cardValues = cardValues,
-                onDone = onDone,
+                onStateChanged = onStateChanged,
                 onNavigateToGroupPicker = onNavigateToGroupPicker,
             )
         }
@@ -172,7 +177,7 @@ private fun LoopCardContent(
     modifier: Modifier = Modifier,
     loop: LoopBase,
     cardValues: LoopCardValues,
-    onDone: (doneState: @LoopDoneVo.DoneState Int) -> Unit,
+    onStateChanged: (loop: LoopBase, doneState: Int) -> Unit,
     onNavigateToGroupPicker: (LoopBase) -> Unit,
 ) {
 
@@ -195,7 +200,7 @@ private fun LoopCardContent(
                     .weight(1f),
                 loop = loop,
                 cardValues = cardValues,
-                onDone = onDone,
+                onStateChanged = onStateChanged,
             )
 
             LoopCardMenu(
@@ -286,7 +291,7 @@ fun LoopCardBody(
     modifier: Modifier = Modifier,
     loop: LoopBase,
     cardValues: LoopCardValues,
-    onDone: (doneState: @LoopDoneVo.DoneState Int) -> Unit
+    onStateChanged: (loop: LoopBase, doneState: @LoopDoneVo.DoneState Int) -> Unit
 ) {
     val timeStat = loop.currentTimeStat
     val syncWithTime = !loop.isMock && cardValues.syncWithTime
@@ -324,10 +329,20 @@ fun LoopCardBody(
                 }
             }
         }
-        if (syncWithTime && loop.enabled && timeStat.isPast()) {
+        val enabled = loop.enabled
+        if (!syncWithTime) return
+        if (!enabled) return
+        if (timeStat.isPast()) {
             LoopDoneOrSkip(
                 modifier = Modifier.height(36.dp),
-                onDone = onDone,
+                loop = loop,
+                onStateChanged = onStateChanged,
+            )
+        }
+        if (loop.isAnyTime && (loop.startInDay < 0 || loop.endInDay < 0)) {
+            AnyTimeLoopStartOrStop(
+                loop = loop,
+                onStateChanged = onStateChanged
             )
         }
     }
@@ -412,15 +427,59 @@ private fun LoopCardPopupMenuItem(
 }
 
 @Composable
+fun AnyTimeLoopStartOrStop(
+    modifier: Modifier = Modifier,
+    loop: LoopBase,
+    onStateChanged: (loop: LoopBase, doneState: @LoopDoneVo.DoneState Int) -> Unit
+) {
+    if (loop.startInDay < 0) {
+        Image(
+            modifier = modifier
+                .size(48.dp)
+                .clickable {
+                    onStateChanged(
+                        loop.copyAs(startInDay = LocalTime.now().toMs()),
+                        LoopDoneVo.DoneState.IN_PROGRESS
+                    )
+                }
+                .padding(8.dp),
+            imageVector = Icons.Filled.PlayArrow,
+            colorFilter = ColorFilter.tint(
+                AppColor.onSurface.copy(alpha = 0.7f)
+            ),
+            contentDescription = stringResource(id = R.string.start)
+        )
+    } else {
+        Image(
+            modifier = modifier
+                .size(48.dp)
+                .clickable {
+                    onStateChanged(
+                        loop.copyAs(endInDay = LocalTime.now().toMs()),
+                        LoopDoneVo.DoneState.DONE
+                    )
+                }
+                .padding(8.dp),
+            imageVector = Icons.Filled.Stop,
+            colorFilter = ColorFilter.tint(
+                AppColor.onSurface.copy(alpha = 0.7f)
+            ),
+            contentDescription = stringResource(id = R.string.stop)
+        )
+    }
+}
+
+@Composable
 fun LoopDoneOrSkip(
     modifier: Modifier = Modifier,
-    onDone: (doneState: @LoopDoneVo.DoneState Int) -> Unit,
+    loop: LoopBase,
+    onStateChanged: (loop: LoopBase, doneState: @LoopDoneVo.DoneState Int) -> Unit,
 ) {
 
     Row(modifier = modifier) {
         Image(
             modifier = Modifier
-                .clickable { onDone(LoopDoneVo.DoneState.DONE) }
+                .clickable { onStateChanged(loop, LoopDoneVo.DoneState.DONE) }
                 .fillMaxHeight()
                 .aspectRatio(1f)
                 .padding(8.dp),
@@ -434,7 +493,7 @@ fun LoopDoneOrSkip(
         Image(
             modifier = Modifier
                 .padding(start = 4.dp)
-                .clickable { onDone(LoopDoneVo.DoneState.SKIP) }
+                .clickable { onStateChanged(loop, LoopDoneVo.DoneState.SKIP) }
                 .fillMaxHeight()
                 .aspectRatio(1f)
                 .padding(8.dp),

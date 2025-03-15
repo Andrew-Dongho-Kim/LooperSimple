@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.data.LoopBase
@@ -86,9 +87,9 @@ fun LoopCardWithOption(
             val updated = loop.copyAs(enabled = enabled).asLoopVo()
             loopViewModel.addOrUpdateLoop(updated)
         },
-        onDone = { doneState ->
+        onStateChanged = { newLoop, doneState ->
             loopViewModel.doneLoop(
-                loop = loop,
+                loop = newLoop,
                 doneState = doneState
             )
         },
@@ -109,33 +110,14 @@ fun LoopCardWithOption(
     loop: LoopBase,
     cardValues: LoopCardValues,
     onEnabled: (Boolean) -> Unit,
-    onDone: (@LoopDoneVo.DoneState Int) -> Unit,
+    onStateChanged: (LoopBase, @LoopDoneVo.DoneState Int) -> Unit,
     onEdit: (LoopBase) -> Unit,
     onShowDeleteDialog: (Boolean) -> Unit,
     onNavigateToGroupPicker: (LoopBase) -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
     BoxWithConstraints(modifier = modifier) {
-        val density = LocalDensity.current
-        val state = remember {
-            AnchoredDraggableState(
-                initialValue = DragAnchors.Center,
-                anchors = DraggableAnchors {
-                    DragAnchors.Start at -constraints.maxWidth * 0.3f
-                    DragAnchors.Center at 0f
-                    DragAnchors.End at constraints.maxWidth * 0.3f
-                },
-                positionalThreshold = { distance -> distance * 0.7f },
-                velocityThreshold = { with(density) { 125.dp.toPx() } },
-                snapAnimationSpec = tween(
-                    durationMillis = 100,
-                    easing = FastOutSlowInEasing
-                ),
-                decayAnimationSpec = splineBasedDecay(
-                    density = density
-                )
-            )
-        }
+        val state = rememberDraggableState(constraints = constraints)
 
         val coroutineScope = rememberCoroutineScope()
         if (!loop.isMock) {
@@ -184,9 +166,36 @@ fun LoopCardWithOption(
                 ),
             loop = loop,
             cardValues = cardValues,
-            onDone = onDone,
+            onStateChanged = onStateChanged,
             onNavigateToGroupPicker = onNavigateToGroupPicker,
             onNavigateToDetailPage = onNavigateToDetailPage,
+        )
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun rememberDraggableState(
+    constraints: Constraints,
+): AnchoredDraggableState<DragAnchors> {
+    val density = LocalDensity.current
+    return remember(density) {
+        AnchoredDraggableState(
+            initialValue = DragAnchors.Center,
+            anchors = DraggableAnchors {
+                DragAnchors.Start at -constraints.maxWidth * 0.3f
+                DragAnchors.Center at 0f
+                DragAnchors.End at constraints.maxWidth * 0.3f
+            },
+            positionalThreshold = { distance -> distance * 0.7f },
+            velocityThreshold = { with(density) { 125.dp.toPx() } },
+            snapAnimationSpec = tween(
+                durationMillis = 100,
+                easing = FastOutSlowInEasing
+            ),
+            decayAnimationSpec = splineBasedDecay(
+                density = density
+            )
         )
     }
 }

@@ -48,6 +48,7 @@ import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.asLoopVo
 import com.pnd.android.loop.data.common.MAX_LOOPS_TOGETHER
 import com.pnd.android.loop.data.isDisabled
+import com.pnd.android.loop.data.isInProgressState
 import com.pnd.android.loop.data.isNotRespond
 import com.pnd.android.loop.data.isRespond
 import com.pnd.android.loop.ui.home.Section.AllAndTodayTab.Companion.TAB_ALL
@@ -307,7 +308,7 @@ private fun LoopViewModel.observeSectionsAsState(
             if (tabSection.selectedTab == TAB_ALL) {
                 rememberAllSection(resultLoops, inputState)
             } else {
-                rememberTodaySection(resultLoops, inputState)
+                rememberTodaySection(resultLoops)
             },
             rememberYesterdaySection(yesterdayLoops),
             rememberAdSection(),
@@ -348,15 +349,9 @@ private fun rememberYesterdaySection(
 @Composable
 private fun rememberTodaySection(
     loops: List<LoopBase>,
-    inputState: UserInputState,
 ): Section {
-    val filtered = loops.filter {
-        (it.isActiveDay() && it.isNotRespond) || it.isDisabled
-    }
-
-    val resultLoops = mutableListOf(*filtered.toTypedArray())
-    if (inputState.mode == UserInputState.Mode.New) {
-        resultLoops.add(0, inputState.value)
+    val resultLoops = loops.filter {
+        (it.isActiveDay() && (it.isNotRespond || it.isDisabled || it.isInProgressState))
     }
 
     val context = LocalContext.current

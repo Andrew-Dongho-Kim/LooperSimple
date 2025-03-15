@@ -8,6 +8,7 @@ import androidx.room.ForeignKey
 import androidx.room.ForeignKey.Companion.CASCADE
 import com.pnd.android.loop.data.LoopDoneVo.DoneState.Companion.DISABLED
 import com.pnd.android.loop.data.LoopDoneVo.DoneState.Companion.DONE
+import com.pnd.android.loop.data.LoopDoneVo.DoneState.Companion.IN_PROGRESS
 import com.pnd.android.loop.data.LoopDoneVo.DoneState.Companion.NO_RESPONSE
 import com.pnd.android.loop.data.LoopDoneVo.DoneState.Companion.SKIP
 
@@ -42,10 +43,11 @@ data class LoopDoneVo(
     fun isRespond() = done.isRespond()
 
     @Target(AnnotationTarget.TYPE, AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.FUNCTION)
-    @IntDef(DISABLED, DONE, SKIP, NO_RESPONSE)
+    @IntDef(DISABLED, IN_PROGRESS, DONE, SKIP, NO_RESPONSE)
     annotation class DoneState {
         companion object {
             const val DISABLED = -1
+            const val IN_PROGRESS = 3
             const val DONE = 1
             const val SKIP = 2
             const val NO_RESPONSE = 0

@@ -241,6 +241,8 @@ fun LoopBase.isPast(localDateTime: LocalDateTime = LocalDateTime.now()): Boolean
 }
 
 fun LoopBase.isActive(localDateTime: LocalDateTime = LocalDateTime.now()): Boolean {
+    if (isAnyTime) return (startInDay >= 0 && endInDay < 0)
+
     return enabled &&
             isActiveDay(localDate = localDateTime.toLocalDate()) &&
             isActiveTime(localDateTime = localDateTime)
