@@ -37,15 +37,9 @@ class HomeFragment : Fragment() {
         }
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        if (savedInstanceState == null) {
-            loopViewModel.syncLoops()
-        }
-    }
-
     override fun onResume() {
         super.onResume()
         loopViewModel.loadWiseSaying()
+        loopViewModel.syncLoops()
     }
 }

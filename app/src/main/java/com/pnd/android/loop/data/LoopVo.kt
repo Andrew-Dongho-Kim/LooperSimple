@@ -161,6 +161,7 @@ fun LoopBase.putTo(intent: Intent) {
     intent.putExtra(EXTRA_LOOP_END, endInDay)
     intent.putExtra(EXTRA_LOOP_ACTIVE_DAYS, activeDays)
     intent.putExtra(EXTRA_LOOP_INTERVAL, interval)
+    intent.putExtra(EXTRA_LOOP_IS_ANYTIME, isAnyTime)
     intent.putExtra(EXTRA_LOOP_ENABLED, enabled)
     intent.putExtra(EXTRA_LOOP_IS_MOCK, isMock)
 }
@@ -174,6 +175,7 @@ fun LoopBase.putTo(map: MutableMap<String, Any?>) {
     map[EXTRA_LOOP_END] = endInDay
     map[EXTRA_LOOP_ACTIVE_DAYS] = activeDays
     map[EXTRA_LOOP_INTERVAL] = interval
+    map[EXTRA_LOOP_IS_ANYTIME] = isAnyTime
     map[EXTRA_LOOP_ENABLED] = enabled
     map[EXTRA_LOOP_IS_MOCK] = isMock
 }
@@ -189,7 +191,7 @@ fun Intent.asLoop(): LoopBase {
         activeDays = getIntExtra(EXTRA_LOOP_ACTIVE_DAYS, DEFAULT_ACTIVE_DAYS),
         interval = getLongExtra(EXTRA_LOOP_INTERVAL, DEFAULT_INTERVAL),
         enabled = getBooleanExtra(EXTRA_LOOP_ENABLED, DEFAULT_ENABLED),
-        isAnyTime = getBooleanExtra(EXTRA_LOOP_IS_ANY_TIME, DEFAULT_IS_ANY_TIME),
+        isAnyTime = getBooleanExtra(EXTRA_LOOP_IS_ANYTIME, DEFAULT_IS_ANY_TIME),
         isMock = getBooleanExtra(EXTRA_LOOP_IS_MOCK, DEFAULT_IS_MOCK),
     )
 }
@@ -208,7 +210,7 @@ fun Map<String, Any?>.asLoop(): LoopBase {
         ) as Int,
         interval = (getOrDefault(EXTRA_LOOP_INTERVAL, DEFAULT_INTERVAL) as Number).toLong(),
         enabled = getOrDefault(EXTRA_LOOP_ENABLED, DEFAULT_ENABLED) as Boolean,
-        isAnyTime = getOrDefault(EXTRA_LOOP_IS_ANY_TIME, DEFAULT_IS_ANY_TIME) as Boolean,
+        isAnyTime = getOrDefault(EXTRA_LOOP_IS_ANYTIME, DEFAULT_IS_ANY_TIME) as Boolean,
         isMock = getOrDefault(EXTRA_LOOP_IS_MOCK, DEFAULT_IS_MOCK) as Boolean,
     )
 }
@@ -222,6 +224,5 @@ private const val EXTRA_LOOP_END = "extra_loop_end"
 private const val EXTRA_LOOP_ACTIVE_DAYS = "extra_loop_active_days"
 private const val EXTRA_LOOP_INTERVAL = "extra_loop_interval"
 private const val EXTRA_LOOP_ENABLED = "extra_loop_enabled"
-private const val EXTRA_LOOP_IS_ANY_TIME = "extra_loop_is_any_time"
+private const val EXTRA_LOOP_IS_ANYTIME = "extra_loop_is_any_time"
 private const val EXTRA_LOOP_IS_MOCK = "extra_loop_is_mock"
-

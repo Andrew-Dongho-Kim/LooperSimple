@@ -35,6 +35,8 @@ import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopDay.Companion.fromIndex
 import com.pnd.android.loop.data.LoopDay.Companion.isOn
 import com.pnd.android.loop.data.LoopDay.Companion.toggle
+import com.pnd.android.loop.data.common.defaultEndInDay
+import com.pnd.android.loop.data.common.defaultStartInDay
 import com.pnd.android.loop.ui.home.BlurState
 import com.pnd.android.loop.ui.home.rememberBlurState
 import com.pnd.android.loop.ui.theme.AppColor
@@ -187,9 +189,9 @@ private fun TimeDisplay(
 
     if (isOpened) {
         TimePickerDialog(
-            localTimeStart = selectedStartTime.toLocalTime(),
+            localTimeStart = (if (selectedStartTime < 0) defaultStartInDay else selectedStartTime).toLocalTime(),
             onStartTimeSelected = onStartTimeSelected,
-            localTimeEnd = selectedEndTime.toLocalTime(),
+            localTimeEnd = (if (selectedEndTime < 0) defaultEndInDay else selectedEndTime).toLocalTime(),
             onEndTimeSelected = onEndTimeSelected,
             isAnyTime = isAnyTime,
             onIsAnyTimeCheckChanged = onIsAnyTimeCheckChanged,
@@ -197,7 +199,6 @@ private fun TimeDisplay(
             onDismiss = {
                 isOpened = false
                 blurState.off()
-
             }
         )
     }

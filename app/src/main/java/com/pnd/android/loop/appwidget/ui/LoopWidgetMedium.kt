@@ -19,16 +19,12 @@ import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
-import androidx.glance.layout.size
 import com.pnd.android.loop.common.NavigatePage
 import com.pnd.android.loop.data.LoopBase
-import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.compositeOverOnSurface
-import com.pnd.android.loop.ui.theme.primary
-import com.pnd.android.loop.ui.theme.surface
-import com.pnd.android.loop.util.isActive
 import com.pnd.android.loop.util.isPast
 
+private val WIDGET_MEDIUM_PADDING_HORIZONTAL = 18.dp
 
 @Composable
 fun LoopWidgetMedium(
@@ -39,7 +35,7 @@ fun LoopWidgetMedium(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(AppColor.surface.copy(alpha = 0.7f))
+            .background(Color.White)
             .padding(
                 horizontal = 4.dp,
                 vertical = 4.dp,
@@ -48,14 +44,8 @@ fun LoopWidgetMedium(
         LocalDateHeader(
             modifier = GlanceModifier
                 .fillMaxWidth()
-                .padding(
-                    top = 8.dp,
-                    start = 4.dp,
-                    end = 4.dp,
-                    bottom = 8.dp,
-                ),
-            loops = loops,
-            todayTotal = todayTotal,
+                .padding(vertical = 8.dp)
+                .padding(horizontal = WIDGET_MEDIUM_PADDING_HORIZONTAL),
         )
 
         if (loops.isEmpty()) {
@@ -79,7 +69,10 @@ private fun LoopWidgetBody(
             items = loops,
             itemId = { loop -> loop.loopId.toLong() }
         ) { loop ->
-            LoopWidgetItem(loop = loop)
+            LoopWidgetItem(
+                modifier = GlanceModifier.padding(horizontal = 8.dp),
+                loop = loop
+            )
         }
         item(
             itemId = -1L
@@ -95,17 +88,11 @@ private fun LoopWidgetItem(
     loop: LoopBase,
 ) {
     val isPast = loop.isPast()
+    val isAnyTime = loop.isAnyTime
     val context = LocalContext.current
 
     Column(
         modifier = modifier
-            .background(
-                if (loop.isActive()) {
-                    AppColor.primary.copy(alpha = 0.1f)
-                } else {
-                    Color.Transparent
-                }
-            )
             .fillMaxWidth()
             .clickable {
                 context.startActivity(
@@ -125,35 +112,50 @@ private fun LoopWidgetItem(
                 bottom = if (!isPast) 16.dp else 0.dp,
             ),
     ) {
-        if (!isPast) {
-            LoopStartEndTime(
-                modifier = GlanceModifier.padding(start = 22.dp),
-                loop = loop
-            )
-        }
+
         Row(
             modifier = GlanceModifier.padding(top = if (isPast) 2.dp else 4.dp),
             verticalAlignment = Alignment.Vertical.CenterVertically
         ) {
             LoopColor(
-                modifier = GlanceModifier
-                    .size(12.dp),
                 color = loop.color.compositeOverOnSurface()
             )
-            LoopTitle(
-                modifier = GlanceModifier.padding(start = 8.dp),
-                title = loop.title
-            )
+            Column(
+                modifier = GlanceModifier
+                    .defaultWeight()
+                    .padding(start = WIDGET_MEDIUM_PADDING_HORIZONTAL)
+            ) {
+                LoopTitle(
+                    title = loop.title
+                )
+
+                if (!isPast) {
+                    LoopStartEndTime(
+                        loop = loop
+                    )
+                }
+            }
+
+            if (isAnyTime && (loop.startInDay < 0 || loop.endInDay < 0)) {
+                AnyTimeLoopStartOrStop(
+                    modifier = GlanceModifier.padding(
+                        start = WIDGET_MEDIUM_PADDING_HORIZONTAL,
+                    ),
+                    loop = loop
+                )
+            }
         }
 
-        if (isPast) {
+        if (!isAnyTime && isPast) {
             LoopDoneOrSkipMedium(
                 modifier = GlanceModifier.padding(
-                    start = 8.dp,
+                    start = WIDGET_MEDIUM_PADDING_HORIZONTAL,
                     top = 12.dp
                 ),
                 loopId = loop.loopId
             )
         }
+
+
     }
 }
