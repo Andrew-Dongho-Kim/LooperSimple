@@ -8,6 +8,7 @@ import androidx.compose.ui.unit.dp
 import androidx.glance.GlanceModifier
 import androidx.glance.LocalContext
 import androidx.glance.action.clickable
+import androidx.glance.appwidget.CircularProgressIndicator
 import androidx.glance.appwidget.lazy.LazyColumn
 import androidx.glance.appwidget.lazy.items
 import androidx.glance.background
@@ -22,6 +23,7 @@ import androidx.glance.layout.padding
 import com.pnd.android.loop.common.NavigatePage
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.ui.theme.compositeOverOnSurface
+import com.pnd.android.loop.util.isActive
 import com.pnd.android.loop.util.isPast
 
 private val WIDGET_MEDIUM_PADDING_HORIZONTAL = 18.dp
@@ -114,7 +116,9 @@ private fun LoopWidgetItem(
     ) {
 
         Row(
-            modifier = GlanceModifier.padding(top = if (isPast) 2.dp else 4.dp),
+            modifier = GlanceModifier
+                .padding(top = if (isPast) 2.dp else 4.dp)
+                .fillMaxWidth(),
             verticalAlignment = Alignment.Vertical.CenterVertically
         ) {
             LoopColor(
@@ -139,7 +143,7 @@ private fun LoopWidgetItem(
             if (isAnyTime && (loop.startInDay < 0 || loop.endInDay < 0)) {
                 AnyTimeLoopStartOrStop(
                     modifier = GlanceModifier.padding(
-                        start = WIDGET_MEDIUM_PADDING_HORIZONTAL,
+                        horizontal = WIDGET_MEDIUM_PADDING_HORIZONTAL,
                     ),
                     loop = loop
                 )

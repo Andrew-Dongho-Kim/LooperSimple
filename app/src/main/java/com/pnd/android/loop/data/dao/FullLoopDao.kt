@@ -65,8 +65,8 @@ interface FullLoopDao {
     @Query(
         """SELECT loopId, title, color, doneCount /  CAST(allCount AS REAL) AS doneRate FROM 
                 (SELECT *,
-                    (SELECT COUNT(*) FROM loop_done WHERE loopId==loopId AND :from <= date AND date <= :to) AS allCount, 
-                    (SELECT COUNT(*) FROM loop_done WHERE done == ${LoopDoneVo.DoneState.DONE} AND loopId==loopId AND :from <= date AND date <= :to) AS doneCount
+                    (SELECT COUNT(*) FROM loop_done WHERE loopId==loop.loopId AND :from <= date AND date <= :to) AS allCount, 
+                    (SELECT COUNT(*) FROM loop_done WHERE done == ${LoopDoneVo.DoneState.DONE} AND loopId==loop.loopId AND :from <= date AND date <= :to) AS doneCount
                 FROM loop WHERE created <= :to) 
             ORDER BY doneRate DESC
         """

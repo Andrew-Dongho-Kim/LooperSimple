@@ -1,6 +1,7 @@
 package com.pnd.android.loop.ui.statisctics
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -15,12 +16,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Sort
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -42,6 +47,7 @@ import com.pnd.android.loop.data.LoopWithStatistics
 import com.pnd.android.loop.ui.common.SimpleAppBar
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
+import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.background
 import com.pnd.android.loop.ui.theme.compositeOverOnSurface
 import com.pnd.android.loop.ui.theme.onSurface
@@ -78,7 +84,6 @@ fun StatisticsPage(
         StatisticsPageContent(
             modifier = Modifier
                 .padding(contentPadding)
-                .padding(start = 12.dp, end = 24.dp)
                 .fillMaxWidth()
                 .fillMaxHeight(),
             statisticsViewModel = statisticsViewModel,
@@ -95,22 +100,56 @@ private fun StatisticsPageContent(
 ) {
     var selectedTab by remember { mutableStateOf(Tab.Total) }
     Column(modifier = modifier) {
-        LoopsOrderByDoneRate(
-            modifier = Modifier.height(400.dp),
-            statisticsViewModel = statisticsViewModel,
-            selectedTab = selectedTab,
-            onNavigateToDetailPage = onNavigateToDetailPage,
-        )
 
-        LoopsOrderTab(
+        Column(
+            modifier = Modifier.background(color = AppColor.onSurface.copy(alpha = 0.05f))
+        ) {
+            LoopSortIcon(
+                modifier = Modifier
+                    .align(Alignment.End)
+                    .padding(
+                        top = 12.dp,
+                        end = 24.dp
+                    )
+            )
+            LoopsOrderByDoneRate(
+                modifier = Modifier
+                    .padding(vertical = 12.dp)
+                    .height(250.dp)
+                    .padding(
+                        start = 12.dp,
+                        end = 24.dp
+                    ),
+                statisticsViewModel = statisticsViewModel,
+                selectedTab = selectedTab,
+                onNavigateToDetailPage = onNavigateToDetailPage,
+            )
+        }
+
+        LoopsRecentTab(
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
                 .background(color = AppColor.surface)
-                .padding(top = 24.dp),
+                .padding(top = 24.dp)
+                .padding(start = 12.dp, end = 24.dp),
             selectedTab = selectedTab,
             onTabSelected = { selectedTab = it },
         )
     }
+}
+
+@Composable
+private fun LoopSortIcon(
+    modifier: Modifier
+) {
+    Image(
+        modifier = modifier
+            .clip(RoundShapes.small)
+            .clickable {
+            },
+        imageVector = Icons.AutoMirrored.Outlined.Sort,
+        contentDescription = ""
+    )
 }
 
 @Composable
@@ -197,18 +236,25 @@ private fun LoopItemWithDoneRate(
 }
 
 @Composable
-private fun LoopsOrderTab(
+private fun LoopsRecentTab(
     modifier: Modifier = Modifier,
     selectedTab: Tab,
     onTabSelected: (Tab) -> Unit,
 ) {
     Row(
-        modifier = modifier.horizontalScroll(rememberScrollState()),
+        modifier = modifier
+            .horizontalScroll(rememberScrollState())
+            .clip(RoundShapes.medium)
+            .border(
+                width = 0.5.dp,
+                color = AppColor.onSurface.copy(alpha = 0.4f),
+                shape = RoundShapes.medium
+            ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         val tabs = rememberTabs()
         tabs.forEach { tab ->
-            LoopsOrderTabItem(
+            LoopsRecentTabItem(
                 text = stringResource(id = tab.text()),
                 isSelected = tab == selectedTab,
                 onSelected = { onTabSelected(tab) }
@@ -218,7 +264,7 @@ private fun LoopsOrderTab(
 }
 
 @Composable
-private fun LoopsOrderTabItem(
+private fun LoopsRecentTabItem(
     modifier: Modifier = Modifier,
     text: String,
     isSelected: Boolean = false,
@@ -227,14 +273,14 @@ private fun LoopsOrderTabItem(
     Text(
         modifier = modifier
             .clickable { onSelected() }
-            .border(
-                width = 0.5.dp,
-                color = AppColor.onSurface.copy(alpha = 0.4f),
-            )
             .background(
                 color = if (isSelected) AppColor.surface.compositeOverOnSurface() else AppColor.surface,
             )
-            .padding(all = 12.dp)
+            .padding(
+                horizontal = 12.dp,
+                vertical = 8.dp,
+            )
+            .widthIn(min = 30.dp)
             .wrapContentWidth(Alignment.CenterHorizontally),
         text = text,
         style = AppTypography.bodyMedium.copy(
@@ -326,4 +372,17 @@ private enum class Tab(
                 .toMs()
         }
     )
+}
+
+private enum class Order {
+    DoneRate,
+    DoneCount,
+    SkipRate,
+    SkipCount,
+    Oldest,
+    ;
+
+    fun next(): Order {
+        return Order.entries[(this.ordinal + 1) % Order.entries.size]
+    }
 }
