@@ -6,20 +6,23 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
-import com.pnd.android.loop.ui.theme.compositeOverSurface
+import com.pnd.android.loop.ui.theme.Dimens
+import com.pnd.android.loop.ui.theme.RoundShapes
+import com.pnd.android.loop.ui.theme.onPrimary
 import com.pnd.android.loop.ui.theme.onSurface
+import com.pnd.android.loop.ui.theme.outline
+import com.pnd.android.loop.ui.theme.primary
+import com.pnd.android.loop.ui.theme.surfaceContainer
 
 @Composable
 fun TextSelectorItem(
@@ -28,32 +31,34 @@ fun TextSelectorItem(
     selected: Boolean = false,
     onClick: () -> Unit = {}
 ) {
-    val colorOnSurface = AppColor.onSurface
     val colors = ButtonDefaults.buttonColors(
         containerColor = if (selected) {
-            colorOnSurface.copy(alpha = 0.08f)
+            AppColor.primary
         } else {
-            compositeOverSurface()
+            AppColor.surfaceContainer
         },
         contentColor = if (selected) {
-            colorOnSurface
+            AppColor.onPrimary
         } else {
-            colorOnSurface.copy(alpha = 0.74f)
+            AppColor.onSurface.copy(alpha = 0.74f)
         }
     )
     val border = if (selected) {
-        BorderStroke(width = 0.5.dp, color = colorOnSurface.copy(alpha = 0.3f))
-    } else {
         null
+    } else {
+        BorderStroke(width = 0.5.dp, color = AppColor.outline.copy(alpha = 0.5f))
     }
 
     TextButton(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 8.dp)
-            .height(30.dp),
+            .padding(
+                horizontal = Dimens.contentPadding,
+                vertical = Dimens.itemSpacing
+            )
+            .height(36.dp),
         onClick = onClick,
-        shape = MaterialTheme.shapes.medium,
+        shape = RoundShapes.medium,
         border = border,
         enabled = true,
         colors = colors,
@@ -63,7 +68,6 @@ fun TextSelectorItem(
             text = text,
             textAlign = TextAlign.Center,
             style = AppTypography.bodyMedium.copy(
-                shadow = Shadow(blurRadius = 0.5f),
                 fontWeight = FontWeight.Medium
             )
         )

@@ -29,6 +29,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,9 +46,9 @@ import com.pnd.android.loop.ui.home.input.SharedElementsOfUserInput.KEY_BUTTON_I
 import com.pnd.android.loop.ui.home.input.SharedElementsOfUserInput.TRANSITION_DURATION
 import com.pnd.android.loop.ui.home.input.selector.Selectors
 import com.pnd.android.loop.ui.theme.AppColor
-import com.pnd.android.loop.ui.theme.onSurface
+import com.pnd.android.loop.ui.theme.outline
 import com.pnd.android.loop.ui.theme.primary
-import com.pnd.android.loop.ui.theme.surface
+import com.pnd.android.loop.ui.theme.surfaceElevated
 import com.pnd.android.loop.util.BackPressHandler
 import com.pnd.android.loop.util.rememberImeOpenState
 import kotlinx.coroutines.launch
@@ -106,7 +107,10 @@ fun UserInput(
     onLoopSubmitted: (LoopBase) -> Unit,
 ) {
     val keyboardShown by rememberImeOpenState()
-    val focusRequester = FocusRequester()
+    // Must survive recomposition: the instance attached to the focus target and
+    // the one requestFocus() is called on must be the same, otherwise focus
+    // requests throw "FocusRequester is not initialized".
+    val focusRequester = remember { FocusRequester() }
 
     val coroutineScope = rememberCoroutineScope()
     SideEffect {
@@ -121,11 +125,11 @@ fun UserInput(
 
     Column(
         modifier
-            .background(color = if (inputState.isVisible) AppColor.surface else Color.Transparent)
+            .background(color = if (inputState.isVisible) AppColor.surfaceElevated else Color.Transparent)
     ) {
         HorizontalDivider(
             thickness = 0.5.dp,
-            color = AppColor.onSurface.copy(alpha = 0.3f)
+            color = AppColor.outline.copy(alpha = 0.5f)
         )
         UserInputText(
             textField = inputState.textFieldValue,
@@ -204,7 +208,7 @@ private fun UserInputExpandButton(
                 shape = CircleShape,
                 border = BorderStroke(
                     width = 0.5.dp,
-                    color = AppColor.onSurface.copy(alpha = 0.3f),
+                    color = AppColor.outline.copy(alpha = 0.5f),
                 )
             ) {
 

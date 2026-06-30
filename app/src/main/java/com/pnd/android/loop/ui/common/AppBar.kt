@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.onSurface
@@ -49,11 +50,12 @@ fun AppBarIcon(
     imageVector: ImageVector,
     color: Color,
     @StringRes descriptionResId: Int,
+    horizontalPadding: Dp = 12.dp,
     onClick: () -> Unit = {}
 ) = Icon(
     modifier = modifier
         .clickable(onClick = onClick)
-        .padding(horizontal = 12.dp, vertical = 16.dp)
+        .padding(horizontal = horizontalPadding, vertical = 16.dp)
         .height(24.dp),
     imageVector = imageVector,
     tint = color,

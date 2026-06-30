@@ -1,21 +1,31 @@
 package com.pnd.android.loop.ui.detail
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.DateRange
+import androidx.compose.material.icons.outlined.Repeat
+import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -24,7 +34,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -38,8 +50,11 @@ import com.patrykandpatrick.vico.core.model.lineSeries
 import com.pnd.android.loop.BuildConfig
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
+import com.pnd.android.loop.data.LoopDay
+import com.pnd.android.loop.data.LoopDay.Companion.isOn
 import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.LoopVo
+import com.pnd.android.loop.data.common.NO_REPEAT
 import com.pnd.android.loop.data.currentTimeStat
 import com.pnd.android.loop.ui.common.SimpleAd
 import com.pnd.android.loop.ui.common.SimpleAppBar
@@ -49,19 +64,27 @@ import com.pnd.android.loop.ui.home.LoopDoneOrSkip
 import com.pnd.android.loop.ui.home.LoopOnOffSwitch
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
+import com.pnd.android.loop.ui.theme.Dimens
 import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.background
 import com.pnd.android.loop.ui.theme.compositeOverOnSurface
 import com.pnd.android.loop.ui.theme.error
 import com.pnd.android.loop.ui.theme.onSurface
+import com.pnd.android.loop.ui.theme.primary
+import com.pnd.android.loop.ui.theme.secondary
+import com.pnd.android.loop.ui.theme.surfaceContainer
+import com.pnd.android.loop.ui.theme.surfaceElevated
+import com.pnd.android.loop.util.ABB_DAYS
 import com.pnd.android.loop.util.ABB_MONTHS
 import com.pnd.android.loop.util.DAYS_WITH_3CHARS
 import com.pnd.android.loop.util.annotatedString
 import com.pnd.android.loop.util.formatHourMinute
 import com.pnd.android.loop.util.formatYearMonthDateDays
+import com.pnd.android.loop.util.intervalString
 import com.pnd.android.loop.util.toLocalDate
 import com.pnd.android.loop.util.toLocalDateTime
 import java.time.LocalDate
+import kotlin.math.roundToInt
 
 private val adId = if (BuildConfig.DEBUG) {
     "ca-app-pub-3940256099942544/6300978111"
@@ -69,11 +92,11 @@ private val adId = if (BuildConfig.DEBUG) {
     "ca-app-pub-2341430172816266/5981213088"
 }
 
-private val paddingHorizontalNormal = 16.dp
-private val paddingVerticalNormal = 14.dp
-private val paddingVerticalLarge = 24.dp
-private val paddingVerticalExtraLarge = 48.dp
-private val paddingVerticalSuperExtraLarge = 60.dp
+/** Inner padding shared by every card on the detail screen. */
+private val CardPadding = 20.dp
+
+/** Vertical gap between rows inside a card (info rows, header → content). */
+private val CardInnerSpacing = 16.dp
 
 
 @Composable
@@ -96,7 +119,7 @@ fun DetailPage(
                 onNavigateUp = onNavigateUp,
                 actions = {
                     LoopOnOffSwitch(
-                        modifier = Modifier.padding(end = 24.dp),
+                        modifier = Modifier.padding(end = Dimens.screenHorizontalPadding),
                         enabled = loop.enabled,
                         onEnabled = { enabled -> detailViewModel.enableLoop(loop, enabled) }
                     )
@@ -122,111 +145,125 @@ private fun DetailPageContent(
 ) {
     Column(
         modifier = modifier
-            .padding(horizontal = 16.dp, vertical = paddingVerticalNormal)
+            .padding(horizontal = Dimens.screenHorizontalPadding)
+            .padding(top = Dimens.contentPadding, bottom = 48.dp)
             .fillMaxWidth()
-            .verticalScroll(state = rememberScrollState())
+            .verticalScroll(state = rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(Dimens.sectionSpacing),
     ) {
-        LoopState(
+        StatusCard(
             detailViewModel = detailViewModel,
             loop = loop,
         )
 
-        LoopStartAndEndTime(
-            modifier = Modifier.padding(top = paddingVerticalLarge),
-            loop = loop
-        )
-        LoopCreatedDate(
-            modifier = Modifier.padding(top = paddingVerticalNormal),
-            created = loop.created
-        )
+        LoopRateSummary(detailViewModel = detailViewModel)
 
-        SimpleAd(
-            modifier = Modifier.padding(top = paddingVerticalLarge),
-            adId = adId
-        )
+        ScheduleCard(loop = loop)
 
-        LoopResponseDoneSkipRate(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = paddingVerticalSuperExtraLarge),
-            detailViewModel = detailViewModel,
-        )
+        SimpleAd(adId = adId)
 
-        DoneHistoryGrid(
-            modifier = Modifier
-                .padding(top = paddingVerticalLarge)
-                .fillMaxWidth()
-                .height(264.dp),
+        DoneHistorySection(
             detailViewModel = detailViewModel,
             loop = loop,
         )
 
-        DailyDoneRateChart(
-            modifier = Modifier.padding(
-                top = paddingVerticalSuperExtraLarge
-            ),
-            detailViewModel = detailViewModel,
-        )
+        DailyDoneRateChart(detailViewModel = detailViewModel)
 
-        MonthlyDoneRateChart(
-            modifier = Modifier.padding(
-                top = paddingVerticalSuperExtraLarge
-            ),
-            detailViewModel = detailViewModel,
-        )
+        MonthlyDoneRateChart(detailViewModel = detailViewModel)
 
-        DayOfWeekDoneRateChart(
-            modifier = Modifier.padding(
-                top = paddingVerticalSuperExtraLarge
-            ),
-            detailViewModel = detailViewModel,
-        )
+        DayOfWeekDoneRateChart(detailViewModel = detailViewModel)
 
         DetailPageDebug(
-            modifier = Modifier.padding(top = paddingVerticalExtraLarge),
             detailViewModel = detailViewModel,
-            loop = loop
+            loop = loop,
         )
     }
 }
 
+/**
+ * Shared container for every section on the detail screen: a lifted surface with soft
+ * rounding and a hairline border so cards read as a distinct layer over the background in
+ * both light and dark themes (mirrors the card styling used on the home screen).
+ */
 @Composable
-private fun LoopState(
+private fun DetailCard(
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundShapes.large,
+        color = AppColor.surfaceElevated,
+        border = BorderStroke(
+            width = 0.5.dp,
+            color = AppColor.onSurface.copy(alpha = 0.08f),
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(all = CardPadding),
+            content = content,
+        )
+    }
+}
+
+/** Bold title shown at the top of a card to label the section below it. */
+@Composable
+private fun SectionHeader(
+    modifier: Modifier = Modifier,
+    title: String,
+) {
+    Text(
+        modifier = modifier,
+        text = title,
+        style = AppTypography.titleMedium.copy(
+            color = AppColor.onSurface,
+            fontWeight = FontWeight.Bold,
+        ),
+    )
+}
+
+/**
+ * Hero card showing where the loop sits in today's window ("32 mins left", "Finished", …),
+ * led by a dot in the loop's own color. Once the window has passed it also exposes the
+ * done / skip action so the day can be checked off without leaving the screen.
+ */
+@Composable
+private fun StatusCard(
     modifier: Modifier = Modifier,
     detailViewModel: LoopDetailViewModel,
     loop: LoopBase,
 ) {
     if (!loop.enabled) return
-    Column(
-        modifier = modifier
-            .padding(all = 12.dp)
-            .fillMaxWidth()
-    ) {
 
-        Row {
-            val timeStat = loop.currentTimeStat
+    val timeStat = loop.currentTimeStat
+    val statusText = timeStat.asString(LocalContext.current, false)
+    if (statusText.isEmpty() && !timeStat.isPast()) return
 
-            Text(
-                text = annotatedString(
-                    text = timeStat.asString(LocalContext.current, false),
-                    color = Color(loop.color).copy(alpha = 0.5f).compositeOverOnSurface(),
-                ),
-                style = AppTypography.headlineMedium.copy(
-                    color = AppColor.onSurface
-                )
+    val accent = Color(loop.color).compositeOverOnSurface()
+
+    DetailCard(modifier = modifier) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(10.dp)
+                    .clip(CircleShape)
+                    .background(accent),
             )
 
-            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                modifier = Modifier
+                    .padding(start = 12.dp)
+                    .weight(1f),
+                text = annotatedString(text = statusText, color = accent),
+                style = AppTypography.headlineSmall.copy(color = AppColor.onSurface),
+            )
 
             if (timeStat.isPast()) {
                 LoopDoneOrSkip(
                     modifier = Modifier.height(36.dp),
                     loop = loop,
-                    onStateChanged = { loop, doneState ->
-                        detailViewModel.doneLoop(
-                            loop = loop,
-                            doneState = doneState
-                        )
+                    onStateChanged = { changed, doneState ->
+                        detailViewModel.doneLoop(loop = changed, doneState = doneState)
                     },
                 )
             }
@@ -234,152 +271,280 @@ private fun LoopState(
     }
 }
 
+/**
+ * Card that collects the loop's schedule into a single, scannable place: start / end time,
+ * repeat interval (hidden when the loop never repeats), creation date with the running day
+ * count, and the active weekdays rendered as chips.
+ */
 @Composable
-private fun LoopCreatedDate(
+private fun ScheduleCard(
     modifier: Modifier = Modifier,
-    created: Long,
+    loop: LoopBase,
 ) {
-    val createdDate = remember(created) { created.toLocalDate() }
+    val anyTime = stringResource(id = R.string.anytime)
+    val createdDate = remember(loop.created) { loop.created.toLocalDate() }
+    val dayCount = LocalDate.now().toEpochDay() - createdDate.toEpochDay() + 1
+
+    DetailCard(modifier = modifier) {
+        SectionHeader(title = stringResource(id = R.string.detail_schedule))
+
+        Column(
+            modifier = Modifier.padding(top = CardInnerSpacing),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            InfoRow(
+                icon = Icons.Outlined.Schedule,
+                label = stringResource(id = R.string.start),
+                value = if (loop.isAnyTime) anyTime else loop.startInDay.formatHourMinute(),
+            )
+            InfoRow(
+                icon = Icons.Outlined.Schedule,
+                label = stringResource(id = R.string.end),
+                value = if (loop.isAnyTime) anyTime else loop.endInDay.formatHourMinute(),
+            )
+            if (loop.interval != NO_REPEAT) {
+                InfoRow(
+                    icon = Icons.Outlined.Repeat,
+                    label = stringResource(id = R.string.detail_repeat),
+                    value = intervalString(loop.interval),
+                )
+            }
+            InfoRow(
+                icon = Icons.Outlined.DateRange,
+                label = stringResource(id = R.string.created_date),
+                value = createdDate.formatYearMonthDateDays(),
+                trailing = stringResource(id = R.string.n_days, dayCount),
+            )
+
+            ActiveDaysRow(
+                modifier = Modifier.padding(top = 2.dp),
+                activeDays = loop.activeDays,
+            )
+        }
+    }
+}
+
+/** A single "icon · label … value" line used inside [ScheduleCard]. */
+@Composable
+private fun InfoRow(
+    modifier: Modifier = Modifier,
+    icon: ImageVector,
+    label: String,
+    value: String,
+    trailing: String? = null,
+) {
     Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            modifier = Modifier,
-            text = stringResource(id = R.string.created_date),
-            style = AppTypography.headlineSmall.copy(
-                color = AppColor.onSurface
-            )
+        Icon(
+            modifier = Modifier.size(18.dp),
+            imageVector = icon,
+            tint = AppColor.onSurface.copy(alpha = 0.5f),
+            contentDescription = null,
         )
-
         Text(
-            modifier = Modifier
-                .weight(1f)
-                .padding(start = paddingHorizontalNormal),
-            text = createdDate.formatYearMonthDateDays(),
+            modifier = Modifier.padding(start = 12.dp),
+            text = label,
             style = AppTypography.bodyMedium.copy(
-                color = AppColor.onSurface
-            )
-        )
-
-        Text(
-            modifier = Modifier,
-            text = stringResource(
-                id = R.string.n_days,
-                LocalDate.now().toEpochDay() - createdDate.toEpochDay() + 1
+                color = AppColor.onSurface.copy(alpha = 0.6f),
             ),
-            style = AppTypography.bodyMedium.copy(
-                color = AppColor.onSurface
-            )
-        )
-    }
-}
-
-@Composable
-private fun LoopStartAndEndTime(
-    modifier: Modifier = Modifier,
-    loop: LoopBase
-) {
-
-    Column(modifier = modifier) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = stringResource(id = R.string.start),
-                style = AppTypography.headlineSmall.copy(
-                    color = AppColor.onSurface
-                )
-            )
-            Text(
-                modifier = Modifier.padding(start = paddingHorizontalNormal),
-                text = if (loop.isAnyTime) stringResource(id = R.string.anytime) else loop.startInDay.formatHourMinute(),
-                style = AppTypography.bodyMedium.copy(
-                    color = AppColor.onSurface
-                )
-            )
-        }
-        Row(
-            modifier = Modifier
-                .padding(top = paddingVerticalNormal)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = stringResource(id = R.string.end),
-                style = AppTypography.headlineSmall.copy(
-                    color = AppColor.onSurface
-                )
-            )
-            Text(
-                modifier = Modifier.padding(start = paddingHorizontalNormal),
-                text = if (loop.isAnyTime) stringResource(id = R.string.anytime) else loop.endInDay.formatHourMinute(),
-                style = AppTypography.bodyMedium.copy(
-                    color = AppColor.onSurface
-                )
-            )
-        }
-    }
-}
-
-@Composable
-private fun LoopResponseDoneSkipRate(
-    modifier: Modifier = Modifier,
-    detailViewModel: LoopDetailViewModel
-) {
-    Row(modifier = modifier.horizontalScroll(state = rememberScrollState())) {
-        val duration by detailViewModel.allEnabledCount.collectAsState(initial = 0)
-        val doneCount by detailViewModel.doneCount.collectAsState(initial = 0)
-        LoopRate(
-            text = stringResource(id = R.string.done_rate),
-            rate = if (duration == 0) 0f else (doneCount.toFloat() / duration) * 100,
-            count = doneCount,
         )
 
-        val skipCount by detailViewModel.skipCount.collectAsState(initial = 0)
-        LoopRate(
-            modifier = Modifier.padding(start = 24.dp),
-            text = stringResource(id = R.string.skip_rate),
-            rate = if (duration == 0) 0f else (skipCount.toFloat() / duration) * 100,
-            count = skipCount,
-        )
+        Spacer(modifier = Modifier.weight(1f))
 
-        val responseCount by detailViewModel.respondCount.collectAsState(initial = 0)
-        LoopRate(
-            modifier = Modifier.padding(start = 24.dp),
-            text = stringResource(id = R.string.response_rate),
-            rate = if (duration == 0) 0f else (responseCount.toFloat() / duration) * 100,
-            count = responseCount,
-        )
-    }
-}
-
-@Composable
-private fun LoopRate(
-    modifier: Modifier = Modifier,
-    text: String,
-    rate: Float,
-    count: Int
-) {
-    Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
         Text(
-            text = text,
-            style = AppTypography.headlineSmall.copy(
+            text = value,
+            style = AppTypography.bodyMedium.copy(
                 color = AppColor.onSurface,
                 fontWeight = FontWeight.Medium,
-            )
+            ),
         )
-
-        Text(
-            modifier = Modifier.padding(start = 8.dp),
-            text = String.format("%.2f%% (%d)", rate, count),
-            style = AppTypography.bodyMedium.copy(
-                color = AppColor.onSurface
+        if (trailing != null) {
+            Text(
+                modifier = Modifier.padding(start = 8.dp),
+                text = trailing,
+                style = AppTypography.bodySmall.copy(
+                    color = AppColor.onSurface.copy(alpha = 0.4f),
+                ),
             )
+        }
+    }
+}
+
+/** The seven weekdays as compact chips; active days are filled and tinted with the accent. */
+@Composable
+private fun ActiveDaysRow(
+    modifier: Modifier = Modifier,
+    activeDays: Int,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        ABB_DAYS.forEachIndexed { index, dayResId ->
+            val selected = activeDays.isOn(LoopDay.fromIndex(index))
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(30.dp)
+                    .clip(CircleShape)
+                    .background(
+                        color = if (selected) {
+                            AppColor.primary.copy(alpha = 0.14f)
+                        } else {
+                            AppColor.surfaceContainer
+                        },
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = stringResource(id = dayResId),
+                    style = AppTypography.labelMedium.copy(
+                        color = if (selected) {
+                            AppColor.primary
+                        } else {
+                            AppColor.onSurface.copy(alpha = 0.4f)
+                        },
+                    ),
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Three side-by-side stat cards summarising how the loop has been answered overall:
+ * done, skipped and total response rate. Each shows the percentage, the raw count and a
+ * thin progress bar so the numbers are comparable at a glance.
+ */
+@Composable
+private fun LoopRateSummary(
+    modifier: Modifier = Modifier,
+    detailViewModel: LoopDetailViewModel,
+) {
+    val total by detailViewModel.allEnabledCount.collectAsState(initial = 0)
+    val doneCount by detailViewModel.doneCount.collectAsState(initial = 0)
+    val skipCount by detailViewModel.skipCount.collectAsState(initial = 0)
+    val responseCount by detailViewModel.respondCount.collectAsState(initial = 0)
+
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        StatCard(
+            modifier = Modifier.weight(1f),
+            label = stringResource(id = R.string.done_rate),
+            count = doneCount,
+            total = total,
+            accent = AppColor.primary,
+        )
+        StatCard(
+            modifier = Modifier.weight(1f),
+            label = stringResource(id = R.string.skip_rate),
+            count = skipCount,
+            total = total,
+            accent = AppColor.secondary,
+        )
+        StatCard(
+            modifier = Modifier.weight(1f),
+            label = stringResource(id = R.string.response_rate),
+            count = responseCount,
+            total = total,
+            accent = AppColor.onSurface,
+        )
+    }
+}
+
+@Composable
+private fun StatCard(
+    modifier: Modifier = Modifier,
+    label: String,
+    count: Int,
+    total: Int,
+    accent: Color,
+) {
+    val fraction = if (total == 0) 0f else (count.toFloat() / total).coerceIn(0f, 1f)
+    val percent = (fraction * 100).roundToInt()
+
+    Surface(
+        modifier = modifier,
+        shape = RoundShapes.large,
+        color = AppColor.surfaceElevated,
+        border = BorderStroke(
+            width = 0.5.dp,
+            color = AppColor.onSurface.copy(alpha = 0.08f),
+        ),
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Text(
+                text = label,
+                style = AppTypography.labelLarge.copy(
+                    color = AppColor.onSurface.copy(alpha = 0.6f),
+                ),
+            )
+            Text(
+                modifier = Modifier.padding(top = 8.dp),
+                text = "$percent%",
+                style = AppTypography.headlineMedium.copy(color = accent),
+            )
+            Text(
+                modifier = Modifier.padding(top = 2.dp),
+                text = "($count)",
+                style = AppTypography.bodySmall.copy(
+                    color = AppColor.onSurface.copy(alpha = 0.45f),
+                ),
+            )
+            StatProgressBar(
+                modifier = Modifier.padding(top = 10.dp),
+                fraction = fraction,
+                accent = accent,
+            )
+        }
+    }
+}
+
+/** Rounded track + accent fill used as a compact rate indicator inside [StatCard]. */
+@Composable
+private fun StatProgressBar(
+    modifier: Modifier = Modifier,
+    fraction: Float,
+    accent: Color,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(4.dp)
+            .clip(CircleShape)
+            .background(AppColor.surfaceContainer),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(fraction)
+                .fillMaxHeight()
+                .clip(CircleShape)
+                .background(accent),
+        )
+    }
+}
+
+/** Calendar-style done/skip history, wrapped in a titled card. */
+@Composable
+private fun DoneHistorySection(
+    modifier: Modifier = Modifier,
+    detailViewModel: LoopDetailViewModel,
+    loop: LoopBase,
+) {
+    DetailCard(modifier = modifier) {
+        SectionHeader(title = stringResource(id = R.string.daily_record))
+
+        DoneHistoryGrid(
+            modifier = Modifier
+                .padding(top = CardInnerSpacing)
+                .fillMaxWidth()
+                .height(264.dp),
+            detailViewModel = detailViewModel,
+            loop = loop,
         )
     }
 }
@@ -389,18 +554,13 @@ private fun DailyDoneRateChart(
     modifier: Modifier = Modifier,
     detailViewModel: LoopDetailViewModel,
 ) {
-    Column(modifier = modifier) {
-        val loop by detailViewModel.loop.collectAsState(initial = LoopVo.create())
+    val loop by detailViewModel.loop.collectAsState(initial = LoopVo.create())
 
-        Text(
-            modifier = Modifier.padding(bottom = paddingVerticalNormal),
-            text = stringResource(id = R.string.daily_done_rate_chart),
-            style = AppTypography.headlineSmall.copy(
-                color = AppColor.onSurface
-            )
-        )
+    DetailCard(modifier = modifier) {
+        SectionHeader(title = stringResource(id = R.string.daily_done_rate_chart))
 
         AdvancedLineChart(
+            modifier = Modifier.padding(top = CardInnerSpacing),
             modelProducer = rememberDailyDoneRateModel(
                 loop = loop,
                 detailViewModel = detailViewModel,
@@ -432,7 +592,7 @@ private fun rememberDailyDoneRateModel(
         while (date.isAfter(createdDate)) {
             val doneCount = detailViewModel.doneCountBefore(loop.loopId, date)
             val allCount = detailViewModel.allEnabledCountBefore(loop.loopId, date)
-            val rate = doneCount.toFloat() / allCount
+            val rate = if (allCount == 0) 0f else doneCount.toFloat() / allCount
             x.add(days++)
             y.add(rate * 100)
 
@@ -470,18 +630,13 @@ private fun MonthlyDoneRateChart(
     modifier: Modifier = Modifier,
     detailViewModel: LoopDetailViewModel,
 ) {
-    Column(modifier = modifier) {
-        val loop by detailViewModel.loop.collectAsState(initial = LoopVo.create())
+    val loop by detailViewModel.loop.collectAsState(initial = LoopVo.create())
 
-        Text(
-            modifier = Modifier.padding(bottom = paddingVerticalNormal),
-            text = stringResource(id = R.string.monthly_done_rate_chart),
-            style = AppTypography.headlineSmall.copy(
-                color = AppColor.onSurface
-            )
-        )
+    DetailCard(modifier = modifier) {
+        SectionHeader(title = stringResource(id = R.string.monthly_done_rate_chart))
 
         BarChart(
+            modifier = Modifier.padding(top = CardInnerSpacing),
             modelProducer = rememberMonthlyDoneRate(
                 loop = loop,
                 detailViewModel = detailViewModel,
@@ -520,7 +675,7 @@ private fun rememberMonthlyDoneRate(
                 from = firstDateOfMonth,
                 to = date
             )
-            val rate = doneCount.toFloat() / allCount
+            val rate = if (allCount == 0) 0f else doneCount.toFloat() / allCount
             x.add(months++)
             y.add(rate * 100)
 
@@ -559,18 +714,13 @@ private fun DayOfWeekDoneRateChart(
     modifier: Modifier = Modifier,
     detailViewModel: LoopDetailViewModel,
 ) {
-    Column(modifier = modifier) {
-        val loop by detailViewModel.loop.collectAsState(initial = LoopVo.create())
+    val loop by detailViewModel.loop.collectAsState(initial = LoopVo.create())
 
-        Text(
-            modifier = Modifier.padding(bottom = paddingVerticalNormal),
-            text = stringResource(id = R.string.day_of_week_done_rate_chart),
-            style = AppTypography.headlineSmall.copy(
-                color = AppColor.onSurface
-            )
-        )
+    DetailCard(modifier = modifier) {
+        SectionHeader(title = stringResource(id = R.string.day_of_week_done_rate_chart))
 
         BarChart(
+            modifier = Modifier.padding(top = CardInnerSpacing),
             modelProducer = rememberDayOfWeekDoneRate(
                 loop = loop,
                 detailViewModel = detailViewModel,
@@ -634,7 +784,10 @@ private fun rememberDayOfWeekDonRateChartBottomAxisFormatter()
     val context = LocalContext.current
     return remember {
         AxisValueFormatter { value, _, _ ->
-            context.getString(DAYS_WITH_3CHARS[value.toInt()])
+            // The chart may probe the formatter with extrapolated axis values;
+            // clamp to the valid day-of-week range to avoid index out of bounds.
+            val index = value.toInt().coerceIn(0, DAYS_WITH_3CHARS.lastIndex)
+            context.getString(DAYS_WITH_3CHARS[index])
         }
     }
 }

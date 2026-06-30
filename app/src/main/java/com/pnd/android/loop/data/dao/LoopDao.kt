@@ -22,14 +22,17 @@ interface LoopDao {
     @Query("SELECT * FROM loop ORDER BY startInDay ASC, endInDay ASC")
     fun getAllLoopsLiveData(): LiveData<List<LoopVo>>
 
+    // Nullable: the loop may have been deleted (e.g. a stale widget button or a
+    // detail/paging screen observing a removed loop).
     @Query("SELECT * FROM loop WHERE loopId=:loopId")
-    suspend fun getLoop(loopId: Int): LoopVo
+    suspend fun getLoop(loopId: Int): LoopVo?
 
     @Query("SELECT * FROM loop WHERE loopId=:loopId")
     fun getLoopFlow(loopId: Int): Flow<LoopVo>
 
+    // Nullable: min() returns NULL when the loop table is empty.
     @Query("SELECT min(created) FROM loop")
-    fun getMinCreatedTimeFlow(): Flow<Long>
+    fun getMinCreatedTimeFlow(): Flow<Long?>
 
 
     @Insert
@@ -49,15 +52,17 @@ interface LoopDao {
     @Query("DELETE FROM loop WHERE loopId = :id")
     suspend fun delete(id: Int)
 
-    suspend fun numberOfLoopsAtTheSameTime(another: LoopBase) =
-        another.activeDays
+    suspend fun numberOfLoopsAtTheSameTime(another: LoopBase): Int {
+        // Query the DB once and reuse the result for every active day. Previously
+        // getAllLoops() ran once per active day (up to 7 queries) for a single check.
+        val allLoops = getAllLoops()
+        val loopsTogether = allLoops.filter { loop -> loop.isTogether(another) }
+        return another.activeDays
             .all()
-            .map { day ->
-                getAllLoops()
-                    .filter { loop -> loop.activeDays.isOn(day) }
-                    .filter { loop -> loop.isTogether(another) }
+            .maxOfOrNull { day ->
+                loopsTogether.count { loop -> loop.activeDays.isOn(day) }
             }
-            .maxOfOrNull { loops -> loops.size }
             ?: 0
+    }
 
 }

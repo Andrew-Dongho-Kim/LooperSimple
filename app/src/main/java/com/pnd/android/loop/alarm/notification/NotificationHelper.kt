@@ -38,7 +38,9 @@ class NotificationHelper @Inject constructor(
             this.action = action
             putTo(this)
         },
-        PendingIntent.FLAG_UPDATE_CURRENT
+        // FLAG_IMMUTABLE is mandatory on Android 12+ (API 31); omitting a
+        // mutability flag throws IllegalArgumentException.
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
     )
 
     fun notify(loop: LoopBase) {

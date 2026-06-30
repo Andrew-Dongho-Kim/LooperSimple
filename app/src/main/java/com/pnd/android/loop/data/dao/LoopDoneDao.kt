@@ -38,6 +38,9 @@ interface LoopDoneDao {
     @Query("SELECT COUNT(*) FROM loop_done WHERE done != ${LoopDoneVo.DoneState.DISABLED}")
     fun getAllEnabledCountFlow(): Flow<Int>
 
+    @Query("SELECT COUNT(*) FROM loop_done WHERE done != ${LoopDoneVo.DoneState.DISABLED} AND date=:date")
+    fun getEnabledCountByDateFlow(date: Long): Flow<Int>
+
     @Query("SELECT COUNT(*) FROM loop_done WHERE loopId=:loopId AND done != ${LoopDoneVo.DoneState.DISABLED}")
     fun getAllEnabledCountFlow(loopId: Int): Flow<Int>
 
@@ -55,6 +58,9 @@ interface LoopDoneDao {
 
     @Query("SELECT COUNT(*) FROM loop_done WHERE done == ${LoopDoneVo.DoneState.DONE}")
     fun getDoneCountFlow(): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM loop_done WHERE done == ${LoopDoneVo.DoneState.DONE} AND date=:date")
+    fun getDoneCountByDateFlow(date: Long): Flow<Int>
 
     @Query("SELECT COUNT(*) FROM loop_done WHERE done == ${LoopDoneVo.DoneState.DONE} AND loopId=:loopId")
     fun getDoneCountFlow(loopId: Int): Flow<Int>

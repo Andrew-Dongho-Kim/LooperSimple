@@ -6,6 +6,7 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.ForeignKey.Companion.CASCADE
+import androidx.room.Index
 import com.pnd.android.loop.data.LoopDoneVo.DoneState.Companion.DISABLED
 import com.pnd.android.loop.data.LoopDoneVo.DoneState.Companion.DONE
 import com.pnd.android.loop.data.LoopDoneVo.DoneState.Companion.IN_PROGRESS
@@ -24,6 +25,12 @@ import com.pnd.android.loop.data.LoopDoneVo.DoneState.Companion.SKIP
             onUpdate = CASCADE,
             onDelete = CASCADE,
         )
+    ],
+    // loopId: speeds up FK cascades and the many WHERE loopId=... / JOIN lookups.
+    // date: speeds up the frequent ":from <= date AND date <= :to" range queries.
+    indices = [
+        Index(value = ["loopId"]),
+        Index(value = ["date"]),
     ]
 )
 data class LoopDoneVo(

@@ -14,7 +14,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
@@ -29,8 +28,10 @@ import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.common.SUPPORTED_COLORS
 import com.pnd.android.loop.ui.theme.AppColor
+import com.pnd.android.loop.ui.theme.Dimens
 import com.pnd.android.loop.ui.theme.compositeOverOnSurface
-import com.pnd.android.loop.ui.theme.onSurface
+import com.pnd.android.loop.ui.theme.primary
+import com.pnd.android.loop.ui.theme.surfaceContainer
 import kotlin.math.min
 import kotlin.math.roundToInt
 
@@ -45,7 +46,7 @@ fun ColorSelector(
     val description = stringResource(id = R.string.desc_color_selector)
     Column(
         modifier = modifier
-            .padding(top = 12.dp)
+            .padding(top = Dimens.contentPadding)
             .semantics { contentDescription = description }
     ) {
         val colors = SUPPORTED_COLORS
@@ -71,7 +72,7 @@ private fun ColorRows(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(bottom = 8.dp),
+            .padding(bottom = Dimens.cardSpacing),
         horizontalArrangement = spaceEvenlyStart
     ) {
         val colors = SUPPORTED_COLORS
@@ -98,13 +99,12 @@ private fun ColorBox(
     isSelected: Boolean,
     onColorSelected: (Int) -> Unit,
 ) {
-    val background = AppColor.onSurface.copy(alpha = 0.08f)
-    val border = AppColor.onSurface.copy(alpha = 0.3f)
-    val round = 8.dp
+    val background = AppColor.surfaceContainer
+    val border = AppColor.primary
+    val round = 10.dp
     Box(
         modifier = modifier
-            .size(32.dp)
-            .alpha(0.7f)
+            .size(40.dp)
             .drawBehind {
                 if (isSelected) {
                     drawRoundRect(
@@ -121,7 +121,7 @@ private fun ColorBox(
                             y = round.toPx()
                         ),
                         style = Stroke(
-                            width = 0.5.dp.toPx()
+                            width = 1.5.dp.toPx()
                         )
                     )
 

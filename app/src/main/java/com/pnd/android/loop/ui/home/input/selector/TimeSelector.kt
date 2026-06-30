@@ -1,7 +1,7 @@
 package com.pnd.android.loop.ui.home.input.selector
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.border
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Column
@@ -42,9 +42,12 @@ import com.pnd.android.loop.ui.home.rememberBlurState
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTheme
 import com.pnd.android.loop.ui.theme.AppTypography
+import com.pnd.android.loop.ui.theme.Dimens
 import com.pnd.android.loop.ui.theme.RoundShapes
+import com.pnd.android.loop.ui.theme.onPrimary
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
+import com.pnd.android.loop.ui.theme.surfaceContainer
 import com.pnd.android.loop.util.ABB_DAYS
 import com.pnd.android.loop.util.formatHourMinute
 import com.pnd.android.loop.util.rememberDayColor
@@ -165,15 +168,18 @@ private fun TimeDisplay(
         val time = if (isStart) selectedStartTime else selectedEndTime
         Text(
             modifier = Modifier
-                .padding(top = 8.dp)
+                .padding(top = Dimens.cardSpacing)
                 .wrapContentWidth(align = Alignment.CenterHorizontally)
                 .clip(RoundShapes.large)
                 .clickable {
                     isOpened = true
                     blurState.on()
                 }
-                .padding(top = 12.dp)
-                .padding(horizontal = 24.dp),
+                .background(color = AppColor.surfaceContainer)
+                .padding(
+                    vertical = 10.dp,
+                    horizontal = 20.dp
+                ),
             text = if (isAnyTime) {
                 stringResource(id = R.string.anytime)
             } else {
@@ -181,7 +187,7 @@ private fun TimeDisplay(
             },
             style = AppTypography.titleLarge.copy(
                 color = AppColor.onSurface.copy(
-                    alpha = 0.6f
+                    alpha = 0.85f
                 )
             )
         )
@@ -250,23 +256,21 @@ private fun DateItemText(
     selectedDays: Int,
     onSelectedDayChanged: (Int) -> Unit = {}
 ) {
-    val selectedColor = AppColor.primary
     val selected = selectedDays.isOn(day)
 
     Text(
         modifier = modifier
             .clip(CircleShape)
             .clickable { onSelectedDayChanged(selectedDays.toggle(day)) }
-            .border(
-                width = 0.5.dp,
-                color = if (selected) selectedColor else Color.Transparent,
+            .background(
+                color = if (selected) AppColor.primary else Color.Transparent,
                 shape = CircleShape
             )
             .wrapContentHeight(Alignment.CenterVertically),
         text = stringResource(dayResId),
         textAlign = TextAlign.Center,
         color = if (selected) {
-            selectedColor
+            AppColor.onPrimary
         } else {
             rememberDayColor(day = day)
         },

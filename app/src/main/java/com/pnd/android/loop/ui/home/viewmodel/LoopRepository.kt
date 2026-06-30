@@ -17,6 +17,7 @@ import com.pnd.android.loop.util.toLocalDate
 import com.pnd.android.loop.util.toLocalTime
 import com.pnd.android.loop.util.toMs
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
@@ -25,6 +26,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.transform
@@ -75,10 +77,16 @@ class LoopRepository @Inject constructor(
         initialValue = LocalDate.now()
     )
 
+    // Shared so the multiple downstream consumers (UI sections, active/today counts)
+    // collect a single DB stream instead of each re-running the query.
     val allLoopsWithDoneStates: Flow<List<LoopWithDone>> = localDate.transform { currDate ->
         emit(loopWithDoneDao.getAllLoops(currDate.toLocalTime()))
         emitAll(loopWithDoneDao.getAllLoopsFlow(currDate.toLocalTime()))
-    }
+    }.stateIn(
+        scope = coroutineScope,
+        started = SharingStarted.WhileSubscribed(5_000L),
+        initialValue = emptyList()
+    )
 
     // @formatter:off
     val loopsNoResponseYesterday = localDate.transform { currDate ->
@@ -97,19 +105,46 @@ class LoopRepository @Inject constructor(
     @OptIn(ExperimentalCoroutinesApi::class)
     val activeLoops = localDateTime.flatMapLatest { now ->
         allLoopsWithDoneStates.map { loops -> loops.filter { loop -> loop.isActive(now) } }
-    }
+    }.flowOn(Dispatchers.Default)
     val countInActive = activeLoops.map { it.size }
-    val countInToday = allLoopsWithDoneStates.map { loops ->
-        loops.filter { loop -> loop.isActiveDay() }.size
-    }
-    val countInTodayRemain = allLoopsWithDoneStates.map { loops ->
-        loops.filter { loop -> loop.isNotRespond && loop.isActiveDay() }.size
-    }
+
+    // countInToday and countInTodayRemain both scan the same list, so compute them in a
+    // single pass off the main thread and expose each value as a cheap projection.
+    private val todayCounts = allLoopsWithDoneStates.map { loops ->
+        var today = 0
+        var remain = 0
+        loops.forEach { loop ->
+            if (loop.isActiveDay()) {
+                today++
+                if (loop.isNotRespond) remain++
+            }
+        }
+        today to remain
+    }.flowOn(Dispatchers.Default)
+        .stateIn(
+            scope = coroutineScope,
+            started = SharingStarted.WhileSubscribed(5_000L),
+            initialValue = 0 to 0
+        )
+    val countInToday = todayCounts.map { it.first }
+    val countInTodayRemain = todayCounts.map { it.second }
 
     val allEnabledCount = loopDoneDao.getAllEnabledCountFlow()
     val allRespondCount = loopDoneDao.getRespondCountFlow()
     val doneCount = loopDoneDao.getDoneCountFlow()
     val skipCount = loopDoneDao.getSkipCountFlow()
+
+    // Counts scoped to the current day so the header can show "today's" done rate
+    // separately from the all-time figures above. They re-query whenever the day rolls over.
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val todayEnabledCount = localDate.flatMapLatest { date ->
+        loopDoneDao.getEnabledCountByDateFlow(date.toMs())
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val todayDoneCount = localDate.flatMapLatest { date ->
+        loopDoneDao.getDoneCountByDateFlow(date.toMs())
+    }
 
     fun syncLoops() = loopScheduler.syncLoops()
 

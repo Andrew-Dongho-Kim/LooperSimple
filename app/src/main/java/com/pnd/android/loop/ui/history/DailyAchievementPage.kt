@@ -4,15 +4,17 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -24,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.outlined.Checklist
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,11 +42,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -63,14 +64,14 @@ import com.pnd.android.loop.ui.common.SimpleAppBar
 import com.pnd.android.loop.ui.common.findLastFullyVisibleItemIndex
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
+import com.pnd.android.loop.ui.theme.Dimens
 import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.background
 import com.pnd.android.loop.ui.theme.compositeOverOnSurface
-import com.pnd.android.loop.ui.theme.compositeOverSurface
 import com.pnd.android.loop.ui.theme.error
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
-import com.pnd.android.loop.ui.theme.surface
+import com.pnd.android.loop.ui.theme.surfaceContainer
 import com.pnd.android.loop.util.formatMonthDateDay
 import com.pnd.android.loop.util.formatYearMonth
 import com.pnd.android.loop.util.toLocalDate
@@ -103,16 +104,17 @@ fun DailyAchievementPage(
             if (date.isBefore(minDate) || date.isAfter(LocalDate.now())) {
                 return@func
             }
+            selectedDate = date
             coroutineScope.launch {
+                // Scroll to the tapped date, not the previously selected one.
                 val pos = calculateListItemPosition(
                     itemCount = lazyListState.layoutInfo.totalItemsCount,
-                    selectedDate = selectedDate,
+                    selectedDate = date,
                 )
                 if (pos < 0) return@launch
                 lazyListState.scrollToItem(pos)
-                pagerState.scrollToPage(calculateTargetCalendarPage(selectedDate))
+                pagerState.scrollToPage(calculateTargetCalendarPage(date))
             }
-            selectedDate = date
         }
     }
 
@@ -246,7 +248,7 @@ private fun DailyAchievementPageContent(
                 .weight(1f)
                 .fillMaxWidth()
                 .fillMaxHeight()
-                .padding(horizontal = 24.dp),
+                .padding(horizontal = Dimens.screenHorizontalPadding),
             lazyListState = lazyListState,
             achievementViewModel = achievementViewModel,
         )
@@ -360,7 +362,7 @@ private fun DailyAchievementsRecords(
             val item = items[index]!!
 
             AchievementItem(
-                modifier = Modifier.padding(vertical = 18.dp),
+                modifier = Modifier.padding(vertical = Dimens.contentPadding),
                 item = item
             )
         }
@@ -375,9 +377,10 @@ private fun AchievementItem(
     Column(modifier = modifier) {
         val itemDate = item[0].date.toLocalDate()
         AchievementItemDateHeader(
-            modifier = Modifier
-                .padding(top = 22.dp)
-                .padding(bottom = 18.dp),
+            modifier = Modifier.padding(
+                top = Dimens.sectionSpacing,
+                bottom = Dimens.contentPadding
+            ),
             itemDate = itemDate,
         )
 
@@ -388,11 +391,8 @@ private fun AchievementItem(
                 loops = doneList,
                 itemDate = itemDate,
                 title = stringResource(id = R.string.done),
-                backgroundColor = AppColor.primary.compositeOverSurface(
-                    alpha = if (isSystemInDarkTheme()) 0.15f else 0.1f
-                ),
                 icon = Icons.Filled.Done,
-                iconColor = AppColor.primary,
+                accentColor = AppColor.primary,
             )
         }
 
@@ -400,14 +400,13 @@ private fun AchievementItem(
         if (skipList.isNotEmpty()) {
             AchievementItemSection(
                 modifier = Modifier
-                    .padding(top = 12.dp)
+                    .padding(top = Dimens.cardSpacing)
                     .fillMaxWidth(),
                 loops = skipList,
                 itemDate = itemDate,
                 title = stringResource(id = R.string.skip),
-                backgroundColor = compositeOverSurface(),
                 icon = Icons.Filled.Clear,
-                iconColor = AppColor.onSurface,
+                accentColor = AppColor.onSurface.copy(alpha = 0.6f),
             )
         }
 
@@ -422,13 +421,31 @@ private fun AchievementItemDateHeader(
     modifier: Modifier = Modifier,
     itemDate: LocalDate
 ) {
-    Text(
+    val isToday = itemDate == LocalDate.now()
+    Row(
         modifier = modifier.fillMaxWidth(),
-        text = itemDate.formatMonthDateDay(),
-        style = AppTypography.headlineSmall.copy(
-            color = AppColor.onSurface,
-            textAlign = TextAlign.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        DateHeaderRule(modifier = Modifier.weight(1f))
+        Text(
+            modifier = Modifier.padding(horizontal = Dimens.contentPadding),
+            text = itemDate.formatMonthDateDay(),
+            style = AppTypography.titleMedium.copy(
+                color = if (isToday) AppColor.primary else AppColor.onSurface,
+                fontWeight = FontWeight.SemiBold,
+            )
         )
+        DateHeaderRule(modifier = Modifier.weight(1f))
+    }
+}
+
+/** 날짜 헤더 좌우로 뻗는 머리카락 굵기의 구분선. */
+@Composable
+private fun DateHeaderRule(modifier: Modifier = Modifier) {
+    HorizontalDivider(
+        modifier = modifier,
+        thickness = 0.5.dp,
+        color = AppColor.onSurface.copy(alpha = 0.12f),
     )
 }
 
@@ -436,26 +453,21 @@ private fun AchievementItemDateHeader(
 private fun NoAchievementItemSection(
     modifier: Modifier = Modifier
 ) {
-    val color = AppColor.onSurface.copy(alpha = 0.6f)
-    Text(
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .drawBehind {
-                val stroke = Stroke(
-                    width = 1f,
-                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(5f, 5f), 0f)
-                )
-                drawRoundRect(
-                    color = color,
-                    style = stroke
-                )
-            }
-            .padding(horizontal = 24.dp, vertical = 18.dp),
-        text = stringResource(id = R.string.no_achievements),
-        style = AppTypography.bodyLarge.copy(
-            color = color
+            .clip(RoundShapes.large)
+            .background(AppColor.surfaceContainer)
+            .padding(vertical = Dimens.contentPadding),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = stringResource(id = R.string.no_achievements),
+            style = AppTypography.bodyMedium.copy(
+                color = AppColor.onSurface.copy(alpha = 0.5f)
+            )
         )
-    )
+    }
 }
 
 @Composable
@@ -464,29 +476,28 @@ private fun AchievementItemSection(
     loops: List<FullLoopVo>,
     itemDate: LocalDate,
     title: String,
-    backgroundColor: Color,
     icon: ImageVector,
-    iconColor: Color,
+    accentColor: Color,
 ) {
     Column(
         modifier = modifier
-            .clip(RoundShapes.medium)
-            .background(backgroundColor)
-            .padding(vertical = 12.dp)
+            .clip(RoundShapes.large)
+            .background(AppColor.surfaceContainer)
+            .padding(
+                horizontal = Dimens.contentPadding,
+                vertical = Dimens.contentPadding - 4.dp
+            )
     ) {
         AchievementItemSectionHeader(
-            modifier = Modifier.padding(
-                start = 8.dp,
-                bottom = 4.dp
-            ),
             title = title,
             itemCount = loops.size,
             icon = icon,
-            iconColor = iconColor
+            accentColor = accentColor,
         )
         loops.forEach { loop ->
             key(loop.loopId) {
                 AchievementItemSectionBody(
+                    modifier = Modifier.padding(top = Dimens.cardSpacing),
                     loop = loop,
                     itemDate = itemDate,
                 )
@@ -501,30 +512,66 @@ private fun AchievementItemSectionHeader(
     title: String,
     itemCount: Int,
     icon: ImageVector,
-    iconColor: Color,
+    accentColor: Color,
 ) {
     Row(
         modifier = modifier
-            .padding(vertical = 6.dp),
+            .fillMaxWidth()
+            .padding(vertical = Dimens.itemSpacing),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        SectionIconChip(icon = icon, accentColor = accentColor, contentDescription = title)
         Text(
-            modifier = Modifier.padding(start = 4.dp),
-            text = "($itemCount) $title",
-            style = AppTypography.titleMedium.copy(
-                color = AppColor.onSurface,
-                fontWeight = FontWeight.Bold
-            )
+            modifier = Modifier.padding(start = Dimens.itemSpacing + 2.dp),
+            text = title,
+            style = AppTypography.titleSmall.copy(color = AppColor.onSurface)
         )
-        Image(
-            modifier = Modifier
-                .padding(start = 8.dp)
-                .size(12.dp),
-            imageVector = icon,
-            colorFilter = ColorFilter.tint(color = iconColor),
-            contentDescription = title
+        CountBadge(
+            modifier = Modifier.padding(start = Dimens.itemSpacing),
+            count = itemCount,
+            accentColor = accentColor,
         )
     }
+}
+
+/** 섹션 제목 앞에 놓이는, 액센트 색이 옅게 깔린 원형 아이콘 칩. */
+@Composable
+private fun SectionIconChip(
+    modifier: Modifier = Modifier,
+    icon: ImageVector,
+    accentColor: Color,
+    contentDescription: String,
+) {
+    Box(
+        modifier = modifier
+            .size(20.dp)
+            .background(color = accentColor.copy(alpha = 0.15f), shape = CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Image(
+            modifier = Modifier.size(12.dp),
+            imageVector = icon,
+            colorFilter = ColorFilter.tint(color = accentColor),
+            contentDescription = contentDescription,
+        )
+    }
+}
+
+/** 항목 개수를 보여주는 알약형 배지. */
+@Composable
+private fun CountBadge(
+    modifier: Modifier = Modifier,
+    count: Int,
+    accentColor: Color,
+) {
+    Text(
+        modifier = modifier
+            .clip(CircleShape)
+            .background(accentColor.copy(alpha = 0.15f))
+            .padding(horizontal = 8.dp, vertical = 1.dp),
+        text = "$count",
+        style = AppTypography.labelMedium.copy(color = accentColor),
+    )
 }
 
 @Composable
@@ -533,75 +580,87 @@ private fun AchievementItemSectionBody(
     loop: FullLoopVo,
     itemDate: LocalDate,
 ) {
-
-    Column(
-        modifier = modifier.padding(
-            start = 16.dp,
-            top = 8.dp
-        ),
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+    val loopColor = loop.color.compositeOverOnSurface()
+    Column(modifier = modifier) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
                     .size(8.dp)
-                    .background(
-                        color = loop.color.compositeOverOnSurface(),
-                        shape = CircleShape
-                    )
+                    .background(color = loopColor, shape = CircleShape)
             )
-
             Text(
-                modifier = Modifier.padding(start = 16.dp),
+                modifier = Modifier.padding(start = Dimens.contentPadding),
                 text = loop.title,
-                style = AppTypography.bodyLarge.copy(
-                    color = AppColor.onSurface
-                )
+                style = AppTypography.bodyLarge.copy(color = AppColor.onSurface)
             )
 
             val createdDate = remember(loop.created) { loop.created.toLocalDate() }
             if (itemDate == createdDate) {
-                Text(
-                    modifier = Modifier.padding(start = 6.dp),
-                    text = "[${stringResource(id = R.string.created)}]",
-                    style = AppTypography.labelMedium.copy(
-                        color = AppColor.error.copy(alpha = 0.7f)
-                    )
-                )
+                CreatedBadge(modifier = Modifier.padding(start = Dimens.itemSpacing))
             }
         }
 
         if (loop.retrospect.isNotEmpty()) {
             Retrospect(
-                modifier = Modifier
-                    .padding(
-                        top = 8.dp,
-                        bottom = 8.dp,
-                        end = 24.dp,
-                    )
-                    .clip(RoundShapes.medium)
-                    .background(color = AppColor.surface.copy(alpha = 0.35f))
-                    .fillMaxWidth()
-                    .padding(
-                        top = 12.dp,
-                        start = 24.dp,
-                        end = 24.dp,
-                        bottom = 12.dp
-                    ),
-                retrospect = loop.retrospect
+                // 좌측 점/제목 들여쓰기(점 8dp + 간격)에 맞춰 회고 블록을 정렬한다.
+                modifier = Modifier.padding(
+                    start = Dimens.contentPadding + 8.dp,
+                    top = Dimens.cardSpacing,
+                    end = Dimens.itemSpacing,
+                ),
+                accentColor = loopColor,
+                retrospect = loop.retrospect,
             )
         }
     }
 }
 
+/** 해당 날짜에 처음 만들어진 루프임을 알리는 알약형 배지. */
+@Composable
+private fun CreatedBadge(modifier: Modifier = Modifier) {
+    Text(
+        modifier = modifier
+            .clip(CircleShape)
+            .background(AppColor.error.copy(alpha = 0.12f))
+            .padding(horizontal = 6.dp, vertical = 1.dp),
+        text = stringResource(id = R.string.created),
+        style = AppTypography.labelSmall.copy(
+            color = AppColor.error.copy(alpha = 0.9f)
+        )
+    )
+}
+
+/**
+ * 회고 메모. 루프 색의 얇은 좌측 액센트 바와 같은 색의 옅은 틴트 배경으로
+ * 어떤 루프의 회고인지 시각적으로 연결한다. 액센트는 모두 반투명이라
+ * 라이트/다크 카드 위 어디서나 자연스럽게 얹힌다.
+ */
 @Composable
 private fun Retrospect(
     modifier: Modifier = Modifier,
+    accentColor: Color,
     retrospect: String
 ) {
-    Box(modifier = modifier) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundShapes.medium)
+            .background(accentColor.copy(alpha = 0.06f))
+            .height(IntrinsicSize.Min)
+    ) {
+        Box(
+            modifier = Modifier
+                .width(3.dp)
+                .fillMaxHeight()
+                .background(accentColor.copy(alpha = 0.5f))
+        )
         Text(
+            modifier = Modifier.padding(
+                start = Dimens.contentPadding - 4.dp,
+                end = Dimens.contentPadding,
+                top = Dimens.cardSpacing,
+                bottom = Dimens.cardSpacing,
+            ),
             text = retrospect,
             style = AppTypography.bodyMedium.copy(
                 color = AppColor.onSurface.copy(alpha = 0.7f),

@@ -1,30 +1,24 @@
 package com.pnd.android.loop.ui.statisctics
 
-import androidx.annotation.StringRes
-import androidx.compose.foundation.Image
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Sort
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -47,17 +41,16 @@ import com.pnd.android.loop.data.LoopWithStatistics
 import com.pnd.android.loop.ui.common.SimpleAppBar
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
-import com.pnd.android.loop.ui.theme.RoundShapes
+import com.pnd.android.loop.ui.theme.Dimens
 import com.pnd.android.loop.ui.theme.background
 import com.pnd.android.loop.ui.theme.compositeOverOnSurface
+import com.pnd.android.loop.ui.theme.onPrimary
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
-import com.pnd.android.loop.ui.theme.surface
-import com.pnd.android.loop.util.ABB_MONTHS
-import com.pnd.android.loop.util.toMs
-import java.time.LocalDate
-import kotlin.math.max
-import kotlin.math.min
+import com.pnd.android.loop.ui.theme.surfaceContainer
+import com.pnd.android.loop.util.DAYS_WITH_3CHARS
+
+private val CardShape = RoundedCornerShape(16.dp)
 
 @Composable
 fun StatisticsPage(
@@ -68,24 +61,21 @@ fun StatisticsPage(
 ) {
     Scaffold(
         modifier = modifier
-            .fillMaxWidth()
-            .fillMaxHeight()
+            .fillMaxSize()
             .background(color = AppColor.background),
+        containerColor = AppColor.background,
         topBar = {
             SimpleAppBar(
-                modifier = Modifier
-                    .statusBarsPadding(),
+                modifier = Modifier.statusBarsPadding(),
                 title = stringResource(id = R.string.statistics),
-                onNavigateUp = onNavigateUp
+                onNavigateUp = onNavigateUp,
             )
-        }
-    )
-    { contentPadding ->
+        },
+    ) { contentPadding ->
         StatisticsPageContent(
             modifier = Modifier
                 .padding(contentPadding)
-                .fillMaxWidth()
-                .fillMaxHeight(),
+                .fillMaxSize(),
             statisticsViewModel = statisticsViewModel,
             onNavigateToDetailPage = onNavigateToDetailPage,
         )
@@ -98,291 +88,411 @@ private fun StatisticsPageContent(
     statisticsViewModel: StatisticsViewModel,
     onNavigateToDetailPage: (Int) -> Unit,
 ) {
-    var selectedTab by remember { mutableStateOf(Tab.Total) }
-    Column(modifier = modifier) {
+    var selectedPeriod by remember { mutableStateOf(StatisticsPeriod.TOTAL) }
 
-        Column(
-            modifier = Modifier.background(color = AppColor.onSurface.copy(alpha = 0.05f))
-        ) {
-            LoopSortIcon(
-                modifier = Modifier
-                    .align(Alignment.End)
-                    .padding(
-                        top = 12.dp,
-                        end = 24.dp
-                    )
-            )
-            LoopsOrderByDoneRate(
-                modifier = Modifier
-                    .padding(vertical = 12.dp)
-                    .height(250.dp)
-                    .padding(
-                        start = 12.dp,
-                        end = 24.dp
-                    ),
-                statisticsViewModel = statisticsViewModel,
-                selectedTab = selectedTab,
-                onNavigateToDetailPage = onNavigateToDetailPage,
-            )
-        }
+    val uiState by remember(selectedPeriod) {
+        statisticsViewModel.flowStatistics(selectedPeriod)
+    }.collectAsState(initial = StatisticsUiState())
 
-        LoopsRecentTab(
-            modifier = Modifier
-                .align(Alignment.CenterHorizontally)
-                .background(color = AppColor.surface)
-                .padding(top = 24.dp)
-                .padding(start = 12.dp, end = 24.dp),
-            selectedTab = selectedTab,
-            onTabSelected = { selectedTab = it },
-        )
-    }
-}
-
-@Composable
-private fun LoopSortIcon(
-    modifier: Modifier
-) {
-    Image(
-        modifier = modifier
-            .clip(RoundShapes.small)
-            .clickable {
-            },
-        imageVector = Icons.AutoMirrored.Outlined.Sort,
-        contentDescription = ""
-    )
-}
-
-@Composable
-private fun LoopsOrderByDoneRate(
-    modifier: Modifier = Modifier,
-    statisticsViewModel: StatisticsViewModel,
-    selectedTab: Tab,
-    onNavigateToDetailPage: (Int) -> Unit,
-) {
-    val loopsWithStatistics by statisticsViewModel
-        .flowLoopsWithStatistics(
-            from = selectedTab.from(),
-            to = selectedTab.to()
-        )
-        .collectAsState(initial = emptyList())
+    val ranking by remember(selectedPeriod) {
+        statisticsViewModel.flowLoopRanking(selectedPeriod)
+    }.collectAsState(initial = emptyList())
 
     LazyColumn(
         modifier = modifier,
-        state = rememberLazyListState(),
+        contentPadding = PaddingValues(
+            start = Dimens.screenHorizontalPadding,
+            end = Dimens.screenHorizontalPadding,
+            top = Dimens.contentPadding,
+            bottom = Dimens.sectionSpacing,
+        ),
+        verticalArrangement = Arrangement.spacedBy(Dimens.sectionSpacing),
     ) {
-        itemsIndexed(
-            items = loopsWithStatistics,
-            key = { _, item -> item.loopId }
-        ) { index, item ->
-            LoopItemWithDoneRate(
-                order = index + 1,
-                item = item,
-                onNavigateToDetailPage = onNavigateToDetailPage,
+        item(key = "period") {
+            StatisticsPeriodSelector(
+                selectedPeriod = selectedPeriod,
+                onPeriodSelected = { selectedPeriod = it },
+            )
+        }
+
+        item(key = "summary") {
+            SummarySection(summary = uiState.summary)
+        }
+
+        item(key = "weekly") {
+            WeeklyConsistencySection(stats = uiState.dayOfWeekStats)
+        }
+
+        rankingSection(
+            ranking = ranking,
+            onNavigateToDetailPage = onNavigateToDetailPage,
+        )
+
+        if (uiState.isEmpty && ranking.isEmpty()) {
+            item(key = "empty") { EmptyHint() }
+        }
+    }
+}
+
+// region Period selector -----------------------------------------------------
+
+@Composable
+private fun StatisticsPeriodSelector(
+    modifier: Modifier = Modifier,
+    selectedPeriod: StatisticsPeriod,
+    onPeriodSelected: (StatisticsPeriod) -> Unit,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(CardShape)
+            .background(color = AppColor.surfaceContainer)
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        StatisticsPeriod.entries.forEach { period ->
+            PeriodSegment(
+                modifier = Modifier.weight(1f),
+                text = stringResource(id = period.titleRes()),
+                isSelected = period == selectedPeriod,
+                onClick = { onPeriodSelected(period) },
             )
         }
     }
 }
 
 @Composable
-private fun LoopItemWithDoneRate(
-    modifier: Modifier = Modifier,
-    order: Int,
-    item: LoopWithStatistics,
-    onNavigateToDetailPage: (Int) -> Unit,
-) {
-    Row(
-        modifier = modifier
-            .clickable { onNavigateToDetailPage(item.loopId) }
-            .padding(vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        val font = if (order <= 3) AppTypography.titleLarge else AppTypography.bodyMedium
-        Text(
-            modifier = Modifier.width(24.dp),
-            text = String.format("%2d", order),
-            style = font.copy(
-                color = AppColor.onSurface,
-                fontWeight = FontWeight.Normal,
-                textAlign = TextAlign.Center
-            )
-        )
-        Box(
-            modifier = Modifier
-                .padding(start = 16.dp)
-                .size(8.dp)
-                .background(
-                    color = item.color.compositeOverOnSurface(),
-                    shape = CircleShape
-                )
-        )
-        Text(
-            modifier = Modifier
-                .padding(start = 8.dp)
-                .weight(1f),
-            text = item.title,
-            style = AppTypography.bodyLarge.copy(
-                color = AppColor.onSurface
-            )
-        )
-
-        Text(
-            modifier = Modifier.padding(start = 8.dp),
-            text = String.format("%.2f%%", item.doneRate * 100f),
-            style = AppTypography.labelMedium.copy(
-                color = rememberDoneRateColor(doneRate = item.doneRate * 100),
-            )
-        )
-    }
-}
-
-@Composable
-private fun LoopsRecentTab(
-    modifier: Modifier = Modifier,
-    selectedTab: Tab,
-    onTabSelected: (Tab) -> Unit,
-) {
-    Row(
-        modifier = modifier
-            .horizontalScroll(rememberScrollState())
-            .clip(RoundShapes.medium)
-            .border(
-                width = 0.5.dp,
-                color = AppColor.onSurface.copy(alpha = 0.4f),
-                shape = RoundShapes.medium
-            ),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        val tabs = rememberTabs()
-        tabs.forEach { tab ->
-            LoopsRecentTabItem(
-                text = stringResource(id = tab.text()),
-                isSelected = tab == selectedTab,
-                onSelected = { onTabSelected(tab) }
-            )
-        }
-    }
-}
-
-@Composable
-private fun LoopsRecentTabItem(
+private fun PeriodSegment(
     modifier: Modifier = Modifier,
     text: String,
-    isSelected: Boolean = false,
-    onSelected: () -> Unit,
+    isSelected: Boolean,
+    onClick: () -> Unit,
 ) {
     Text(
         modifier = modifier
-            .clickable { onSelected() }
-            .background(
-                color = if (isSelected) AppColor.surface.compositeOverOnSurface() else AppColor.surface,
-            )
-            .padding(
-                horizontal = 12.dp,
-                vertical = 8.dp,
-            )
-            .widthIn(min = 30.dp)
-            .wrapContentWidth(Alignment.CenterHorizontally),
+            .clip(RoundedCornerShape(12.dp))
+            .background(color = if (isSelected) AppColor.primary else Color.Transparent)
+            .clickable(onClick = onClick)
+            .padding(vertical = 10.dp),
         text = text,
+        textAlign = TextAlign.Center,
         style = AppTypography.bodyMedium.copy(
-            color = AppColor.onSurface
-        )
+            color = if (isSelected) AppColor.onPrimary else AppColor.onSurface.copy(alpha = 0.6f),
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+        ),
     )
 }
 
-@Composable
-private fun rememberDoneRateColor(
-    doneRate: Float
-): Color {
-    val positiveColor = AppColor.primary
-    return remember(doneRate) {
-        val ratio = (DONE_RATE_GREAT - max(
-            min(doneRate, DONE_RATE_GREAT),
-            DONE_RATE_POOR
-        )) / (DONE_RATE_GREAT - DONE_RATE_POOR)
-        val alpha =
-            MAX_DONE_RATE_COLOR_ALPHA - ratio * (MAX_DONE_RATE_COLOR_ALPHA - MIN_DONE_RATE_COLOR_ALPHA)
+// endregion
 
-        positiveColor.copy(alpha = alpha)
-    }
-}
-
-private const val DONE_RATE_GREAT = 85f
-private const val DONE_RATE_POOR = 15f
-
-private const val MAX_DONE_RATE_COLOR_ALPHA = 1f
-private const val MIN_DONE_RATE_COLOR_ALPHA = 0.4f
+// region Summary KPI cards ---------------------------------------------------
 
 @Composable
-private fun rememberTabs() = remember {
-    Tab.entries.toList()
-}
-
-private enum class Tab(
-    @StringRes val text: () -> Int,
-    val from: () -> Long,
-    val to: () -> Long,
+private fun SummarySection(
+    modifier: Modifier = Modifier,
+    summary: StatisticsSummary,
 ) {
-    Total(
-        text = { R.string.total },
-        from = { 0L },
-        to = { LocalDate.now().toMs() }
-    ),
-    THIS_MONTH(
-        text = {
-            ABB_MONTHS[LocalDate.now().month.value - 1]
-        },
-        from = {
-            LocalDate.now()
-                .withDayOfMonth(1)
-                .toMs()
-        },
-        to = { LocalDate.now().toMs() }
-    ),
-    ONE_MONTH_AGO(
-        text = {
-            ABB_MONTHS[LocalDate.now().minusMonths(1).month.value - 1]
-        },
-        from = {
-            LocalDate.now()
-                .minusMonths(1)
-                .withDayOfMonth(1)
-                .toMs()
-        },
-        to = {
-            val date = LocalDate.now()
-                .minusMonths(1)
-            date.withDayOfMonth(date.lengthOfMonth())
-                .toMs()
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(Dimens.cardSpacing),
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(Dimens.cardSpacing)) {
+            StatCard(
+                modifier = Modifier.weight(1f),
+                value = "${summary.completedCount}",
+                label = stringResource(id = R.string.stat_summary_completed),
+                accent = true,
+            )
+            StatCard(
+                modifier = Modifier.weight(1f),
+                value = "${(summary.completionRate * 100).toInt()}%",
+                label = stringResource(id = R.string.stat_summary_completion_rate),
+                accent = true,
+            )
         }
-    ),
-    TWO_MONTH_AGO(
-        text = {
-            ABB_MONTHS[LocalDate.now().minusMonths(2).month.value - 1]
-        },
-        from = {
-            LocalDate.now()
-                .minusMonths(2)
-                .withDayOfMonth(1)
-                .toMs()
-        },
-        to = {
-            val date = LocalDate.now()
-                .minusMonths(2)
-            date.withDayOfMonth(date.lengthOfMonth())
-                .toMs()
+        Row(horizontalArrangement = Arrangement.spacedBy(Dimens.cardSpacing)) {
+            StatCard(
+                modifier = Modifier.weight(1f),
+                value = "${summary.activeLoops}",
+                label = stringResource(id = R.string.stat_summary_active_loops),
+            )
+            StatCard(
+                modifier = Modifier.weight(1f),
+                value = "${summary.activeDays}",
+                label = stringResource(id = R.string.stat_summary_active_days),
+            )
         }
-    )
-}
-
-private enum class Order {
-    DoneRate,
-    DoneCount,
-    SkipRate,
-    SkipCount,
-    Oldest,
-    ;
-
-    fun next(): Order {
-        return Order.entries[(this.ordinal + 1) % Order.entries.size]
     }
 }
+
+@Composable
+private fun StatCard(
+    modifier: Modifier = Modifier,
+    value: String,
+    label: String,
+    accent: Boolean = false,
+) {
+    Column(
+        modifier = modifier
+            .clip(CardShape)
+            .background(color = AppColor.surfaceContainer)
+            .padding(horizontal = Dimens.contentPadding, vertical = 20.dp),
+    ) {
+        Text(
+            text = value,
+            style = AppTypography.headlineMedium.copy(
+                color = if (accent) AppColor.primary else AppColor.onSurface,
+                fontWeight = FontWeight.Bold,
+            ),
+        )
+        Text(
+            modifier = Modifier.padding(top = Dimens.itemSpacing),
+            text = label,
+            style = AppTypography.bodySmall.copy(
+                color = AppColor.onSurface.copy(alpha = 0.6f),
+            ),
+        )
+    }
+}
+
+// endregion
+
+// region Weekly consistency chart --------------------------------------------
+
+@Composable
+private fun WeeklyConsistencySection(
+    modifier: Modifier = Modifier,
+    stats: List<DayOfWeekStat>,
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        SectionHeader(
+            title = stringResource(id = R.string.stat_weekly_consistency),
+            description = stringResource(id = R.string.stat_weekly_consistency_desc),
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(CardShape)
+                .background(color = AppColor.surfaceContainer)
+                .padding(Dimens.contentPadding)
+                .height(160.dp),
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.spacedBy(Dimens.itemSpacing),
+        ) {
+            stats.forEach { stat ->
+                DayOfWeekBar(
+                    modifier = Modifier.weight(1f),
+                    stat = stat,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DayOfWeekBar(
+    modifier: Modifier = Modifier,
+    stat: DayOfWeekStat,
+) {
+    val animatedRatio by animateFloatAsState(
+        targetValue = stat.ratio,
+        label = "dayOfWeekBar",
+    )
+    Column(
+        modifier = modifier.fillMaxHeight(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Bottom,
+    ) {
+        Text(
+            modifier = Modifier.padding(bottom = 4.dp),
+            text = "${stat.completedCount}",
+            style = AppTypography.labelMedium.copy(
+                color = AppColor.onSurface.copy(alpha = if (stat.completedCount > 0) 0.8f else 0.3f),
+            ),
+        )
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+            contentAlignment = Alignment.BottomCenter,
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(fraction = animatedRatio.coerceAtLeast(0.02f))
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(
+                        color = AppColor.primary.copy(
+                            alpha = 0.35f + 0.65f * stat.ratio,
+                        ),
+                    ),
+            )
+        }
+        Text(
+            modifier = Modifier.padding(top = Dimens.itemSpacing),
+            text = stringResource(id = DAYS_WITH_3CHARS[stat.dayOfWeek.value - 1]),
+            style = AppTypography.bodySmall.copy(
+                color = AppColor.onSurface.copy(alpha = 0.6f),
+            ),
+        )
+    }
+}
+
+// endregion
+
+// region Loop ranking --------------------------------------------------------
+
+private fun androidx.compose.foundation.lazy.LazyListScope.rankingSection(
+    ranking: List<LoopWithStatistics>,
+    onNavigateToDetailPage: (Int) -> Unit,
+) {
+    if (ranking.isEmpty()) return
+
+    item(key = "ranking_header") {
+        SectionHeader(
+            title = stringResource(id = R.string.stat_ranking),
+            description = stringResource(id = R.string.stat_ranking_desc),
+        )
+    }
+
+    itemsIndexed(
+        items = ranking,
+        key = { _, item -> item.loopId },
+    ) { index, item ->
+        LoopRankingItem(
+            modifier = Modifier.padding(top = if (index == 0) 0.dp else Dimens.cardSpacing),
+            order = index + 1,
+            item = item,
+            onClick = { onNavigateToDetailPage(item.loopId) },
+        )
+    }
+}
+
+@Composable
+private fun LoopRankingItem(
+    modifier: Modifier = Modifier,
+    order: Int,
+    item: LoopWithStatistics,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(CardShape)
+            .background(color = AppColor.surfaceContainer)
+            .clickable(onClick = onClick)
+            .padding(horizontal = Dimens.contentPadding, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            modifier = Modifier.size(24.dp),
+            text = "$order",
+            textAlign = TextAlign.Center,
+            style = AppTypography.titleMedium.copy(
+                color = if (order <= 3) AppColor.primary else AppColor.onSurface.copy(alpha = 0.5f),
+                fontWeight = if (order <= 3) FontWeight.Bold else FontWeight.Normal,
+            ),
+        )
+        Box(
+            modifier = Modifier
+                .padding(start = Dimens.contentPadding)
+                .size(10.dp)
+                .background(
+                    color = item.color.compositeOverOnSurface(),
+                    shape = CircleShape,
+                ),
+        )
+        Column(
+            modifier = Modifier
+                .padding(start = 12.dp)
+                .weight(1f),
+        ) {
+            Text(
+                text = item.title,
+                style = AppTypography.bodyLarge.copy(color = AppColor.onSurface),
+            )
+            DoneRateBar(
+                modifier = Modifier.padding(top = 8.dp),
+                doneRate = item.doneRate,
+            )
+        }
+        Text(
+            modifier = Modifier.padding(start = 12.dp),
+            text = "${(item.doneRate * 100).toInt()}%",
+            style = AppTypography.titleMedium.copy(
+                color = AppColor.primary.copy(alpha = 0.4f + 0.6f * item.doneRate),
+                fontWeight = FontWeight.Bold,
+            ),
+        )
+    }
+}
+
+@Composable
+private fun DoneRateBar(
+    modifier: Modifier = Modifier,
+    doneRate: Float,
+) {
+    val animatedRate by animateFloatAsState(
+        targetValue = doneRate.coerceIn(0f, 1f),
+        label = "doneRateBar",
+    )
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(6.dp)
+            .clip(CircleShape)
+            .background(color = AppColor.onSurface.copy(alpha = 0.08f)),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(fraction = animatedRate)
+                .fillMaxHeight()
+                .clip(CircleShape)
+                .background(color = AppColor.primary),
+        )
+    }
+}
+
+// endregion
+
+// region Shared --------------------------------------------------------------
+
+@Composable
+private fun SectionHeader(
+    modifier: Modifier = Modifier,
+    title: String,
+    description: String,
+) {
+    Column(modifier = modifier.padding(bottom = Dimens.contentPadding)) {
+        Text(
+            text = title,
+            style = AppTypography.titleLarge.copy(color = AppColor.onSurface),
+        )
+        Text(
+            modifier = Modifier.padding(top = 2.dp),
+            text = description,
+            style = AppTypography.bodySmall.copy(
+                color = AppColor.onSurface.copy(alpha = 0.5f),
+            ),
+        )
+    }
+}
+
+@Composable
+private fun EmptyHint(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 64.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = stringResource(id = R.string.stat_empty),
+            style = AppTypography.bodyMedium.copy(
+                color = AppColor.onSurface.copy(alpha = 0.5f),
+            ),
+        )
+    }
+}
+
+// endregion

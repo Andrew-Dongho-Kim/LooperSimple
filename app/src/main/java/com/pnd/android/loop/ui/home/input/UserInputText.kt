@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
+import com.pnd.android.loop.ui.theme.Dimens
 import com.pnd.android.loop.ui.theme.onSurface
 
 
@@ -76,7 +77,7 @@ private fun UserInputTextField(
         onValueChange = { onTextChanged(it) },
         modifier = modifier
             .fillMaxWidth()
-            .padding(start = 16.dp)
+            .padding(start = Dimens.contentPadding)
             .onFocusChanged { state -> onTextFieldFocused(state.isFocused) },
         keyboardOptions = KeyboardOptions(
             keyboardType = keyboardType,
@@ -93,10 +94,10 @@ private fun EmptyTextField(
     modifier: Modifier = Modifier,
 ) {
     Text(
-        modifier = modifier.padding(start = 16.dp),
+        modifier = modifier.padding(start = Dimens.contentPadding),
         text = stringResource(R.string.desc_enter_loop_title),
-        style = AppTypography.bodyMedium.copy(
-            color = AppColor.onSurface.copy(alpha = 0.3f)
+        style = AppTypography.titleMedium.copy(
+            color = AppColor.onSurface.copy(alpha = 0.4f)
         )
     )
 }

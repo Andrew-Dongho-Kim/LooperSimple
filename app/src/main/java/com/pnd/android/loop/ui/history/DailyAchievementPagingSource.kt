@@ -115,7 +115,8 @@ class DailyAchievementPagingSource(
         if (loopsByDayOfWeek.isNotEmpty()) return
 
         val allLoops = loopDao.getAllLoops()
-        minDate = allLoops.minOf { it.created }.toLocalDate()
+        // minOf throws on an empty table; fall back to today when there are no loops.
+        minDate = allLoops.minOfOrNull { it.created }?.toLocalDate() ?: LocalDate.now()
 
         for (day in DayOfWeek.entries) {
             loopsByDayOfWeek[day] = allLoops.filter {

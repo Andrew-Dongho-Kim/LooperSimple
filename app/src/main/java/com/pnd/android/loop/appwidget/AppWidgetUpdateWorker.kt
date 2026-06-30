@@ -74,7 +74,7 @@ class AppWidgetUpdateWorker @AssistedInject constructor(
 
     private suspend fun done() {
         val loopId = loopId()
-        val loop = loopDao.getLoop(loopId)
+        val loop = loopDao.getLoop(loopId) ?: return
         loopDoneDao.addOrUpdate(
             LoopDoneVo(
                 loopId = loopId,
@@ -89,7 +89,7 @@ class AppWidgetUpdateWorker @AssistedInject constructor(
 
     private suspend fun skip() {
         val loopId = loopId()
-        val loop = loopDao.getLoop(loopId)
+        val loop = loopDao.getLoop(loopId) ?: return
         loopDoneDao.addOrUpdate(
             LoopDoneVo(
                 loopId = loopId,

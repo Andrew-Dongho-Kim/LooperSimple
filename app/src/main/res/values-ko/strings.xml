@@ -4,7 +4,7 @@
     <string name="add_group">그룹 추가</string>
     <string name="delete_group">그룹 삭제</string>
     <string name="add_to_group">그룹에 추가</string>
-    <string name="already_added">*추가됨</string>
+    <string name="already_added">추가됨</string>
     <string name="remove_from_group">그룹에서 제거</string>
     <string name="enter_group_title">그룹 이름을 입력하세요</string>
     <string name="remove_from_group_message">\"%s\" 루프를 \"%s\" 그룹에서 제거하시겠습니까?</string>
@@ -14,14 +14,25 @@
     <string name="loops">%d 루프</string>
     <string name="all_loops">모든 루프</string>
     <string name="today_loops">오늘의 루프</string>
+    <string name="tab_today">오늘</string>
+    <string name="tab_all">전체</string>
+    <string name="list_view">목록</string>
     <string name="today_loop_state">진행:%d, 남음:%d, 전체:%d</string>
-    <string name="desc_no_loops">루프가 없습니다.</string>
+    <string name="desc_no_loops">아직 루프가 없습니다.</string>
+    <string name="desc_no_loops_hint">아래에서 첫 루프를 추가해 시작해보세요.</string>
+    <string name="greeting_morning">좋은 아침이에요</string>
+    <string name="greeting_afternoon">좋은 오후예요</string>
+    <string name="greeting_evening">좋은 저녁이에요</string>
+    <string name="greeting_night">편안한 밤 되세요</string>
     <string name="finished">종료됨</string>
-    <string name="today_loops_finished">오늘의 루프 끝!</string>
+    <string name="today_loops_finished">오늘의 루프를 모두 확인했어요!</string>
+    <string name="today_loops_finished_hint">완료하거나 건너뛴 루프는 아래에서 확인할 수 있어요.</string>
     <string name="unchecked_loops">어제, 확인하지 않은 루프가 *%d*개 있습니다.</string>
     <string name="response_rate">응답률</string>
     <string name="done_rate">완료율</string>
     <string name="skip_rate">건너뜀율</string>
+    <string name="today_done_rate">오늘</string>
+    <string name="total_done_rate">전체</string>
 
     <string name="prompt_for_wise_saying">습관과 관련된 명언 하나</string>
 
@@ -35,6 +46,18 @@
     <string name="no_achievements">완료하거나 건너뛴 루프가 없습니다.</string>
 
     <string name="total">전체</string>
+
+    <!-- 통계 화면 -->
+    <string name="stat_summary_completed">완료</string>
+    <string name="stat_summary_completion_rate">완료율</string>
+    <string name="stat_summary_active_loops">활동 루프</string>
+    <string name="stat_summary_active_days">활동 일수</string>
+    <string name="stat_weekly_consistency">요일별 꾸준함</string>
+    <string name="stat_weekly_consistency_desc">요일별 완료한 루프 수</string>
+    <string name="stat_ranking">루프 순위</string>
+    <string name="stat_ranking_desc">완료율 순으로 정렬된 루프</string>
+    <string name="stat_empty">아직 이 기간의 통계가 없습니다.</string>
+    <string name="stat_unit_count">%d회</string>
 
     <string name="save">저장</string>
     <string name="ok">확인</string>
@@ -57,11 +80,18 @@
     <string name="end_at">%s 종료</string>
     <string name="refresh">새로고침</string>
     <string name="retrospect">회고</string>
+    <string name="retrospect_hint">오늘 이 루프는 어땠나요? 떠오르는 생각을 적어보세요.</string>
+    <string name="retrospect_char_count">%1$d자</string>
+    <string name="retrospect_clear">지우기</string>
 
     <string name="created">생성됨</string>
     <string name="created_date">생성일</string>
+    <string name="detail_schedule">시간 설정</string>
+    <string name="detail_repeat">반복</string>
 
     <string name="delete_confirm_message">이 루프를 삭제하시겠습니까?</string>
+    <string name="done_confirm_message">\"%s\"을(를) 완료로 표시할까요?</string>
+    <string name="skip_confirm_message">\"%s\"을(를) 건너뛸까요?</string>
 
     <string name="timeline">타임라인</string>
     <string name="no_repeat">반복없음</string>
@@ -83,7 +113,12 @@
 
     <string name="warning_enter_characters_other_than_spaces">공백 이외의 문자를 입력해주세요.</string>
     <string name="warning_choose_at_least_one_day_of_the_week">적어도 하나의 요일을 선택해야 합니다.</string>
+    <string name="warning_interval_must_be_shorter_than_duration">알림 간격은 루프 지속 시간보다 짧아야 합니다.</string>
     <string name="warning_up_to_max_loops">최대 %d개의 루프까지 동시에 수행할 수 있습니다.</string>
     <string name="warning_start_time_should_be_before_end_time">* 시작 시간은 종료 시간 보다 최소 15분 전 이어야 합니다.</string>
     <string name="warning_end_time_should_be_after_start_time">* 종료 시간은 시작 시간  보다 최소 15분 후 이어야 합니다.</string>
+
+    <string name="desc_native_ad">광고</string>
+    <string name="ad_expand">자세히 보기</string>
+    <string name="ad_collapse">접기</string>
 </resources>

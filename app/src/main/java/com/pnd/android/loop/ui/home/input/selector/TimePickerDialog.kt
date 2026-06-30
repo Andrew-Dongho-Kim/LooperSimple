@@ -38,7 +38,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color.Companion.Transparent
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -48,14 +47,17 @@ import androidx.compose.ui.window.DialogProperties
 import com.pnd.android.loop.R
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
+import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.background
-import com.pnd.android.loop.ui.theme.divider
 import com.pnd.android.loop.ui.theme.error
+import com.pnd.android.loop.ui.theme.onPrimary
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.onSurfaceDark
+import com.pnd.android.loop.ui.theme.outline
 import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.ui.theme.secondary
 import com.pnd.android.loop.ui.theme.surface
+import com.pnd.android.loop.ui.theme.surfaceElevated
 import com.pnd.android.loop.util.formatHourMinute
 import com.pnd.android.loop.util.toMs
 import java.time.LocalTime
@@ -95,12 +97,13 @@ fun TimePickerDialog(
     BasicAlertDialog(
         modifier = Modifier
             .wrapContentHeight()
-            .clip(RoundedCornerShape(size = 8.dp))
             .shadow(
-                elevation = 0.5.dp,
+                elevation = 3.dp,
+                shape = RoundShapes.medium,
                 clip = true
             )
-            .background(color = AppColor.surface.copy(alpha = 0.9f)),
+            .clip(RoundShapes.medium)
+            .background(color = AppColor.surfaceElevated),
         properties = DialogProperties(
             usePlatformDefaultWidth = true
         ),
@@ -294,7 +297,7 @@ private fun TimePickerStartEndTime(
             modifier = Modifier
                 .border(
                     width = 0.5.dp,
-                    color = AppColor.divider,
+                    color = AppColor.outline.copy(alpha = 0.5f),
                     shape = RoundedCornerShape(size = 4.dp)
                 )
         ) {
@@ -385,7 +388,7 @@ private fun TimePickerTimeText(
                 .width(18.dp)
                 .fillMaxHeight(),
             imageVector = Icons.Outlined.Check,
-            tint = if (isSelected) Color.White else Transparent,
+            tint = if (isSelected) AppColor.onPrimary else Transparent,
             contentDescription = null
         )
         Text(
@@ -400,7 +403,7 @@ private fun TimePickerTimeText(
                 ),
             text = title,
             style = AppTypography.titleMedium.copy(
-                color = if (isSelected) Color.White else AppColor.onSurface,
+                color = if (isSelected) AppColor.onPrimary else AppColor.onSurface,
                 fontWeight = FontWeight.Normal
             )
         )

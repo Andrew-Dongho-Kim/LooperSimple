@@ -53,10 +53,11 @@ import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.ui.home.input.SharedElementsOfUserInput.TRANSITION_DURATION
 import com.pnd.android.loop.ui.theme.AppColor
-import com.pnd.android.loop.ui.theme.compositeOverOnSurface
+import com.pnd.android.loop.ui.theme.onPrimary
 import com.pnd.android.loop.ui.theme.onSurface
+import com.pnd.android.loop.ui.theme.outline
 import com.pnd.android.loop.ui.theme.primary
-import com.pnd.android.loop.ui.theme.surface
+import com.pnd.android.loop.ui.theme.surfaceContainer
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -151,8 +152,8 @@ private fun UserInputButtonsIndicator(
         label = ""
     )
 
-    val backgroundColor = AppColor.surface.compositeOverOnSurface(alpha = 0.9f)
-    val borderColor = AppColor.onSurface.copy(alpha = 0.3f)
+    val backgroundColor = AppColor.surfaceContainer
+    val borderColor = AppColor.outline.copy(alpha = 0.5f)
     Box(
         modifier = modifier
             .offset { IntOffset(offsetX.roundToPx(), 0) }
@@ -160,11 +161,11 @@ private fun UserInputButtonsIndicator(
             .drawBehind {
                 drawRoundRect(
                     color = backgroundColor,
-                    cornerRadius = CornerRadius(4.dp.toPx(), 4.dp.toPx())
+                    cornerRadius = CornerRadius(8.dp.toPx(), 8.dp.toPx())
                 )
                 drawRoundRect(
                     color = borderColor,
-                    cornerRadius = CornerRadius(4.dp.toPx(), 4.dp.toPx()),
+                    cornerRadius = CornerRadius(8.dp.toPx(), 8.dp.toPx()),
                     style = Stroke(width = 0.5.dp.toPx())
                 )
             }
@@ -204,14 +205,19 @@ private fun UserInputSubmitButton(
         onClick = { onSubmitted() },
         shape = CircleShape,
         colors = ButtonDefaults.buttonColors(
-            disabledContainerColor = AppColor.surface,
-            disabledContentColor = AppColor.onSurface.copy(alpha = 0.2f),
-            contentColor = Color.White
+            containerColor = AppColor.primary,
+            contentColor = AppColor.onPrimary,
+            disabledContainerColor = AppColor.surfaceContainer,
+            disabledContentColor = AppColor.onSurface.copy(alpha = 0.3f),
         ),
-        border = BorderStroke(
-            width = 1.dp,
-            color = AppColor.onSurface.copy(alpha = 0.12f)
-        ),
+        border = if (enabled) {
+            null
+        } else {
+            BorderStroke(
+                width = 0.5.dp,
+                color = AppColor.outline.copy(alpha = 0.5f)
+            )
+        },
         contentPadding = PaddingValues(0.dp)
     ) {
         Icon(
@@ -252,7 +258,7 @@ private fun UserInputOpenButton(
             shape = CircleShape,
             border = BorderStroke(
                 width = 0.5.dp,
-                color = AppColor.onSurface.copy(alpha = 0.3f),
+                color = AppColor.outline.copy(alpha = 0.5f),
             )
         ) {
             val imageRotation by animatedVisibilityScope.transition.animateFloat(

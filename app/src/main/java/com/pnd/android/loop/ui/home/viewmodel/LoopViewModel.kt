@@ -95,6 +95,9 @@ class LoopViewModel @Inject constructor(
     private val doneCount = loopRepository.doneCount
     private val skipCount = loopRepository.skipCount
 
+    private val todayCount = loopRepository.todayEnabledCount
+    private val todayDoneCount = loopRepository.todayDoneCount
+
 
     private val _highlightId = MutableStateFlow(NavigatePage.UNKNOWN_ID)
     val highlightId: StateFlow<Int> = _highlightId
@@ -119,21 +122,28 @@ class LoopViewModel @Inject constructor(
     @OptIn(ExperimentalCoroutinesApi::class)
     val allResponseRate = allCount.flatMapLatest { all ->
         allResponseCount.map { response ->
-            if (all > 0) (response.toFloat() / all.toFloat() * 100) else 100
+            if (all > 0) (response.toFloat() / all.toFloat() * 100) else 100f
+        }
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val todayDoneRate = todayCount.flatMapLatest { all ->
+        todayDoneCount.map { done ->
+            if (all > 0) (done.toFloat() / all.toFloat() * 100) else 100f
         }
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val doneRate = allCount.flatMapLatest { all ->
         doneCount.map { doneCount ->
-            if (all > 0) (doneCount.toFloat() / all.toFloat() * 100) else 100
+            if (all > 0) (doneCount.toFloat() / all.toFloat() * 100) else 100f
         }
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val skipRate = allCount.flatMapLatest { all ->
         skipCount.map { skipCount ->
-            if (all > 0) (skipCount.toFloat() / all.toFloat() * 100) else 100
+            if (all > 0) (skipCount.toFloat() / all.toFloat() * 100) else 100f
         }
     }
 

@@ -3,6 +3,7 @@ package com.pnd.android.loop.ui.home.group
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,7 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -35,9 +36,13 @@ import com.pnd.android.loop.ui.common.AppBarIcon
 import com.pnd.android.loop.ui.common.SimpleAppBar
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
+import com.pnd.android.loop.ui.theme.Dimens
+import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.background
-import com.pnd.android.loop.ui.theme.error
 import com.pnd.android.loop.ui.theme.onSurface
+import com.pnd.android.loop.ui.theme.outline
+import com.pnd.android.loop.ui.theme.primary
+import com.pnd.android.loop.ui.theme.surfaceContainer
 
 
 @Composable
@@ -87,6 +92,7 @@ private fun GroupPickerContent(
     LazyColumn(
         modifier = modifier,
         state = lazyListState,
+        contentPadding = PaddingValues(vertical = Dimens.contentPadding),
     ) {
         itemsIndexed(
             items = groups,
@@ -99,7 +105,7 @@ private fun GroupPickerContent(
             ).collectAsStateWithLifecycle(initialValue = false)
 
             GroupItem(
-                modifier = Modifier.padding(all = 8.dp),
+                modifier = Modifier.padding(horizontal = Dimens.screenHorizontalPadding),
                 group = group,
                 hasLoopInGroup = hasLoopInGroup,
                 onGroupSelected = { loopGroupId ->
@@ -112,9 +118,9 @@ private fun GroupPickerContent(
             )
             if (index < groups.size - 1) {
                 HorizontalDivider(
-                    modifier = Modifier.padding(horizontal = 24.dp),
+                    modifier = Modifier.padding(horizontal = Dimens.screenHorizontalPadding),
                     thickness = 0.5.dp,
-                    color = AppColor.onSurface.copy(alpha = 0.3f)
+                    color = AppColor.outline.copy(alpha = 0.5f)
                 )
             }
         }
@@ -135,12 +141,12 @@ private fun GroupItem(
         Text(
             modifier = Modifier
                 .weight(weight = 1f)
+                .clip(RoundShapes.small)
                 .clickable(enabled = !hasLoopInGroup) { onGroupSelected(group.loopGroupId) }
                 .graphicsLayer {
-                    alpha = if (hasLoopInGroup) 0.3f else 1.0f
+                    alpha = if (hasLoopInGroup) 0.4f else 1.0f
                 }
-                .padding(start = 24.dp)
-                .padding(vertical = 12.dp),
+                .padding(vertical = 14.dp),
             text = group.groupTitle,
             style = AppTypography.titleMedium.copy(color = AppColor.onSurface)
         )
@@ -148,10 +154,13 @@ private fun GroupItem(
         if (hasLoopInGroup) {
             Text(
                 modifier = Modifier
-                    .alpha(0.3f)
-                    .padding(end = 24.dp),
+                    .clip(RoundShapes.small)
+                    .background(color = AppColor.surfaceContainer)
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
                 text = stringResource(id = R.string.already_added),
-                style = AppTypography.bodySmall.copy(color = AppColor.error)
+                style = AppTypography.bodySmall.copy(
+                    color = AppColor.primary
+                )
             )
         }
     }

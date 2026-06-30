@@ -1,23 +1,19 @@
 package com.pnd.android.loop.ui.home
 
-import android.graphics.Path
-import android.graphics.PathDashPathEffect
-import android.graphics.PathMeasure
-import android.util.Log
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
@@ -28,17 +24,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.outlined.MoreVert
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,21 +44,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.Paint
-import androidx.compose.ui.graphics.asAndroidPath
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.graphics.toComposePathEffect
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import com.pnd.android.loop.R
@@ -73,26 +67,89 @@ import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.TimeStat
 import com.pnd.android.loop.data.common.NO_REPEAT
 import com.pnd.android.loop.data.currentTimeStat
-import com.pnd.android.loop.ui.shape.CircularPolygonShape
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
+import com.pnd.android.loop.ui.theme.compositeOver
 import com.pnd.android.loop.ui.theme.compositeOverOnSurface
 import com.pnd.android.loop.ui.theme.onSurface
-import com.pnd.android.loop.ui.theme.outline
 import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.ui.theme.surface
+import com.pnd.android.loop.ui.theme.surfaceElevated
 import com.pnd.android.loop.util.ABB_DAYS
 import com.pnd.android.loop.util.DAY_STRING_MAP
 import com.pnd.android.loop.util.annotatedString
-import com.pnd.android.loop.util.formatStartEndTime
+import com.pnd.android.loop.util.formatHourMinute
+import com.pnd.android.loop.util.MS_1DAY
+import com.pnd.android.loop.util.MS_1MIN
 import com.pnd.android.loop.util.intervalString
 import com.pnd.android.loop.util.rememberDayColor
 import com.pnd.android.loop.util.toMs
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import java.time.LocalTime
 
 
-private const val ACTIVE_EFFECT_SEGMENTS = 11f
+/**
+ * Visual tokens shared by every loop card. Keeping them here makes the spacing,
+ * shape and opacity hierarchy consistent and easy to tweak for both light/dark themes.
+ */
+private object LoopCardDefaults {
+    /** Soft rounding applied to the highlight tint / press ripple of the flat row. */
+    val RowCorner = 16.dp
 
+    /** Fixed leading column that holds the start / end time labels. */
+    val TimeColumnWidth = 46.dp
+
+    /** Vertical timeline rail (line + start/end dots) drawn between time and content. */
+    val RailWidth = 22.dp
+    val RailDotRadius = 4.dp
+    val RailLineWidth = 2.dp
+
+    val ContentHorizontalPadding = 14.dp
+    val ContentVerticalPadding = 12.dp
+
+    const val EnabledAlpha = 1f
+    const val DisabledAlpha = 0.3f
+    const val TitleAlpha = 0.9f
+    const val MetaAlpha = 0.6f
+
+    /** Wash of the loop color over the row when it is highlighted (opened from a notification). */
+    const val HighlightTintAlpha = 0.12f
+
+    /** Line brightness per phase: bright while live, faded once finished, dim before it starts. */
+    const val RailActiveAlpha = 1f
+    const val RailFinishedAlpha = 0.45f
+    const val RailInactiveAlpha = 0.3f
+
+    /** Soft halo radius (× dot radius) pulsing around the start dot while a loop is in progress. */
+    const val RailHaloRadiusScale = 2.2f
+    const val RailHaloAlpha = 0.18f
+}
+
+/**
+ * Where a loop sits in its daily lifecycle, relative to the current clock. Drives how the
+ * timeline rail is drawn so each state reads at a glance:
+ *  - [BeforeStart] the window hasn't opened yet (or the card isn't clock-synced),
+ *  - [InProgress] the loop is happening right now,
+ *  - [Finished] today's window has passed.
+ */
+private enum class LoopPhase { BeforeStart, InProgress, Finished }
+
+/**
+ * Maps the clock-derived flags into a single [LoopPhase]. Cards that don't sync with the
+ * clock (e.g. the group editor) always read as [LoopPhase.BeforeStart] so they stay neutral.
+ */
+private fun loopPhaseOf(
+    syncWithTime: Boolean,
+    isActive: Boolean,
+    isPast: Boolean,
+): LoopPhase = when {
+    !syncWithTime -> LoopPhase.BeforeStart
+    isActive -> LoopPhase.InProgress
+    isPast -> LoopPhase.Finished
+    else -> LoopPhase.BeforeStart
+}
 
 @Composable
 fun LoopCard(
@@ -103,172 +160,257 @@ fun LoopCard(
     onNavigateToGroupPicker: (LoopBase) -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
-    val isMock = loop.isMock
-    val animateAlpha = animateCardAlphaWithMock(loopBase = loop)
-
-    val mockBorerColor = loop.color.compositeOverOnSurface()
-    val commonBorderColor = AppColor.outline
-    val border = remember(isMock, loop.color) {
-        BorderStroke(
-            width = 0.5.dp,
-            color = if (isMock) mockBorerColor else commonBorderColor
-        )
+    val mockAlpha = animateCardAlphaWithMock(loopBase = loop)
+    val contentAlpha = if (loop.enabled) {
+        LoopCardDefaults.EnabledAlpha
+    } else {
+        LoopCardDefaults.DisabledAlpha
     }
-    Box(modifier = modifier.graphicsLayer { this.alpha = animateAlpha }) {
-        val cardShape = remember { CircularPolygonShape(12.dp) }
-        Card(
+
+    val timeStat = loop.currentTimeStat
+    val syncWithTime = !loop.isMock && cardValues.syncWithTime
+    val background = loopCardBackground(loop = loop, isHighlighted = cardValues.isHighlighted)
+
+    Box(modifier = modifier.graphicsLayer { alpha = mockAlpha }) {
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .drawBehind {
-                    if (!cardValues.isHighlighted) return@drawBehind
-
-                    val size = this.size
-                    val density = this.density
-                    val fontScale = this.fontScale
-                    drawContext.canvas.nativeCanvas.apply {
-                        drawPath(
-                            cardShape
-                                .createOutlinePath(
-                                    density = Density(density, fontScale),
-                                    size = size
-                                )
-                                .asAndroidPath(),
-                            android.graphics
-                                .Paint()
-                                .apply {
-                                    setShadowLayer(
-                                        4.dp.toPx(),
-                                        0f,
-                                        0f,
-                                        loop.color,
-                                    )
-                                }
-                        )
-                    }
-                }
-                .clip(cardShape)
-                .clickable(enabled = !loop.isMock) {
-                    onNavigateToDetailPage(loop)
-                },
-            colors = CardDefaults.cardColors(
-                containerColor = AppColor.surface,
-                contentColor = AppColor.onSurface,
-            ),
-            shape = cardShape,
-            border = border
+                .clip(RoundedCornerShape(LoopCardDefaults.RowCorner))
+                .background(background)
+                .clickable(enabled = !loop.isMock) { onNavigateToDetailPage(loop) }
+                .height(IntrinsicSize.Min)
+                .padding(
+                    horizontal = LoopCardDefaults.ContentHorizontalPadding,
+                    vertical = LoopCardDefaults.ContentVerticalPadding,
+                ),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            LoopCardContent(
+            AgendaTimeColumn(
                 modifier = Modifier
-                    .height(54.dp)
-                    .alpha(
-                        if (loop.enabled) 0.8f else 0.3f
-                    ),
+                    .alpha(contentAlpha)
+                    .width(LoopCardDefaults.TimeColumnWidth)
+                    .fillMaxHeight(),
                 loop = loop,
-                cardValues = cardValues,
-                onStateChanged = onStateChanged,
-                onNavigateToGroupPicker = onNavigateToGroupPicker,
             )
-        }
-    }
-}
-
-@Composable
-private fun LoopCardContent(
-    modifier: Modifier = Modifier,
-    loop: LoopBase,
-    cardValues: LoopCardValues,
-    onStateChanged: (loop: LoopBase, doneState: Int) -> Unit,
-    onNavigateToGroupPicker: (LoopBase) -> Unit,
-) {
-
-    BoxWithConstraints(modifier = modifier) {
-        Row(
-            modifier = Modifier.padding(
-                horizontal = 12.dp,
-                vertical = 6.dp
-            ),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            LoopCardColor(
-                modifier = Modifier.size(12.dp),
-                color = loop.color
+            AgendaRail(
+                modifier = Modifier.alpha(contentAlpha),
+                loop = loop,
+                phase = loopPhaseOf(
+                    syncWithTime = syncWithTime,
+                    isActive = cardValues.isActive,
+                    isPast = timeStat.isPast(),
+                ),
             )
-
-            LoopCardBody(
+            AgendaContent(
                 modifier = Modifier
-                    .padding(top = 4.dp)
+                    .alpha(contentAlpha)
                     .weight(1f),
                 loop = loop,
-                cardValues = cardValues,
+                timeStat = timeStat,
+                syncWithTime = syncWithTime,
                 onStateChanged = onStateChanged,
             )
-
             LoopCardMenu(
-                modifier = Modifier.padding(end = 12.dp),
                 cardValues = cardValues,
                 onNavigateToGroupPicker = { onNavigateToGroupPicker(loop) },
             )
         }
+    }
+}
 
-        LoopCardActiveEffect(
-            modifier = Modifier
-                .width(maxWidth)
-                .height(maxHeight),
-            loop = loop,
-            cardValues = cardValues
+/**
+ * Opaque background for the flat agenda row. Stays on the plain surface so rows read as
+ * a borderless list; when highlighted (e.g. opened from a notification) it gets a soft
+ * wash of the loop's own color. Opaque so the swipe-to-reveal options stay hidden.
+ */
+@Composable
+private fun loopCardBackground(
+    loop: LoopBase,
+    isHighlighted: Boolean,
+): Color {
+    val base = AppColor.surface
+    if (loop.isMock || !isHighlighted) return base
+    return loop.color.compositeOver(
+        alpha = LoopCardDefaults.HighlightTintAlpha,
+        color = base,
+    )
+}
+
+/**
+ * Leading time column: start time on top, end time on the bottom, aligned to the rail.
+ * "Any time" loops collapse to a single centered label.
+ */
+@Composable
+private fun AgendaTimeColumn(
+    modifier: Modifier = Modifier,
+    loop: LoopBase,
+) {
+    if (loop.isAnyTime) {
+        Box(modifier = modifier, contentAlignment = Alignment.Center) {
+            Text(
+                text = stringResource(id = R.string.anytime),
+                style = AppTypography.labelMedium.copy(color = loopMetaColor()),
+            )
+        }
+        return
+    }
+
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.End,
+        verticalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(
+            text = loop.startInDay.formatHourMinute(withAmPm = false),
+            style = AppTypography.bodyMedium.copy(
+                color = loopTitleColor(),
+                fontWeight = FontWeight.SemiBold,
+            ),
+        )
+        Text(
+            text = loop.endInDay.formatHourMinute(withAmPm = false),
+            style = AppTypography.labelMedium.copy(color = loopMetaColor()),
         )
     }
 }
 
+/**
+ * Vertical timeline rail tying the start/end times to the content. The two dots track how far
+ * the loop has travelled through its window — each is hollow until it is reached and filled once
+ * passed — and the connecting line is brightest while the loop is in progress:
+ *  - before start: both dots hollow on a dim line,
+ *  - in progress: start dot filled with a soft halo, end dot still hollow, bright line,
+ *  - finished: both dots filled on a faded line.
+ */
 @Composable
-private fun LoopCardActiveEffect(
+private fun AgendaRail(
     modifier: Modifier = Modifier,
     loop: LoopBase,
-    cardValues: LoopCardValues,
+    phase: LoopPhase,
 ) {
-    if (loop.isMock) return
-    if (!cardValues.syncWithTime) return
-    if (!cardValues.isActive) return
+    val color = loop.color.compositeOverOnSurface()
 
-    val outlineColor = loop.color.compositeOverOnSurface().copy(alpha = 0.7f)
-    val outlinePaint = remember(outlineColor) { Paint().apply { color = outlineColor } }
-    val pathMeasure = remember { PathMeasure() }
-    val cardShape = remember { CircularPolygonShape(12.dp) }
+    // Live cues are only meaningful while the loop is in progress.
+    val progress = if (phase == LoopPhase.InProgress) rememberInProgressFraction(loop) else null
+    val haloScale = if (phase == LoopPhase.InProgress) rememberRailHaloScale() else 0f
 
-    val infiniteTransition = rememberInfiniteTransition(label = "active_animation")
-    val phase by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 0f,
-        animationSpec = infiniteRepeatable(
-            tween(
-                durationMillis = 30_000,
-                easing = LinearEasing
-            ),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "phase"
-    )
+    Canvas(
+        modifier = modifier
+            .width(LoopCardDefaults.RailWidth)
+            .fillMaxHeight()
+    ) {
+        val cx = size.width / 2f
+        val r = LoopCardDefaults.RailDotRadius.toPx()
+        val lineWidth = LoopCardDefaults.RailLineWidth.toPx()
+        val top = Offset(cx, r + 1.dp.toPx())
+        val bottom = Offset(cx, size.height - r - 1.dp.toPx())
 
-
-    Canvas(modifier = modifier) {
-        val path = cardShape.createOutlinePath(
-            density = Density(density, fontScale),
-            size = size
+        fun railLine(end: Offset, alpha: Float) = drawLine(
+            color = color.copy(alpha = alpha),
+            start = top,
+            end = end,
+            strokeWidth = lineWidth,
+            cap = StrokeCap.Round,
         )
-        pathMeasure.setPath(path.asAndroidPath(), false)
 
-        val pathEffect = PathDashPathEffect(
-            Path().apply {
-                addCircle(0f, 0f, 3.dp.toPx(), Path.Direction.CW)
-            },
-            pathMeasure.length / ACTIVE_EFFECT_SEGMENTS,
-            phase * pathMeasure.length,
-            PathDashPathEffect.Style.MORPH
-        ).toComposePathEffect()
+        when (phase) {
+            LoopPhase.BeforeStart -> railLine(bottom, LoopCardDefaults.RailInactiveAlpha)
 
-        outlinePaint.pathEffect = pathEffect
-        with(drawContext.canvas) { drawPath(path, outlinePaint) }
+            LoopPhase.Finished -> railLine(bottom, LoopCardDefaults.RailFinishedAlpha)
+
+            LoopPhase.InProgress -> {
+                if (progress == null) {
+                    // Open-ended ("any time") loop: no end to fill toward, just a bright live rail.
+                    railLine(bottom, LoopCardDefaults.RailActiveAlpha)
+                } else {
+                    // Dim the remaining track and overlay a bright fill that grows toward the end.
+                    val head = Offset(cx, top.y + (bottom.y - top.y) * progress)
+                    railLine(bottom, LoopCardDefaults.RailInactiveAlpha)
+                    railLine(head, LoopCardDefaults.RailActiveAlpha)
+                    drawCircle(color = color, radius = r * 0.7f, center = head)
+                }
+
+                // Pulsing halo keeps the eye on the loop that is happening right now.
+                drawCircle(
+                    color = color.copy(alpha = LoopCardDefaults.RailHaloAlpha),
+                    radius = r * LoopCardDefaults.RailHaloRadiusScale * haloScale,
+                    center = top,
+                )
+            }
+        }
+
+        // Start dot: hollow until the window opens, filled once it has.
+        drawRailDot(color = color, center = top, radius = r, filled = phase != LoopPhase.BeforeStart, strokeWidth = lineWidth)
+
+        // End dot: filled only after the window has closed.
+        drawRailDot(color = color, center = bottom, radius = r, filled = phase == LoopPhase.Finished, strokeWidth = lineWidth)
     }
+}
+
+/** Draws a single rail node, either a solid dot or a hollow ring of the same radius. */
+private fun DrawScope.drawRailDot(
+    color: Color,
+    center: Offset,
+    radius: Float,
+    filled: Boolean,
+    strokeWidth: Float,
+) {
+    if (filled) {
+        drawCircle(color = color, radius = radius, center = center)
+    } else {
+        drawCircle(color = color, radius = radius, center = center, style = Stroke(width = strokeWidth))
+    }
+}
+
+/**
+ * Fraction (0..1) of how far the loop has travelled through today's window, ticking once a
+ * minute and animated so the rail fill glides rather than jumps. Returns null for open-ended
+ * ("any time") loops that have no end time to measure against.
+ */
+@Composable
+private fun rememberInProgressFraction(loop: LoopBase): Float? {
+    if (loop.isAnyTime || loop.startInDay < 0 || loop.endInDay < 0) return null
+
+    var elapsed by remember(loop.loopId) {
+        mutableStateOf(loopElapsedFraction(loop.startInDay, loop.endInDay))
+    }
+    LaunchedEffect(loop.loopId, loop.startInDay, loop.endInDay) {
+        while (currentCoroutineContext().isActive) {
+            elapsed = loopElapsedFraction(loop.startInDay, loop.endInDay)
+            delay(MS_1MIN)
+        }
+    }
+
+    val animated by animateFloatAsState(targetValue = elapsed, label = "RailProgress")
+    return animated
+}
+
+/** Elapsed fraction of the [startMs, endMs] window right now, handling windows that cross midnight. */
+private fun loopElapsedFraction(startMs: Long, endMs: Long): Float {
+    val overnight = startMs > endMs
+    val end = if (overnight) endMs + MS_1DAY else endMs
+    val nowRaw = LocalTime.now().toMs()
+    val now = if (overnight && nowRaw < startMs) nowRaw + MS_1DAY else nowRaw
+
+    val total = (end - startMs).toFloat()
+    if (total <= 0f) return 1f
+    return ((now - startMs) / total).coerceIn(0f, 1f)
+}
+
+/** Slow breathing scale (≈0.7→1) for the in-progress halo so it gently pulses. */
+@Composable
+private fun rememberRailHaloScale(): Float {
+    val transition = rememberInfiniteTransition(label = "RailHalo")
+    val scale by transition.animateFloat(
+        initialValue = 0.7f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            tween(durationMillis = 1_200, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "RailHaloScale",
+    )
+    return scale
 }
 
 @Composable
@@ -276,75 +418,93 @@ fun LoopCardColor(
     modifier: Modifier = Modifier,
     color: Int
 ) {
+    // Solid dot reads cleaner than a hollow ring and stays legible on both themes.
     Box(
         modifier = modifier
-            .border(
-                width = 1.5.dp,
-                color = color.compositeOverOnSurface(),
-                shape = CircleShape
-            )
+            .clip(CircleShape)
+            .background(color = color.compositeOverOnSurface())
     )
 }
 
+/**
+ * Right-hand content of the agenda row: title + a meta line, plus the trailing
+ * done/skip (or any-time start/stop) actions when the loop is live today.
+ */
 @Composable
-fun LoopCardBody(
+private fun AgendaContent(
     modifier: Modifier = Modifier,
     loop: LoopBase,
-    cardValues: LoopCardValues,
-    onStateChanged: (loop: LoopBase, doneState: @LoopDoneVo.DoneState Int) -> Unit
+    timeStat: TimeStat,
+    syncWithTime: Boolean,
+    onStateChanged: (loop: LoopBase, doneState: @LoopDoneVo.DoneState Int) -> Unit,
 ) {
-    val timeStat = loop.currentTimeStat
-    val syncWithTime = !loop.isMock && cardValues.syncWithTime
-
     Row(
-        modifier = modifier.padding(start = 16.dp),
+        modifier = modifier.padding(start = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
             LoopCardTitle(title = loop.title)
+            AgendaMeta(
+                modifier = Modifier.padding(top = 3.dp),
+                loop = loop,
+                timeStat = timeStat,
+                syncWithTime = syncWithTime,
+            )
+        }
 
-            Row(
-                modifier = Modifier.padding(top = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-
-                LoopCardStartEndTime(
-                    modifier = Modifier.weight(1f),
+        if (syncWithTime && loop.enabled) {
+            if (timeStat.isPast()) {
+                LoopDoneOrSkip(
+                    modifier = Modifier.height(36.dp),
                     loop = loop,
-                    timeStat = timeStat,
-                    syncWithTime = syncWithTime,
+                    onStateChanged = onStateChanged,
                 )
-
-                if (!syncWithTime) {
-                    LoopCardInterval(
-                        modifier = Modifier.weight(1f),
-                        interval = loop.interval,
-                    )
-                }
-                if (!syncWithTime) {
-                    LoopCardActiveDays(
-                        modifier = Modifier.weight(1f),
-                        loop = loop
-                    )
-                }
+            }
+            if (loop.isAnyTime && (loop.startInDay < 0 || loop.endInDay < 0)) {
+                AnyTimeLoopStartOrStop(
+                    loop = loop,
+                    onStateChanged = onStateChanged,
+                )
             }
         }
-        val enabled = loop.enabled
-        if (!syncWithTime) return
-        if (!enabled) return
-        if (timeStat.isPast()) {
-            LoopDoneOrSkip(
-                modifier = Modifier.height(36.dp),
-                loop = loop,
-                onStateChanged = onStateChanged,
+    }
+}
+
+/**
+ * Single meta line under the title. While syncing with the clock it shows the live status
+ * ("32 mins left", "finished", …); otherwise it shows the repeat interval and active days.
+ */
+@Composable
+private fun AgendaMeta(
+    modifier: Modifier = Modifier,
+    loop: LoopBase,
+    timeStat: TimeStat,
+    syncWithTime: Boolean,
+) {
+    if (syncWithTime) {
+        val text = timeStat.asString(LocalContext.current, false)
+        if (text.isNotEmpty()) {
+            Text(
+                modifier = modifier,
+                text = annotatedString(text),
+                style = AppTypography.labelMedium.copy(color = loopMetaColor()),
             )
         }
-        if (loop.isAnyTime && (loop.startInDay < 0 || loop.endInDay < 0)) {
-            AnyTimeLoopStartOrStop(
-                loop = loop,
-                onStateChanged = onStateChanged
-            )
-        }
+        return
+    }
+
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        LoopCardInterval(
+            modifier = Modifier,
+            interval = loop.interval,
+        )
+        LoopCardActiveDays(
+            modifier = Modifier.padding(start = 8.dp),
+            loop = loop,
+        )
     }
 }
 
@@ -396,7 +556,7 @@ private fun LoopCardPopupMenu(
         Column(
             modifier = modifier
                 .shadow(elevation = 1.5.dp)
-                .background(color = AppColor.surface)
+                .background(color = AppColor.surfaceElevated)
         ) {
             LoopCardPopupMenuItem(
                 text = stringResource(id = R.string.add_to_group),
@@ -517,7 +677,7 @@ private fun LoopCardTitle(
         modifier = modifier,
         text = title,
         style = AppTypography.bodyMedium.copy(
-            color = colorBody1Text(),
+            color = loopTitleColor(),
             fontWeight = FontWeight.Bold
         ),
         maxLines = 1,
@@ -541,31 +701,8 @@ private fun LoopCardInterval(
                 )
             )
         },
-        style = AppTypography.labelMedium.copy(color = colorBody2Text()),
+        style = AppTypography.labelMedium.copy(color = loopMetaColor()),
         modifier = modifier,
-    )
-}
-
-@Composable
-private fun LoopCardStartEndTime(
-    modifier: Modifier,
-    loop: LoopBase,
-    timeStat: TimeStat,
-    syncWithTime: Boolean,
-) {
-
-    val timeText = when {
-        loop.isMock -> loop.formatStartEndTime()
-        !syncWithTime -> loop.formatStartEndTime()
-        timeStat.isPast() -> loop.formatStartEndTime()
-        timeStat.isNotToday() -> loop.formatStartEndTime()
-        else -> timeStat.asString(LocalContext.current, false)
-    }
-
-    Text(
-        modifier = modifier,
-        text = annotatedString(timeText),
-        style = AppTypography.labelMedium.copy(color = colorBody2Text()),
     )
 }
 
@@ -663,14 +800,12 @@ private fun ActiveDayText(
 }
 
 @Composable
-private fun colorBody1Text(): Color {
-    return AppColor.onSurface.copy(alpha = 0.8f)
-}
+private fun loopTitleColor(): Color =
+    AppColor.onSurface.copy(alpha = LoopCardDefaults.TitleAlpha)
 
 @Composable
-private fun colorBody2Text(): Color {
-    return AppColor.onSurface.copy(alpha = 0.7f)
-}
+private fun loopMetaColor(): Color =
+    AppColor.onSurface.copy(alpha = LoopCardDefaults.MetaAlpha)
 
 
 @Composable

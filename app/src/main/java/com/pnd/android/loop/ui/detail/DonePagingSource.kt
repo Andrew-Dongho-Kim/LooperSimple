@@ -99,7 +99,9 @@ class DonePagingSource(
     private suspend fun initIfNeed() {
         if (::loop.isInitialized) return
 
+        // Surfaced as LoadResult.Error by load()'s try/catch if the loop is gone.
         loop = loopDao.getLoop(loopId = loopId)
+            ?: throw IllegalStateException("loop $loopId not found")
         logger.d { "paging source for loop:$loop" }
     }
 

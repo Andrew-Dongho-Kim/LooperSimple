@@ -20,7 +20,7 @@ import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
-import com.pnd.android.loop.ui.theme.surface
+import com.pnd.android.loop.ui.theme.surfaceElevated
 
 @Composable
 fun CreateGroupDialog(
@@ -64,8 +64,11 @@ fun CreateGroupDialog(
         },
         confirmButton = {
             TextButton(onClick = {
-                onCreate(textFiled.text)
-                onDismiss()
+                // Ignore blank titles so we never create an unnamed group.
+                if (textFiled.text.isNotBlank()) {
+                    onCreate(textFiled.text)
+                    onDismiss()
+                }
             }) {
                 Text(
                     text = stringResource(id = R.string.ok),
@@ -73,7 +76,7 @@ fun CreateGroupDialog(
                 )
             }
         },
-        containerColor = AppColor.surface,
+        containerColor = AppColor.surfaceElevated,
         tonalElevation = 0.dp,
     )
 }
@@ -116,7 +119,7 @@ fun DeleteDialog(
                 )
             }
         },
-        containerColor = AppColor.surface,
+        containerColor = AppColor.surfaceElevated,
         tonalElevation = 0.dp,
     )
 }

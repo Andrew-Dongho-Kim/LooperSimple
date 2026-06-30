@@ -4,6 +4,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,6 +17,7 @@ import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -25,9 +27,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -35,8 +39,10 @@ import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.data.LoopByDate
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
+import com.pnd.android.loop.ui.theme.Dimens
+import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.compositeOverOnSurface
-import com.pnd.android.loop.ui.theme.compositeOverSurface
+import com.pnd.android.loop.ui.theme.onPrimary
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.util.DAYS_WITH_3CHARS_SUNDAY_FIRST
@@ -61,7 +67,7 @@ fun DailyAchievementCalendar(
     Column(modifier = modifier) {
         CalendarHeader()
         HorizontalPager(
-            modifier = Modifier.padding(top = 8.dp),
+            modifier = Modifier.padding(top = Dimens.cardSpacing),
             state = pagerState,
             reverseLayout = true,
         ) { page ->
@@ -83,29 +89,30 @@ fun CalendarHeader(
 ) {
     Column(modifier = modifier) {
         Row(
-            modifier = Modifier.padding(top = 16.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = Dimens.contentPadding, bottom = Dimens.itemSpacing)
         ) {
             DAYS_WITH_3CHARS_SUNDAY_FIRST.forEachIndexed { index, dayResId ->
-                val day = stringResource(id = dayResId)
+                val dayOfWeek = DayOfWeek.of(
+                    if (index == 0) DayOfWeek.SUNDAY.value else index
+                )
                 Text(
                     modifier = Modifier
-                        .padding(top = 4.dp)
                         .weight(1f)
                         .align(Alignment.CenterVertically),
                     textAlign = TextAlign.Center,
-                    text = day,
-                    style = AppTypography.bodySmall.copy(
-                        color = DayOfWeek.of(
-                            if (index == 0) {
-                                DayOfWeek.SUNDAY.value
-                            } else {
-                                index
-                            }
-                        ).color()
+                    text = stringResource(id = dayResId).uppercase(),
+                    style = AppTypography.labelSmall.copy(
+                        color = dayOfWeek.color().copy(alpha = 0.7f)
                     )
                 )
             }
         }
+        HorizontalDivider(
+            thickness = 0.5.dp,
+            color = AppColor.onSurface.copy(alpha = 0.08f),
+        )
     }
 }
 
@@ -217,83 +224,114 @@ private fun CalendarDateItem(
     isSelected: Boolean,
     onDateSelected: (LocalDate) -> Unit
 ) {
-    val selectedBackground = compositeOverSurface()
-    val primaryColor = AppColor.primary
     Column(
         modifier = modifier
             .fillMaxHeight()
             .padding(all = 2.dp)
-            .clickable { onDateSelected(itemDate) }
-            .drawBehind {
-                if (viewMode == DailyAchievementPageViewMode.DESCRIPTION_TEXT && isInterest) {
-                    val doneRate = (doneLoops.size.toFloat() / (doneLoops.size + noDoneLoops.size))
-                    if (doneRate > 0.1f) {
-                        drawRoundRect(
-                            color = primaryColor.copy((0.4f * doneRate) * (0.4f * doneRate)),
-                            cornerRadius = CornerRadius(
-                                x = 4.dp.toPx(),
-                                y = 4.dp.toPx()
-                            )
-                        )
-                    }
-                }
-                if (isSelected) {
-                    drawRoundRect(
-                        color = selectedBackground,
-                        cornerRadius = CornerRadius(
-                            x = 4.dp.toPx(),
-                            y = 4.dp.toPx()
-                        )
-                    )
-                    drawRoundRect(
-                        color = primaryColor.copy(alpha = 0.7f),
-                        cornerRadius = CornerRadius(
-                            x = 4.dp.toPx(),
-                            y = 4.dp.toPx()
-                        ),
-                        style = Stroke(width = 1f)
-                    )
-                }
-            }
-    ) {
-
-        Text(
-            modifier = Modifier
-                .padding(top = 4.dp)
-                .fillMaxWidth(),
-            text = "${itemDate.dayOfMonth}",
-            textAlign = TextAlign.Center,
-            style = AppTypography.bodyMedium.copy(
-                color = itemDate.dayOfWeek.color(),
-                fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal
+            .clip(RoundShapes.medium)
+            .achievementHeat(
+                enabled = viewMode == DailyAchievementPageViewMode.DESCRIPTION_TEXT && isInterest,
+                doneCount = doneLoops.size,
+                totalCount = doneLoops.size + noDoneLoops.size,
+                color = AppColor.primary,
             )
+            .clickable { onDateSelected(itemDate) },
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        CalendarDayBadge(
+            dayOfMonth = itemDate.dayOfMonth,
+            dayColor = itemDate.dayOfWeek.color(),
+            isToday = isToday,
+            isSelected = isSelected,
         )
 
         val hasRetrospect = doneLoops.any { it.retrospect != null } ||
                 noDoneLoops.any { it.retrospect != null }
         if (hasRetrospect) {
             Image(
-                modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
-                    .size(10.dp),
+                modifier = Modifier.size(10.dp),
                 imageVector = Icons.AutoMirrored.Filled.Chat,
-                alpha = 0.6f,
-                contentDescription = ""
+                colorFilter = ColorFilter.tint(AppColor.onSurface.copy(alpha = 0.5f)),
+                contentDescription = null,
             )
         }
 
-
         if (isInterest) {
             AchievementIndicators(
-                modifier = Modifier
-                    .padding(top = if (hasRetrospect) 4.dp else 14.dp)
-                    .align(Alignment.CenterHorizontally),
+                modifier = Modifier.padding(top = if (hasRetrospect) 4.dp else 6.dp),
                 viewMode = viewMode,
                 doneLoops = doneLoops,
                 noDoneLoops = noDoneLoops,
             )
         }
     }
+}
+
+/**
+ * 오늘/선택된 날짜를 애플 캘린더처럼 원형 배지로 강조해서 그리는 날짜 숫자.
+ *
+ * - 오늘: primary 로 채운 원 + 대비되는 onPrimary 글자
+ * - 선택: primary 가 옅게 깔린 원 + primary 글자
+ * - 그 외: 배경 없이 요일 색 그대로
+ *
+ * 라이트/다크 모드 모두 [AppColor] 토큰을 사용하므로 테마에 맞춰 자동으로 대비가 유지된다.
+ */
+@Composable
+private fun CalendarDayBadge(
+    modifier: Modifier = Modifier,
+    dayOfMonth: Int,
+    dayColor: Color,
+    isToday: Boolean,
+    isSelected: Boolean,
+) {
+    val badgeColor = when {
+        isToday -> AppColor.primary
+        isSelected -> AppColor.primary.copy(alpha = 0.14f)
+        else -> Color.Transparent
+    }
+    val textColor = when {
+        isToday -> AppColor.onPrimary
+        isSelected -> AppColor.primary
+        else -> dayColor
+    }
+    Box(
+        modifier = modifier
+            .padding(top = 4.dp)
+            .size(28.dp)
+            .background(color = badgeColor, shape = CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = "$dayOfMonth",
+            textAlign = TextAlign.Center,
+            style = AppTypography.bodyMedium.copy(
+                color = textColor,
+                fontWeight = if (isToday || isSelected) FontWeight.SemiBold else FontWeight.Normal,
+            ),
+        )
+    }
+}
+
+/**
+ * 달성도(완료 비율)에 비례해 셀 뒤에 옅은 "히트" 배경을 칠한다.
+ * 카운트(설명) 뷰 모드에서만 적용되어 한 달이 은은한 성취 히트맵처럼 보이게 한다.
+ */
+private fun Modifier.achievementHeat(
+    enabled: Boolean,
+    doneCount: Int,
+    totalCount: Int,
+    color: Color,
+) = drawBehind {
+    if (!enabled || totalCount == 0) return@drawBehind
+
+    val doneRate = doneCount.toFloat() / totalCount
+    if (doneRate <= 0.1f) return@drawBehind
+
+    val intensity = (0.4f * doneRate) * (0.4f * doneRate)
+    drawRoundRect(
+        color = color.copy(alpha = intensity),
+        cornerRadius = CornerRadius(x = 8.dp.toPx(), y = 8.dp.toPx()),
+    )
 }
 
 @Composable
@@ -323,19 +361,13 @@ private fun DescriptionTextIndicator(
     doneCount: Int,
     otherCount: Int,
 ) {
-    Row(
+    Text(
         modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = String.format(
-                " %d/%d", doneCount, doneCount + otherCount
-            ),
-            style = AppTypography.labelMedium.copy(
-                color = AppColor.onSurface.copy(alpha = 0.4f)
-            )
+        text = "$doneCount/${doneCount + otherCount}",
+        style = AppTypography.labelMedium.copy(
+            color = AppColor.onSurface.copy(alpha = 0.5f)
         )
-    }
+    )
 }
 
 @Composable
@@ -343,23 +375,36 @@ private fun ColorDotIndicator(
     modifier: Modifier = Modifier,
     doneLoops: List<LoopByDate>,
 ) {
-    Row(modifier = modifier.padding(top = 2.dp)) {
-        doneLoops.forEach { loop ->
+    Row(
+        modifier = modifier.padding(top = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        doneLoops.take(MAX_VISIBLE_DOTS).forEach { loop ->
             Box(
                 modifier = Modifier
-                    .padding(horizontal = 1.dp)
-                    .size(4.dp)
+                    .size(5.dp)
                     .background(
                         color = loop.color
                             .compositeOverOnSurface()
-                            .copy(alpha = 0.8f),
+                            .copy(alpha = 0.85f),
                         shape = CircleShape
                     )
             )
         }
+        if (doneLoops.size > MAX_VISIBLE_DOTS) {
+            Text(
+                text = "+",
+                style = AppTypography.labelSmall.copy(
+                    color = AppColor.onSurface.copy(alpha = 0.5f)
+                )
+            )
+        }
     }
-
 }
 
 
 private const val DAYS_OF_WEEK = 7
+
+/** 한 셀에 표시할 색상 도트의 최대 개수. 초과분은 "+" 로 축약한다. */
+private const val MAX_VISIBLE_DOTS = 5

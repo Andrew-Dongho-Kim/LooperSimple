@@ -23,7 +23,8 @@ import com.pnd.android.loop.data.LoopVo.Factory.ANY_TIME
 import com.pnd.android.loop.ui.home.BlurState
 import com.pnd.android.loop.ui.home.input.InputSelector
 import com.pnd.android.loop.ui.home.input.UserInputState
-import com.pnd.android.loop.ui.theme.compositeOverSurface
+import com.pnd.android.loop.ui.theme.AppColor
+import com.pnd.android.loop.ui.theme.surfaceElevated
 import com.pnd.android.loop.util.rememberImeOpenState
 import kotlinx.coroutines.launch
 
@@ -61,7 +62,7 @@ fun Selectors(
 
     Surface(
         modifier = modifier,
-        color = compositeOverSurface(),
+        color = AppColor.surfaceElevated,
         shadowElevation = 3.dp
     ) {
         Selector(
@@ -95,12 +96,14 @@ private fun Selector(
         InputSelector.ALARM_INTERVAL -> IntervalSelector(
             modifier = modifier,
             selectedInterval = loop.interval,
-            maxInterval = loop.endInDay - loop.startInDay,
+            // An any-time loop has no fixed start/end window, so any interval is
+            // valid; otherwise the interval must be shorter than the duration.
+            maxInterval = if (loop.isAnyTime) Long.MAX_VALUE else loop.endInDay - loop.startInDay,
             onIntervalSelected = onIntervalChanged@{ interval ->
-                if (loop.endInDay - loop.startInDay <= interval) {
+                if (!loop.isAnyTime && loop.endInDay - loop.startInDay <= interval) {
                     coroutineScope.launch {
                         snackBarHostState.showSnackbar(
-                            message = "BBBBB!"
+                            message = context.getString(R.string.warning_interval_must_be_shorter_than_duration)
                         )
                     }
                     return@onIntervalChanged

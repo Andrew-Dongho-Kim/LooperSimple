@@ -30,7 +30,7 @@ class DailyAchievementViewModel @Inject constructor(
     private val loopWithDoneDao = appDb.fullLoopDao()
 
     val flowMinCreatedDate = loopDao.getMinCreatedTimeFlow()
-        .map { it.toLocalDate() }
+        .map { minCreated -> minCreated?.toLocalDate() ?: LocalDate.now() }
 
     val achievementPager = Pager(
         PagingConfig(pageSize = PAGE_SIZE),

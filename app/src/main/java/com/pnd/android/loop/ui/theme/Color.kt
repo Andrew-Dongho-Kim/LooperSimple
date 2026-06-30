@@ -136,6 +136,9 @@ object AppColor
 val AppColor.primary
     @Composable get() = MaterialTheme.colorScheme.primary
 
+val AppColor.onPrimary
+    @Composable get() = MaterialTheme.colorScheme.onPrimary
+
 val AppColor.secondary
     @Composable get() = MaterialTheme.colorScheme.secondary
 val AppColor.error
@@ -160,3 +163,25 @@ val AppColor.outlineVariant
 
 val AppColor.divider
     @Composable get() = AppColor.onSurface.copy(alpha = 0.3f)
+
+/**
+ * Surface color lifted one step above the base [surface] so cards read as a distinct
+ * layer. In dark mode the near-black surface is brightened slightly; in light mode it
+ * stays at [surface] (light cards already separate via shadow/outline).
+ *
+ * This is the Material3 replacement for the legacy [elevatedSurface] (Material2).
+ */
+val AppColor.surfaceElevated
+    @Composable get(): Color {
+        val base = surface
+        return if (isSystemInDarkTheme()) {
+            onSurface.copy(alpha = 0.06f).compositeOver(base)
+        } else {
+            base
+        }
+    }
+
+/** A subtle filled background used for chips, wells and secondary containers. */
+val AppColor.surfaceContainer
+    @Composable get() = onSurface.copy(alpha = if (isSystemInDarkTheme()) 0.08f else 0.05f)
+        .compositeOver(surface)

@@ -2,8 +2,10 @@ package com.pnd.android.loop.ui.home.group
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -50,10 +52,13 @@ import com.pnd.android.loop.ui.home.LoopCardWithOption
 import com.pnd.android.loop.ui.home.rememberBlurState
 import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.theme.AppColor
+import com.pnd.android.loop.ui.theme.Dimens
 import com.pnd.android.loop.ui.theme.background
 import com.pnd.android.loop.ui.theme.error
+import com.pnd.android.loop.ui.theme.AppTypography
+import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.onSurface
-import com.pnd.android.loop.ui.theme.surface
+import com.pnd.android.loop.ui.theme.surfaceElevated
 
 @Composable
 fun GroupPage(
@@ -129,13 +134,17 @@ private fun Groups(
     LazyColumn(
         modifier = modifier,
         state = lazyListState,
+        contentPadding = PaddingValues(
+            horizontal = Dimens.screenHorizontalPadding,
+            vertical = Dimens.contentPadding,
+        ),
+        verticalArrangement = Arrangement.spacedBy(Dimens.cardSpacing),
     ) {
         itemsIndexed(
             items = groups,
-            key = { _, groupWithLoops -> groupWithLoops.group!!.loopGroupId }
+            key = { index, groupWithLoops -> groupWithLoops.group?.loopGroupId ?: index }
         ) { _, groupWithLoops ->
             GroupItem(
-                modifier = Modifier.padding(12.dp),
                 blurState = blurState,
                 loopViewModel = loopViewModel,
                 groupWithLoops = groupWithLoops,
@@ -210,8 +219,9 @@ private fun GroupItem(
 
     Card(
         modifier = modifier.fillMaxWidth(),
+        shape = RoundShapes.large,
         colors = CardDefaults.cardColors(
-            containerColor = AppColor.surface,
+            containerColor = AppColor.surfaceElevated,
         ),
         elevation = CardDefaults.elevatedCardElevation()
     ) {
@@ -253,12 +263,13 @@ private fun GroupTitle(
         Text(
             modifier = Modifier
                 .padding(
-                    start = 24.dp,
+                    start = Dimens.contentPadding,
                     top = 12.dp,
                     bottom = 12.dp,
                 )
                 .weight(weight = 1f),
-            text = title
+            text = title,
+            style = AppTypography.titleMedium.copy(color = AppColor.onSurface)
         )
 
         DeleteGroupButton(

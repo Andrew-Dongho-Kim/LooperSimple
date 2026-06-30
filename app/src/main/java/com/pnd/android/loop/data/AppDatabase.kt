@@ -12,7 +12,7 @@ import com.pnd.android.loop.data.dao.LoopRetrospectDao
 import com.pnd.android.loop.data.dao.RoomTypeConverters
 
 @Database(
-    version = 5,
+    version = 6,
     entities = [
         LoopVo::class,
         LoopDoneVo::class,
@@ -25,6 +25,7 @@ import com.pnd.android.loop.data.dao.RoomTypeConverters
         AutoMigration(from = 2, to = 3),
         AutoMigration(from = 3, to = 4),
         AutoMigration(from = 4, to = 5),
+        AutoMigration(from = 5, to = 6), // adds indices on loop_done(loopId, date)
     ],
     exportSchema = true
 )

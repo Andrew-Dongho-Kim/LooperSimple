@@ -18,16 +18,22 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Autorenew
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -36,12 +42,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
@@ -61,6 +68,7 @@ import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.background
 import com.pnd.android.loop.ui.theme.onSurface
+import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.ui.theme.surface
 import com.pnd.android.loop.util.isActiveDay
 import com.pnd.android.loop.util.toMs
@@ -90,6 +98,9 @@ fun Home(
                     .background(color = AppColor.surface)
                     .statusBarsPadding(),
                 loopViewModel = loopViewModel,
+                onNavigateToGroupPage = onNavigateToGroupPage,
+                onNavigateToStatisticsPage = onNavigateToStatisticsPage,
+                onNavigateToHistoryPage = onNavigateToHistoryPage,
             )
         },
         snackbarHost = {
@@ -123,10 +134,8 @@ fun Home(
             snackBarHostState = snackBarHostState,
             loopViewModel = loopViewModel,
             onNavigateToGroupPicker = onNavigateToGroupPicker,
-            onNavigateToGroupPage = onNavigateToGroupPage,
             onNavigateToDetailPage = onNavigateToDetailPage,
             onNavigateToHistoryPage = onNavigateToHistoryPage,
-            onNavigateToStatisticsPage = onNavigateToStatisticsPage,
         )
     }
 }
@@ -140,10 +149,8 @@ private fun HomeContent(
     snackBarHostState: SnackbarHostState,
     loopViewModel: LoopViewModel,
     onNavigateToGroupPicker: (LoopBase) -> Unit,
-    onNavigateToGroupPage: () -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
     onNavigateToHistoryPage: () -> Unit,
-    onNavigateToStatisticsPage: () -> Unit,
 ) {
     Box(modifier = modifier.background(color = AppColor.background)) {
         val lazyListState = rememberLazyListState()
@@ -157,10 +164,8 @@ private fun HomeContent(
             lazyListState = lazyListState,
             loopViewModel = loopViewModel,
             onNavigateToGroupPicker = onNavigateToGroupPicker,
-            onNavigateToGroupPage = onNavigateToGroupPage,
             onNavigateToDetailPage = onNavigateToDetailPage,
             onNavigateToHistoryPage = onNavigateToHistoryPage,
-            onNavigateToStatisticsPage = onNavigateToStatisticsPage,
         )
 
         val context = LocalContext.current
@@ -219,10 +224,8 @@ private fun HomeContent(
     lazyListState: LazyListState,
     loopViewModel: LoopViewModel,
     onNavigateToGroupPicker: (LoopBase) -> Unit,
-    onNavigateToGroupPage: () -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
     onNavigateToHistoryPage: () -> Unit,
-    onNavigateToStatisticsPage: () -> Unit,
 ) {
     val sections by loopViewModel.observeSectionsAsState(inputState)
     val onEdit = remember { { loop: LoopBase -> inputState.edit(loop) } }
@@ -248,10 +251,8 @@ private fun HomeContent(
                             if (tab == TAB_TODAY) inputState.close(context)
                         },
                         onNavigateToGroupPicker = onNavigateToGroupPicker,
-                        onNavigateToGroupPage = onNavigateToGroupPage,
                         onNavigateToDetailPage = onNavigateToDetailPage,
                         onNavigateToHistoryPage = onNavigateToHistoryPage,
-                        onNavigateToStatisticsPage = onNavigateToStatisticsPage,
                     )
                 }
                 item {
@@ -267,15 +268,41 @@ fun EmptyLoops(
     modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = modifier,
+        modifier = modifier.padding(horizontal = 48.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Box(
+            modifier = Modifier
+                .size(88.dp)
+                .clip(CircleShape)
+                .background(color = AppColor.primary.copy(alpha = 0.08f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                modifier = Modifier.size(40.dp),
+                imageVector = Icons.Outlined.Autorenew,
+                tint = AppColor.primary.copy(alpha = 0.8f),
+                contentDescription = null
+            )
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
         Text(
-            modifier = Modifier.alpha(0.7f),
             text = stringResource(R.string.desc_no_loops),
             style = AppTypography.titleMedium.copy(
                 color = AppColor.onSurface
+            )
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = stringResource(R.string.desc_no_loops_hint),
+            textAlign = TextAlign.Center,
+            style = AppTypography.bodyMedium.copy(
+                color = AppColor.onSurface.copy(alpha = 0.5f)
             )
         )
     }
@@ -296,11 +323,18 @@ private fun LoopViewModel.observeSectionsAsState(
         if (inputState.mode == UserInputState.Mode.Edit) {
             val edited = inputState.value
             val index = resultLoops.indexOfFirst { it.loopId == edited.loopId }
-            resultLoops[index] = inputState.value
+            // The edited loop may have disappeared from the latest DB emission
+            // (deleted or filtered out) — only replace it when it still exists.
+            if (index != -1) resultLoops[index] = edited
         }
 
         val tabSection = rememberAllAndTodayTabSection(tab = TAB_TODAY)
-        if (inputState.isOpen) tabSection.selectedTab = TAB_ALL
+        // Switch to the ALL tab once when the input opens so the new/edited loop
+        // is visible. Done in an effect, not during composition, so it doesn't
+        // override the user's tab selection on every recomposition.
+        LaunchedEffect(inputState.isOpen) {
+            if (inputState.isOpen) tabSection.selectedTab = TAB_ALL
+        }
 
         val sections = mutableListOf(
             rememberHeaderSection(resultLoops),
@@ -350,8 +384,10 @@ private fun rememberYesterdaySection(
 private fun rememberTodaySection(
     loops: List<LoopBase>,
 ): Section {
-    val resultLoops = loops.filter {
-        (it.isActiveDay() && (it.isNotRespond || it.isDisabled || it.isInProgressState))
+    val resultLoops = remember(loops) {
+        loops.filter {
+            (it.isActiveDay() && (it.isNotRespond || it.isDisabled || it.isInProgressState))
+        }
     }
 
     val context = LocalContext.current
@@ -369,9 +405,12 @@ private fun rememberAllSection(
     inputState: UserInputState,
 ): Section {
 
-    val resultLoops = mutableListOf(*loops.toTypedArray())
-    if (inputState.mode == UserInputState.Mode.New) {
-        resultLoops.add(0, inputState.value)
+    val resultLoops = remember(loops, inputState.mode, inputState.value) {
+        loops.toMutableList().apply {
+            if (inputState.mode == UserInputState.Mode.New) {
+                add(0, inputState.value)
+            }
+        }
     }
 
     return remember {
@@ -385,11 +424,15 @@ private fun rememberAllSection(
 private fun rememberAdSection() = remember { Section.Ad() }
 
 @Composable
-private fun rememberDoneSection(loops: List<LoopBase>) = remember {
-    Section.DoneSkip()
-}.apply {
-    items.value =
+private fun rememberDoneSection(loops: List<LoopBase>): Section {
+    val resultLoops = remember(loops) {
         loops.filter { it.isActiveDay() && it.isRespond }
+    }
+    return remember {
+        Section.DoneSkip()
+    }.apply {
+        items.value = resultLoops
+    }
 }
 
 

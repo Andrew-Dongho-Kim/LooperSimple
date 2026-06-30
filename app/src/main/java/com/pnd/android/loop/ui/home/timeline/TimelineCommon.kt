@@ -19,7 +19,6 @@ import com.pnd.android.loop.util.toLocalTime
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import java.time.LocalTime
-import java.time.temporal.ChronoUnit
 
 
 val timelineItemWidthDp = 60.dp
@@ -88,11 +87,11 @@ fun rememberLocalTime(): State<LocalTime> {
     val localTime = remember { mutableStateOf(LocalTime.now()) }
     LaunchedEffect(key1 = Unit) {
         while (isActive) {
-            val next = LocalTime.of(
-                localTime.value.hour + if (localTime.value.minute >= 59) 1 else 0,
-                localTime.value.minute + if (localTime.value.minute < 59) 1 else 0
-            )
-            delay(localTime.value.until(next, ChronoUnit.MILLIS))
+            // Sleep until the start of the next minute. The previous arithmetic produced
+            // (hour+1):59 at minute 59 (stalling ~1h) and crashed at 23:59 (LocalTime.of(24, ..)).
+            val now = LocalTime.now()
+            val msIntoMinute = now.second * 1000L + now.nano / 1_000_000L
+            delay(60_000L - msIntoMinute)
             localTime.value = LocalTime.now()
         }
     }
