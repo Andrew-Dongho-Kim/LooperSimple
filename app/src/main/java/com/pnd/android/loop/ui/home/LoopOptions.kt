@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -30,7 +31,7 @@ import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
-import com.pnd.android.loop.ui.theme.RoundShapes
+import com.pnd.android.loop.ui.theme.compositeOverSurface
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.onSurfaceDark
 import com.pnd.android.loop.ui.theme.onSurfaceLight
@@ -44,15 +45,13 @@ fun LoopOptions(
     onEnabledLoop: (Boolean) -> Unit,
     onEditLoop: () -> Unit,
 ) {
+    // 카드와 동일한 라운드(16dp)를 써서, 스와이프로 드러날 때 카드 모양과 어긋나지 않게 한다.
+    val optionsShape = RoundedCornerShape(16.dp)
     Row(
         modifier = modifier
-            .background(
-                color = color.copy(alpha = 0.3f),
-                shape = RoundShapes.large
-            )
-            .clip(
-                shape = RoundShapes.large
-            ),
+            // 반투명 원색 대신 표면 위에 합성한 은은한 루프 색 틴트 → 다크/라이트 모두에서 깔끔하게 읽힌다.
+            .clip(optionsShape)
+            .background(color = color.compositeOverSurface(alpha = 0.14f)),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         OptionIcon(

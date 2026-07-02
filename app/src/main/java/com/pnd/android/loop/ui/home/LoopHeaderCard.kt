@@ -1,5 +1,7 @@
 package com.pnd.android.loop.ui.home
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
@@ -8,7 +10,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
@@ -25,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
+import com.pnd.android.loop.ui.home.viewmodel.LoopRates
 import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
@@ -35,10 +37,12 @@ import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
 
 /**
- * Summary card shown at the top of Home: today's rate metrics and a wise saying.
+ * Summary card shown at the top of Home: the three headline rates plus a wise saying.
  *
- * Navigation to the group / statistics / history pages lives in the home app bar
- * (see HomeAppBar) so this card stays focused on "how am I doing today".
+ * The rates follow the 오늘 / 전체 tab pinned above the list ([selectedTab]) — today's
+ * figures when Today is active, all-time figures when All is. Navigation to the group /
+ * statistics / history pages lives in the home app bar, so this card stays focused on
+ * "how am I doing".
  *
  * View-model state is collected here and passed down as plain values so the inner
  * composables stay stateless and easy to read.
@@ -47,12 +51,13 @@ import com.pnd.android.loop.ui.theme.primary
 fun LoopHeaderCard(
     modifier: Modifier = Modifier,
     loopViewModel: LoopViewModel,
+    @HomeTab.Type selectedTab: Int,
 ) {
-    val todayDoneRate by loopViewModel.todayDoneRate.collectAsState(initial = 0f)
-    val responseRate by loopViewModel.allResponseRate.collectAsState(initial = 0f)
-    val doneRate by loopViewModel.doneRate.collectAsState(initial = 0f)
-    val skipRate by loopViewModel.skipRate.collectAsState(initial = 0f)
+    val todayRates by loopViewModel.todayRates.collectAsState(initial = LoopRates.Empty)
+    val overallRates by loopViewModel.overallRates.collectAsState(initial = LoopRates.Empty)
     val wiseSaying by loopViewModel.wiseSaying.collectAsState(initial = loopViewModel.wiseSayingText)
+
+    val rates = if (selectedTab == HomeTab.TODAY) todayRates else overallRates
 
     Card(
         modifier = modifier,
@@ -63,16 +68,11 @@ fun LoopHeaderCard(
         ),
     ) {
         Column(modifier = Modifier.padding(Dimens.contentPadding)) {
-            LoopStatsSummary(
-                todayDoneRate = todayDoneRate,
-                doneRate = doneRate,
-                responseRate = responseRate,
-                skipRate = skipRate,
-            )
+            LoopStatsSummary(rates = rates)
 
             if (wiseSaying.isNotBlank()) {
                 WiseSaying(
-                    modifier = Modifier.padding(top = 10.dp),
+                    modifier = Modifier.padding(top = 14.dp),
                     text = wiseSaying,
                 )
             }
@@ -90,82 +90,86 @@ private fun headerContainerColor(): Color =
 // region Rate metrics
 
 /**
- * Compact "how am I doing today" summary. All four rates sit in a single row of equal
- * columns — today's done rate highlighted, the all-time figures muted — over one thin
- * progress bar for today. Folding everything into one row keeps the card half its former
- * height so the loop list below gets the screen it needs.
+ * 활성 스코프의 지표 요약. 달성률 하나만 헤드라인으로 크게 세우고 응답률·스킵률은
+ * 오른쪽에 낮은 대비의 보조 지표로 접어, "얼마나 해냈는가"가 한눈에 읽히도록 한다.
  */
 @Composable
 private fun LoopStatsSummary(
     modifier: Modifier = Modifier,
-    todayDoneRate: Float,
-    doneRate: Float,
-    responseRate: Float,
-    skipRate: Float,
+    rates: LoopRates,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Alignment.Bottom,
         ) {
-            StatColumn(
+            HeadlineStat(
                 modifier = Modifier.weight(1f),
-                label = stringResource(id = R.string.today_done_rate),
-                value = todayDoneRate,
-                highlighted = true,
+                label = stringResource(id = R.string.done_rate),
+                value = rates.doneRate,
             )
-            VerticalStatsDivider()
-            StatColumn(
-                modifier = Modifier.weight(1f),
-                label = stringResource(id = R.string.total_done_rate),
-                value = doneRate,
-            )
-            VerticalStatsDivider()
-            StatColumn(
-                modifier = Modifier.weight(1f),
+            SecondaryStat(
                 label = stringResource(id = R.string.response_rate),
-                value = responseRate,
+                value = rates.responseRate,
             )
-            VerticalStatsDivider()
-            StatColumn(
-                modifier = Modifier.weight(1f),
+            SecondaryStat(
+                modifier = Modifier.padding(start = 20.dp),
                 label = stringResource(id = R.string.skip_rate),
-                value = skipRate,
+                value = rates.skipRate,
             )
         }
 
         DoneProgressBar(
-            modifier = Modifier.padding(top = 10.dp),
-            fraction = todayDoneRate / 100f,
+            modifier = Modifier.padding(top = 12.dp),
+            fraction = rates.doneRate / 100f,
         )
     }
 }
 
-/**
- * A single "value over label" stat, centred within its slot. The [highlighted] figure
- * (today's done rate) is tinted with [primary] to stand out among the muted all-time ones.
- */
+/** 카드의 주인공인 달성률 — 작은 라벨 아래 큰 primary 수치로 시선을 먼저 붙잡는다. */
 @Composable
-private fun StatColumn(
+private fun HeadlineStat(
     modifier: Modifier = Modifier,
     label: String,
     value: Float,
-    highlighted: Boolean = false,
+) {
+    Column(modifier = modifier) {
+        Text(
+            text = label,
+            maxLines = 1,
+            style = AppTypography.bodySmall.copy(
+                color = AppColor.onSurface.copy(alpha = 0.55f),
+            ),
+        )
+        Text(
+            modifier = Modifier.padding(top = 2.dp),
+            text = formatPercent(value),
+            maxLines = 1,
+            style = AppTypography.headlineMedium.copy(
+                color = AppColor.primary,
+                fontWeight = FontWeight.Bold,
+            ),
+        )
+    }
+}
+
+/** 보조 지표(응답률·스킵률) — 값·라벨 모두 대비를 낮춰 헤드라인 옆에 조용히 놓는다. */
+@Composable
+private fun SecondaryStat(
+    modifier: Modifier = Modifier,
+    label: String,
+    value: Float,
 ) {
     Column(
         modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
+        horizontalAlignment = Alignment.End,
     ) {
         Text(
             text = formatPercent(value),
             maxLines = 1,
-            style = AppTypography.titleMedium.copy(
-                color = if (highlighted) {
-                    AppColor.primary
-                } else {
-                    AppColor.onSurface.copy(alpha = 0.9f)
-                },
-                fontWeight = if (highlighted) FontWeight.Bold else FontWeight.SemiBold,
+            style = AppTypography.bodyMedium.copy(
+                color = AppColor.onSurface.copy(alpha = 0.75f),
+                fontWeight = FontWeight.SemiBold,
             ),
         )
         Text(
@@ -173,37 +177,23 @@ private fun StatColumn(
             text = label,
             maxLines = 1,
             style = AppTypography.bodySmall.copy(
-                color = AppColor.onSurface.copy(alpha = 0.55f),
+                color = AppColor.onSurface.copy(alpha = 0.45f),
             ),
         )
     }
 }
 
-/**
- * Hairline separator between stat columns, drawn from [onSurface] at low alpha so it stays
- * subtle on both themes: a faint dark line on light backgrounds, a faint light one on dark.
- */
-@Composable
-private fun VerticalStatsDivider(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .height(28.dp)
-            .width(1.dp)
-            .background(color = dividerColor()),
-    )
-}
-
-private const val DIVIDER_ALPHA = 0.1f
-
-@Composable
-private fun dividerColor(): Color = AppColor.onSurface.copy(alpha = DIVIDER_ALPHA)
-
-/** Horizontal bar that visualises today's done rate at a glance. */
+/** Horizontal bar that visualises the active scope's done rate; animates as the tab flips. */
 @Composable
 private fun DoneProgressBar(
     modifier: Modifier = Modifier,
     fraction: Float,
 ) {
+    val animatedFraction by animateFloatAsState(
+        targetValue = fraction.coerceIn(0f, 1f),
+        animationSpec = tween(durationMillis = 500),
+        label = "doneRateFraction",
+    )
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -213,7 +203,7 @@ private fun DoneProgressBar(
     ) {
         Box(
             modifier = Modifier
-                .fillMaxWidth(fraction.coerceIn(0f, 1f))
+                .fillMaxWidth(animatedFraction)
                 .height(6.dp)
                 .clip(RoundShapes.medium)
                 .background(color = AppColor.primary),

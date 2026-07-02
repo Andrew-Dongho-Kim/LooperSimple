@@ -1,7 +1,6 @@
 package com.pnd.android.loop.ui.home
 
 import android.content.Context
-import androidx.annotation.IntDef
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -14,7 +13,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,7 +21,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Timeline
 import androidx.compose.material.icons.outlined.ViewAgenda
@@ -35,7 +32,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.setValue
@@ -48,16 +44,12 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
 import com.pnd.android.loop.BuildConfig
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.ui.common.ExpandableNativeAd
-import com.pnd.android.loop.ui.home.Section.AllAndTodayTab.Companion.TAB_ALL
-import com.pnd.android.loop.ui.home.Section.AllAndTodayTab.Companion.TAB_TODAY
 import com.pnd.android.loop.ui.home.timeline.LoopTimeline
 import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.theme.AppColor
@@ -79,8 +71,8 @@ fun LazyListScope.section(
     section: Section,
     blurState: BlurState,
     loopViewModel: LoopViewModel,
+    @HomeTab.Type selectedTab: Int,
     onEdit: (LoopBase) -> Unit,
-    onSectionTabChanged: (Int) -> Unit,
     onNavigateToGroupPicker: (LoopBase) -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
     onNavigateToHistoryPage: () -> Unit,
@@ -89,6 +81,7 @@ fun LazyListScope.section(
         is Section.HeaderCard -> sectionHeader(
             section = section,
             loopViewModel = loopViewModel,
+            selectedTab = selectedTab,
         )
 
         is Section.Today -> sectionToday(
@@ -133,17 +126,13 @@ fun LazyListScope.section(
             onNavigateToGroupPicker = onNavigateToGroupPicker,
             onNavigateToDetailPage = onNavigateToDetailPage,
         )
-
-        is Section.AllAndTodayTab -> sectionAllAndTodayTab(
-            section = section,
-            onTabChanged = onSectionTabChanged
-        )
     }
 }
 
 private fun LazyListScope.sectionHeader(
     section: Section.HeaderCard,
     loopViewModel: LoopViewModel,
+    @HomeTab.Type selectedTab: Int,
 ) {
     item(
         contentType = ContentTypes.STATISTICS_CARD,
@@ -157,6 +146,7 @@ private fun LazyListScope.sectionHeader(
                 vertical = Dimens.contentPadding,
             ),
             loopViewModel = loopViewModel,
+            selectedTab = selectedTab,
         )
     }
 }
@@ -222,57 +212,24 @@ private fun LazyListScope.sectionTodayEmpty(
 }
 
 /**
- * Celebration-style placeholder shown once every loop scheduled for today is done or
- * skipped. A soft tinted badge plus title/subtitle reads as a reward rather than an
- * "empty" screen, and relies only on theme colors so it adapts to light/dark mode.
+ * 오늘 예정된 루프를 전부 완료/스킵했을 때의 축하 화면. 공용 [HomeEmptyState]를 그대로
+ * 써서 "루프 없음" 상태와 같은 문법으로 읽히되, 문구와 아이콘으로 보상의 느낌을 준다.
  */
 @Composable
 private fun TodayFinishedState(
     modifier: Modifier = Modifier,
 ) {
-    Column(
+    HomeEmptyState(
         modifier = modifier
             .fillMaxWidth()
             .padding(
                 horizontal = Dimens.screenHorizontalPadding,
                 vertical = 56.dp,
             ),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Box(
-            modifier = Modifier
-                .size(72.dp)
-                .background(
-                    color = AppColor.primary.copy(alpha = 0.12f),
-                    shape = CircleShape
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                modifier = Modifier.size(36.dp),
-                imageVector = Icons.Rounded.TaskAlt,
-                tint = AppColor.primary,
-                contentDescription = null
-            )
-        }
-
-        Text(
-            modifier = Modifier.padding(top = 20.dp),
-            text = stringResource(id = R.string.today_loops_finished),
-            style = AppTypography.titleMedium.copy(
-                color = AppColor.onSurface,
-                fontWeight = FontWeight.Bold,
-            )
-        )
-
-        Text(
-            modifier = Modifier.padding(top = 6.dp),
-            text = stringResource(id = R.string.today_loops_finished_hint),
-            style = AppTypography.bodyMedium.copy(
-                color = AppColor.onSurface.copy(alpha = 0.6f),
-            )
-        )
-    }
+        icon = Icons.Rounded.TaskAlt,
+        title = stringResource(id = R.string.today_loops_finished),
+        hint = stringResource(id = R.string.today_loops_finished_hint),
+    )
 }
 
 private fun LazyListScope.sectionTodayBody(
@@ -450,81 +407,6 @@ private fun LazyListScope.sectionDoneSkip(
             loopViewModel = loopViewModel,
             onNavigateToDetailPage = onNavigateToDetailPage,
             onNavigateToHistoryPage = onNavigateToHistoryPage,
-        )
-    }
-}
-
-private fun LazyListScope.sectionAllAndTodayTab(
-    section: Section.AllAndTodayTab,
-    onTabChanged: (tab: Int) -> Unit = {},
-) {
-    item {
-        SegmentedTabs(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = Dimens.screenHorizontalPadding)
-                .padding(top = Dimens.cardSpacing, bottom = Dimens.contentPadding),
-            selectedTab = section.selectedTab,
-            onTabSelected = { tab ->
-                if (tab != section.selectedTab) {
-                    section.selectedTab = tab
-                    onTabChanged(tab)
-                }
-            },
-        )
-    }
-}
-
-/** Standard two-segment control to switch between today's loops and all loops. */
-@Composable
-private fun SegmentedTabs(
-    modifier: Modifier = Modifier,
-    selectedTab: Int,
-    onTabSelected: (Int) -> Unit,
-) {
-    Row(
-        modifier = modifier
-            .clip(RoundShapes.medium)
-            .background(color = AppColor.surfaceContainer)
-            .padding(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        SegmentTab(
-            modifier = Modifier.weight(1f),
-            text = stringResource(id = R.string.tab_today),
-            selected = selectedTab == TAB_TODAY,
-            onClick = { onTabSelected(TAB_TODAY) },
-        )
-        SegmentTab(
-            modifier = Modifier.weight(1f),
-            text = stringResource(id = R.string.tab_all),
-            selected = selectedTab == TAB_ALL,
-            onClick = { onTabSelected(TAB_ALL) },
-        )
-    }
-}
-
-@Composable
-private fun SegmentTab(
-    modifier: Modifier = Modifier,
-    text: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
-    Box(
-        modifier = modifier
-            .clip(RoundShapes.small)
-            .background(color = if (selected) AppColor.primary else Color.Transparent)
-            .clickable(onClick = onClick)
-            .padding(vertical = 8.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = text,
-            style = AppTypography.bodyMedium.copy(
-                color = if (selected) AppColor.onPrimary else AppColor.onSurface.copy(alpha = 0.6f),
-                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-            ),
         )
     }
 }
@@ -743,35 +625,6 @@ sealed class Section(val key: String) {
                 restore = { list ->
                     Today(
                         isSelected = list[0]
-                    )
-                }
-            )
-        }
-    }
-
-    class AllAndTodayTab(
-        @Tab tab: Int = TAB_TODAY
-    ) : Section(
-        key = "AllAndTodayTabSection",
-    ) {
-        override val size = 1
-
-        var selectedTab by mutableIntStateOf(tab)
-
-        companion object {
-            const val TAB_ALL = 0
-            const val TAB_TODAY = 1
-
-            @IntDef(TAB_ALL, TAB_TODAY)
-            annotation class Tab
-
-            val Saver = listSaver(
-                save = {
-                    listOf(it.selectedTab)
-                },
-                restore = { list ->
-                    AllAndTodayTab(
-                        tab = list[0]
                     )
                 }
             )

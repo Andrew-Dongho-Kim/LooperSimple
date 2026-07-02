@@ -22,6 +22,8 @@ import com.pnd.android.loop.data.asLoopVo
 import com.pnd.android.loop.data.common.NO_REPEAT
 import com.pnd.android.loop.data.description
 import com.pnd.android.loop.data.putTo
+import com.pnd.android.loop.util.MS_1MIN
+import com.pnd.android.loop.util.MS_1SEC
 import com.pnd.android.loop.util.dayForLoop
 import com.pnd.android.loop.util.dh2m2
 import com.pnd.android.loop.util.isActiveDay
@@ -99,6 +101,12 @@ class LoopScheduler @Inject constructor(
                 fillNoResponse(loop)
                 if (loop.enabled) {
                     reserveAlarm(scheduleStart(loop))
+
+                    // 동기화 시점(앱 시작 등)에 이미 진행 중인 루프는 시작 알람이 지나갔으므로,
+                    // 곧바로 진행 틱을 걸어 남은 시간 알림이 다시 표시되도록 한다.
+                    if (loop.hasTimeWindow && loop.isActiveDay() && loop.isActiveTime()) {
+                        reserveAlarm(scheduleProgressTick(loop, after = MS_1SEC))
+                    }
                 } else {
                     cancelAlarm(loop)
                 }
@@ -137,6 +145,17 @@ class LoopScheduler @Inject constructor(
         }
     }
 
+    /**
+     * 오늘 이미 완료/스킵으로 응답한 루프인지 비동기로 확인한다. 진행 알림 틱이
+     * 응답을 마친 루프의 알림을 계속 띄우지 않도록 판단하는 데 쓰인다.
+     */
+    fun checkRespondedToday(loop: LoopBase, onResult: (Boolean) -> Unit) {
+        coroutineScope.launch {
+            val state = loopDoneDao.getDoneState(loop.loopId, LocalDate.now().toMs())?.done
+            onResult(state == DoneState.DONE || state == DoneState.SKIP)
+        }
+    }
+
     fun cancelAlarm(loop: LoopBase) {
         if (loop.enabled) {
             coroutineScope.launch { loopDao.addOrUpdate(loop.asLoopVo(enabled = false)) }
@@ -172,6 +191,7 @@ class LoopScheduler @Inject constructor(
                 ACTION_LOOP_START -> handleActionLoopStart(context, intent)
                 ACTION_LOOP_END -> handleActionLoopEnd(context, intent)
                 ACTION_LOOP_REPEAT -> handleActionLoopRepeat(intent)
+                ACTION_LOOP_PROGRESS -> handleActionLoopProgress(intent)
                 ACTION_LOOP_SYNC -> handleActionLoopSync(context, intent)
 
                 ACTION_LOOP_DONE -> handleActionLoopDone(intent)
@@ -209,7 +229,8 @@ class LoopScheduler @Inject constructor(
                 reserveRepeat(loop = loop)
             }
 
-            notifyLoop(loop)
+            // 시작 시점에는 소리로 알리고, 이후 진행 알림은 1분 틱으로 조용히 갱신된다.
+            notifyLoop(loop, alert = true)
             AppWidgetUpdateWorker.updateWidget(context)
 
             val isAllowedDay = loop.isActiveDay()
@@ -227,7 +248,8 @@ class LoopScheduler @Inject constructor(
 
         private fun handleActionLoopEnd(context: Context, intent: Intent) {
             val loop = intent.asLoop()
-            notifyLoop(loop)
+            // 종료 시각: 진행 알림을 내려 루프 창이 끝났음을 알린다.
+            notificationHelper.cancel(loop)
             AppWidgetUpdateWorker.updateWidget(context)
         }
 
@@ -235,7 +257,28 @@ class LoopScheduler @Inject constructor(
             val loop = intent.asLoop()
 
             reserveRepeat(loop)
-            notifyLoop(loop)
+            // 반복 간격마다 다시 소리로 알린다 (진행 알림 내용도 함께 갱신된다).
+            notifyLoop(loop, alert = true)
+        }
+
+        /**
+         * 1분 진행 틱: 아직 진행 중이면 알림을 조용히 갱신하고 다음 틱을 예약한다.
+         * 종료 시각을 지났거나 이미 완료/스킵으로 응답한 루프면 알림을 내리고 틱을 멈춘다.
+         */
+        private fun handleActionLoopProgress(intent: Intent) {
+            val loop = intent.asLoop()
+            if (!loop.isActiveTime()) {
+                notificationHelper.cancel(loop)
+                return
+            }
+
+            alarmController.checkRespondedToday(loop) { responded ->
+                if (responded) {
+                    notificationHelper.cancel(loop)
+                } else {
+                    notifyLoop(loop, alert = false)
+                }
+            }
         }
 
         private fun reserveRepeat(loop: LoopBase) {
@@ -247,11 +290,21 @@ class LoopScheduler @Inject constructor(
             }
         }
 
-        private fun notifyLoop(loop: LoopBase) {
+        /**
+         * 지금 진행 중인 루프의 알림을 띄운다. 시작·종료 시각이 모두 있는 루프는
+         * 남은 시간을 보여주는 진행 알림(+1분 갱신 틱 예약)으로, 시간 창이 없는
+         * 루프는 기존의 단순 알림으로 표시한다. [alert]가 true면 소리로 알린다.
+         */
+        private fun notifyLoop(loop: LoopBase, alert: Boolean) {
             val isAllowedDay = loop.isActiveDay()
             val isAllowedTime = loop.isActiveTime()
             val isMock = loop.isMock
-            if (!isMock && isAllowedDay && isAllowedTime) {
+            if (isMock || !isAllowedDay || !isAllowedTime) return
+
+            if (loop.hasTimeWindow) {
+                notificationHelper.notifyProgress(loop, alert = alert)
+                alarmController.reserveAlarm(scheduleProgressTick(loop))
+            } else {
                 notificationHelper.notify(loop)
             }
         }
@@ -279,6 +332,20 @@ class LoopScheduler @Inject constructor(
             after = loop.interval - ((msNow - loop.startInDay) % loop.interval),
             loop = loop
         )
+
+        /**
+         * 진행 알림을 갱신하는 틱. 기본은 1분 뒤이며, 동기화 시점에 이미 진행 중인
+         * 루프를 즉시 표시해야 할 때는 [after]를 짧게 줄 수 있다.
+         */
+        fun scheduleProgressTick(loop: LoopBase, after: Long = MS_1MIN) = LoopSchedule(
+            action = ACTION_LOOP_PROGRESS,
+            after = after,
+            loop = loop
+        )
+
+        /** 시작·종료 시각이 모두 있어 남은 시간을 계산할 수 있는 루프인지 */
+        val LoopBase.hasTimeWindow: Boolean
+            get() = startInDay >= 0 && endInDay >= 0
 
         fun scheduleSync() = LoopSchedule(
             action = ACTION_LOOP_SYNC,

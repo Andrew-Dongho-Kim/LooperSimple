@@ -2,6 +2,7 @@ package com.pnd.android.loop.ui.home.viewmodel
 
 import com.pnd.android.loop.alarm.LoopScheduler
 import com.pnd.android.loop.alarm.LoopScheduler.Companion.scheduleStart
+import com.pnd.android.loop.alarm.notification.NotificationHelper
 import com.pnd.android.loop.common.log
 import com.pnd.android.loop.data.AppDatabase
 import com.pnd.android.loop.data.LoopBase
@@ -40,6 +41,7 @@ import kotlin.math.min
 class LoopRepository @Inject constructor(
     appDb: AppDatabase,
     private val loopScheduler: LoopScheduler,
+    private val notificationHelper: NotificationHelper,
 ) {
     private val logger = log("LoopRepository")
 
@@ -146,6 +148,16 @@ class LoopRepository @Inject constructor(
         loopDoneDao.getDoneCountByDateFlow(date.toMs())
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val todayRespondCount = localDate.flatMapLatest { date ->
+        loopDoneDao.getRespondCountByDateFlow(date.toMs())
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val todaySkipCount = localDate.flatMapLatest { date ->
+        loopDoneDao.getSkipCountByDateFlow(date.toMs())
+    }
+
     fun syncLoops() = loopScheduler.syncLoops()
 
     suspend fun numberOfLoopsAtTheSameTime(loop: LoopBase) =
@@ -201,6 +213,11 @@ class LoopRepository @Inject constructor(
             localDate = localDate,
             doneState = doneState
         )
+
+        // 완료/스킵으로 응답한 순간, 진행 중이던 상태 알림은 더 이상 필요 없으니 바로 내린다.
+        if (doneState == LoopDoneVo.DoneState.DONE || doneState == LoopDoneVo.DoneState.SKIP) {
+            notificationHelper.cancel(loop)
+        }
     }
 
     suspend fun getMemo(

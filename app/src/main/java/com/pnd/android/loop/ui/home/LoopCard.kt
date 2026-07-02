@@ -3,26 +3,21 @@ package com.pnd.android.loop.ui.home
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -31,13 +26,12 @@ import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -45,13 +39,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -73,20 +63,14 @@ import com.pnd.android.loop.ui.theme.compositeOver
 import com.pnd.android.loop.ui.theme.compositeOverOnSurface
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
-import com.pnd.android.loop.ui.theme.surface
+import com.pnd.android.loop.ui.theme.surfaceContainer
 import com.pnd.android.loop.ui.theme.surfaceElevated
 import com.pnd.android.loop.util.ABB_DAYS
 import com.pnd.android.loop.util.DAY_STRING_MAP
 import com.pnd.android.loop.util.annotatedString
 import com.pnd.android.loop.util.formatHourMinute
-import com.pnd.android.loop.util.MS_1DAY
-import com.pnd.android.loop.util.MS_1MIN
 import com.pnd.android.loop.util.intervalString
-import com.pnd.android.loop.util.rememberDayColor
 import com.pnd.android.loop.util.toMs
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import java.time.LocalTime
 
 
@@ -95,68 +79,69 @@ import java.time.LocalTime
  * shape and opacity hierarchy consistent and easy to tweak for both light/dark themes.
  */
 private object LoopCardDefaults {
-    /** Soft rounding applied to the highlight tint / press ripple of the flat row. */
-    val RowCorner = 16.dp
+    /** Rounding of the card surface (also mirrored by the swipe-response backdrop). */
+    val CardCorner = 20.dp
 
-    /** Fixed leading column that holds the start / end time labels. */
-    val TimeColumnWidth = 46.dp
+    /** Hairline border that separates the card from the background in both themes. */
+    val BorderWidth = 1.dp
+    const val BorderAlpha = 0.08f
 
-    /** Vertical timeline rail (line + start/end dots) drawn between time and content. */
-    val RailWidth = 22.dp
-    val RailDotRadius = 4.dp
-    val RailLineWidth = 2.dp
+    val ContentHorizontalPadding = 16.dp
+    val ContentVerticalPadding = 14.dp
 
-    val ContentHorizontalPadding = 14.dp
-    val ContentVerticalPadding = 12.dp
+    /** Leading loop-color dot; its footprint stays fixed so the pulsing halo never shifts layout. */
+    val ColorDotSize = 10.dp
+    val ColorDotFootprint = 20.dp
+    const val ColorDotPulseAlpha = 0.25f
+    const val ColorDotPulseMaxScale = 2f
 
     const val EnabledAlpha = 1f
     const val DisabledAlpha = 0.3f
     const val TitleAlpha = 0.9f
     const val MetaAlpha = 0.6f
 
+    /** Active-day letters: on/off is told by ink strength alone, no extra color. */
+    const val DaySelectedAlpha = 0.75f
+    const val DayUnselectedAlpha = 0.25f
+
     /** Wash of the loop color over the row when it is highlighted (opened from a notification). */
     const val HighlightTintAlpha = 0.12f
 
-    /** Line brightness per phase: bright while live, faded once finished, dim before it starts. */
-    const val RailActiveAlpha = 1f
-    const val RailFinishedAlpha = 0.45f
-    const val RailInactiveAlpha = 0.3f
+    /** Circular start / stop button trailing an "any time" card. */
+    val ResponseButtonSize = 36.dp
+    val ResponseIconSize = 18.dp
 
-    /** Soft halo radius (× dot radius) pulsing around the start dot while a loop is in progress. */
-    const val RailHaloRadiusScale = 2.2f
-    const val RailHaloAlpha = 0.18f
+    /** Container tint of a response button: primary wash for positive, neutral for skip. */
+    const val ResponseTintAlpha = 0.12f
+    const val ResponseNeutralAlpha = 0.06f
+
+    /**
+     * Finished (awaiting-response) card is dimmed so it reads as a past item: the surface
+     * sinks one step and the ink softens, while the swipe peek badges stay full-strength.
+     */
+    const val DimmedDotAlpha = 0.5f
+    const val DimmedInkAlpha = 0.6f
 }
 
-/**
- * Where a loop sits in its daily lifecycle, relative to the current clock. Drives how the
- * timeline rail is drawn so each state reads at a glance:
- *  - [BeforeStart] the window hasn't opened yet (or the card isn't clock-synced),
- *  - [InProgress] the loop is happening right now,
- *  - [Finished] today's window has passed.
- */
-private enum class LoopPhase { BeforeStart, InProgress, Finished }
+/** Shared rounded shape of the card surface. */
+internal val LoopCardShape = RoundedCornerShape(LoopCardDefaults.CardCorner)
 
 /**
- * Maps the clock-derived flags into a single [LoopPhase]. Cards that don't sync with the
- * clock (e.g. the group editor) always read as [LoopPhase.BeforeStart] so they stay neutral.
+ * Loop card row. In its normal state it reads as a single quiet line — color dot + title/meta
+ * + time chip, with management actions (edit, on/off, group, delete) tucked into the trailing
+ * popup menu. Once today's window has closed it switches to the finished state: the surface is
+ * dimmed to read as a past item and the done / skip actions appear as two tap buttons grouped
+ * on the left, so a response is one tap away without any swipe gesture.
  */
-private fun loopPhaseOf(
-    syncWithTime: Boolean,
-    isActive: Boolean,
-    isPast: Boolean,
-): LoopPhase = when {
-    !syncWithTime -> LoopPhase.BeforeStart
-    isActive -> LoopPhase.InProgress
-    isPast -> LoopPhase.Finished
-    else -> LoopPhase.BeforeStart
-}
-
 @Composable
 fun LoopCard(
     modifier: Modifier = Modifier,
     loop: LoopBase,
     cardValues: LoopCardValues,
     onStateChanged: (loop: LoopBase, doneState: Int) -> Unit,
+    onEdit: (LoopBase) -> Unit,
+    onEnabled: (Boolean) -> Unit,
+    onDelete: () -> Unit,
     onNavigateToGroupPicker: (LoopBase) -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
@@ -169,66 +154,162 @@ fun LoopCard(
 
     val timeStat = loop.currentTimeStat
     val syncWithTime = !loop.isMock && cardValues.syncWithTime
-    val background = loopCardBackground(loop = loop, isHighlighted = cardValues.isHighlighted)
 
-    Box(modifier = modifier.graphicsLayer { alpha = mockAlpha }) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(LoopCardDefaults.RowCorner))
-                .background(background)
-                .clickable(enabled = !loop.isMock) { onNavigateToDetailPage(loop) }
-                .height(IntrinsicSize.Min)
-                .padding(
-                    horizontal = LoopCardDefaults.ContentHorizontalPadding,
-                    vertical = LoopCardDefaults.ContentVerticalPadding,
-                ),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            AgendaTimeColumn(
-                modifier = Modifier
-                    .alpha(contentAlpha)
-                    .width(LoopCardDefaults.TimeColumnWidth)
-                    .fillMaxHeight(),
-                loop = loop,
+    // 오늘 창이 끝나 완료/건너뜀 응답을 기다리는 상태. 카드를 한 단계 가라앉혀(디밍) "지나간
+    // 항목"으로 읽히게 하고, 완료/건너뜀은 왼쪽에 모은 탭 버튼으로 처리한다.
+    val awaitsResponse = syncWithTime && loop.enabled && timeStat.isPast()
+
+    val background = if (awaitsResponse) {
+        // 종료 카드는 강조 표면 대신 한 단계 낮은 컨테이너 톤으로 가라앉힌다.
+        AppColor.surfaceContainer
+    } else {
+        loopCardBackground(loop = loop, isHighlighted = cardValues.isHighlighted)
+    }
+
+    Row(
+        modifier = modifier
+            .graphicsLayer { alpha = mockAlpha }
+            .fillMaxWidth()
+            .clip(LoopCardShape)
+            .background(background)
+            // 배경과 카드를 분리해주는 은은한 헤어라인 테두리 (다크/라이트 공통).
+            .border(
+                width = LoopCardDefaults.BorderWidth,
+                color = AppColor.onSurface.copy(alpha = LoopCardDefaults.BorderAlpha),
+                shape = LoopCardShape,
             )
-            AgendaRail(
-                modifier = Modifier.alpha(contentAlpha),
+            .clickable(enabled = !loop.isMock) { onNavigateToDetailPage(loop) }
+            .padding(
+                horizontal = LoopCardDefaults.ContentHorizontalPadding,
+                vertical = LoopCardDefaults.ContentVerticalPadding,
+            ),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (awaitsResponse) {
+            FinishedCardContent(
                 loop = loop,
-                phase = loopPhaseOf(
-                    syncWithTime = syncWithTime,
-                    isActive = cardValues.isActive,
-                    isPast = timeStat.isPast(),
-                ),
-            )
-            AgendaContent(
-                modifier = Modifier
-                    .alpha(contentAlpha)
-                    .weight(1f),
-                loop = loop,
-                timeStat = timeStat,
-                syncWithTime = syncWithTime,
                 onStateChanged = onStateChanged,
             )
-            LoopCardMenu(
+        } else {
+            ActiveCardContent(
+                loop = loop,
                 cardValues = cardValues,
-                onNavigateToGroupPicker = { onNavigateToGroupPicker(loop) },
+                timeStat = timeStat,
+                syncWithTime = syncWithTime,
+                contentAlpha = contentAlpha,
+                onStateChanged = onStateChanged,
+                onEdit = onEdit,
+                onEnabled = onEnabled,
+                onDelete = onDelete,
+                onNavigateToGroupPicker = onNavigateToGroupPicker,
             )
         }
     }
 }
 
 /**
- * Opaque background for the flat agenda row. Stays on the plain surface so rows read as
- * a borderless list; when highlighted (e.g. opened from a notification) it gets a soft
- * wash of the loop's own color. Opaque so the swipe-to-reveal options stay hidden.
+ * Normal (not-yet-finished) row content: color dot + title/meta, a trailing time chip, and —
+ * for live cards — the any-time start/stop control plus the management overflow menu.
+ */
+@Composable
+private fun RowScope.ActiveCardContent(
+    loop: LoopBase,
+    cardValues: LoopCardValues,
+    timeStat: TimeStat,
+    syncWithTime: Boolean,
+    contentAlpha: Float,
+    onStateChanged: (loop: LoopBase, doneState: Int) -> Unit,
+    onEdit: (LoopBase) -> Unit,
+    onEnabled: (Boolean) -> Unit,
+    onDelete: () -> Unit,
+    onNavigateToGroupPicker: (LoopBase) -> Unit,
+) {
+    LoopColorDot(
+        modifier = Modifier.alpha(contentAlpha),
+        color = loop.color,
+        isPulsing = syncWithTime && loop.enabled && cardValues.isActive,
+    )
+    Column(
+        modifier = Modifier
+            .weight(1f)
+            .padding(start = 12.dp)
+            .alpha(contentAlpha),
+    ) {
+        LoopCardTitle(title = loop.title)
+        LoopCardMeta(
+            modifier = Modifier.padding(top = 3.dp),
+            loop = loop,
+            timeStat = timeStat,
+            syncWithTime = syncWithTime,
+        )
+    }
+    LoopTimeChip(
+        modifier = Modifier
+            .padding(start = 8.dp)
+            .alpha(contentAlpha),
+        loop = loop,
+    )
+    if (syncWithTime && loop.enabled &&
+        loop.isAnyTime && (loop.startInDay < 0 || loop.endInDay < 0)
+    ) {
+        AnyTimeLoopStartOrStop(
+            modifier = Modifier.padding(start = 8.dp),
+            loop = loop,
+            onStateChanged = onStateChanged,
+        )
+    }
+    if (!loop.isMock) {
+        LoopCardMenu(
+            modifier = Modifier.padding(start = 4.dp),
+            loop = loop,
+            showAddToGroup = cardValues.showAddToGroup,
+            onEdit = onEdit,
+            onEnabled = onEnabled,
+            onDelete = onDelete,
+            onNavigateToGroupPicker = onNavigateToGroupPicker,
+        )
+    }
+}
+
+/**
+ * Finished (awaiting-response) row content: the done / skip tap buttons grouped on the left at
+ * full strength, then the dimmed title, then the muted finished-time label on the right. The
+ * dimmed title + time read as "already ran today" while the buttons stay clearly actionable.
+ */
+@Composable
+private fun RowScope.FinishedCardContent(
+    loop: LoopBase,
+    onStateChanged: (loop: LoopBase, doneState: Int) -> Unit,
+) {
+    LoopDoneOrSkip(
+        loop = loop,
+        onStateChanged = onStateChanged,
+    )
+    LoopCardTitle(
+        modifier = Modifier
+            .weight(1f)
+            .padding(start = 14.dp),
+        title = loop.title,
+        dimmed = true,
+    )
+    FinishedTimeLabel(
+        modifier = Modifier.padding(start = 8.dp),
+        loop = loop,
+    )
+}
+
+/**
+ * Opaque background for the loop card. Sits on the elevated surface so each card reads as
+ * a distinct raised layer; when highlighted (e.g. opened from a notification) it gets a soft
+ * wash of the loop's own color. Opaque so the swipe-response actions stay hidden at rest.
  */
 @Composable
 private fun loopCardBackground(
     loop: LoopBase,
     isHighlighted: Boolean,
 ): Color {
-    val base = AppColor.surface
+    // 다크모드에서는 배경(거의 검정)보다 한 단계 밝은 표면을 써서 카드가 떠 보이도록 한다.
+    val base = AppColor.surfaceElevated
     if (loop.isMock || !isHighlighted) return base
     return loop.color.compositeOver(
         alpha = LoopCardDefaults.HighlightTintAlpha,
@@ -237,245 +318,69 @@ private fun loopCardBackground(
 }
 
 /**
- * Leading time column: start time on top, end time on the bottom, aligned to the rail.
- * "Any time" loops collapse to a single centered label.
+ * Leading identity dot in the loop's own color. While the loop is in progress a soft halo
+ * of the same color breathes behind it — the only "live" cue on the quiet card surface.
  */
 @Composable
-private fun AgendaTimeColumn(
+private fun LoopColorDot(
     modifier: Modifier = Modifier,
-    loop: LoopBase,
+    color: Int,
+    isPulsing: Boolean,
+    dimmed: Boolean = false,
 ) {
-    if (loop.isAnyTime) {
-        Box(modifier = modifier, contentAlignment = Alignment.Center) {
-            Text(
-                text = stringResource(id = R.string.anytime),
-                style = AppTypography.labelMedium.copy(color = loopMetaColor()),
+    val dotColor = color.compositeOverOnSurface()
+
+    Box(
+        modifier = modifier.size(LoopCardDefaults.ColorDotFootprint),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (isPulsing) {
+            val pulseScale = rememberDotPulseScale()
+            Box(
+                modifier = Modifier
+                    .size(LoopCardDefaults.ColorDotSize)
+                    .graphicsLayer {
+                        scaleX = pulseScale
+                        scaleY = pulseScale
+                        alpha = LoopCardDefaults.ColorDotPulseAlpha
+                    }
+                    .clip(CircleShape)
+                    .background(dotColor),
             )
         }
-        return
-    }
-
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.End,
-        verticalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Text(
-            text = loop.startInDay.formatHourMinute(withAmPm = false),
-            style = AppTypography.bodyMedium.copy(
-                color = loopTitleColor(),
-                fontWeight = FontWeight.SemiBold,
-            ),
-        )
-        Text(
-            text = loop.endInDay.formatHourMinute(withAmPm = false),
-            style = AppTypography.labelMedium.copy(color = loopMetaColor()),
+        Box(
+            modifier = Modifier
+                .size(LoopCardDefaults.ColorDotSize)
+                .alpha(if (dimmed) LoopCardDefaults.DimmedDotAlpha else 1f)
+                .clip(CircleShape)
+                .background(dotColor),
         )
     }
 }
 
-/**
- * Vertical timeline rail tying the start/end times to the content. The two dots track how far
- * the loop has travelled through its window — each is hollow until it is reached and filled once
- * passed — and the connecting line is brightest while the loop is in progress:
- *  - before start: both dots hollow on a dim line,
- *  - in progress: start dot filled with a soft halo, end dot still hollow, bright line,
- *  - finished: both dots filled on a faded line.
- */
+/** Slow breathing scale (1 → 2) for the in-progress halo behind the color dot. */
 @Composable
-private fun AgendaRail(
-    modifier: Modifier = Modifier,
-    loop: LoopBase,
-    phase: LoopPhase,
-) {
-    val color = loop.color.compositeOverOnSurface()
-
-    // Live cues are only meaningful while the loop is in progress.
-    val progress = if (phase == LoopPhase.InProgress) rememberInProgressFraction(loop) else null
-    val haloScale = if (phase == LoopPhase.InProgress) rememberRailHaloScale() else 0f
-
-    Canvas(
-        modifier = modifier
-            .width(LoopCardDefaults.RailWidth)
-            .fillMaxHeight()
-    ) {
-        val cx = size.width / 2f
-        val r = LoopCardDefaults.RailDotRadius.toPx()
-        val lineWidth = LoopCardDefaults.RailLineWidth.toPx()
-        val top = Offset(cx, r + 1.dp.toPx())
-        val bottom = Offset(cx, size.height - r - 1.dp.toPx())
-
-        fun railLine(end: Offset, alpha: Float) = drawLine(
-            color = color.copy(alpha = alpha),
-            start = top,
-            end = end,
-            strokeWidth = lineWidth,
-            cap = StrokeCap.Round,
-        )
-
-        when (phase) {
-            LoopPhase.BeforeStart -> railLine(bottom, LoopCardDefaults.RailInactiveAlpha)
-
-            LoopPhase.Finished -> railLine(bottom, LoopCardDefaults.RailFinishedAlpha)
-
-            LoopPhase.InProgress -> {
-                if (progress == null) {
-                    // Open-ended ("any time") loop: no end to fill toward, just a bright live rail.
-                    railLine(bottom, LoopCardDefaults.RailActiveAlpha)
-                } else {
-                    // Dim the remaining track and overlay a bright fill that grows toward the end.
-                    val head = Offset(cx, top.y + (bottom.y - top.y) * progress)
-                    railLine(bottom, LoopCardDefaults.RailInactiveAlpha)
-                    railLine(head, LoopCardDefaults.RailActiveAlpha)
-                    drawCircle(color = color, radius = r * 0.7f, center = head)
-                }
-
-                // Pulsing halo keeps the eye on the loop that is happening right now.
-                drawCircle(
-                    color = color.copy(alpha = LoopCardDefaults.RailHaloAlpha),
-                    radius = r * LoopCardDefaults.RailHaloRadiusScale * haloScale,
-                    center = top,
-                )
-            }
-        }
-
-        // Start dot: hollow until the window opens, filled once it has.
-        drawRailDot(color = color, center = top, radius = r, filled = phase != LoopPhase.BeforeStart, strokeWidth = lineWidth)
-
-        // End dot: filled only after the window has closed.
-        drawRailDot(color = color, center = bottom, radius = r, filled = phase == LoopPhase.Finished, strokeWidth = lineWidth)
-    }
-}
-
-/** Draws a single rail node, either a solid dot or a hollow ring of the same radius. */
-private fun DrawScope.drawRailDot(
-    color: Color,
-    center: Offset,
-    radius: Float,
-    filled: Boolean,
-    strokeWidth: Float,
-) {
-    if (filled) {
-        drawCircle(color = color, radius = radius, center = center)
-    } else {
-        drawCircle(color = color, radius = radius, center = center, style = Stroke(width = strokeWidth))
-    }
-}
-
-/**
- * Fraction (0..1) of how far the loop has travelled through today's window, ticking once a
- * minute and animated so the rail fill glides rather than jumps. Returns null for open-ended
- * ("any time") loops that have no end time to measure against.
- */
-@Composable
-private fun rememberInProgressFraction(loop: LoopBase): Float? {
-    if (loop.isAnyTime || loop.startInDay < 0 || loop.endInDay < 0) return null
-
-    var elapsed by remember(loop.loopId) {
-        mutableStateOf(loopElapsedFraction(loop.startInDay, loop.endInDay))
-    }
-    LaunchedEffect(loop.loopId, loop.startInDay, loop.endInDay) {
-        while (currentCoroutineContext().isActive) {
-            elapsed = loopElapsedFraction(loop.startInDay, loop.endInDay)
-            delay(MS_1MIN)
-        }
-    }
-
-    val animated by animateFloatAsState(targetValue = elapsed, label = "RailProgress")
-    return animated
-}
-
-/** Elapsed fraction of the [startMs, endMs] window right now, handling windows that cross midnight. */
-private fun loopElapsedFraction(startMs: Long, endMs: Long): Float {
-    val overnight = startMs > endMs
-    val end = if (overnight) endMs + MS_1DAY else endMs
-    val nowRaw = LocalTime.now().toMs()
-    val now = if (overnight && nowRaw < startMs) nowRaw + MS_1DAY else nowRaw
-
-    val total = (end - startMs).toFloat()
-    if (total <= 0f) return 1f
-    return ((now - startMs) / total).coerceIn(0f, 1f)
-}
-
-/** Slow breathing scale (≈0.7→1) for the in-progress halo so it gently pulses. */
-@Composable
-private fun rememberRailHaloScale(): Float {
-    val transition = rememberInfiniteTransition(label = "RailHalo")
+private fun rememberDotPulseScale(): Float {
+    val transition = rememberInfiniteTransition(label = "LoopDotPulse")
     val scale by transition.animateFloat(
-        initialValue = 0.7f,
-        targetValue = 1f,
+        initialValue = 1f,
+        targetValue = LoopCardDefaults.ColorDotPulseMaxScale,
         animationSpec = infiniteRepeatable(
             tween(durationMillis = 1_200, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse,
         ),
-        label = "RailHaloScale",
+        label = "LoopDotPulseScale",
     )
     return scale
 }
 
-@Composable
-fun LoopCardColor(
-    modifier: Modifier = Modifier,
-    color: Int
-) {
-    // Solid dot reads cleaner than a hollow ring and stays legible on both themes.
-    Box(
-        modifier = modifier
-            .clip(CircleShape)
-            .background(color = color.compositeOverOnSurface())
-    )
-}
-
-/**
- * Right-hand content of the agenda row: title + a meta line, plus the trailing
- * done/skip (or any-time start/stop) actions when the loop is live today.
- */
-@Composable
-private fun AgendaContent(
-    modifier: Modifier = Modifier,
-    loop: LoopBase,
-    timeStat: TimeStat,
-    syncWithTime: Boolean,
-    onStateChanged: (loop: LoopBase, doneState: @LoopDoneVo.DoneState Int) -> Unit,
-) {
-    Row(
-        modifier = modifier.padding(start = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            LoopCardTitle(title = loop.title)
-            AgendaMeta(
-                modifier = Modifier.padding(top = 3.dp),
-                loop = loop,
-                timeStat = timeStat,
-                syncWithTime = syncWithTime,
-            )
-        }
-
-        if (syncWithTime && loop.enabled) {
-            if (timeStat.isPast()) {
-                LoopDoneOrSkip(
-                    modifier = Modifier.height(36.dp),
-                    loop = loop,
-                    onStateChanged = onStateChanged,
-                )
-            }
-            if (loop.isAnyTime && (loop.startInDay < 0 || loop.endInDay < 0)) {
-                AnyTimeLoopStartOrStop(
-                    loop = loop,
-                    onStateChanged = onStateChanged,
-                )
-            }
-        }
-    }
-}
-
 /**
  * Single meta line under the title. While syncing with the clock it shows the live status
- * ("32 mins left", "finished", …); otherwise it shows the repeat interval and active days.
+ * ("32 mins left", …); otherwise it shows the repeat interval and active days.
+ * Cards awaiting a response swap this line for [LoopSwipeAffordance] instead.
  */
 @Composable
-private fun AgendaMeta(
+private fun LoopCardMeta(
     modifier: Modifier = Modifier,
     loop: LoopBase,
     timeStat: TimeStat,
@@ -508,11 +413,81 @@ private fun AgendaMeta(
     }
 }
 
+/**
+ * Trailing pill with the daily window ("07:00 – 08:00"), or "any time" for open-ended loops.
+ * Replaces the old leading time column + rail so the card stays a single quiet line.
+ */
+@Composable
+private fun LoopTimeChip(
+    modifier: Modifier = Modifier,
+    loop: LoopBase,
+) {
+    val text = if (loop.isAnyTime) {
+        stringResource(id = R.string.anytime)
+    } else {
+        "${loop.startInDay.formatHourMinute(withAmPm = false)} – " +
+                loop.endInDay.formatHourMinute(withAmPm = false)
+    }
+
+    Text(
+        modifier = modifier
+            .clip(CircleShape)
+            .background(color = AppColor.surfaceContainer)
+            .padding(horizontal = 10.dp, vertical = 4.dp),
+        text = text,
+        style = AppTypography.labelMedium.copy(color = loopMetaColor()),
+    )
+}
+
+/**
+ * Trailing time label for a finished (awaiting-response) card. A small check icon plus the
+ * daily window in muted ink signals the loop has already run today, without the loud "chip"
+ * styling used by live cards — reinforcing the dimmed, past-item look.
+ */
+@Composable
+private fun FinishedTimeLabel(
+    modifier: Modifier = Modifier,
+    loop: LoopBase,
+) {
+    val text = if (!loop.isAnyTime || (loop.startInDay >= 0 && loop.endInDay >= 0)) {
+        "${loop.startInDay.formatHourMinute(withAmPm = false)} – " +
+                loop.endInDay.formatHourMinute(withAmPm = false)
+    } else {
+        stringResource(id = R.string.anytime)
+    }
+
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            modifier = Modifier.size(14.dp),
+            imageVector = Icons.Filled.Done,
+            tint = loopMetaColor(),
+            contentDescription = null,
+        )
+        Text(
+            modifier = Modifier.padding(start = 4.dp),
+            text = text,
+            style = AppTypography.labelMedium.copy(color = loopMetaColor()),
+        )
+    }
+}
+
+/**
+ * Trailing overflow menu. With done / skip moved onto the swipe gesture, every management
+ * action (edit, on/off, add-to-group, delete) is gathered here so the card surface itself
+ * carries nothing but identity and status.
+ */
 @Composable
 private fun LoopCardMenu(
     modifier: Modifier = Modifier,
-    onNavigateToGroupPicker: () -> Unit,
-    cardValues: LoopCardValues,
+    loop: LoopBase,
+    showAddToGroup: Boolean,
+    onEdit: (LoopBase) -> Unit,
+    onEnabled: (Boolean) -> Unit,
+    onDelete: () -> Unit,
+    onNavigateToGroupPicker: (LoopBase) -> Unit,
 ) {
     var isPopupMenuOpen by rememberSaveable { mutableStateOf(false) }
 
@@ -521,47 +496,77 @@ private fun LoopCardMenu(
         .clickable { isPopupMenuOpen = true }
         .padding(all = 8.dp)) {
 
-        if (cardValues.showAddToGroup) {
-            Icon(
-                modifier = Modifier.size(24.dp),
-                imageVector = Icons.Outlined.MoreVert,
-                tint = AppColor.onSurface.copy(alpha = 0.8f),
-                contentDescription = stringResource(id = R.string.more)
-            )
-        }
+        Icon(
+            modifier = Modifier.size(20.dp),
+            imageVector = Icons.Outlined.MoreVert,
+            tint = AppColor.onSurface.copy(alpha = 0.5f),
+            contentDescription = stringResource(id = R.string.more)
+        )
     }
 
+    if (!isPopupMenuOpen) return
+
+    fun closeAfter(action: () -> Unit) {
+        action()
+        isPopupMenuOpen = false
+    }
     LoopCardPopupMenu(
-        isOpen = isPopupMenuOpen,
-        onNavigateToGroupPicker = {
-            onNavigateToGroupPicker()
-            isPopupMenuOpen = false
-        },
         onDismiss = { isPopupMenuOpen = false },
-    )
+    ) {
+        LoopCardPopupMenuItem(
+            text = stringResource(id = R.string.edit),
+            onClick = { closeAfter { onEdit(loop) } },
+        )
+        LoopCardPopupMenuItem(
+            text = stringResource(
+                id = if (loop.enabled) R.string.loop_disable else R.string.loop_enable
+            ),
+            onClick = { closeAfter { onEnabled(!loop.enabled) } },
+        )
+        if (showAddToGroup) {
+            LoopCardPopupMenuItem(
+                text = stringResource(id = R.string.add_to_group),
+                onClick = { closeAfter { onNavigateToGroupPicker(loop) } },
+            )
+        }
+        HorizontalDivider(
+            modifier = Modifier.padding(vertical = 4.dp),
+            color = AppColor.onSurface.copy(alpha = 0.08f),
+        )
+        LoopCardPopupMenuItem(
+            text = stringResource(id = R.string.delete),
+            onClick = { closeAfter { onDelete() } },
+        )
+    }
 }
 
 @Composable
 private fun LoopCardPopupMenu(
     modifier: Modifier = Modifier,
-    isOpen: Boolean,
-    onNavigateToGroupPicker: () -> Unit,
     onDismiss: () -> Unit,
+    content: @Composable () -> Unit,
 ) {
-    if (!isOpen) return
+    // 둥근 모서리 + 헤어라인 테두리의 작은 시트로 띄워, 다크 모드(그림자가 안 보이는)에서도
+    // 테두리가 경계를 잡아주고 라이트 모드에서는 부드러운 그림자로 떠 보인다.
+    val menuShape = RoundedCornerShape(12.dp)
     Popup(
         alignment = Alignment.TopEnd,
         onDismissRequest = onDismiss
     ) {
         Column(
             modifier = modifier
-                .shadow(elevation = 1.5.dp)
+                .widthIn(min = 160.dp)
+                .shadow(elevation = 4.dp, shape = menuShape)
+                .clip(menuShape)
                 .background(color = AppColor.surfaceElevated)
+                .border(
+                    width = 1.dp,
+                    color = AppColor.onSurface.copy(alpha = 0.08f),
+                    shape = menuShape,
+                )
+                .padding(vertical = 4.dp)
         ) {
-            LoopCardPopupMenuItem(
-                text = stringResource(id = R.string.add_to_group),
-                onClick = onNavigateToGroupPicker
-            )
+            content()
         }
     }
 }
@@ -574,10 +579,11 @@ private fun LoopCardPopupMenuItem(
 ) {
     Text(
         modifier = modifier
+            .fillMaxWidth()
             .clickable(onClick = onClick)
             .padding(
-                horizontal = 12.dp,
-                vertical = 4.dp
+                horizontal = 16.dp,
+                vertical = 10.dp
             ),
         text = text,
         style = AppTypography.bodyMedium.copy(
@@ -587,44 +593,52 @@ private fun LoopCardPopupMenuItem(
 }
 
 @Composable
+fun LoopCardColor(
+    modifier: Modifier = Modifier,
+    color: Int
+) {
+    // Solid dot reads cleaner than a hollow ring and stays legible on both themes.
+    Box(
+        modifier = modifier
+            .clip(CircleShape)
+            .background(color = color.compositeOverOnSurface())
+    )
+}
+
+@Composable
 fun AnyTimeLoopStartOrStop(
     modifier: Modifier = Modifier,
     loop: LoopBase,
     onStateChanged: (loop: LoopBase, doneState: @LoopDoneVo.DoneState Int) -> Unit
 ) {
+    // 시작·정지 모두 이 루프를 "진행"시키는 긍정 동작이므로 primary 틴트로 통일한다.
     if (loop.startInDay < 0) {
-        Image(
-            modifier = modifier
-                .size(48.dp)
-                .clickable {
-                    onStateChanged(
-                        loop.copyAs(startInDay = LocalTime.now().toMs()),
-                        LoopDoneVo.DoneState.IN_PROGRESS
-                    )
-                }
-                .padding(8.dp),
+        ResponseButton(
+            modifier = modifier,
             imageVector = Icons.Filled.PlayArrow,
-            colorFilter = ColorFilter.tint(
-                AppColor.onSurface.copy(alpha = 0.7f)
-            ),
-            contentDescription = stringResource(id = R.string.start)
+            contentDescription = stringResource(id = R.string.start),
+            containerColor = AppColor.primary.copy(alpha = LoopCardDefaults.ResponseTintAlpha),
+            tint = AppColor.primary,
+            onClick = {
+                onStateChanged(
+                    loop.copyAs(startInDay = LocalTime.now().toMs()),
+                    LoopDoneVo.DoneState.IN_PROGRESS
+                )
+            },
         )
     } else {
-        Image(
-            modifier = modifier
-                .size(48.dp)
-                .clickable {
-                    onStateChanged(
-                        loop.copyAs(endInDay = LocalTime.now().toMs()),
-                        LoopDoneVo.DoneState.DONE
-                    )
-                }
-                .padding(8.dp),
+        ResponseButton(
+            modifier = modifier,
             imageVector = Icons.Filled.Stop,
-            colorFilter = ColorFilter.tint(
-                AppColor.onSurface.copy(alpha = 0.7f)
-            ),
-            contentDescription = stringResource(id = R.string.stop)
+            contentDescription = stringResource(id = R.string.stop),
+            containerColor = AppColor.primary.copy(alpha = LoopCardDefaults.ResponseTintAlpha),
+            tint = AppColor.primary,
+            onClick = {
+                onStateChanged(
+                    loop.copyAs(endInDay = LocalTime.now().toMs()),
+                    LoopDoneVo.DoneState.DONE
+                )
+            },
         )
     }
 }
@@ -635,35 +649,55 @@ fun LoopDoneOrSkip(
     loop: LoopBase,
     onStateChanged: (loop: LoopBase, doneState: @LoopDoneVo.DoneState Int) -> Unit,
 ) {
-
-    Row(modifier = modifier) {
-        Image(
-            modifier = Modifier
-                .clickable { onStateChanged(loop, LoopDoneVo.DoneState.DONE) }
-                .fillMaxHeight()
-                .aspectRatio(1f)
-                .padding(8.dp),
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        // 완료는 primary 틴트로 앞세우고, 스킵은 중립 톤으로 낮춰 두 동작의 무게를 구분한다.
+        ResponseButton(
             imageVector = Icons.Filled.Done,
-            colorFilter = ColorFilter.tint(
-                AppColor.primary.copy(alpha = 0.7f)
-            ),
-            contentDescription = stringResource(id = R.string.done)
+            contentDescription = stringResource(id = R.string.done),
+            containerColor = AppColor.primary.copy(alpha = LoopCardDefaults.ResponseTintAlpha),
+            tint = AppColor.primary,
+            onClick = { onStateChanged(loop, LoopDoneVo.DoneState.DONE) },
         )
-
-        Image(
-            modifier = Modifier
-                .padding(start = 4.dp)
-                .clickable { onStateChanged(loop, LoopDoneVo.DoneState.SKIP) }
-                .fillMaxHeight()
-                .aspectRatio(1f)
-                .padding(8.dp),
+        ResponseButton(
             imageVector = Icons.Filled.Close,
-            colorFilter = ColorFilter.tint(
-                AppColor.onSurface.copy(
-                    alpha = 0.7f
-                )
-            ),
-            contentDescription = stringResource(id = R.string.skip)
+            contentDescription = stringResource(id = R.string.skip),
+            containerColor = AppColor.onSurface.copy(alpha = LoopCardDefaults.ResponseNeutralAlpha),
+            tint = AppColor.onSurface.copy(alpha = 0.6f),
+            onClick = { onStateChanged(loop, LoopDoneVo.DoneState.SKIP) },
+        )
+    }
+}
+
+/**
+ * 원형 응답 버튼(시작/정지 등). 은은한 틴트 원 위에 아이콘만 얹은 형태라 라이트/다크
+ * 모두에서 같은 강도로 읽히고, 카드 안에서 과하게 튀지 않는다.
+ */
+@Composable
+private fun ResponseButton(
+    modifier: Modifier = Modifier,
+    imageVector: ImageVector,
+    contentDescription: String,
+    containerColor: Color,
+    tint: Color,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = modifier
+            .size(LoopCardDefaults.ResponseButtonSize)
+            .clip(CircleShape)
+            .background(color = containerColor)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            modifier = Modifier.size(LoopCardDefaults.ResponseIconSize),
+            imageVector = imageVector,
+            tint = tint,
+            contentDescription = contentDescription,
         )
     }
 }
@@ -672,12 +706,17 @@ fun LoopDoneOrSkip(
 private fun LoopCardTitle(
     modifier: Modifier = Modifier,
     title: String,
+    dimmed: Boolean = false,
 ) {
     Text(
         modifier = modifier,
         text = title,
         style = AppTypography.bodyMedium.copy(
-            color = loopTitleColor(),
+            color = if (dimmed) {
+                AppColor.onSurface.copy(alpha = LoopCardDefaults.DimmedInkAlpha)
+            } else {
+                loopTitleColor()
+            },
             fontWeight = FontWeight.Bold
         ),
         maxLines = 1,
@@ -734,12 +773,11 @@ private fun LoopCardActiveDaysPronoun(
     modifier: Modifier = Modifier,
     loop: LoopBase
 ) {
+    // "매일/주중/주말" 같은 대명사도 메타 정보일 뿐이므로 강조 없이 메타 톤으로 둔다.
     Text(
         modifier = modifier.padding(end = 2.dp),
         text = stringResource(DAY_STRING_MAP[loop.activeDays]!!),
-        style = AppTypography.labelMedium.copy(
-            color = AppColor.primary
-        )
+        style = AppTypography.labelMedium.copy(color = loopMetaColor())
     )
 }
 
@@ -758,7 +796,6 @@ private fun LoopCardActiveDaysCommon(
 
             ActiveDayText(
                 modifier = Modifier.padding(horizontal = 1.dp),
-                day = day,
                 dayText = stringResource(id = dayResId),
                 selected = selected
             )
@@ -769,34 +806,21 @@ private fun LoopCardActiveDaysCommon(
 @Composable
 private fun ActiveDayText(
     modifier: Modifier = Modifier,
-    day: Int,
     dayText: String,
     selected: Boolean,
 ) {
-    Column(
+    // 요일은 진하기(알파)와 굵기만으로 켜짐/꺼짐을 구분한다. 주말 색상이나 표시 점 없이
+    // 모노톤으로 두어 메타 줄이 조용해지고, 라이트/다크 어디서든 같은 대비로 읽힌다.
+    Text(
         modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        val color = AppColor.primary
-        if (selected) {
-            Canvas(modifier = Modifier.padding(bottom = 2.dp)) {
-                drawCircle(
-                    color = color,
-                    radius = 1.5.dp.toPx()
-                )
-            }
-        }
-        Text(
-            modifier = Modifier,
-            text = dayText,
-            style = AppTypography.labelMedium.copy(
-                color = rememberDayColor(day = day).copy(
-                    alpha = if (selected) 0.8f else 0.3f,
-                ),
-                fontWeight = FontWeight.Normal
-            )
+        text = dayText,
+        style = AppTypography.labelMedium.copy(
+            color = AppColor.onSurface.copy(
+                alpha = if (selected) LoopCardDefaults.DaySelectedAlpha else LoopCardDefaults.DayUnselectedAlpha,
+            ),
+            fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
         )
-    }
+    )
 }
 
 @Composable

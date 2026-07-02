@@ -53,6 +53,9 @@ interface LoopDoneDao {
     @Query("SELECT COUNT(*) FROM loop_done WHERE (done == ${LoopDoneVo.DoneState.DONE} OR done == ${LoopDoneVo.DoneState.SKIP})")
     fun getRespondCountFlow(): Flow<Int>
 
+    @Query("SELECT COUNT(*) FROM loop_done WHERE (done == ${LoopDoneVo.DoneState.DONE} OR done == ${LoopDoneVo.DoneState.SKIP}) AND date=:date")
+    fun getRespondCountByDateFlow(date: Long): Flow<Int>
+
     @Query("SELECT COUNT(*) FROM loop_done WHERE loopId=:loopId AND (done == ${LoopDoneVo.DoneState.DONE} OR done == ${LoopDoneVo.DoneState.SKIP})")
     fun getRespondCountFlow(loopId: Int): Flow<Int>
 
@@ -73,6 +76,9 @@ interface LoopDoneDao {
 
     @Query("SELECT COUNT(*) FROM loop_done WHERE done == ${LoopDoneVo.DoneState.SKIP}")
     fun getSkipCountFlow(): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM loop_done WHERE done == ${LoopDoneVo.DoneState.SKIP} AND date=:date")
+    fun getSkipCountByDateFlow(date: Long): Flow<Int>
 
     @Query("SELECT COUNT(*) FROM loop_done WHERE done == ${LoopDoneVo.DoneState.SKIP} AND loopId=:loopId")
     fun getSkipCountFlow(loopId: Int): Flow<Int>

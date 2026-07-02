@@ -7,6 +7,7 @@ import androidx.compose.ui.unit.dp
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.glance.GlanceId
+import androidx.glance.GlanceTheme
 import androidx.glance.LocalSize
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.SizeMode
@@ -17,6 +18,7 @@ import com.pnd.android.loop.appwidget.ui.LoopWidgetMedium
 import com.pnd.android.loop.appwidget.ui.LoopWidgetSmall
 import com.pnd.android.loop.common.Logger
 import com.pnd.android.loop.data.asLoop
+import com.pnd.android.loop.ui.theme.AppWidgetColorProviders
 
 private val logger = Logger("AppWidget")
 
@@ -24,7 +26,9 @@ class AppWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         provideContent {
-            ResponsiveLoopWidget()
+            GlanceTheme(colors = AppWidgetColorProviders) {
+                ResponsiveLoopWidget()
+            }
         }
     }
 

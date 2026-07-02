@@ -3,9 +3,11 @@ package com.pnd.android.loop.ui.history
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -26,6 +28,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.outlined.Checklist
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -73,6 +76,7 @@ import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.ui.theme.surfaceContainer
 import com.pnd.android.loop.util.formatMonthDateDay
+import com.pnd.android.loop.util.formatStartEndTime
 import com.pnd.android.loop.util.formatYearMonth
 import com.pnd.android.loop.util.toLocalDate
 import kotlinx.coroutines.launch
@@ -177,21 +181,20 @@ private fun AppBarDateIcon(
 ) {
     Box(
         modifier = modifier
+            .clip(RoundShapes.small)
             .clickable(onClick = onMoveToToday)
+            .padding(2.dp)
     ) {
-        val borderColor = AppColor.onSurface
+        val borderColor = AppColor.onSurface.copy(alpha = 0.7f)
         Canvas(
             modifier = Modifier
                 .align(Alignment.Center)
                 .size(22.dp)
-        )
-        {
+        ) {
             drawRoundRect(
                 color = borderColor,
-                style = Stroke(
-                    width = 1.dp.toPx()
-                ),
-                cornerRadius = CornerRadius(x = 4.dp.toPx(), y = 4.dp.toPx())
+                style = Stroke(width = 1.5.dp.toPx()),
+                cornerRadius = CornerRadius(x = 5.dp.toPx(), y = 5.dp.toPx())
             )
         }
         Text(
@@ -201,7 +204,7 @@ private fun AppBarDateIcon(
             text = "${currDate.dayOfMonth}",
             textAlign = TextAlign.Center,
             style = AppTypography.titleSmall.copy(
-                color = AppColor.onSurface,
+                color = AppColor.onSurface.copy(alpha = 0.9f),
                 fontWeight = FontWeight.Bold
             ),
         )
@@ -374,8 +377,11 @@ private fun AchievementItem(
     modifier: Modifier = Modifier,
     item: List<FullLoopVo>
 ) {
+    val itemDate = item[0].date.toLocalDate()
+    val doneList = item.filter { it.done.isDone() }
+    val skipList = item.filter { it.done.isSkip() }
+
     Column(modifier = modifier) {
-        val itemDate = item[0].date.toLocalDate()
         AchievementItemDateHeader(
             modifier = Modifier.padding(
                 top = Dimens.sectionSpacing,
@@ -384,36 +390,61 @@ private fun AchievementItem(
             itemDate = itemDate,
         )
 
-        val doneList = item.filter { it.done.isDone() }
-        if (doneList.isNotEmpty()) {
-            AchievementItemSection(
-                modifier = Modifier.fillMaxWidth(),
-                loops = doneList,
-                itemDate = itemDate,
-                title = stringResource(id = R.string.done),
-                icon = Icons.Filled.Done,
-                accentColor = AppColor.primary,
-            )
-        }
+        // 하루치 기록을 하나의 카드로 묶어, 완료/건너뜀을 같은 카드 안에서 계층으로 보여준다.
+        DayCard(modifier = Modifier.fillMaxWidth()) {
+            if (doneList.isEmpty() && skipList.isEmpty()) {
+                EmptyDayContent()
+                return@DayCard
+            }
 
-        val skipList = item.filter { it.done.isSkip() }
-        if (skipList.isNotEmpty()) {
-            AchievementItemSection(
-                modifier = Modifier
-                    .padding(top = Dimens.cardSpacing)
-                    .fillMaxWidth(),
-                loops = skipList,
-                itemDate = itemDate,
-                title = stringResource(id = R.string.skip),
-                icon = Icons.Filled.Clear,
-                accentColor = AppColor.onSurface.copy(alpha = 0.6f),
-            )
-        }
+            if (doneList.isNotEmpty()) {
+                AchievementSubsection(
+                    loops = doneList,
+                    itemDate = itemDate,
+                    title = stringResource(id = R.string.done),
+                    icon = Icons.Filled.Done,
+                    accentColor = AppColor.primary,
+                )
+            }
 
-        if (doneList.isEmpty() && skipList.isEmpty()) {
-            NoAchievementItemSection()
+            if (doneList.isNotEmpty() && skipList.isNotEmpty()) {
+                SubsectionDivider()
+            }
+
+            if (skipList.isNotEmpty()) {
+                AchievementSubsection(
+                    loops = skipList,
+                    itemDate = itemDate,
+                    title = stringResource(id = R.string.skip),
+                    icon = Icons.Filled.Clear,
+                    accentColor = AppColor.onSurface.copy(alpha = 0.6f),
+                )
+            }
         }
     }
+}
+
+/**
+ * 하루치 기록을 담는 카드. 라이트/다크 모두에서 배경과 자연스럽게 분리되도록
+ * 옅은 컨테이너 배경 위에 머리카락 굵기의 테두리를 얹는다.
+ */
+@Composable
+private fun DayCard(
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundShapes.large)
+            .background(AppColor.surfaceContainer)
+            .border(
+                width = 0.5.dp,
+                color = AppColor.onSurface.copy(alpha = 0.1f),
+                shape = RoundShapes.large,
+            )
+            .padding(vertical = Dimens.contentPadding),
+        content = content,
+    )
 }
 
 @Composable
@@ -427,15 +458,40 @@ private fun AchievementItemDateHeader(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         DateHeaderRule(modifier = Modifier.weight(1f))
-        Text(
+        DateHeaderLabel(
             modifier = Modifier.padding(horizontal = Dimens.contentPadding),
             text = itemDate.formatMonthDateDay(),
+            isToday = isToday,
+        )
+        DateHeaderRule(modifier = Modifier.weight(1f))
+    }
+}
+
+/** 날짜 라벨. 오늘이면 primary 틴트 pill로 강조해 목록에서 눈에 띄게 한다. */
+@Composable
+private fun DateHeaderLabel(
+    modifier: Modifier = Modifier,
+    text: String,
+    isToday: Boolean,
+) {
+    if (isToday) {
+        Text(
+            modifier = modifier
+                .clip(CircleShape)
+                .background(AppColor.primary.copy(alpha = 0.12f))
+                .padding(horizontal = 14.dp, vertical = 4.dp),
+            text = text,
+            style = AppTypography.titleSmall.copy(color = AppColor.primary),
+        )
+    } else {
+        Text(
+            modifier = modifier,
+            text = text,
             style = AppTypography.titleMedium.copy(
-                color = if (isToday) AppColor.primary else AppColor.onSurface,
+                color = AppColor.onSurface.copy(alpha = 0.9f),
                 fontWeight = FontWeight.SemiBold,
             )
         )
-        DateHeaderRule(modifier = Modifier.weight(1f))
     }
 }
 
@@ -449,29 +505,37 @@ private fun DateHeaderRule(modifier: Modifier = Modifier) {
     )
 }
 
+/** 완료/건너뜀 섹션 사이를 나누는, 카드 안쪽에 들여쓴 얇은 구분선. */
 @Composable
-private fun NoAchievementItemSection(
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundShapes.large)
-            .background(AppColor.surfaceContainer)
-            .padding(vertical = Dimens.contentPadding),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = stringResource(id = R.string.no_achievements),
-            style = AppTypography.bodyMedium.copy(
-                color = AppColor.onSurface.copy(alpha = 0.5f)
-            )
-        )
-    }
+private fun SubsectionDivider() {
+    HorizontalDivider(
+        modifier = Modifier.padding(
+            horizontal = Dimens.contentPadding,
+            vertical = Dimens.contentPadding - 4.dp,
+        ),
+        thickness = 0.5.dp,
+        color = AppColor.onSurface.copy(alpha = 0.08f),
+    )
 }
 
+/** 기록이 하나도 없는 날 카드 안에 보여주는 안내 문구. */
 @Composable
-private fun AchievementItemSection(
+private fun EmptyDayContent(modifier: Modifier = Modifier) {
+    Text(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = Dimens.contentPadding),
+        text = stringResource(id = R.string.no_achievements),
+        textAlign = TextAlign.Center,
+        style = AppTypography.bodyMedium.copy(
+            color = AppColor.onSurface.copy(alpha = 0.5f)
+        )
+    )
+}
+
+/** 카드 안의 완료/건너뜀 한 덩어리. 헤더(아이콘 칩 + 제목 + 개수) 아래로 루프들을 나열한다. */
+@Composable
+private fun AchievementSubsection(
     modifier: Modifier = Modifier,
     loops: List<FullLoopVo>,
     itemDate: LocalDate,
@@ -479,15 +543,7 @@ private fun AchievementItemSection(
     icon: ImageVector,
     accentColor: Color,
 ) {
-    Column(
-        modifier = modifier
-            .clip(RoundShapes.large)
-            .background(AppColor.surfaceContainer)
-            .padding(
-                horizontal = Dimens.contentPadding,
-                vertical = Dimens.contentPadding - 4.dp
-            )
-    ) {
+    Column(modifier = modifier.padding(horizontal = Dimens.contentPadding)) {
         AchievementItemSectionHeader(
             title = title,
             itemCount = loops.size,
@@ -522,9 +578,13 @@ private fun AchievementItemSectionHeader(
     ) {
         SectionIconChip(icon = icon, accentColor = accentColor, contentDescription = title)
         Text(
-            modifier = Modifier.padding(start = Dimens.itemSpacing + 2.dp),
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = Dimens.itemSpacing + 2.dp),
             text = title,
-            style = AppTypography.titleSmall.copy(color = AppColor.onSurface)
+            style = AppTypography.titleSmall.copy(
+                color = AppColor.onSurface.copy(alpha = 0.9f)
+            )
         )
         CountBadge(
             modifier = Modifier.padding(start = Dimens.itemSpacing),
@@ -581,6 +641,9 @@ private fun AchievementItemSectionBody(
     itemDate: LocalDate,
 ) {
     val loopColor = loop.color.compositeOverOnSurface()
+    // 좌측 점(8dp)과 간격만큼 들여써서 제목·시간·회고의 왼쪽 라인을 한 줄로 맞춘다.
+    val contentIndent = Dimens.contentPadding + 8.dp
+
     Column(modifier = modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
@@ -591,7 +654,10 @@ private fun AchievementItemSectionBody(
             Text(
                 modifier = Modifier.padding(start = Dimens.contentPadding),
                 text = loop.title,
-                style = AppTypography.bodyLarge.copy(color = AppColor.onSurface)
+                style = AppTypography.bodyLarge.copy(
+                    color = AppColor.onSurface,
+                    fontWeight = FontWeight.Medium,
+                )
             )
 
             val createdDate = remember(loop.created) { loop.created.toLocalDate() }
@@ -600,11 +666,16 @@ private fun AchievementItemSectionBody(
             }
         }
 
+        LoopTimeLabel(
+            modifier = Modifier.padding(start = contentIndent, top = Dimens.itemSpacing),
+            loop = loop,
+        )
+
         if (loop.retrospect.isNotEmpty()) {
             Retrospect(
-                // 좌측 점/제목 들여쓰기(점 8dp + 간격)에 맞춰 회고 블록을 정렬한다.
+                // 제목/시간과 같은 들여쓰기 선에 맞춰 회고 블록을 정렬한다.
                 modifier = Modifier.padding(
-                    start = Dimens.contentPadding + 8.dp,
+                    start = contentIndent,
                     top = Dimens.cardSpacing,
                     end = Dimens.itemSpacing,
                 ),
@@ -612,6 +683,36 @@ private fun AchievementItemSectionBody(
                 retrospect = loop.retrospect,
             )
         }
+    }
+}
+
+/**
+ * 루프가 수행된 시간대(시작 ~ 종료)를 제목 아래에 보여주는 부가 라벨.
+ * 고정 시간이 없는 'anytime' 루프는 시간 대신 anytime 문구로 표시된다.
+ * 아이콘·글자 모두 onSurface 기반의 반투명 색이라 라이트/다크 어디서나 자연스럽게 얹힌다.
+ */
+@Composable
+private fun LoopTimeLabel(
+    modifier: Modifier = Modifier,
+    loop: FullLoopVo,
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Image(
+            modifier = Modifier.size(12.dp),
+            imageVector = Icons.Outlined.Schedule,
+            colorFilter = ColorFilter.tint(AppColor.onSurface.copy(alpha = 0.4f)),
+            contentDescription = null,
+        )
+        Text(
+            modifier = Modifier.padding(start = Dimens.itemSpacing - 2.dp),
+            text = loop.formatStartEndTime(),
+            style = AppTypography.labelMedium.copy(
+                color = AppColor.onSurface.copy(alpha = 0.55f),
+            ),
+        )
     }
 }
 

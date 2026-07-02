@@ -57,10 +57,12 @@ class AppModule {
     fun provideLoopRepository(
         appDb: AppDatabase,
         alarmController: LoopScheduler,
+        notificationHelper: NotificationHelper,
     ): LoopRepository {
         return LoopRepository(
             appDb = appDb,
-            loopScheduler = alarmController
+            loopScheduler = alarmController,
+            notificationHelper = notificationHelper,
         )
     }
 

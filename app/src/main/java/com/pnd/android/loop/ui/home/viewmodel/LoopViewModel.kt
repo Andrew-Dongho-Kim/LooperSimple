@@ -21,8 +21,10 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
@@ -97,6 +99,8 @@ class LoopViewModel @Inject constructor(
 
     private val todayCount = loopRepository.todayEnabledCount
     private val todayDoneCount = loopRepository.todayDoneCount
+    private val todayResponseCount = loopRepository.todayRespondCount
+    private val todaySkipCount = loopRepository.todaySkipCount
 
 
     private val _highlightId = MutableStateFlow(NavigatePage.UNKNOWN_ID)
@@ -119,33 +123,39 @@ class LoopViewModel @Inject constructor(
         }
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
-    val allResponseRate = allCount.flatMapLatest { all ->
-        allResponseCount.map { response ->
-            if (all > 0) (response.toFloat() / all.toFloat() * 100) else 100f
-        }
+    /**
+     * Done / response / skip rates bundled per scope so the header can swap them as the
+     * 오늘 / 전체 tab changes. Rates are percentages (0..100); a scope with no recorded
+     * activity yields 0% across the board rather than a misleading 100%.
+     */
+    val overallRates: Flow<LoopRates> = combine(
+        allCount,
+        doneCount,
+        allResponseCount,
+        skipCount,
+    ) { total, done, response, skip ->
+        LoopRates(
+            doneRate = percentOf(done, total),
+            responseRate = percentOf(response, total),
+            skipRate = percentOf(skip, total),
+        )
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
-    val todayDoneRate = todayCount.flatMapLatest { all ->
-        todayDoneCount.map { done ->
-            if (all > 0) (done.toFloat() / all.toFloat() * 100) else 100f
-        }
+    val todayRates: Flow<LoopRates> = combine(
+        todayCount,
+        todayDoneCount,
+        todayResponseCount,
+        todaySkipCount,
+    ) { total, done, response, skip ->
+        LoopRates(
+            doneRate = percentOf(done, total),
+            responseRate = percentOf(response, total),
+            skipRate = percentOf(skip, total),
+        )
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
-    val doneRate = allCount.flatMapLatest { all ->
-        doneCount.map { doneCount ->
-            if (all > 0) (doneCount.toFloat() / all.toFloat() * 100) else 100f
-        }
-    }
-
-    @OptIn(ExperimentalCoroutinesApi::class)
-    val skipRate = allCount.flatMapLatest { all ->
-        skipCount.map { skipCount ->
-            if (all > 0) (skipCount.toFloat() / all.toFloat() * 100) else 100f
-        }
-    }
+    private fun percentOf(count: Int, total: Int): Float =
+        if (total > 0) count.toFloat() / total * 100f else 0f
 
     override fun onCleared() {
         coroutineScope.cancel()
@@ -209,5 +219,20 @@ class LoopViewModel @Inject constructor(
     fun syncLoops() {
         loopRepository.syncLoops()
         AppWidgetUpdateWorker.updateWidget(application)
+    }
+}
+
+/**
+ * The three headline habit rates for a single scope (today or all-time), each a
+ * percentage in 0..100. Grouping them lets the home header show one coherent set that
+ * flips wholesale when the 오늘 / 전체 tab changes.
+ */
+data class LoopRates(
+    val doneRate: Float,
+    val responseRate: Float,
+    val skipRate: Float,
+) {
+    companion object {
+        val Empty = LoopRates(doneRate = 0f, responseRate = 0f, skipRate = 0f)
     }
 }

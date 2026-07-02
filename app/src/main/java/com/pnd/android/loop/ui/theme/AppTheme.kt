@@ -7,6 +7,7 @@ import androidx.compose.material3.Shapes
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
+import androidx.glance.material3.ColorProviders
 
 //private val darkColorPalette = darkColors(
 //    primary = Blue400,
@@ -63,6 +64,15 @@ private val lightColorScheme = lightColorScheme(
     outline = Grey80
 )
 
+
+/**
+ * Day/night color providers for the Glance app widget, derived from the same
+ * Material3 schemes the app UI uses so the widget follows the system theme.
+ */
+val AppWidgetColorProviders = ColorProviders(
+    light = lightColorScheme,
+    dark = darkColorScheme,
+)
 
 val CORNERS_SMALL = 4.dp
 val CORNERS_MEDIUM = 8.dp

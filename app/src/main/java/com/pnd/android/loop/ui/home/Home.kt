@@ -3,11 +3,12 @@ package com.pnd.android.loop.ui.home
 import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,7 +20,7 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -37,17 +38,21 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
@@ -58,8 +63,6 @@ import com.pnd.android.loop.data.isDisabled
 import com.pnd.android.loop.data.isInProgressState
 import com.pnd.android.loop.data.isNotRespond
 import com.pnd.android.loop.data.isRespond
-import com.pnd.android.loop.ui.home.Section.AllAndTodayTab.Companion.TAB_ALL
-import com.pnd.android.loop.ui.home.Section.AllAndTodayTab.Companion.TAB_TODAY
 import com.pnd.android.loop.ui.home.input.UserInput
 import com.pnd.android.loop.ui.home.input.UserInputState
 import com.pnd.android.loop.ui.home.input.rememberUserInputState
@@ -84,25 +87,29 @@ fun Home(
     onNavigateToHistoryPage: () -> Unit,
     onNavigateToStatisticsPage: () -> Unit,
 ) {
-    val inputState = rememberUserInputState(context = LocalContext.current)
+    val context = LocalContext.current
+    val inputState = rememberUserInputState(context = context)
     val snackBarHostState = remember { SnackbarHostState() }
     val blurState = rememberBlurState()
+
+    // Today / All selection is owned here so both the pinned tab in the app bar and the
+    // scrolling content (header stats + loop list) stay in sync from a single source.
+    var selectedTab by rememberSaveable { mutableIntStateOf(HomeTab.TODAY) }
+    // Opening the input reveals the new / edited loop, which only the All list shows.
+    LaunchedEffect(inputState.isOpen) {
+        if (inputState.isOpen) selectedTab = HomeTab.ALL
+    }
+
+    // Selecting 오늘 also closes the input so the list doesn't jump back to 전체.
+    val onTabSelected: (Int) -> Unit = { tab ->
+        selectedTab = tab
+        if (tab == HomeTab.TODAY) inputState.close(context)
+    }
 
     Scaffold(
         modifier = modifier
             .fillMaxSize()
             .blur(radius = blurState.radius),
-        topBar = {
-            HomeAppBar(
-                modifier = Modifier
-                    .background(color = AppColor.surface)
-                    .statusBarsPadding(),
-                loopViewModel = loopViewModel,
-                onNavigateToGroupPage = onNavigateToGroupPage,
-                onNavigateToStatisticsPage = onNavigateToStatisticsPage,
-                onNavigateToHistoryPage = onNavigateToHistoryPage,
-            )
-        },
         snackbarHost = {
             SnackbarHost(
                 modifier = Modifier
@@ -121,9 +128,12 @@ fun Home(
         },
         containerColor = Color.Transparent,
         contentColor = Color.Transparent,
+        // The floating app bar and pinned tabs handle the status-bar area themselves, so the
+        // scrolling content is allowed to draw all the way up behind them.
         contentWindowInsets = ScaffoldDefaults
             .contentWindowInsets
             .exclude(WindowInsets.navigationBars)
+            .exclude(WindowInsets.statusBars)
             .exclude(WindowInsets.ime),
     )
     { contentPadding ->
@@ -133,8 +143,12 @@ fun Home(
             inputState = inputState,
             snackBarHostState = snackBarHostState,
             loopViewModel = loopViewModel,
+            selectedTab = selectedTab,
+            onTabSelected = onTabSelected,
             onNavigateToGroupPicker = onNavigateToGroupPicker,
             onNavigateToDetailPage = onNavigateToDetailPage,
+            onNavigateToGroupPage = onNavigateToGroupPage,
+            onNavigateToStatisticsPage = onNavigateToStatisticsPage,
             onNavigateToHistoryPage = onNavigateToHistoryPage,
         )
     }
@@ -148,12 +162,21 @@ private fun HomeContent(
     inputState: UserInputState,
     snackBarHostState: SnackbarHostState,
     loopViewModel: LoopViewModel,
+    @HomeTab.Type selectedTab: Int,
+    onTabSelected: (Int) -> Unit,
     onNavigateToGroupPicker: (LoopBase) -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
+    onNavigateToGroupPage: () -> Unit,
+    onNavigateToStatisticsPage: () -> Unit,
     onNavigateToHistoryPage: () -> Unit,
 ) {
     Box(modifier = modifier.background(color = AppColor.background)) {
         val lazyListState = rememberLazyListState()
+        // A real backdrop blur is only available on API 31+; elsewhere the floating surfaces fall
+        // back to translucent white, so we only bother capturing the content where it's used.
+        val backdrop = rememberBackdropState()
+        val headerBackdrop = if (supportsBackdropBlur) backdrop else null
+
         HomeContent(
             modifier = Modifier
                 .fillMaxHeight()
@@ -162,10 +185,27 @@ private fun HomeContent(
             blurState = blurState,
             inputState = inputState,
             lazyListState = lazyListState,
+            backdrop = headerBackdrop,
             loopViewModel = loopViewModel,
+            selectedTab = selectedTab,
             onNavigateToGroupPicker = onNavigateToGroupPicker,
             onNavigateToDetailPage = onNavigateToDetailPage,
             onNavigateToHistoryPage = onNavigateToHistoryPage,
+        )
+
+        // The collapsing action bar: a plain app bar at rest that, as the list scrolls, fades out
+        // the title and floats the icons (in place) and the 오늘/전체 tabs (slid up to the left).
+        val collapseProgress by rememberHomeHeaderCollapseProgress(lazyListState)
+        CollapsingHomeHeader(
+            modifier = Modifier.align(Alignment.TopCenter),
+            progress = collapseProgress,
+            loopViewModel = loopViewModel,
+            selectedTab = selectedTab,
+            onTabSelected = onTabSelected,
+            onNavigateToGroupPage = onNavigateToGroupPage,
+            onNavigateToStatisticsPage = onNavigateToStatisticsPage,
+            onNavigateToHistoryPage = onNavigateToHistoryPage,
+            backdrop = headerBackdrop,
         )
 
         val context = LocalContext.current
@@ -222,34 +262,47 @@ private fun HomeContent(
     blurState: BlurState,
     inputState: UserInputState,
     lazyListState: LazyListState,
+    backdrop: BackdropState?,
     loopViewModel: LoopViewModel,
+    @HomeTab.Type selectedTab: Int,
     onNavigateToGroupPicker: (LoopBase) -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
     onNavigateToHistoryPage: () -> Unit,
 ) {
-    val sections by loopViewModel.observeSectionsAsState(inputState)
+    val sections by loopViewModel.observeSectionsAsState(
+        inputState = inputState,
+        selectedTab = selectedTab,
+    )
     val onEdit = remember { { loop: LoopBase -> inputState.edit(loop) } }
 
-    Box(modifier = modifier.background(AppColor.background)) {
+    // The collapsing header (title + icons + tabs) is drawn as an overlay, so the list simply
+    // starts below its expanded height and then scrolls up underneath it. This content is also
+    // the source the floating surfaces sample for their backdrop blur (API 31+ only).
+    val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val headerHeight = homeHeaderExpandedHeight(topInset)
+    val backdropModifier = backdrop?.let { Modifier.backdropSource(it) } ?: Modifier
+
+    // backdropSource wraps the background so the captured layer (sampled by the blur) includes it.
+    Box(modifier = modifier.then(backdropModifier).background(AppColor.background)) {
         if (sections.isEmpty()) {
             EmptyLoops(
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = headerHeight)
             )
         } else {
-            val context = LocalContext.current
             LazyColumn(
                 modifier = Modifier.fillMaxWidth(),
                 state = lazyListState,
+                contentPadding = PaddingValues(top = headerHeight),
             ) {
                 sections.forEach { section ->
                     section(
                         section = section,
                         blurState = blurState,
                         loopViewModel = loopViewModel,
+                        selectedTab = selectedTab,
                         onEdit = onEdit,
-                        onSectionTabChanged = { tab ->
-                            if (tab == TAB_TODAY) inputState.close(context)
-                        },
                         onNavigateToGroupPicker = onNavigateToGroupPicker,
                         onNavigateToDetailPage = onNavigateToDetailPage,
                         onNavigateToHistoryPage = onNavigateToHistoryPage,
@@ -267,43 +320,66 @@ private fun HomeContent(
 fun EmptyLoops(
     modifier: Modifier = Modifier
 ) {
-    Column(
+    Box(
         modifier = modifier.padding(horizontal = 48.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+        contentAlignment = Alignment.Center,
+    ) {
+        HomeEmptyState(
+            icon = Icons.Outlined.Autorenew,
+            title = stringResource(R.string.desc_no_loops),
+            hint = stringResource(R.string.desc_no_loops_hint),
+        )
+    }
+}
+
+/**
+ * 홈에서 쓰는 공용 빈 상태 — 틴트 원 안의 아이콘 + 제목 + 힌트. 루프가 하나도 없을 때와
+ * 오늘 할 일을 모두 끝냈을 때가 같은 문법으로 읽히도록 한 곳에서 스타일을 관리한다.
+ * 색은 모두 테마에서 가져와 라이트/다크 모드에 함께 대응한다.
+ */
+@Composable
+fun HomeEmptyState(
+    modifier: Modifier = Modifier,
+    icon: ImageVector,
+    title: String,
+    hint: String,
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
             modifier = Modifier
-                .size(88.dp)
+                .size(80.dp)
                 .clip(CircleShape)
-                .background(color = AppColor.primary.copy(alpha = 0.08f)),
-            contentAlignment = Alignment.Center
+                .background(color = AppColor.primary.copy(alpha = 0.10f)),
+            contentAlignment = Alignment.Center,
         ) {
             Icon(
-                modifier = Modifier.size(40.dp),
-                imageVector = Icons.Outlined.Autorenew,
-                tint = AppColor.primary.copy(alpha = 0.8f),
-                contentDescription = null
+                modifier = Modifier.size(36.dp),
+                imageVector = icon,
+                tint = AppColor.primary,
+                contentDescription = null,
             )
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
-
         Text(
-            text = stringResource(R.string.desc_no_loops),
+            modifier = Modifier.padding(top = 20.dp),
+            text = title,
+            textAlign = TextAlign.Center,
             style = AppTypography.titleMedium.copy(
-                color = AppColor.onSurface
-            )
+                color = AppColor.onSurface,
+                fontWeight = FontWeight.Bold,
+            ),
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
-
         Text(
-            text = stringResource(R.string.desc_no_loops_hint),
+            modifier = Modifier.padding(top = 6.dp),
+            text = hint,
             textAlign = TextAlign.Center,
             style = AppTypography.bodyMedium.copy(
-                color = AppColor.onSurface.copy(alpha = 0.5f)
-            )
+                color = AppColor.onSurface.copy(alpha = 0.55f),
+            ),
         )
     }
 }
@@ -312,6 +388,7 @@ fun EmptyLoops(
 @Composable
 private fun LoopViewModel.observeSectionsAsState(
     inputState: UserInputState,
+    @HomeTab.Type selectedTab: Int,
 ): State<List<Section>> {
     val loops by allLoopsWithDoneStates.collectAsState(emptyList())
     val yesterdayLoops by loopsNoResponseYesterday.collectAsState(initial = emptyList())
@@ -328,26 +405,21 @@ private fun LoopViewModel.observeSectionsAsState(
             if (index != -1) resultLoops[index] = edited
         }
 
-        val tabSection = rememberAllAndTodayTabSection(tab = TAB_TODAY)
-        // Switch to the ALL tab once when the input opens so the new/edited loop
-        // is visible. Done in an effect, not during composition, so it doesn't
-        // override the user's tab selection on every recomposition.
-        LaunchedEffect(inputState.isOpen) {
-            if (inputState.isOpen) tabSection.selectedTab = TAB_ALL
-        }
-
+        // The 오늘 / 전체 tab is pinned in the app bar; here we only pick which loop list
+        // its selection maps to.
+        val doneSection = rememberDoneSection(resultLoops)
         val sections = mutableListOf(
             rememberHeaderSection(resultLoops),
-            tabSection,
-            if (tabSection.selectedTab == TAB_ALL) {
+            if (selectedTab == HomeTab.ALL) {
                 rememberAllSection(resultLoops, inputState)
             } else {
                 rememberTodaySection(resultLoops)
             },
             rememberYesterdaySection(yesterdayLoops),
             rememberAdSection(),
-            rememberDoneSection(resultLoops),
-        ).filter { it.size > 0 }
+            // 전체 탭에서는 오늘 Done/Skip한 루프 정보를 노출하지 않는다.
+            if (selectedTab == HomeTab.ALL) null else doneSection,
+        ).filterNotNull().filter { it.size > 0 }
 
         remember(sections) { mutableStateOf(sections) }
     }
@@ -361,12 +433,6 @@ private fun rememberHeaderSection(
 }.apply {
     items.value = loops
 }
-
-@Composable
-private fun rememberAllAndTodayTabSection(@Section.AllAndTodayTab.Companion.Tab tab: Int) =
-    rememberSaveable(saver = Section.AllAndTodayTab.Saver) {
-        Section.AllAndTodayTab(tab = tab)
-    }
 
 
 @Composable

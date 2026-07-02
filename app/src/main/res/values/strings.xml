@@ -69,6 +69,8 @@
     <string name="delete">Delete</string>
     <string name="done">DONE</string>
     <string name="skip">SKIP</string>
+    <string name="loop_enable">Turn on</string>
+    <string name="loop_disable">Turn off</string>
     <string name="no_response">No Response</string>
     <string name="memo">Memo</string>
     <string name="restore">Restore</string>
@@ -118,6 +120,13 @@
     <string name="warning_up_to_max_loops">You can do up to %d loops simultaneously.</string>
     <string name="warning_start_time_should_be_before_end_time">* The start time must be at least %d minutes before the end time.</string>
     <string name="warning_end_time_should_be_after_start_time">* The end time must be at least %d minutes after the start time.</string>
+
+    <!-- 진행 중 루프 알림: "11:20까지 · 32분 남음" 형태로 조합되어 표시된다. -->
+    <string name="notification_until_time">until %s</string>
+    <plurals name="notification_time_left">
+        <item quantity="one">%d min left</item>
+        <item quantity="other">%d mins left</item>
+    </plurals>
 
     <string name="ad_attribution" translatable="false">AD</string>
     <string name="desc_native_ad">Advertisement</string>
