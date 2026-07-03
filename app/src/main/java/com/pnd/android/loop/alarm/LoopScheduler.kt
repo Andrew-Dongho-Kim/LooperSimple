@@ -7,7 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.SystemClock
-import com.pnd.android.loop.alarm.notification.NotificationHelper
+import com.pnd.android.loop.alarm.notification.LoopForegroundService
 import com.pnd.android.loop.appwidget.AppWidgetUpdateWorker
 import com.pnd.android.loop.common.log
 import com.pnd.android.loop.data.AppDatabase
@@ -22,8 +22,6 @@ import com.pnd.android.loop.data.asLoopVo
 import com.pnd.android.loop.data.common.NO_REPEAT
 import com.pnd.android.loop.data.description
 import com.pnd.android.loop.data.putTo
-import com.pnd.android.loop.util.MS_1MIN
-import com.pnd.android.loop.util.MS_1SEC
 import com.pnd.android.loop.util.dayForLoop
 import com.pnd.android.loop.util.dh2m2
 import com.pnd.android.loop.util.isActiveDay
@@ -97,21 +95,26 @@ class LoopScheduler @Inject constructor(
     fun syncLoops() {
         logger.d { "start sync" }
         coroutineScope.launch {
+            var hasActiveLoop = false
             loopDao.getAllLoops().forEach { loop ->
                 fillNoResponse(loop)
                 if (loop.enabled) {
                     reserveAlarm(scheduleStart(loop))
 
-                    // 동기화 시점(앱 시작 등)에 이미 진행 중인 루프는 시작 알람이 지나갔으므로,
-                    // 곧바로 진행 틱을 걸어 남은 시간 알림이 다시 표시되도록 한다.
+                    // 동기화 시점(앱 시작·재부팅 등)에 이미 진행 중인 루프는 시작 알람이
+                    // 지나갔으므로, 아래에서 포그라운드 서비스를 띄워 알림을 복구한다.
                     if (loop.hasTimeWindow && loop.isActiveDay() && loop.isActiveTime()) {
-                        reserveAlarm(scheduleProgressTick(loop, after = MS_1SEC))
+                        hasActiveLoop = true
                     }
                 } else {
                     cancelAlarm(loop)
                 }
             }
             reserveAlarm(scheduleSync())
+
+            // 진행 중인 루프가 있으면 상시 알림 서비스를 (재)시작한다. 실제로 보여줄
+            // 루프가 없다면 서비스가 스스로 종료하므로 안전하다.
+            if (hasActiveLoop) LoopForegroundService.refresh(context)
         }
     }
 
@@ -146,14 +149,12 @@ class LoopScheduler @Inject constructor(
     }
 
     /**
-     * 오늘 이미 완료/스킵으로 응답한 루프인지 비동기로 확인한다. 진행 알림 틱이
-     * 응답을 마친 루프의 알림을 계속 띄우지 않도록 판단하는 데 쓰인다.
+     * 진행 중 루프 통합 알림을 최신 상태로 만든다. 앱 안에서 완료/스킵 등으로 루프
+     * 상태가 바뀌었을 때 호출하면, 포그라운드 서비스가 DB를 다시 읽어 알림을 갱신하고
+     * 더 이상 보여줄 루프가 없으면 스스로 알림을 내린다.
      */
-    fun checkRespondedToday(loop: LoopBase, onResult: (Boolean) -> Unit) {
-        coroutineScope.launch {
-            val state = loopDoneDao.getDoneState(loop.loopId, LocalDate.now().toMs())?.done
-            onResult(state == DoneState.DONE || state == DoneState.SKIP)
-        }
+    fun refreshOngoingNotification() {
+        LoopForegroundService.refresh(context)
     }
 
     fun cancelAlarm(loop: LoopBase) {
@@ -183,28 +184,26 @@ class LoopScheduler @Inject constructor(
         @Inject
         lateinit var alarmController: LoopScheduler
 
-        @Inject
-        lateinit var notificationHelper: NotificationHelper
-
         override fun onReceive(context: Context, intent: Intent) {
             when (intent.action) {
                 ACTION_LOOP_START -> handleActionLoopStart(context, intent)
                 ACTION_LOOP_END -> handleActionLoopEnd(context, intent)
-                ACTION_LOOP_REPEAT -> handleActionLoopRepeat(intent)
-                ACTION_LOOP_PROGRESS -> handleActionLoopProgress(intent)
+                ACTION_LOOP_REPEAT -> handleActionLoopRepeat(context, intent)
                 ACTION_LOOP_SYNC -> handleActionLoopSync(context, intent)
 
-                ACTION_LOOP_DONE -> handleActionLoopDone(intent)
-                ACTION_LOOP_CANCEL -> handleActionLoopCancel(intent)
+                ACTION_LOOP_DONE -> handleActionLoopDone(context)
+                ACTION_LOOP_CANCEL -> handleActionLoopCancel(context)
             }
         }
 
-        private fun handleActionLoopDone(intent: Intent) {
-            notificationHelper.cancel(intent.asLoop())
+        // 완료/스킵/취소 시 통합 알림을 즉시 다시 계산한다. 응답한 루프는 목록에서
+        // 빠지고, 남은 진행 중 루프가 없으면 서비스가 스스로 알림을 내린다.
+        private fun handleActionLoopDone(context: Context) {
+            LoopForegroundService.refresh(context)
         }
 
-        private fun handleActionLoopCancel(intent: Intent) {
-            notificationHelper.cancel(intent.asLoop())
+        private fun handleActionLoopCancel(context: Context) {
+            LoopForegroundService.refresh(context)
         }
 
 
@@ -213,9 +212,6 @@ class LoopScheduler @Inject constructor(
 
             if (loop.loopId == MIDNIGHT_RESERVATION_ID) {
                 alarmController.syncLoops()
-
-                // TEMP CODE
-                notificationHelper.notify(loop)
             }
             AppWidgetUpdateWorker.updateWidget(context)
         }
@@ -229,8 +225,9 @@ class LoopScheduler @Inject constructor(
                 reserveRepeat(loop = loop)
             }
 
-            // 시작 시점에는 소리로 알리고, 이후 진행 알림은 1분 틱으로 조용히 갱신된다.
-            notifyLoop(loop, alert = true)
+            // 진행 중인 루프를 상시 알림 서비스로 넘긴다. 서비스가 알림을 소유하므로
+            // 앱이 실행 중이 아니어도 유지되고, 사용자가 스와이프로 지울 수 없다.
+            notifyLoop(context, loop)
             AppWidgetUpdateWorker.updateWidget(context)
 
             val isAllowedDay = loop.isActiveDay()
@@ -247,38 +244,17 @@ class LoopScheduler @Inject constructor(
         }
 
         private fun handleActionLoopEnd(context: Context, intent: Intent) {
-            val loop = intent.asLoop()
-            // 종료 시각: 진행 알림을 내려 루프 창이 끝났음을 알린다.
-            notificationHelper.cancel(loop)
+            // 종료 시각: 통합 알림을 다시 계산해 끝난 루프를 목록에서 뺀다.
+            LoopForegroundService.refresh(context)
             AppWidgetUpdateWorker.updateWidget(context)
         }
 
-        private fun handleActionLoopRepeat(intent: Intent) {
+        private fun handleActionLoopRepeat(context: Context, intent: Intent) {
             val loop = intent.asLoop()
 
             reserveRepeat(loop)
-            // 반복 간격마다 다시 소리로 알린다 (진행 알림 내용도 함께 갱신된다).
-            notifyLoop(loop, alert = true)
-        }
-
-        /**
-         * 1분 진행 틱: 아직 진행 중이면 알림을 조용히 갱신하고 다음 틱을 예약한다.
-         * 종료 시각을 지났거나 이미 완료/스킵으로 응답한 루프면 알림을 내리고 틱을 멈춘다.
-         */
-        private fun handleActionLoopProgress(intent: Intent) {
-            val loop = intent.asLoop()
-            if (!loop.isActiveTime()) {
-                notificationHelper.cancel(loop)
-                return
-            }
-
-            alarmController.checkRespondedToday(loop) { responded ->
-                if (responded) {
-                    notificationHelper.cancel(loop)
-                } else {
-                    notifyLoop(loop, alert = false)
-                }
-            }
+            // 반복 간격마다 알림 내용을 조용히 갱신한다.
+            notifyLoop(context, loop)
         }
 
         private fun reserveRepeat(loop: LoopBase) {
@@ -291,22 +267,15 @@ class LoopScheduler @Inject constructor(
         }
 
         /**
-         * 지금 진행 중인 루프의 알림을 띄운다. 시작·종료 시각이 모두 있는 루프는
-         * 남은 시간을 보여주는 진행 알림(+1분 갱신 틱 예약)으로, 시간 창이 없는
-         * 루프는 기존의 단순 알림으로 표시한다. [alert]가 true면 소리로 알린다.
+         * 지금 진행 중인 루프를 상시 알림 서비스로 넘긴다. 서비스가 DB를 다시 읽어
+         * 현재 진행 중인 모든 루프를 하나의 알림으로 묶어 보여주고 1분마다 갱신하므로,
+         * 여기서는 유효한 루프일 때 서비스를 (재)시작하기만 하면 된다.
          */
-        private fun notifyLoop(loop: LoopBase, alert: Boolean) {
-            val isAllowedDay = loop.isActiveDay()
-            val isAllowedTime = loop.isActiveTime()
-            val isMock = loop.isMock
-            if (isMock || !isAllowedDay || !isAllowedTime) return
+        private fun notifyLoop(context: Context, loop: LoopBase) {
+            if (loop.isMock || !loop.hasTimeWindow) return
+            if (!loop.isActiveDay() || !loop.isActiveTime()) return
 
-            if (loop.hasTimeWindow) {
-                notificationHelper.notifyProgress(loop, alert = alert)
-                alarmController.reserveAlarm(scheduleProgressTick(loop))
-            } else {
-                notificationHelper.notify(loop)
-            }
+            LoopForegroundService.refresh(context)
         }
     }
 
@@ -330,16 +299,6 @@ class LoopScheduler @Inject constructor(
         fun scheduleRepeat(loop: LoopBase) = LoopSchedule(
             action = ACTION_LOOP_REPEAT,
             after = loop.interval - ((msNow - loop.startInDay) % loop.interval),
-            loop = loop
-        )
-
-        /**
-         * 진행 알림을 갱신하는 틱. 기본은 1분 뒤이며, 동기화 시점에 이미 진행 중인
-         * 루프를 즉시 표시해야 할 때는 [after]를 짧게 줄 수 있다.
-         */
-        fun scheduleProgressTick(loop: LoopBase, after: Long = MS_1MIN) = LoopSchedule(
-            action = ACTION_LOOP_PROGRESS,
-            after = after,
             loop = loop
         )
 
