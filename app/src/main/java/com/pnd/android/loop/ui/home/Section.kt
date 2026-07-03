@@ -61,6 +61,9 @@ import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.ui.theme.surfaceContainer
 
+/** 홈 리스트에서 카드 사이 간격(카드당 상하 패딩). 다른 화면과 별개로 홈만 살짝 촘촘하게 둔다. */
+private val HomeCardSpacing = 6.dp
+
 val HOME_NATIVE_AD_ID = if (BuildConfig.DEBUG) {
     "ca-app-pub-3940256099942544/2247696110"
 } else {
@@ -251,7 +254,7 @@ private fun LazyListScope.sectionTodayBody(
     ) {
         val context = LocalContext.current
         ViewModeToggle(
-            modifier = Modifier.padding(bottom = Dimens.cardSpacing),
+            modifier = Modifier.padding(bottom = HomeCardSpacing),
             isTimeline = isTimeline,
             onSelected = { selected ->
                 section.save(context = context, selected = selected)
@@ -265,7 +268,7 @@ private fun LazyListScope.sectionTodayBody(
             key = "LoopTimeline",
         ) {
             LoopTimeline(
-                modifier = Modifier.padding(top = Dimens.cardSpacing),
+                modifier = Modifier.padding(top = HomeCardSpacing),
                 blurState = blurState,
                 loopViewModel = loopViewModel,
                 loops = loops.filter { loop -> loop.enabled },
@@ -286,7 +289,7 @@ private fun LazyListScope.sectionTodayBody(
                     .animateItem()
                     .padding(
                         horizontal = Dimens.screenHorizontalPadding,
-                        vertical = Dimens.cardSpacing,
+                        vertical = HomeCardSpacing,
                     ),
                 blurState = blurState,
                 loopViewModel = loopViewModel,
@@ -486,7 +489,7 @@ private fun LazyListScope.sectionLater(
                 modifier = Modifier
                     .padding(
                         horizontal = Dimens.screenHorizontalPadding,
-                        vertical = Dimens.cardSpacing,
+                        vertical = HomeCardSpacing,
                     ),
                 blurState = blurState,
                 loopViewModel = loopViewModel,

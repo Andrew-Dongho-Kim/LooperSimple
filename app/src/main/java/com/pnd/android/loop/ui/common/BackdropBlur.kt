@@ -1,4 +1,4 @@
-package com.pnd.android.loop.ui.home
+package com.pnd.android.loop.ui.common
 
 import android.os.Build
 import androidx.compose.foundation.background
@@ -92,25 +92,39 @@ fun FloatingSurface(
     contentHorizontalPadding: Dp = 0.dp,
     content: @Composable () -> Unit,
 ) {
-    // Theme surface (white in light, near-black in dark) keeps the pill from clashing in dark mode.
-    val tint = AppColor.surface
     Box(modifier = modifier) {
-        val background = if (backdrop != null) {
-            Modifier.blurredBackdrop(backdrop, progress, shape, tint)
-        } else {
-            Modifier.background(color = tint.copy(alpha = FallbackTintAlpha * progress), shape = shape)
-        }
         Box(
             Modifier
                 .matchParentSize()
                 // Shadow grows in with the collapse so the pill lifts off the content behind it.
                 .shadow(elevation = FloatingElevation * progress, shape = shape)
-                .then(background)
+                .floatingSurfaceBackground(backdrop = backdrop, shape = shape, progress = progress)
         )
         // Inset the content so it doesn't sit flush against the pill's rounded edges.
         Box(Modifier.padding(horizontal = contentHorizontalPadding)) {
             content()
         }
+    }
+}
+
+/**
+ * The frosted-glass fill shared by every floating surface (the header pills and the add-loop
+ * button): a real blurred copy of the content behind it on API 31+ (via [backdrop]), or a
+ * translucent tint where blur is unavailable. [progress] fades it in — `1f` for a surface that is
+ * always shown, or the collapse fraction for one that grows in with the header.
+ */
+@Composable
+fun Modifier.floatingSurfaceBackground(
+    backdrop: BackdropState?,
+    shape: Shape,
+    progress: Float = 1f,
+): Modifier {
+    // Theme surface (white in light, near-black in dark) keeps the surface from clashing in dark mode.
+    val tint = AppColor.surface
+    return if (backdrop != null) {
+        blurredBackdrop(backdrop, progress, shape, tint)
+    } else {
+        background(color = tint.copy(alpha = FallbackTintAlpha * progress), shape = shape)
     }
 }
 

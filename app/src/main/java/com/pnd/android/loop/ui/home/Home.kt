@@ -65,6 +65,13 @@ import com.pnd.android.loop.data.isNotRespond
 import com.pnd.android.loop.data.isRespond
 import com.pnd.android.loop.ui.home.input.UserInput
 import com.pnd.android.loop.ui.home.input.UserInputState
+import com.pnd.android.loop.ui.home.input.loopInputPanelBackgroundColor
+import com.pnd.android.loop.ui.common.BackdropState
+import com.pnd.android.loop.ui.common.NavigationBarFadingEdge
+import com.pnd.android.loop.ui.common.StatusBarFadingEdge
+import com.pnd.android.loop.ui.common.backdropSource
+import com.pnd.android.loop.ui.common.rememberBackdropState
+import com.pnd.android.loop.ui.common.supportsBackdropBlur
 import com.pnd.android.loop.ui.home.input.rememberUserInputState
 import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.theme.AppColor
@@ -73,6 +80,7 @@ import com.pnd.android.loop.ui.theme.background
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.ui.theme.surface
+import com.pnd.android.loop.ui.theme.surfaceElevated
 import com.pnd.android.loop.util.isActiveDay
 import com.pnd.android.loop.util.toMs
 import java.time.LocalDateTime
@@ -178,9 +186,9 @@ private fun HomeContent(
         val headerBackdrop = if (supportsBackdropBlur) backdrop else null
 
         HomeContent(
+            // 내비게이션 바 영역까지 콘텐츠가 그려지도록 navigationBarsPadding을 두지 않는다.
             modifier = Modifier
                 .fillMaxHeight()
-                .navigationBarsPadding()
                 .imePadding(),
             blurState = blurState,
             inputState = inputState,
@@ -192,6 +200,23 @@ private fun HomeContent(
             onNavigateToDetailPage = onNavigateToDetailPage,
             onNavigateToHistoryPage = onNavigateToHistoryPage,
         )
+
+        // 상태바 영역의 페이딩 엣지: 스크롤되는 리스트 위, 떠 있는 헤더 알약(pill) 아래에 그려서
+        // 콘텐츠가 상태바 밑으로 자연스럽게 사라지도록 한다.
+        StatusBarFadingEdge(modifier = Modifier.align(Alignment.TopCenter))
+
+        // 내비게이션 바 영역 처리:
+        // - 평소에는 콘텐츠가 하단으로 자연스럽게 사라지도록 페이딩 엣지를 그린다.
+        // - 루프 추가 UX가 활성화되면 페이딩 엣지 대신, 입력 패널과 동일한 배경/알파로 채워
+        //   패널이 화면 하단까지 이어져 보이도록 한다.
+        if (inputState.isVisible) {
+            NavigationBarInputScrim(
+                modifier = Modifier.align(Alignment.BottomCenter),
+                isSelectorOpened = inputState.isSelectorOpened,
+            )
+        } else {
+            NavigationBarFadingEdge(modifier = Modifier.align(Alignment.BottomCenter))
+        }
 
         // The collapsing action bar: a plain app bar at rest that, as the list scrolls, fades out
         // the title and floats the icons (in place) and the 오늘/전체 tabs (slid up to the left).
@@ -214,10 +239,10 @@ private fun HomeContent(
                 .align(Alignment.BottomStart)
                 .navigationBarsPadding()
                 .imePadding(),
-            blurState = blurState,
             inputState = inputState,
             snackBarHostState = snackBarHostState,
             lazyListState = lazyListState,
+            backdrop = headerBackdrop,
             onEnsureLoop = { loop ->
                 ensureLoop(
                     context = context,
@@ -254,6 +279,27 @@ private fun HomeContent(
                 )
         )
     }
+}
+
+/**
+ * 루프 추가 UX가 활성화됐을 때 내비게이션 바 영역을 채우는 배경. 입력 패널이 화면 하단까지
+ * 자연스럽게 이어져 보이도록 한다.
+ * - Selector가 열려 있으면 Selector(surfaceElevated, 불투명)와 동일한 색으로 채운다.
+ * - 그 외에는 입력 패널과 동일한 반투명 배경([loopInputPanelBackgroundColor])을 사용한다.
+ */
+@Composable
+private fun NavigationBarInputScrim(
+    isSelectorOpened: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val navigationBarHeight = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val color = if (isSelectorOpened) AppColor.surfaceElevated else loopInputPanelBackgroundColor()
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(navigationBarHeight)
+            .background(color = color),
+    )
 }
 
 @Composable

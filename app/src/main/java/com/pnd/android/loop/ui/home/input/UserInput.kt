@@ -10,6 +10,8 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,7 +27,6 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
@@ -41,7 +42,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.data.LoopBase
-import com.pnd.android.loop.ui.home.BlurState
+import com.pnd.android.loop.ui.common.BackdropState
+import com.pnd.android.loop.ui.common.floatingSurfaceBackground
 import com.pnd.android.loop.ui.home.input.SharedElementsOfUserInput.KEY_BUTTON_IMAGE
 import com.pnd.android.loop.ui.home.input.SharedElementsOfUserInput.TRANSITION_DURATION
 import com.pnd.android.loop.ui.home.input.selector.Selectors
@@ -57,10 +59,10 @@ import kotlinx.coroutines.launch
 @Composable
 fun UserInput(
     modifier: Modifier = Modifier,
-    blurState: BlurState,
     inputState: UserInputState,
     snackBarHostState: SnackbarHostState,
     lazyListState: LazyListState,
+    backdrop: BackdropState?,
     onEnsureLoop: suspend (LoopBase) -> Boolean,
     onLoopSubmitted: (LoopBase) -> Unit,
 ) {
@@ -72,7 +74,6 @@ fun UserInput(
         ) { isExpanded ->
             if (isExpanded) {
                 UserInput(
-                    blurState = blurState,
                     inputState = inputState,
                     snackBarHostState = snackBarHostState,
                     lazyListState = lazyListState,
@@ -84,6 +85,7 @@ fun UserInput(
             } else {
                 UserInputExpandButton(
                     inputState = inputState,
+                    backdrop = backdrop,
                     sharedTransitionScope = this@SharedTransitionLayout,
                     animatedVisibilityScope = this@AnimatedContent
                 )
@@ -97,7 +99,6 @@ fun UserInput(
 @Composable
 fun UserInput(
     modifier: Modifier = Modifier,
-    blurState: BlurState,
     inputState: UserInputState,
     snackBarHostState: SnackbarHostState,
     lazyListState: LazyListState,
@@ -123,9 +124,11 @@ fun UserInput(
 
     OverrideBackPress(inputState = inputState)
 
+    // 루프 추가 UX가 보일 때만 배경을 그리고, 숨겨지면 투명하게 둔다.
+    val panelBackground = if (inputState.isVisible) loopInputPanelBackgroundColor() else Color.Transparent
+
     Column(
-        modifier
-            .background(color = if (inputState.isVisible) AppColor.surfaceElevated else Color.Transparent)
+        modifier.background(color = panelBackground)
     ) {
         HorizontalDivider(
             thickness = 0.5.dp,
@@ -161,7 +164,6 @@ fun UserInput(
 
         Selectors(
             inputState = inputState,
-            blurState = blurState,
             snackBarHostState = snackBarHostState,
             focusRequester = focusRequester,
         )
@@ -174,6 +176,7 @@ fun UserInput(
 private fun UserInputExpandButton(
     modifier: Modifier = Modifier,
     inputState: UserInputState,
+    backdrop: BackdropState?,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
@@ -189,12 +192,21 @@ private fun UserInputExpandButton(
                 )
         ) {
 
-            Surface(
+            // Same frosted-glass look as the floating header pills, so the add-loop button reads
+            // as part of the same layer floating over the scrolling content.
+            Box(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .size(56.dp)
                     .shadow(2.dp, shape = CircleShape)
                     .clip(CircleShape)
+                    .border(
+                        border = BorderStroke(
+                            width = 0.5.dp,
+                            color = AppColor.outline.copy(alpha = 0.5f),
+                        ),
+                        shape = CircleShape,
+                    )
                     .clickable {
                         inputState.toggleOpen(context)
                     }
@@ -205,12 +217,16 @@ private fun UserInputExpandButton(
                         resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds,
                         animatedVisibilityScope = animatedVisibilityScope,
                     ),
-                shape = CircleShape,
-                border = BorderStroke(
-                    width = 0.5.dp,
-                    color = AppColor.outline.copy(alpha = 0.5f),
-                )
+                contentAlignment = Alignment.Center,
             ) {
+
+                // The blur lives on its own layer behind the icon; drawing it on the same node as
+                // the icon would push the icon's pixels through the blur too, hiding it.
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .floatingSurfaceBackground(backdrop = backdrop, shape = CircleShape)
+                )
 
                 val imageRotation by animatedVisibilityScope.transition.animateFloat(
                     transitionSpec = {
@@ -254,6 +270,16 @@ private fun UserInputExpandButton(
     }
 }
 
+
+/**
+ * 루프 추가 UX 패널의 배경색. 약간의 투명도를 줘서 하단에 스크롤되는 콘텐츠가 살짝 비치도록 한다.
+ * 가독성을 해치지 않는 선에서, 밝은 배경이라 대비가 약한 라이트 모드는 조금 더 불투명하게 둔다.
+ * 내비게이션 바 영역도 이 색을 그대로 사용해 패널이 화면 하단까지 이어져 보이도록 한다.
+ */
+@Composable
+fun loopInputPanelBackgroundColor(): Color = AppColor.surfaceElevated.copy(
+    alpha = if (isSystemInDarkTheme()) 0.88f else 0.92f
+)
 
 @Composable
 private fun OverrideBackPress(

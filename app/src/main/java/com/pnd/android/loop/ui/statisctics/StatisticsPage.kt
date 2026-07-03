@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Scaffold
@@ -48,7 +47,10 @@ import com.pnd.android.loop.ui.theme.onPrimary
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.ui.theme.surfaceContainer
+import com.pnd.android.loop.util.ABB_MONTHS
 import com.pnd.android.loop.util.DAYS_WITH_3CHARS
+import com.pnd.android.loop.util.MS_1HOUR
+import com.pnd.android.loop.util.MS_1MIN
 
 private val CardShape = RoundedCornerShape(16.dp)
 
@@ -98,6 +100,15 @@ private fun StatisticsPageContent(
         statisticsViewModel.flowLoopRanking(selectedPeriod)
     }.collectAsState(initial = emptyList())
 
+    // 연속 달성 스트릭과 월별 투자 시간은 기간 선택과 무관하게 항상 전체 기록을 기준으로 한다.
+    val streak by remember {
+        statisticsViewModel.flowStreak()
+    }.collectAsState(initial = StreakStat(current = 0, longest = 0))
+
+    val monthlyInvestedTimes by remember {
+        statisticsViewModel.flowMonthlyInvestedTime()
+    }.collectAsState(initial = emptyList())
+
     LazyColumn(
         modifier = modifier,
         contentPadding = PaddingValues(
@@ -119,8 +130,21 @@ private fun StatisticsPageContent(
             SummarySection(summary = uiState.summary)
         }
 
+        // 완료 기록이 한 번이라도 있을 때만 스트릭 섹션을 노출한다.
+        if (streak.longest > 0) {
+            item(key = "streak") {
+                StreakSection(streak = streak)
+            }
+        }
+
         item(key = "weekly") {
             WeeklyConsistencySection(stats = uiState.dayOfWeekStats)
+        }
+
+        if (monthlyInvestedTimes.isNotEmpty()) {
+            item(key = "monthly") {
+                MonthlyInvestedSection(monthlyInvestedTimes = monthlyInvestedTimes)
+            }
         }
 
         rankingSection(
@@ -196,6 +220,8 @@ private fun SummarySection(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(Dimens.cardSpacing),
     ) {
+        // 기간 내 루프에 투자한 총 누적 시간을 강조해 보여주는 대표 카드.
+        InvestedTimeCard(investedTimeMs = summary.investedTimeMs)
         Row(horizontalArrangement = Arrangement.spacedBy(Dimens.cardSpacing)) {
             StatCard(
                 modifier = Modifier.weight(1f),
@@ -252,6 +278,74 @@ private fun StatCard(
                 color = AppColor.onSurface.copy(alpha = 0.6f),
             ),
         )
+    }
+}
+
+/**
+ * 루프에 투자한 총 누적 시간을 강조하는 대표(히어로) 카드.
+ * primary 색을 옅게 깐 배경으로 다른 KPI 카드와 시각적으로 구분한다.
+ * (배경/글자 모두 테마 색을 사용하므로 다크/라이트 모드에 자동으로 대응한다.)
+ */
+@Composable
+private fun InvestedTimeCard(
+    modifier: Modifier = Modifier,
+    investedTimeMs: Long,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(CardShape)
+            .background(color = AppColor.primary.copy(alpha = 0.1f))
+            .padding(horizontal = Dimens.contentPadding, vertical = 20.dp),
+    ) {
+        Text(
+            text = stringResource(id = R.string.stat_summary_invested),
+            style = AppTypography.bodySmall.copy(
+                color = AppColor.onSurface.copy(alpha = 0.6f),
+            ),
+        )
+        Text(
+            modifier = Modifier.padding(top = Dimens.itemSpacing),
+            text = investedDurationText(investedTimeMs = investedTimeMs),
+            style = AppTypography.headlineLarge.copy(
+                color = AppColor.primary,
+                fontWeight = FontWeight.Bold,
+            ),
+        )
+    }
+}
+
+// endregion
+
+// region Streak --------------------------------------------------------------
+
+/**
+ * 현재/최장 연속 달성 스트릭을 두 개의 KPI 카드로 보여주는 섹션.
+ * 기간 선택과 무관한 전체 기록 기준이므로 별도 헤더로 구분한다.
+ */
+@Composable
+private fun StreakSection(
+    modifier: Modifier = Modifier,
+    streak: StreakStat,
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        SectionHeader(
+            title = stringResource(id = R.string.stat_streak),
+            description = stringResource(id = R.string.stat_streak_desc),
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(Dimens.cardSpacing)) {
+            StatCard(
+                modifier = Modifier.weight(1f),
+                value = stringResource(id = R.string.stat_streak_days, streak.current),
+                label = stringResource(id = R.string.stat_streak_current),
+                accent = true,
+            )
+            StatCard(
+                modifier = Modifier.weight(1f),
+                value = stringResource(id = R.string.stat_streak_days, streak.longest),
+                label = stringResource(id = R.string.stat_streak_longest),
+            )
+        }
     }
 }
 
@@ -340,6 +434,91 @@ private fun DayOfWeekBar(
 
 // endregion
 
+// region Monthly invested time chart -----------------------------------------
+
+@Composable
+private fun MonthlyInvestedSection(
+    modifier: Modifier = Modifier,
+    monthlyInvestedTimes: List<MonthlyInvestedTime>,
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        SectionHeader(
+            title = stringResource(id = R.string.stat_monthly_invested),
+            description = stringResource(id = R.string.stat_monthly_invested_desc),
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(CardShape)
+                .background(color = AppColor.surfaceContainer)
+                .padding(Dimens.contentPadding)
+                .height(160.dp),
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.spacedBy(Dimens.itemSpacing),
+        ) {
+            monthlyInvestedTimes.forEach { monthly ->
+                MonthlyInvestedBar(
+                    modifier = Modifier.weight(1f),
+                    monthly = monthly,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MonthlyInvestedBar(
+    modifier: Modifier = Modifier,
+    monthly: MonthlyInvestedTime,
+) {
+    val animatedRatio by animateFloatAsState(
+        targetValue = monthly.ratio,
+        label = "monthlyInvestedBar",
+    )
+    // 막대 위 라벨은 요일 차트와 동일하게 시간(hour) 단위 숫자만 간결하게 표기한다.
+    val hours = (monthly.investedTimeMs / MS_1HOUR).toInt()
+    Column(
+        modifier = modifier.fillMaxHeight(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Bottom,
+    ) {
+        Text(
+            modifier = Modifier.padding(bottom = 4.dp),
+            text = "$hours",
+            style = AppTypography.labelMedium.copy(
+                color = AppColor.onSurface.copy(alpha = if (hours > 0) 0.8f else 0.3f),
+            ),
+        )
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+            contentAlignment = Alignment.BottomCenter,
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(fraction = animatedRatio.coerceAtLeast(0.02f))
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(
+                        color = AppColor.primary.copy(
+                            alpha = 0.35f + 0.65f * monthly.ratio,
+                        ),
+                    ),
+            )
+        }
+        Text(
+            modifier = Modifier.padding(top = Dimens.itemSpacing),
+            text = stringResource(id = ABB_MONTHS[monthly.yearMonth.monthValue - 1]),
+            style = AppTypography.bodySmall.copy(
+                color = AppColor.onSurface.copy(alpha = 0.6f),
+            ),
+        )
+    }
+}
+
+// endregion
+
 // region Loop ranking --------------------------------------------------------
 
 private fun androidx.compose.foundation.lazy.LazyListScope.rankingSection(
@@ -348,23 +527,25 @@ private fun androidx.compose.foundation.lazy.LazyListScope.rankingSection(
 ) {
     if (ranking.isEmpty()) return
 
-    item(key = "ranking_header") {
-        SectionHeader(
-            title = stringResource(id = R.string.stat_ranking),
-            description = stringResource(id = R.string.stat_ranking_desc),
-        )
-    }
-
-    itemsIndexed(
-        items = ranking,
-        key = { _, item -> item.loopId },
-    ) { index, item ->
-        LoopRankingItem(
-            modifier = Modifier.padding(top = if (index == 0) 0.dp else Dimens.cardSpacing),
-            order = index + 1,
-            item = item,
-            onClick = { onNavigateToDetailPage(item.loopId) },
-        )
+    // 헤더와 순위 목록을 하나의 섹션 아이템으로 묶는다.
+    // (개별 행을 LazyColumn 아이템으로 두면 섹션 간격이 행 사이에도 적용돼 여백이 과하게 벌어진다.)
+    // 행 사이 간격은 카드 간격(cardSpacing)만 사용해 촘촘하게 유지한다.
+    item(key = "ranking") {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            SectionHeader(
+                title = stringResource(id = R.string.stat_ranking),
+                description = stringResource(id = R.string.stat_ranking_desc),
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(Dimens.cardSpacing)) {
+                ranking.forEachIndexed { index, item ->
+                    LoopRankingItem(
+                        order = index + 1,
+                        item = item,
+                        onClick = { onNavigateToDetailPage(item.loopId) },
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -475,6 +656,23 @@ private fun SectionHeader(
                 color = AppColor.onSurface.copy(alpha = 0.5f),
             ),
         )
+    }
+}
+
+/**
+ * 투자 시간(ms)을 사람이 읽기 좋은 문자열로 변환한다.
+ * 하루 이상이면 "N일 N시간", 한 시간 이상이면 "N시간 N분", 그 미만이면 "N분"으로 표기한다.
+ */
+@Composable
+private fun investedDurationText(investedTimeMs: Long): String {
+    val totalMinutes = investedTimeMs / MS_1MIN
+    val days = totalMinutes / (60 * 24)
+    val hours = (totalMinutes / 60) % 24
+    val minutes = totalMinutes % 60
+    return when {
+        days > 0 -> stringResource(id = R.string.stat_duration_dh, days.toInt(), hours.toInt())
+        hours > 0 -> stringResource(id = R.string.stat_duration_hm, hours.toInt(), minutes.toInt())
+        else -> stringResource(id = R.string.stat_duration_m, minutes.toInt())
     }
 }
 

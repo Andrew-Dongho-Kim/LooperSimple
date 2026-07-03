@@ -3,6 +3,8 @@
 
     <!-- User Input -->
     <dimen name="user_input_selector_content_height">240dp</dimen>
+    <!-- The start/end time selector hosts the stepper cards and day picker, so it needs a little more room. -->
+    <dimen name="user_input_time_selector_content_height">300dp</dimen>
     <dimen name="user_input_selector_button_size">44dp</dimen>
 
 </resources>

@@ -81,4 +81,17 @@ data class LoopWithStatistics(
     val doneRate: Float,
 )
 
+/**
+ * 월(연/월) 단위로 집계한, 완료한 루프에 투자한 시간 합계.
+ *
+ * @param year 연도 (예: 2026)
+ * @param month 월 (1~12)
+ * @param durationMs 해당 월에 완료한 루프들의 소요 시간(ms) 총합
+ */
+data class MonthlyLoopDuration(
+    val year: Int,
+    val month: Int,
+    val durationMs: Long,
+)
+
 

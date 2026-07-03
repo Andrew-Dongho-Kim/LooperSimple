@@ -13,6 +13,11 @@ import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.LoopVo
 import com.pnd.android.loop.data.TodayLoopOrder
+import com.pnd.android.loop.ui.statisctics.DayOfWeekStat
+import com.pnd.android.loop.ui.statisctics.StreakStat
+import com.pnd.android.loop.ui.statisctics.computeStreak
+import com.pnd.android.loop.ui.statisctics.computeWeekdayStats
+import com.pnd.android.loop.util.toLocalDate
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
@@ -152,6 +157,19 @@ class LoopViewModel @Inject constructor(
             responseRate = percentOf(response, total),
             skipRate = percentOf(skip, total),
         )
+    }
+
+    /**
+     * 연속 달성 스트릭(현재·최고). 오늘 탭 헤더는 현재 연속을, 전체 탭 헤더는 최고 연속을
+     * 보여준다. 전체 완료 기록을 기준으로 하므로 탭과 무관하게 동일한 값을 공유한다.
+     */
+    val streak: Flow<StreakStat> = loopRepository.doneDates.map { millis ->
+        computeStreak(doneDates = millis.map { it.toLocalDate() })
+    }
+
+    /** 전체 탭 헤더의 요일별 달성 패턴(월~일). 전체 완료 기록을 요일로 묶어 계산한다. */
+    val weekdayStats: Flow<List<DayOfWeekStat>> = loopRepository.doneDates.map { millis ->
+        computeWeekdayStats(doneDates = millis.map { it.toLocalDate() })
     }
 
     private fun percentOf(count: Int, total: Int): Float =

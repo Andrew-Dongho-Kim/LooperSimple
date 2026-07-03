@@ -11,18 +11,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
+import com.pnd.android.loop.ui.common.BackdropState
+import com.pnd.android.loop.ui.common.FloatingHeaderShape
+import com.pnd.android.loop.ui.common.FloatingPillHeight
+import com.pnd.android.loop.ui.common.FloatingSurface
+import com.pnd.android.loop.ui.common.rememberListCollapseProgress
+import com.pnd.android.loop.ui.common.surfaceReveal
 import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.theme.Dimens
 
@@ -40,12 +42,6 @@ val HomeTabsRowHeight = TabsRowTopPadding + HomeTabsTrackHeight + TabsRowBottomP
 /** Scroll distance over which the header fully collapses — the tabs' travel into the action bar. */
 val HomeHeaderCollapseDistance = HomeTabsRowHeight
 
-/**
- * Height shared by both floating pills, so the collapsed tabs stand exactly as tall as the
- * action icons (both are capped to this height).
- */
-val FloatingPillHeight = 52.dp
-
 /** Collapsed width of the tabs once they float in the action-bar row. */
 private val CollapsedTabWidth = 148.dp
 
@@ -55,9 +51,6 @@ private val TabFloatingRim = 5.dp
 /** Track height so the tabs' pill (track + rim on both sides) equals [FloatingPillHeight]. */
 private val CollapsedTabTrackHeight = FloatingPillHeight - TabFloatingRim * 2
 
-// A fully rounded capsule so the floating pills read as distinctly separate from the content.
-private val FloatingShape = RoundedCornerShape(percent = 50)
-
 /** Full height the header occupies at rest, so the scrolling content can start just below it. */
 fun homeHeaderExpandedHeight(topInset: Dp) =
     topInset + HomeActionBarHeight + HomeTabsRowHeight
@@ -66,36 +59,16 @@ fun homeHeaderExpandedHeight(topInset: Dp) =
 private fun collapsedTabTop(topInset: Dp) =
     topInset + (HomeActionBarHeight - FloatingPillHeight) / 2
 
-/** Scroll fraction past which the floating backgrounds start to appear. */
-private const val SurfaceRevealStart = 0.9f
-
 /**
- * How present the floating backgrounds are. Unlike the tabs' motion (which tracks the raw
- * progress the whole way), the backgrounds stay hidden until the collapse is nearly done and
- * then appear quickly — so the middle of the scroll never shows a half-faded pill.
- */
-private fun surfaceReveal(progress: Float): Float =
-    ((progress - SurfaceRevealStart) / (1f - SurfaceRevealStart)).coerceIn(0f, 1f)
-
-/**
- * Collapse fraction (`0f..1f`) derived from how far the list has scrolled. Once the first item
- * has scrolled past, the header is considered fully collapsed. Uses `derivedStateOf` so it only
- * recomposes readers when the fraction actually changes.
+ * 홈 헤더의 접힘 진행도(`0f..1f`). 공용 [rememberListCollapseProgress]에 홈의 접힘 거리를 넘겨
+ * 계산한다. 홈 리스트는 일반(정방향) 레이아웃이라 최상단이 기준점이다.
  */
 @Composable
-fun rememberHomeHeaderCollapseProgress(lazyListState: LazyListState): State<Float> {
-    val collapseDistancePx = with(LocalDensity.current) { HomeHeaderCollapseDistance.toPx() }
-    return remember(lazyListState, collapseDistancePx) {
-        derivedStateOf {
-            val scrolled = if (lazyListState.firstVisibleItemIndex > 0) {
-                collapseDistancePx
-            } else {
-                lazyListState.firstVisibleItemScrollOffset.toFloat()
-            }
-            (scrolled / collapseDistancePx).coerceIn(0f, 1f)
-        }
-    }
-}
+fun rememberHomeHeaderCollapseProgress(lazyListState: LazyListState): State<Float> =
+    rememberListCollapseProgress(
+        lazyListState = lazyListState,
+        collapseDistance = HomeHeaderCollapseDistance,
+    )
 
 /**
  * The One UI-style collapsing header, drawn as an overlay above the scrolling list.
@@ -157,7 +130,7 @@ fun CollapsingHomeHeader(
         ) {
             FloatingSurface(
                 progress = surfaceProgress,
-                shape = FloatingShape,
+                shape = FloatingHeaderShape,
                 backdrop = backdrop,
                 contentHorizontalPadding = innerMargin,
             ) {
@@ -183,7 +156,7 @@ fun CollapsingHomeHeader(
 
         FloatingSurface(
             progress = surfaceProgress,
-            shape = FloatingShape,
+            shape = FloatingHeaderShape,
             backdrop = backdrop,
             contentHorizontalPadding = innerMargin,
             modifier = Modifier

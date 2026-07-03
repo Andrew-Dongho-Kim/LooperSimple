@@ -2,7 +2,6 @@ package com.pnd.android.loop.ui.home.viewmodel
 
 import com.pnd.android.loop.alarm.LoopScheduler
 import com.pnd.android.loop.alarm.LoopScheduler.Companion.scheduleStart
-import com.pnd.android.loop.alarm.notification.NotificationHelper
 import com.pnd.android.loop.common.log
 import com.pnd.android.loop.data.AppDatabase
 import com.pnd.android.loop.data.LoopBase
@@ -41,7 +40,6 @@ import kotlin.math.min
 class LoopRepository @Inject constructor(
     appDb: AppDatabase,
     private val loopScheduler: LoopScheduler,
-    private val notificationHelper: NotificationHelper,
 ) {
     private val logger = log("LoopRepository")
 
@@ -136,6 +134,9 @@ class LoopRepository @Inject constructor(
     val doneCount = loopDoneDao.getDoneCountFlow()
     val skipCount = loopDoneDao.getSkipCountFlow()
 
+    // 완료(DONE) 기록이 있는 날짜(전체 기간). 헤더의 연속 달성/요일 패턴 계산에 쓰인다.
+    val doneDates = loopWithDoneDao.getDoneDatesFlow()
+
     // Counts scoped to the current day so the header can show "today's" done rate
     // separately from the all-time figures above. They re-query whenever the day rolls over.
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -214,9 +215,9 @@ class LoopRepository @Inject constructor(
             doneState = doneState
         )
 
-        // 완료/스킵으로 응답한 순간, 진행 중이던 상태 알림은 더 이상 필요 없으니 바로 내린다.
+        // 완료/스킵으로 응답한 순간, 통합 알림을 갱신해 이 루프를 목록에서 뺀다.
         if (doneState == LoopDoneVo.DoneState.DONE || doneState == LoopDoneVo.DoneState.SKIP) {
-            notificationHelper.cancel(loop)
+            loopScheduler.refreshOngoingNotification()
         }
     }
 

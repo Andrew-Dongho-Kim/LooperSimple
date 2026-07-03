@@ -20,19 +20,18 @@ import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopVo.Factory.ANY_TIME
-import com.pnd.android.loop.ui.home.BlurState
 import com.pnd.android.loop.ui.home.input.InputSelector
 import com.pnd.android.loop.ui.home.input.UserInputState
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.surfaceElevated
 import com.pnd.android.loop.util.rememberImeOpenState
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 
 @Composable
 fun Selectors(
     inputState: UserInputState,
-    blurState: BlurState,
     snackBarHostState: SnackbarHostState,
     focusRequester: FocusRequester,
 ) {
@@ -44,11 +43,18 @@ fun Selectors(
     }
 
     val keyboardShown by rememberImeOpenState()
+    val expandedHeight = dimensionResource(
+        id = if (currSelector == InputSelector.START_END_TIME) {
+            R.dimen.user_input_time_selector_content_height
+        } else {
+            R.dimen.user_input_selector_content_height
+        }
+    )
     val selectorHeight by animateDpAsState(
         targetValue = if (currSelector == InputSelector.NONE || keyboardShown) {
             0.dp
         } else {
-            dimensionResource(id = R.dimen.user_input_selector_content_height)
+            expandedHeight
         },
         animationSpec = tween(500),
         label = "selectorHeightAnimation"
@@ -66,7 +72,6 @@ fun Selectors(
         shadowElevation = 3.dp
     ) {
         Selector(
-            blurState = blurState,
             inputState = inputState,
             snackBarHostState = snackBarHostState,
         )
@@ -76,7 +81,6 @@ fun Selectors(
 @Composable
 private fun Selector(
     modifier: Modifier = Modifier,
-    blurState: BlurState,
     inputState: UserInputState,
     snackBarHostState: SnackbarHostState,
 ) {
@@ -101,11 +105,10 @@ private fun Selector(
             maxInterval = if (loop.isAnyTime) Long.MAX_VALUE else loop.endInDay - loop.startInDay,
             onIntervalSelected = onIntervalChanged@{ interval ->
                 if (!loop.isAnyTime && loop.endInDay - loop.startInDay <= interval) {
-                    coroutineScope.launch {
-                        snackBarHostState.showSnackbar(
-                            message = context.getString(R.string.warning_interval_must_be_shorter_than_duration)
-                        )
-                    }
+                    coroutineScope.showWarning(
+                        snackBarHostState,
+                        context.getString(R.string.warning_interval_must_be_shorter_than_duration)
+                    )
                     return@onIntervalChanged
                 }
 
@@ -115,31 +118,53 @@ private fun Selector(
 
         InputSelector.START_END_TIME -> StartEndTimeSelector(
             modifier = modifier,
-            blurState = blurState,
             isAnyTimeChecked = loop.isAnyTime,
             onIsAnyTimeCheckChanged = onIsAnyTimeCheckChanged@{ isAnyTime ->
                 inputState.update(isAnyTime = isAnyTime)
             },
             selectedStartTime = loop.startInDay,
-            onStartTimeSelected = onStartTimeSelected@{ loopStart ->
+            onStartTimeSelected = { loopStart ->
+                if (!loop.isAnyTime && isLoopDurationTooShort(loopStart, loop.endInDay)) {
+                    coroutineScope.showWarning(
+                        snackBarHostState,
+                        context.getString(R.string.warning_end_time_should_be_after_start_time)
+                    )
+                }
                 inputState.update(loopStart = if (loop.isAnyTime) ANY_TIME else loopStart)
             },
             selectedEndTime = loop.endInDay,
-            onEndTimeSelected = onEndTimeSelected@{ loopEnd ->
+            onEndTimeSelected = { loopEnd ->
+                if (!loop.isAnyTime && isLoopDurationTooShort(loop.startInDay, loopEnd)) {
+                    coroutineScope.showWarning(
+                        snackBarHostState,
+                        context.getString(R.string.warning_end_time_should_be_after_start_time)
+                    )
+                }
                 inputState.update(loopEnd = if (loop.isAnyTime) ANY_TIME else loopEnd)
             },
             selectedDays = loop.activeDays,
             onSelectedDayChanged = onDayChanged@{ activeDays ->
                 if (activeDays == 0) {
-                    coroutineScope.launch {
-                        snackBarHostState.showSnackbar(
-                            message = context.getString(R.string.warning_choose_at_least_one_day_of_the_week)
-                        )
-                    }
+                    coroutineScope.showWarning(
+                        snackBarHostState,
+                        context.getString(R.string.warning_choose_at_least_one_day_of_the_week)
+                    )
                     return@onDayChanged
                 }
                 inputState.update(loopActiveDays = activeDays)
             }
         )
     }
+}
+
+/**
+ * Shows [message] in the snackbar, replacing any message already on screen so rapid, repeated
+ * warnings (e.g. nudging a stepper past its limit) don't pile up in the queue.
+ */
+private fun CoroutineScope.showWarning(
+    snackBarHostState: SnackbarHostState,
+    message: String,
+) = launch {
+    snackBarHostState.currentSnackbarData?.dismiss()
+    snackBarHostState.showSnackbar(message)
 }

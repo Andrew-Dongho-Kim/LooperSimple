@@ -6,6 +6,7 @@ import com.pnd.android.loop.data.LoopByDate
 import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.LoopWithDone
 import com.pnd.android.loop.data.LoopWithStatistics
+import com.pnd.android.loop.data.MonthlyLoopDuration
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -72,4 +73,51 @@ interface FullLoopDao {
         """
     )
     fun getLoopsWithStatisticsFlow(from: Long, to: Long): Flow<List<LoopWithStatistics>>
+
+    /**
+     * 기간(:from..:to) 내에 완료(DONE)한 루프들에 투자한 시간(ms)의 총합.
+     *
+     * 한 번의 완료에 투자한 시간은 (endInDay - startInDay) 이며, 자정을 넘겨 끝나는
+     * 루프(end < start)는 하루(86400000ms)를 더해 보정한다. 완료 기록이 없으면 0.
+     */
+    @Query(
+        "SELECT COALESCE(SUM(" +
+                "CASE WHEN loop_done.endInDay >= loop_done.startInDay " +
+                "THEN loop_done.endInDay - loop_done.startInDay " +
+                "ELSE loop_done.endInDay - loop_done.startInDay + 86400000 END" +
+                "), 0) " +
+                "FROM loop_done " +
+                "WHERE loop_done.done == ${LoopDoneVo.DoneState.DONE} " +
+                "AND :from <= loop_done.date AND loop_done.date <= :to"
+    )
+    fun getInvestedTimeFlow(from: Long, to: Long): Flow<Long>
+
+    /**
+     * 전체 기간에 대해, 완료(DONE)한 루프에 투자한 시간(ms)을 월(연/월)별로 집계한다.
+     * date(에폭 ms)를 로컬 타임존 기준 연/월로 변환해 그룹화하며, 오래된 달부터 정렬한다.
+     */
+    @Query(
+        "SELECT " +
+                "CAST(strftime('%Y', loop_done.date / 1000, 'unixepoch', 'localtime') AS INTEGER) AS year, " +
+                "CAST(strftime('%m', loop_done.date / 1000, 'unixepoch', 'localtime') AS INTEGER) AS month, " +
+                "COALESCE(SUM(" +
+                "CASE WHEN loop_done.endInDay >= loop_done.startInDay " +
+                "THEN loop_done.endInDay - loop_done.startInDay " +
+                "ELSE loop_done.endInDay - loop_done.startInDay + 86400000 END" +
+                "), 0) AS durationMs " +
+                "FROM loop_done " +
+                "WHERE loop_done.done == ${LoopDoneVo.DoneState.DONE} " +
+                "GROUP BY year, month ORDER BY year ASC, month ASC"
+    )
+    fun getMonthlyInvestedTimeFlow(): Flow<List<MonthlyLoopDuration>>
+
+    /**
+     * 완료(DONE)한 기록이 하나라도 있는 날짜(에폭 ms)를 중복 없이 오래된 순으로 반환한다.
+     * 연속 달성 스트릭 계산에 사용한다.
+     */
+    @Query(
+        "SELECT DISTINCT date FROM loop_done " +
+                "WHERE done == ${LoopDoneVo.DoneState.DONE} ORDER BY date ASC"
+    )
+    fun getDoneDatesFlow(): Flow<List<Long>>
 }

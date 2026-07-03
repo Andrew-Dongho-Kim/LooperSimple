@@ -3,6 +3,7 @@ package com.pnd.android.loop.ui.history
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -10,13 +11,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -45,6 +47,7 @@ import com.pnd.android.loop.ui.theme.compositeOverOnSurface
 import com.pnd.android.loop.ui.theme.onPrimary
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
+import com.pnd.android.loop.ui.theme.surfaceContainer
 import com.pnd.android.loop.util.DAYS_WITH_3CHARS_SUNDAY_FIRST
 import com.pnd.android.loop.util.color
 import com.pnd.android.loop.util.isSameMonth
@@ -224,6 +227,10 @@ private fun CalendarDateItem(
     isSelected: Boolean,
     onDateSelected: (LocalDate) -> Unit
 ) {
+    // 회고 여부는 배지 우상단 코너 마커로 넘겨, 더 이상 세로로 한 줄을 차지하지 않는다.
+    val hasRetrospect = doneLoops.any { it.retrospect != null } ||
+            noDoneLoops.any { it.retrospect != null }
+
     Column(
         modifier = modifier
             .fillMaxHeight()
@@ -243,22 +250,12 @@ private fun CalendarDateItem(
             dayColor = itemDate.dayOfWeek.color(),
             isToday = isToday,
             isSelected = isSelected,
+            hasRetrospect = hasRetrospect,
         )
-
-        val hasRetrospect = doneLoops.any { it.retrospect != null } ||
-                noDoneLoops.any { it.retrospect != null }
-        if (hasRetrospect) {
-            Image(
-                modifier = Modifier.size(10.dp),
-                imageVector = Icons.AutoMirrored.Filled.Chat,
-                colorFilter = ColorFilter.tint(AppColor.onSurface.copy(alpha = 0.5f)),
-                contentDescription = null,
-            )
-        }
 
         if (isInterest) {
             AchievementIndicators(
-                modifier = Modifier.padding(top = if (hasRetrospect) 4.dp else 6.dp),
+                modifier = Modifier.padding(top = 3.dp),
                 viewMode = viewMode,
                 doneLoops = doneLoops,
                 noDoneLoops = noDoneLoops,
@@ -274,6 +271,10 @@ private fun CalendarDateItem(
  * - 선택: primary 가 옅게 깔린 원 + primary 글자
  * - 그 외: 배경 없이 요일 색 그대로
  *
+ * 회고([hasRetrospect])가 있으면 배지 우상단에 작은 연필 마커를 얹는다. 별도의 줄을 차지하지 않아
+ * 좁은 셀에서도 아래쪽 성취 지표가 잘리지 않는다. 마커는 패널과 같은 [surfaceContainer] 칩 위에
+ * 그려, 오늘 배지(primary 채움)를 포함한 어떤 배경 위에서도 대비를 유지한다.
+ *
  * 라이트/다크 모드 모두 [AppColor] 토큰을 사용하므로 테마에 맞춰 자동으로 대비가 유지된다.
  */
 @Composable
@@ -283,6 +284,7 @@ private fun CalendarDayBadge(
     dayColor: Color,
     isToday: Boolean,
     isSelected: Boolean,
+    hasRetrospect: Boolean,
 ) {
     val badgeColor = when {
         isToday -> AppColor.primary
@@ -295,20 +297,48 @@ private fun CalendarDayBadge(
         else -> dayColor
     }
     Box(
-        modifier = modifier
-            .padding(top = 4.dp)
-            .size(28.dp)
-            .background(color = badgeColor, shape = CircleShape),
+        modifier = modifier.padding(top = 2.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = "$dayOfMonth",
-            textAlign = TextAlign.Center,
-            style = AppTypography.bodyMedium.copy(
-                color = textColor,
-                fontWeight = if (isToday || isSelected) FontWeight.SemiBold else FontWeight.Normal,
-            ),
-        )
+        Box(
+            modifier = Modifier
+                .size(24.dp)
+                .background(color = badgeColor, shape = CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = "$dayOfMonth",
+                textAlign = TextAlign.Center,
+                style = AppTypography.bodySmall.copy(
+                    color = textColor,
+                    fontWeight = if (isToday || isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                ),
+            )
+        }
+
+        if (hasRetrospect) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    // 숫자와 겹치지 않도록 배지 밖 우상단 모서리로 살짝 밀어낸다.
+                    .offset(x = 4.dp, y = (-3).dp)
+                    .size(13.dp)
+                    .background(color = AppColor.surfaceContainer, shape = CircleShape)
+                    .border(
+                        width = 0.5.dp,
+                        color = AppColor.onSurface.copy(alpha = 0.12f),
+                        shape = CircleShape,
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Image(
+                    modifier = Modifier.size(9.dp),
+                    imageVector = Icons.Outlined.Edit,
+                    colorFilter = ColorFilter.tint(AppColor.onSurface.copy(alpha = 0.6f)),
+                    contentDescription = null,
+                )
+            }
+        }
     }
 }
 

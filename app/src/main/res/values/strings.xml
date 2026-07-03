@@ -59,6 +59,21 @@
     <string name="stat_ranking_desc">Loops ordered by completion rate</string>
     <string name="stat_empty">No statistics for this period yet.</string>
     <string name="stat_unit_count">%d times</string>
+    <string name="stat_summary_invested">Total time</string>
+    <string name="stat_streak">Streak</string>
+    <string name="stat_streak_desc">Consecutive days with a completed loop</string>
+    <string name="stat_streak_current">Current</string>
+    <string name="stat_streak_longest">Longest</string>
+    <string name="stat_streak_days">%d days</string>
+    <!-- 홈 헤더(오늘 탭): 아직 응답하지 않은 오늘 루프 -->
+    <string name="header_remaining_today">Remaining today</string>
+    <string name="header_remaining_count">%d</string>
+    <string name="stat_monthly_invested">Monthly time</string>
+    <string name="stat_monthly_invested_desc">Time invested in loops each month (hours)</string>
+    <!-- 투자 시간 표기 형식: 일/시간, 시간/분, 분 단위 -->
+    <string name="stat_duration_dh">%1$dd %2$dh</string>
+    <string name="stat_duration_hm">%1$dh %2$dm</string>
+    <string name="stat_duration_m">%1$dm</string>
 
     <string name="save">Save</string>
     <string name="ok">Ok</string>
@@ -103,6 +118,7 @@
     <string name="alarm_category_vibes">Vibes</string>
 
     <string name="navi_up">Navigate up</string>
+    <string name="navi_today">Go to today</string>
     <string name="filter">Filter</string>
     <string name="about_app">About LooperSimple</string>
     <string name="daily_record">Daily record</string>
@@ -126,6 +142,14 @@
     <plurals name="notification_time_left">
         <item quantity="one">%d min left</item>
         <item quantity="other">%d mins left</item>
+    </plurals>
+
+    <!-- 진행 중 루프 상시 알림 채널 이름 -->
+    <string name="notification_ongoing_channel">In-progress loops</string>
+    <!-- 진행 중인 루프가 여러 개일 때 통합 알림 제목 -->
+    <plurals name="notification_loops_in_progress">
+        <item quantity="one">%d loop in progress</item>
+        <item quantity="other">%d loops in progress</item>
     </plurals>
 
     <string name="ad_attribution" translatable="false">AD</string>
