@@ -63,8 +63,10 @@ import com.pnd.android.loop.data.LoopDay
 import com.pnd.android.loop.data.LoopDay.Companion.isOn
 import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.TimeStat
+import com.pnd.android.loop.data.actualStartInDay
 import com.pnd.android.loop.data.common.NO_REPEAT
 import com.pnd.android.loop.data.currentTimeStat
+import com.pnd.android.loop.data.doneState
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.compositeOver
@@ -672,7 +674,7 @@ fun AnyTimeLoopStartOrStop(
     onStateChanged: (loop: LoopBase, doneState: @LoopDoneVo.DoneState Int) -> Unit
 ) {
     // 시작·정지 모두 이 루프를 "진행"시키는 긍정 동작이므로 primary 틴트로 통일한다.
-    if (loop.startInDay < 0) {
+    if (loop.doneState != LoopDoneVo.DoneState.IN_PROGRESS) {
         ResponseButton(
             modifier = modifier,
             imageVector = Icons.Filled.PlayArrow,

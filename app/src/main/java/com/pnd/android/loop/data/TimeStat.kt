@@ -9,6 +9,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.pnd.android.loop.R
 import com.pnd.android.loop.common.Logger
+import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.data.LoopVo.Factory.ANY_TIME
 import com.pnd.android.loop.util.MS_1MIN
 import com.pnd.android.loop.util.isActiveDay
@@ -132,8 +133,8 @@ val LoopBase.currentTimeStat: TimeStat
 
 private val LoopBase.timeStatFlow
     get() = flow {
-        val startTime = if (startInDay < 0) LocalTime.MIN else startInDay.toLocalTime()
-        val endTime = if (endInDay < 0) LocalTime.MAX else endInDay.toLocalTime()
+        val startTime = if (isAnyTime) LocalTime.MIN else startInDay.toLocalTime()
+        val endTime = if (isAnyTime) LocalTime.MAX else endInDay.toLocalTime()
 
         while (currentCoroutineContext().isActive) {
             val delayInMs = when {
@@ -150,15 +151,15 @@ private val LoopBase.timeStatFlow
 
                 isFinished() -> finished(
                     title = title,
-                    startTime = startTime,
-                    endTime = endTime,
+                    startTime = actualStartInDay.toLocalTime(),
+                    endTime = actualEndInDay.toLocalTime(),
                     isAnyTime = isAnyTime
                 )
 
                 else -> inProgress(
                     title = title,
-                    startTime = startTime,
-                    endTime = endTime,
+                    startTime = actualStartInDay.toLocalTime(),
+                    endTime = actualEndInDay.toLocalTime(),
                     isAnyTime = isAnyTime,
                 )
             }
@@ -168,7 +169,7 @@ private val LoopBase.timeStatFlow
     }
 
 private fun LoopBase.isBeforeStart(): Boolean {
-    if (isAnyTime) return startInDay == ANY_TIME
+    if (isAnyTime) return doneState != DoneState.IN_PROGRESS
 
     val now = LocalTime.now()
     val startTime = startInDay.toLocalTime()

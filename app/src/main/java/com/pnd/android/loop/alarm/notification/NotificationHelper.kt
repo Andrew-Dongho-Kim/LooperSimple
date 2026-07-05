@@ -10,6 +10,7 @@ import androidx.core.app.NotificationCompat
 import com.pnd.android.loop.HomeActivity
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
+import com.pnd.android.loop.data.actualStartInDay
 import com.pnd.android.loop.util.MS_1DAY
 import com.pnd.android.loop.util.MS_1MIN
 import com.pnd.android.loop.util.toLocalTime
@@ -134,7 +135,7 @@ class NotificationHelper @Inject constructor(
 
     private fun timePassed(loop: LoopBase): String {
         val now = LocalTime.now()
-        val start = loop.startInDay.toLocalTime()
+        val start = loop.actualStartInDay?.toLocalTime() ?: return ""
         val diff = start
             .until(now, ChronoUnit.MILLIS)
             .toLocalTime()

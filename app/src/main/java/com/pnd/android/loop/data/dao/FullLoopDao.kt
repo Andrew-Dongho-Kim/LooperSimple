@@ -15,7 +15,8 @@ import java.time.LocalDate
 interface FullLoopDao {
 
     @Query(
-        "SELECT loop.loopId, loop.color, loop.title, loop.created, loop.startInDay, loop.endInDay, loop.activeDays, loop.interval, loop.enabled, loop.isAnyTime, loop_done.date, loop_done.done " +
+        "SELECT loop.loopId, loop.color, loop.title, loop.created, loop.startInDay, loop.endInDay, loop.activeDays, loop.interval, loop.enabled, loop.isAnyTime, " +
+                "loop_done.startInDay as actualStartInDay, loop_done.endInDay as actualEndInDay, loop_done.date, loop_done.done " +
                 "FROM loop LEFT JOIN loop_done " +
                 "ON loop.loopId == loop_done.loopId AND loop_done.date ==:date " +
                 "ORDER BY loop.enabled DESC, loop.endInDay ASC, loop.startInDay ASC, loop.title ASC"
@@ -23,7 +24,8 @@ interface FullLoopDao {
     fun getAllLoopsFlow(date: Long): Flow<List<LoopWithDone>>
 
     @Query(
-        "SELECT loop.loopId, loop.color, loop.title, loop.created, loop.startInDay, loop.endInDay, loop.activeDays, loop.interval, loop.enabled, loop.isAnyTime, loop_done.date, loop_done.done " +
+        "SELECT loop.loopId, loop.color, loop.title, loop.created, loop.startInDay, loop.endInDay, loop.activeDays, loop.interval, loop.enabled, loop.isAnyTime, " +
+                "loop_done.startInDay as actualStartInDay, loop_done.endInDay as actualEndInDay, loop_done.date, loop_done.done " +
                 "FROM loop LEFT JOIN loop_done " +
                 "ON loop.loopId == loop_done.loopId AND loop_done.date ==:date " +
                 "ORDER BY loop.enabled DESC, loop.endInDay ASC, loop.startInDay ASC, loop.title ASC"
@@ -31,7 +33,8 @@ interface FullLoopDao {
     suspend fun getAllLoops(date: Long = LocalDate.now().toMs()): List<LoopWithDone>
 
     @Query(
-        "SELECT loop.loopId, loop.color, loop.title, loop.created, loop.startInDay, loop.endInDay, loop.activeDays, loop.interval, loop.enabled, loop.isAnyTime, loop_done.date, loop_done.done " +
+        "SELECT loop.loopId, loop.color, loop.title, loop.created, loop.startInDay, loop.endInDay, loop.activeDays, loop.interval, loop.enabled, loop.isAnyTime, " +
+                "loop_done.startInDay as actualStartInDay, loop_done.endInDay as actualEndInDay, loop_done.date, loop_done.done " +
                 "FROM loop LEFT JOIN loop_done " +
                 "ON loop.loopId == loop_done.loopId AND loop_done.date ==:date WHERE loop.enabled == 1 " +
                 "ORDER BY loop.endInDay ASC, loop.startInDay ASC, loop.title ASC"
