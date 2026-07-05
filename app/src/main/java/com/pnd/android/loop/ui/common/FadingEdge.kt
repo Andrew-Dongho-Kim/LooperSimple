@@ -64,10 +64,11 @@ fun SystemBarFadingEdge(
 ) {
     val backgroundColor = AppColor.background
     val transparent = backgroundColor.copy(alpha = 0f)
+    val midPointColor = backgroundColor.copy(alpha = 0.7f)
     val gradientColors = if (opaqueAtTop) {
-        listOf(backgroundColor, transparent)
+        listOf(backgroundColor, midPointColor, transparent)
     } else {
-        listOf(transparent, backgroundColor)
+        listOf(transparent, midPointColor, backgroundColor)
     }
 
     Box(

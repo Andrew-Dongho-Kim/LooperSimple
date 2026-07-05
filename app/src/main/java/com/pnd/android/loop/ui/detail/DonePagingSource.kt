@@ -39,7 +39,7 @@ class DonePagingSource(
             closestPage?.prevKey?.plusDays(state.config.pageSize.toLong())
                 ?: closestPage?.nextKey?.plusDays(state.config.pageSize.toLong())
         }.also {
-            logger.d { "getRefreshKey:$it" }
+            logger.i { "getRefreshKey:$it" }
         }
     }
 
@@ -53,7 +53,7 @@ class DonePagingSource(
             val next = nextKey(curr, pageSize)
             val data = load(prev, curr)
 
-            logger.d { "load[${data.size}] ($prev ~ $curr], next:$next" }
+            logger.i { "load[${data.size}] ($prev ~ $curr], next:$next" }
             LoadResult.Page(
                 data = data,
                 prevKey = prev,
@@ -102,7 +102,7 @@ class DonePagingSource(
         // Surfaced as LoadResult.Error by load()'s try/catch if the loop is gone.
         loop = loopDao.getLoop(loopId = loopId)
             ?: throw IllegalStateException("loop $loopId not found")
-        logger.d { "paging source for loop:$loop" }
+        logger.i { "paging source for loop:$loop" }
     }
 
     private fun prevKey(curr: LocalDate, loadSize: Int): LocalDate? {

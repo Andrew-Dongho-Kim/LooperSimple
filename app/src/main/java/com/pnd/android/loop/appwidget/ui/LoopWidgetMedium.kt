@@ -24,6 +24,7 @@ import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.ui.theme.compositeOverOnSurface
 import com.pnd.android.loop.util.isActive
 import com.pnd.android.loop.util.isPast
+import androidx.core.net.toUri
 
 private val WIDGET_MEDIUM_PADDING_HORIZONTAL = 16.dp
 
@@ -74,10 +75,10 @@ private fun LoopWidgetBody(
             items = loops,
             itemId = { loop -> loop.loopId.toLong() }
         ) { loop ->
+            Spacer(modifier = GlanceModifier.fillMaxWidth().height(12.dp))
             LoopWidgetItem(
                 modifier = GlanceModifier.padding(
                     horizontal = 6.dp,
-                    vertical = 5.dp,
                 ),
                 loop = loop
             )
@@ -109,7 +110,7 @@ private fun LoopWidgetItem(
                 context.startActivity(
                     Intent(
                         Intent.ACTION_VIEW,
-                        Uri.parse(NavigatePage.Home.deepLink(highlightId = loop.loopId))
+                        NavigatePage.Home.deepLink(highlightId = loop.loopId).toUri()
                     ).apply {
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
@@ -118,7 +119,7 @@ private fun LoopWidgetItem(
             }
             .padding(
                 horizontal = 15.dp,
-                vertical = 13.dp,
+                vertical = 8.dp,
             ),
     ) {
         Row(

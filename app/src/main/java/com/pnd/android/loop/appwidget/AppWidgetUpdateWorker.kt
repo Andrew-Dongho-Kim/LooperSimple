@@ -25,7 +25,7 @@ import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.data.LoopVo.Factory.ANY_TIME
 import com.pnd.android.loop.data.TodayLoopOrder
-import com.pnd.android.loop.data.isInProgressState
+import com.pnd.android.loop.data.isInProgress
 import com.pnd.android.loop.data.isNotRespond
 import com.pnd.android.loop.data.putTo
 import com.pnd.android.loop.util.isActiveDay
@@ -84,7 +84,7 @@ class AppWidgetUpdateWorker @AssistedInject constructor(
                 done = DoneState.DONE
             )
         )
-        logger.d { "done: $loopId" }
+        logger.i { "done: $loopId" }
     }
 
     private suspend fun skip() {
@@ -99,7 +99,7 @@ class AppWidgetUpdateWorker @AssistedInject constructor(
                 done = DoneState.SKIP
             )
         )
-        logger.d { "skip: $loopId" }
+        logger.i { "skip: $loopId" }
     }
 
     private suspend fun start() {
@@ -113,7 +113,7 @@ class AppWidgetUpdateWorker @AssistedInject constructor(
                 done = DoneState.IN_PROGRESS
             )
         )
-        logger.d { "start: $loopId" }
+        logger.i { "start: $loopId" }
     }
 
     private suspend fun stop() {
@@ -136,7 +136,7 @@ class AppWidgetUpdateWorker @AssistedInject constructor(
                 done = DoneState.DONE
             )
         )
-        logger.d { "stop: $loopId, statAt: ${startAt.toLocalTime()}, endAt:${endAt.toLocalTime()}" }
+        logger.i { "stop: $loopId, statAt: ${startAt.toLocalTime()}, endAt:${endAt.toLocalTime()}" }
     }
 
     private suspend fun refresh() {
@@ -144,7 +144,7 @@ class AppWidgetUpdateWorker @AssistedInject constructor(
         updateWidget(
             context = context,
             loops = loops.filter { loop ->
-                loop.isActiveDay() && (loop.isNotRespond || loop.isInProgressState)
+                loop.isActiveDay() && (loop.isNotRespond || loop.isInProgress)
             }.sortedWith(TodayLoopOrder())
         )
     }
@@ -160,7 +160,7 @@ class AppWidgetUpdateWorker @AssistedInject constructor(
 
             jsonArray.put(JSONObject(map))
         }
-        logger.d { "updateWidget:$jsonArray" }
+        logger.i { "updateWidget:$jsonArray" }
 
         GlanceAppWidgetManager(context).getGlanceIds(AppWidget::class.java).forEach { glanceId ->
             updateAppWidgetState(
@@ -172,7 +172,7 @@ class AppWidgetUpdateWorker @AssistedInject constructor(
                 prefs[KEY_REVISION] = revision
                 prefs[KEY_LOOPS_JSON] = "{\"loops\": $jsonArray, \"total\":${loops.size}}"
 
-                logger.d { "updateWidget[$glanceId] revision:$revision" }
+                logger.i { "updateWidget[$glanceId] revision:$revision" }
             }
         }
         AppWidget().updateAll(context)

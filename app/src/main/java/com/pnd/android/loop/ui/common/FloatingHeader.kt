@@ -1,11 +1,14 @@
 package com.pnd.android.loop.ui.common
 
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -31,6 +34,13 @@ private const val SurfaceRevealStart = 0.9f
  */
 fun surfaceReveal(progress: Float): Float =
     ((progress - SurfaceRevealStart) / (1f - SurfaceRevealStart)).coerceIn(0f, 1f)
+
+
+@Composable
+fun Modifier.floatingHeaderPadding() = padding(
+    horizontal = if (LocalConfiguration.current.isPortrait()) 8.dp else 0.dp
+)
+
 
 /**
  * 리스트 스크롤 정도로부터 헤더 접힘 진행도(0f..1f)를 만든다.
@@ -96,19 +106,17 @@ private fun reverseCollapseProgress(
     lazyListState: LazyListState,
     collapseDistancePx: Float,
 ): Float {
+    if (collapseDistancePx <= 0) return 0f
+
     val layoutInfo = lazyListState.layoutInfo
     val lastIndex = layoutInfo.totalItemsCount - 1
     if (lastIndex < 0) return 0f
 
+    // 1. 가장 마지막(최신) 아이템이 보이는지 확인
     val newestItem = layoutInfo.visibleItemsInfo.firstOrNull { it.index == lastIndex }
-        ?: return 1f
+        ?: return 1f // 화면에 없으면 이미 완전히 스크롤되어 올라간 상태로 간주
 
-    // 콘텐츠 상단 여백(px). reverseLayout에서는 시각적 상단 여백이 before/after 중 어디에 잡히는지
-    // 달라질 수 있어, 둘 중 큰 값을 상단 여백으로 본다(이 리스트의 하단 여백은 0이라 안전하다).
-    val topPadding = maxOf(layoutInfo.beforeContentPadding, layoutInfo.afterContentPadding)
-    // 최신 항목이 쉬는 상태에서 갖는 윗변 위치. 좌표계 원점 차이에 영향받지 않도록 뷰포트 시작점 기준으로 잡는다.
-    val restTop = layoutInfo.viewportStartOffset + topPadding
-    val scrolledUp = (restTop - newestItem.offset).toFloat()
-
-    return (scrolledUp / collapseDistancePx).coerceIn(0f, 1f)
+    val scrollUp =
+        (layoutInfo.afterContentPadding + newestItem.offset + newestItem.size) - layoutInfo.viewportEndOffset
+    return (scrollUp / collapseDistancePx).coerceIn(0f, 1f)
 }

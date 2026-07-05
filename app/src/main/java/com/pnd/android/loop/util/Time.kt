@@ -7,6 +7,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.pnd.android.loop.R
+import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDay
 import com.pnd.android.loop.data.LoopDay.Companion.EVERYDAY
 import com.pnd.android.loop.data.LoopDay.Companion.FRIDAY
@@ -19,7 +20,8 @@ import com.pnd.android.loop.data.LoopDay.Companion.WEDNESDAY
 import com.pnd.android.loop.data.LoopDay.Companion.WEEKDAYS
 import com.pnd.android.loop.data.LoopDay.Companion.WEEKENDS
 import com.pnd.android.loop.data.LoopDay.Companion.isOn
-import com.pnd.android.loop.data.LoopBase
+import com.pnd.android.loop.data.LoopDoneVo
+import com.pnd.android.loop.data.doneState
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.BlueGreen
 import com.pnd.android.loop.ui.theme.Red300
@@ -241,10 +243,10 @@ fun LoopBase.isPast(localDateTime: LocalDateTime = LocalDateTime.now()): Boolean
 }
 
 fun LoopBase.isActive(localDateTime: LocalDateTime = LocalDateTime.now()): Boolean {
-    if (isAnyTime) return (startInDay >= 0 && endInDay < 0)
+    if (!enabled) return false
+    if (isMock) return false
 
-    return enabled &&
-            isActiveDay(localDate = localDateTime.toLocalDate()) &&
+    return isActiveDay(localDate = localDateTime.toLocalDate()) &&
             isActiveTime(localDateTime = localDateTime)
 }
 
@@ -253,12 +255,17 @@ fun LoopBase.isActiveDay(localDate: LocalDate = LocalDate.now()): Boolean {
 }
 
 fun LoopBase.isActiveTime(localDateTime: LocalDateTime = LocalDateTime.now()): Boolean {
-    val localTime = localDateTime.toLocalTime()
-    val timeInMs = TimeUnit.MILLISECONDS.convert(localTime.toNanoOfDay(), TimeUnit.NANOSECONDS)
+    if (isAnyTime) {
+        return doneState == LoopDoneVo.DoneState.IN_PROGRESS
+    }
 
     val start = startInDay
     val end = if (startInDay > endInDay) endInDay + MS_1DAY else endInDay
-    return timeInMs in start..end
+
+    val localTime = localDateTime.toLocalTime()
+    val now = TimeUnit.MILLISECONDS.convert(localTime.toNanoOfDay(), TimeUnit.NANOSECONDS)
+
+    return now in start..end
 }
 
 @Composable

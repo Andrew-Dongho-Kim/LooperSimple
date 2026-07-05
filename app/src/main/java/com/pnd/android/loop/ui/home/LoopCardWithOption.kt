@@ -62,7 +62,7 @@ fun LoopCardWithOption(
             loopViewModel.addOrUpdateLoop(updated)
         },
         onStateChanged = { newLoop, doneState ->
-            loopViewModel.doneLoop(
+            loopViewModel.changeLoopState(
                 loop = newLoop,
                 doneState = doneState
             )

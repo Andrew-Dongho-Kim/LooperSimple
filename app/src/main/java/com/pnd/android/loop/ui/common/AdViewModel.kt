@@ -14,7 +14,6 @@ import com.google.android.gms.ads.nativead.NativeAd
 import com.google.android.gms.ads.nativead.NativeAdOptions
 import com.pnd.android.loop.common.Logger
 import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlin.coroutines.resumeWithException
 
 class AdViewModel(
     private val application: Application
@@ -27,7 +26,7 @@ class AdViewModel(
     suspend fun loadAd(adId: String) {
         if (nativeAd != null) return
 
-        logger.d { "start loadAd:$adId" }
+        logger.i { "start loadAd:$adId" }
         suspendCancellableCoroutine { continuation ->
             val adLoader = AdLoader.Builder(
                 application,
@@ -35,7 +34,7 @@ class AdViewModel(
             ).forNativeAd { nativeAd ->
                 this.nativeAd = nativeAd
                 continuation.resumeWith(Result.success(nativeAd))
-                logger.d { "success to load ad:$adId" }
+                logger.i { "success to load ad:$adId" }
             }.withNativeAdOptions(
                 NativeAdOptions.Builder()
                     .setVideoOptions(VideoOptions.Builder().setStartMuted(true).build())

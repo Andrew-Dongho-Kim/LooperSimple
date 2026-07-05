@@ -55,7 +55,7 @@ class AppWidget : GlanceAppWidget() {
 
         val revision = currentState(KEY_REVISION)
         val size = LocalSize.current
-        logger.d { "AppWidget updated revision:$revision, widgetSize:$size" }
+        logger.i { "AppWidget updated revision:$revision, widgetSize:$size" }
 
         if (!jsonLoops.isNullOrEmpty()) {
             val loops = appWidgetData.loops.map { it.asLoop() }

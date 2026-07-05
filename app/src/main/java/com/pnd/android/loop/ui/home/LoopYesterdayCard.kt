@@ -102,7 +102,7 @@ fun LoopYesterdayCard(
         LoopYesterdayConfirmDialog(
             action = action,
             onConfirm = {
-                loopViewModel.doneLoop(
+                loopViewModel.changeLoopState(
                     loop = action.loop,
                     localDate = LocalDate.now().minusDays(1),
                     doneState = action.doneState

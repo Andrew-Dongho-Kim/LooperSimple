@@ -111,7 +111,7 @@ private fun LoopDoneSkipCardContent(
 
     val onUndoDoneState = remember {
         { loop: LoopBase ->
-            loopViewModel.doneLoop(
+            loopViewModel.changeLoopState(
                 loop = loop,
                 doneState = DoneState.NO_RESPONSE
             )

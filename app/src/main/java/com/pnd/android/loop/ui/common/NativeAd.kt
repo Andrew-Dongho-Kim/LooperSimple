@@ -89,7 +89,7 @@ fun ExpandableNativeAd(
             shape = CardShape,
             colors = CardDefaults.cardColors(containerColor = AppColor.surfaceElevated),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-            border = BorderStroke(width = 1.dp, color = AppColor.outlineVariant),
+            border = BorderStroke(width = 0.5.dp, color = AppColor.outlineVariant),
         ) {
             NativeAdBody(
                 adViewModel = adViewModel,

@@ -1,13 +1,15 @@
 package com.pnd.android.loop.ui.history
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Checklist
@@ -18,18 +20,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.lerp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.ui.common.AppBarIcon
 import com.pnd.android.loop.ui.common.BackdropState
 import com.pnd.android.loop.ui.common.FloatingHeaderShape
 import com.pnd.android.loop.ui.common.FloatingPillHeight
 import com.pnd.android.loop.ui.common.FloatingSurface
+import com.pnd.android.loop.ui.common.floatingHeaderPadding
+import com.pnd.android.loop.ui.common.surfaceReveal
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
-import com.pnd.android.loop.ui.theme.Dimens
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
 
@@ -43,6 +46,9 @@ fun achievementHeaderExpandedHeight(topInset: Dp) = topInset + AchievementHeader
 
 /** 헤더가 완전히 접히기까지의 스크롤 거리. 이 거리를 지나면 타이틀이 사라지고 아이콘이 플로팅된다. */
 val AchievementHeaderCollapseDistance = AchievementHeaderActionBarHeight
+
+
+val TitleTranslationX = (-24).dp
 
 /**
  * 기록 화면의 접히는 헤더. 스크롤되는 리스트 위에 오버레이로 그려지며 배경은 투명하다.
@@ -64,17 +70,13 @@ fun CollapsingAchievementHeader(
     backdrop: BackdropState?,
     modifier: Modifier = Modifier,
 ) {
+    val surfaceProgress = surfaceReveal(progress)
     val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    val screenPadding = Dimens.screenHorizontalPadding
-    // 플로팅 배경(그림자 포함)이 스크롤 진행도에 맞춰 '점차적으로' 짙어지도록, 막판에 튀어나오는
-    // surfaceReveal 대신 접힘 진행도를 그대로 쓴다. 그러면 타이틀이 서서히 사라지는 것과 같은 속도로
-    // 배경이 자연스럽게 나타난다.
-    // 플로팅 배경이 짙어질수록 그 안쪽 좌우로 최대 8dp를 띄워, 아이콘이 알약 가장자리에 붙지 않게 한다.
-    // 쉬는 상태(progress 0)에서는 0dp라 아이콘 위치가 그대로 유지된다(홈 헤더와 동일한 규칙).
-    val innerMargin = lerp(0.dp, 8.dp, progress)
 
     Box(
         modifier = modifier
+            .floatingHeaderPadding()
+            .statusBarsPadding()
             .fillMaxWidth()
             .height(achievementHeaderExpandedHeight(topInset)),
     ) {
@@ -82,42 +84,56 @@ fun CollapsingAchievementHeader(
         Row(
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .padding(top = topInset)
-                .height(AchievementHeaderActionBarHeight)
-                .alpha(1f - progress),
+                .height(AchievementHeaderActionBarHeight),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             AppBarIcon(
+                modifier = Modifier.alpha(1f - progress),
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 color = AppColor.onSurface,
                 descriptionResId = R.string.navi_up,
                 onClick = onNavigateUp,
             )
-            Text(
-                text = title,
-                style = AppTypography.headlineSmall.copy(
-                    color = AppColor.onSurface,
-                    fontWeight = FontWeight.Normal,
-                ),
-            )
+
+            FloatingSurface(
+                modifier = Modifier.offset(x = TitleTranslationX * progress, y = 0.dp),
+                progress = surfaceProgress,
+                shape = FloatingHeaderShape,
+                backdrop = backdrop,
+                contentPadding = PaddingValues(horizontal = 16.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .height(FloatingPillHeight),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = title,
+                        textAlign = TextAlign.Center,
+                        style = AppTypography.headlineSmall.copy(
+                            color = AppColor.onSurface,
+                            fontWeight = FontWeight.Normal,
+                        ),
+                    )
+                }
+            }
         }
 
         // 액션 아이콘: 오른쪽 제자리를 지키며 스크롤 끝에서 플로팅 배경만 나타난다(홈과 동일).
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(top = topInset, end = screenPadding - 8.dp)
                 .height(AchievementHeaderActionBarHeight),
             contentAlignment = Alignment.CenterEnd,
         ) {
             FloatingSurface(
-                progress = progress,
+                progress = surfaceProgress,
                 shape = FloatingHeaderShape,
                 backdrop = backdrop,
-                contentHorizontalPadding = innerMargin,
             ) {
                 Row(
-                    modifier = Modifier.height(FloatingPillHeight),
+                    modifier = Modifier
+                        .height(FloatingPillHeight),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     // 홈 액션 아이콘과 동일한 룩: onSurface 70% 색 + 좌우 8dp 여백의 심플한 아웃라인 아이콘.
@@ -130,7 +146,6 @@ fun CollapsingAchievementHeader(
                             AppColor.onSurface.copy(alpha = 0.7f)
                         },
                         descriptionResId = R.string.daily_record,
-                        horizontalPadding = 8.dp,
                         onClick = onToggleViewMode,
                     )
                     // 오늘로 이동: 기존 날짜 숫자 배지 대신 홈과 같은 심플한 아웃라인 아이콘으로 통일한다.
@@ -138,7 +153,6 @@ fun CollapsingAchievementHeader(
                         imageVector = Icons.Outlined.Today,
                         color = AppColor.onSurface.copy(alpha = 0.7f),
                         descriptionResId = R.string.navi_today,
-                        horizontalPadding = 8.dp,
                         onClick = onMoveToToday,
                     )
                 }

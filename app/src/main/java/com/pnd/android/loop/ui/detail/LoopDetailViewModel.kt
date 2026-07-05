@@ -77,7 +77,7 @@ class LoopDetailViewModel @Inject constructor(
         @LoopDoneVo.DoneState doneState: Int
     ) {
         coroutineScope.launch {
-            loopRepository.doneLoop(
+            loopRepository.changeLoopState(
                 loop = loop,
                 localDate = localDate,
                 doneState = doneState,

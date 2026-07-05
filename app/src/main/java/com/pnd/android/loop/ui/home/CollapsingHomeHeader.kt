@@ -98,8 +98,6 @@ fun CollapsingHomeHeader(
     val surfaceProgress = surfaceReveal(progress)
     // Both floating pills tuck 8dp further in from the screen edges as they collapse.
     val floatingMargin = lerp(0.dp, 0.dp, progress)
-    // ...and their content sits 8dp in from the pill's own left/right edges.
-    val innerMargin = lerp(0.dp, 8.dp, progress)
 
     BoxWithConstraints(
         modifier = modifier
@@ -132,10 +130,11 @@ fun CollapsingHomeHeader(
                 progress = surfaceProgress,
                 shape = FloatingHeaderShape,
                 backdrop = backdrop,
-                contentHorizontalPadding = innerMargin,
             ) {
                 HomeActionIcons(
-                    modifier = Modifier.height(FloatingPillHeight),
+                    modifier = Modifier
+                        .height(FloatingPillHeight)
+                        .padding(horizontal = 8.dp),
                     onNavigateToGroupPage = onNavigateToGroupPage,
                     onNavigateToStatisticsPage = onNavigateToStatisticsPage,
                     onNavigateToHistoryPage = onNavigateToHistoryPage,
@@ -150,7 +149,7 @@ fun CollapsingHomeHeader(
             stop = collapsedTabTop(topInset),
             fraction = progress,
         )
-        val tabWidth = lerp(maxWidth - screenPadding * 2, CollapsedTabWidth, progress)
+        val tabWidth = lerp(this.maxWidth - screenPadding * 2, CollapsedTabWidth, progress)
         val tabTrackHeight = lerp(HomeTabsTrackHeight, CollapsedTabTrackHeight, progress)
         val tabRim = lerp(0.dp, TabFloatingRim, progress)
 
@@ -158,7 +157,6 @@ fun CollapsingHomeHeader(
             progress = surfaceProgress,
             shape = FloatingHeaderShape,
             backdrop = backdrop,
-            contentHorizontalPadding = innerMargin,
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .offset(x = screenPadding + floatingMargin, y = tabTop)

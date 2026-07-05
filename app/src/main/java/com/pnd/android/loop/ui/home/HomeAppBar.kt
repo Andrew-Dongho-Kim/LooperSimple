@@ -105,7 +105,6 @@ private fun HomeAppBarAction(
         imageVector = imageVector,
         color = AppColor.onSurface.copy(alpha = 0.7f),
         descriptionResId = descriptionResId,
-        horizontalPadding = 8.dp,
         onClick = onClick,
     )
 }

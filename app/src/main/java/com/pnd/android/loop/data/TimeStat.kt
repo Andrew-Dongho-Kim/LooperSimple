@@ -22,6 +22,7 @@ import kotlinx.coroutines.isActive
 import java.time.LocalTime
 import java.time.temporal.ChronoUnit
 import kotlin.math.min
+import kotlin.time.Duration.Companion.milliseconds
 
 private val logger = Logger(tag = "TimeStat")
 
@@ -141,16 +142,16 @@ private val LoopBase.timeStatFlow
                     title = title
                 )
 
+                isBeforeStart() -> before(
+                    title = title,
+                    startTime = startTime,
+                    isAnyTime = isAnyTime
+                )
+
                 isFinished() -> finished(
                     title = title,
                     startTime = startTime,
                     endTime = endTime,
-                    isAnyTime = isAnyTime
-                )
-
-                isBeforeStart() -> before(
-                    title = title,
-                    startTime = startTime,
                     isAnyTime = isAnyTime
                 )
 
@@ -162,7 +163,7 @@ private val LoopBase.timeStatFlow
                 )
             }
 
-            delay(delayInMs)
+            delay(delayInMs.milliseconds)
         }
     }
 
@@ -198,7 +199,7 @@ private suspend fun FlowCollector<TimeStat>.finished(
     )
 
     val delayInMs = min(MS_1MIN, now.until(LocalTime.MAX, ChronoUnit.MILLIS))
-    logger.d { "[TimeStat] ($title) after delayInMs : $delayInMs" }
+    logger.i { "[TimeStat] ($title) after updateAfter : $delayInMs, start:$startTime, end:$endTime, isAnyTime:$isAnyTime" }
 
     return delayInMs
 }
@@ -227,7 +228,7 @@ private suspend fun FlowCollector<TimeStat>.before(
         1000L
     }
 
-    logger.d { "[TimeStat] ($title) before delayInMs: $delayInMs" }
+    logger.i { "[TimeStat] ($title) before updateAfter: $delayInMs, start:$startTime, isAnyTime:$isAnyTime" }
     return delayInMs
 }
 
@@ -256,7 +257,7 @@ private suspend fun FlowCollector<TimeStat>.inProgress(
         1000L
     }
 
-    logger.d { "[TimeStat] ($title) inProgress delayInMs: $delayInMs" }
+    logger.i { "[TimeStat] ($title) inProgress updateAfter: $delayInMs, start:$startTime, end:$endTime, isAnyTime:$isAnyTime" }
     return delayInMs
 }
 
@@ -268,6 +269,6 @@ private suspend fun FlowCollector<TimeStat>.none(
     val now = LocalTime.now()
     val delayInMs = now.until(LocalTime.MAX, ChronoUnit.MILLIS)
 
-    logger.d { "[TimeStat] ($title) none delayInMs: $delayInMs" }
+    logger.i { "[TimeStat] ($title) none updateAfter: $delayInMs" }
     return delayInMs
 }

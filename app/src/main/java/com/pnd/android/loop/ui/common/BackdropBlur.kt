@@ -3,6 +3,9 @@ package com.pnd.android.loop.ui.common
 import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
@@ -28,7 +31,7 @@ import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.surface
@@ -85,23 +88,40 @@ fun Modifier.backdropSource(state: BackdropState): Modifier = this
  */
 @Composable
 fun FloatingSurface(
+    modifier: Modifier = Modifier,
     progress: Float,
     shape: Shape,
     backdrop: BackdropState?,
-    modifier: Modifier = Modifier,
-    contentHorizontalPadding: Dp = 0.dp,
+    contentPadding: PaddingValues = PaddingValues(0.dp),
     content: @Composable () -> Unit,
 ) {
-    Box(modifier = modifier) {
+    val layoutDir = LocalLayoutDirection.current
+    Box(
+        modifier = modifier.offset(
+            x = -contentPadding.calculateStartPadding(layoutDir),
+            y = -contentPadding.calculateTopPadding()
+        )
+    ) {
         Box(
             Modifier
                 .matchParentSize()
                 // Shadow grows in with the collapse so the pill lifts off the content behind it.
                 .shadow(elevation = FloatingElevation * progress, shape = shape)
-                .floatingSurfaceBackground(backdrop = backdrop, shape = shape, progress = progress)
+                .floatingSurfaceBackground(
+                    backdrop = backdrop,
+                    shape = shape,
+                    progress = progress
+                )
         )
         // Inset the content so it doesn't sit flush against the pill's rounded edges.
-        Box(Modifier.padding(horizontal = contentHorizontalPadding)) {
+        Box(
+            Modifier
+                .graphicsLayer {
+                    this.clip = progress == 1.0f
+                    this.shape = shape
+                }
+                .padding(contentPadding)
+        ) {
             content()
         }
     }
@@ -124,7 +144,10 @@ fun Modifier.floatingSurfaceBackground(
     return if (backdrop != null) {
         blurredBackdrop(backdrop, progress, shape, tint)
     } else {
-        background(color = tint.copy(alpha = FallbackTintAlpha * progress), shape = shape)
+        background(
+            color = tint.copy(alpha = FallbackTintAlpha * progress),
+            shape = shape
+        )
     }
 }
 
@@ -157,5 +180,8 @@ private fun Modifier.blurredBackdrop(
                 drawLayer(backdrop.layer)
             }
         }
-        .background(color = tint.copy(alpha = BlurredTintAlpha), shape = shape)
+        .background(
+            color = tint.copy(alpha = BlurredTintAlpha),
+            shape = shape
+        )
 }

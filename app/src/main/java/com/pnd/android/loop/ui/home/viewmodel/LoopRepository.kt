@@ -44,7 +44,7 @@ class LoopRepository @Inject constructor(
     private val logger = log("LoopRepository")
 
     private val loopDao = appDb.loopDao()
-    private val loopWithDoneDao = appDb.fullLoopDao()
+    private val fullLoopDao = appDb.fullLoopDao()
     private val loopDoneDao = appDb.loopDoneDao()
     private val loopMemoDao = appDb.loopRetrospectDao()
     private val coroutineScope = CoroutineScope(SupervisorJob())
@@ -67,7 +67,7 @@ class LoopRepository @Inject constructor(
                 60_000L
             )
 
-            logger.d { "delay:${delayInMs.toLocalTime()}" }
+            logger.i { "delay:${delayInMs.toLocalTime()}" }
             emit(LocalDate.now())
             delay(delayInMs)
         }
@@ -80,8 +80,8 @@ class LoopRepository @Inject constructor(
     // Shared so the multiple downstream consumers (UI sections, active/today counts)
     // collect a single DB stream instead of each re-running the query.
     val allLoopsWithDoneStates: Flow<List<LoopWithDone>> = localDate.transform { currDate ->
-        emit(loopWithDoneDao.getAllLoops(currDate.toLocalTime()))
-        emitAll(loopWithDoneDao.getAllLoopsFlow(currDate.toLocalTime()))
+        emit(fullLoopDao.getAllLoops(currDate.toLocalTime()))
+        emitAll(fullLoopDao.getAllLoopsFlow(currDate.toLocalTime()))
     }.stateIn(
         scope = coroutineScope,
         started = SharingStarted.WhileSubscribed(5_000L),
@@ -90,7 +90,7 @@ class LoopRepository @Inject constructor(
 
     // @formatter:off
     val loopsNoResponseYesterday = localDate.transform { currDate ->
-        emitAll(loopWithDoneDao.getAllLoopsFlow(currDate.minusDays(1).toLocalTime()))
+        emitAll(fullLoopDao.getAllLoopsFlow(currDate.minusDays(1).toLocalTime()))
     }.map { loops ->
         loops.filter { loop ->
             !loop.isDisabled &&
@@ -135,7 +135,7 @@ class LoopRepository @Inject constructor(
     val skipCount = loopDoneDao.getSkipCountFlow()
 
     // 완료(DONE) 기록이 있는 날짜(전체 기간). 헤더의 연속 달성/요일 패턴 계산에 쓰인다.
-    val doneDates = loopWithDoneDao.getDoneDatesFlow()
+    val doneDates = fullLoopDao.getDoneDatesFlow()
 
     // Counts scoped to the current day so the header can show "today's" done rate
     // separately from the all-time figures above. They re-query whenever the day rolls over.
@@ -167,7 +167,7 @@ class LoopRepository @Inject constructor(
     suspend fun addOrUpdateLoop(vararg loops: LoopVo) {
         loopDao.addOrUpdate(*loops).forEachIndexed { index, id ->
             val loop = loops[index].copy(loopId = id)
-            logger.d { "$loop is added or updated" }
+            logger.i { "$loop is added or updated" }
 
 
             if (loop.isActiveDay() || !loop.enabled) {
@@ -204,7 +204,7 @@ class LoopRepository @Inject constructor(
         loopDao.delete(loop.loopId)
     }
 
-    suspend fun doneLoop(
+    suspend fun changeLoopState(
         loop: LoopBase,
         localDate: LocalDate = LocalDate.now(),
         @LoopDoneVo.DoneState doneState: Int

@@ -5,18 +5,19 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.onSurface
@@ -50,13 +51,13 @@ fun AppBarIcon(
     imageVector: ImageVector,
     color: Color,
     @StringRes descriptionResId: Int,
-    horizontalPadding: Dp = 12.dp,
     onClick: () -> Unit = {}
 ) = Icon(
     modifier = modifier
+        .clip(CircleShape)
         .clickable(onClick = onClick)
-        .padding(horizontal = horizontalPadding, vertical = 16.dp)
-        .height(24.dp),
+        .size(48.dp)
+        .padding(14.dp),
     imageVector = imageVector,
     tint = color,
     contentDescription = stringResource(descriptionResId)

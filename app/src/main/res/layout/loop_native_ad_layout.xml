@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!--
+<?xml version="1.0" encoding="utf-8"?><!--
   Native ad template.
 
   This layout only describes structure, sizing and typography. Every color is
@@ -75,6 +74,7 @@
                 app:layout_constraintBottom_toBottomOf="@id/adAppIcon"
                 app:layout_constraintStart_toEndOf="@id/adAppIcon"
                 app:layout_constraintTop_toBottomOf="@id/adHeadline"
+
                 tools:text="Advertiser" />
 
             <RatingBar
@@ -86,9 +86,10 @@
                 android:isIndicator="true"
                 android:numStars="5"
                 android:stepSize="0.5"
-                app:layout_constraintBottom_toBottomOf="@id/adAdvertiser"
+                app:layout_goneMarginStart="12dp"
+                app:layout_constraintBottom_toBottomOf="@id/adAppIcon"
                 app:layout_constraintStart_toEndOf="@id/adAdvertiser"
-                app:layout_constraintTop_toTopOf="@id/adAdvertiser" />
+                app:layout_constraintTop_toBottomOf="@id/adHeadline" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/adCallToAction"

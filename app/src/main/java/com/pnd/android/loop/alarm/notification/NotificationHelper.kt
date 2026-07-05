@@ -16,6 +16,8 @@ import com.pnd.android.loop.util.toLocalTime
 import com.pnd.android.loop.util.toMs
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.LocalTime
+import java.time.temporal.ChronoUnit
+import java.util.Locale
 import javax.inject.Inject
 
 
@@ -62,6 +64,7 @@ class NotificationHelper @Inject constructor(
             .setSmallIcon(R.drawable.app_icon)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
+            .setAutoCancel(false)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setCategory(NotificationCompat.CATEGORY_PROGRESS)
             .setDefaults(0)
@@ -122,6 +125,34 @@ class NotificationHelper @Inject constructor(
 
     /** "11:20까지 · 32분 남음" 한 줄. 남은 시간 계산이 불가하면 종료 시각만 보여준다. */
     private fun lineText(loop: LoopBase): String {
+        return if (loop.isAnyTime) {
+            timePassed(loop)
+        } else {
+            timeRemained(loop)
+        }
+    }
+
+    private fun timePassed(loop: LoopBase): String {
+        val now = LocalTime.now()
+        val start = loop.startInDay.toLocalTime()
+        val diff = start
+            .until(now, ChronoUnit.MILLIS)
+            .toLocalTime()
+
+        return if (diff.hour > 0) {
+            context.getString(
+                R.string.time_stat_full_passed_hours,
+                diff.hour
+            )
+        } else {
+            context.getString(
+                R.string.time_stat_full_passed_mins,
+                diff.minute
+            )
+        }
+    }
+
+    private fun timeRemained(loop: LoopBase): String {
         val untilText = context.getString(
             R.string.notification_until_time,
             loop.endInDay.toLocalTime().formatText(),
@@ -135,7 +166,8 @@ class NotificationHelper @Inject constructor(
         return "$untilText · $timeLeftText"
     }
 
-    private fun LocalTime.formatText() = String.format("%02d:%02d", hour, minute)
+    private fun LocalTime.formatText() =
+        String.format(Locale.getDefault(), "%02d:%02d", hour, minute)
 }
 
 /**
@@ -153,10 +185,12 @@ private class LoopTimeWindow private constructor(
             if (loop.startInDay < 0 || loop.endInDay < 0) return null
 
             val start = loop.startInDay
-            val end = if (loop.startInDay > loop.endInDay) loop.endInDay + MS_1DAY else loop.endInDay
+            val end =
+                if (loop.startInDay > loop.endInDay) loop.endInDay + MS_1DAY else loop.endInDay
 
             val nowRaw = LocalTime.now().toMs()
-            val now = if (loop.startInDay > loop.endInDay && nowRaw < start) nowRaw + MS_1DAY else nowRaw
+            val now =
+                if (loop.startInDay > loop.endInDay && nowRaw < start) nowRaw + MS_1DAY else nowRaw
 
             val totalMs = end - start
             if (totalMs <= 0) return null

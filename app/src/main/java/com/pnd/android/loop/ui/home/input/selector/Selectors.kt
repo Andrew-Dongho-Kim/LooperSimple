@@ -69,7 +69,6 @@ fun Selectors(
     Surface(
         modifier = modifier,
         color = AppColor.surfaceElevated,
-        shadowElevation = 3.dp
     ) {
         Selector(
             inputState = inputState,

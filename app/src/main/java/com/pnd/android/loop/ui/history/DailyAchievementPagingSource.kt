@@ -49,7 +49,7 @@ class DailyAchievementPagingSource(
             val prev = prevKey(curr, pageSize)
             val next = nextKey(curr, pageSize)
             val data = load(prev, curr)
-            logger.d { "load[${data.size}] ($prev ~ $curr], next:$next" }
+            logger.i { "load[${data.size}] ($prev ~ $curr], next:$next" }
 
             LoadResult.Page(
                 data = data,
@@ -104,6 +104,8 @@ class DailyAchievementPagingSource(
                                 date = date.toMs()
                             )
                         )
+                    }.sortedBy { loop ->
+                        loop.startInDay
                     }
             )
             date = date.plusDays(1)
@@ -123,7 +125,7 @@ class DailyAchievementPagingSource(
                 it.activeDays.isOn(dayForLoop(day))
             }
         }
-        logger.d { "init loopsByDayOfWeek:$loopsByDayOfWeek" }
+        logger.i { "init loopsByDayOfWeek:$loopsByDayOfWeek" }
     }
 
     private fun prevKey(curr: LocalDate, loadSize: Int): LocalDate? {

@@ -11,22 +11,21 @@ import androidx.core.content.ContextCompat
 import com.pnd.android.loop.common.log
 import com.pnd.android.loop.data.AppDatabase
 import com.pnd.android.loop.data.LoopBase
-import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.util.MS_1MIN
-import com.pnd.android.loop.util.isActiveDay
-import com.pnd.android.loop.util.isActiveTime
-import com.pnd.android.loop.util.toMs
+import com.pnd.android.loop.util.isActive
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import java.time.LocalDate
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.milliseconds
+
+private val logger = log("LoopForegroundService")
 
 /**
  * 진행 중인 루프를 알림창에 상시 표시하는 포그라운드 서비스.
@@ -38,8 +37,6 @@ import javax.inject.Inject
  */
 @AndroidEntryPoint
 class LoopForegroundService : Service() {
-
-    private val logger = log("LoopForegroundService")
 
     @Inject
     lateinit var appDb: AppDatabase
@@ -67,6 +64,7 @@ class LoopForegroundService : Service() {
             0
         }
         try {
+            logger.i { "Start the foreground service withType:$type" }
             ServiceCompat.startForeground(
                 this,
                 FOREGROUND_NOTIFICATION_ID,
@@ -87,27 +85,20 @@ class LoopForegroundService : Service() {
                     stopSelfAndForeground()
                     break
                 }
+                loops.forEach { loop ->
+                    logger.i { " - Active tickets: $loop" }
+                }
                 notificationHelper.updateOngoing(loops)
-                delay(delayToNextMinute())
+                delay(delayToNextMinute().milliseconds)
             }
         }
     }
 
     /** 지금 이 순간 알림에 보여줄 루프: 활성화 + 오늘 요일 + 진행 시간 + 아직 미응답 */
     private suspend fun queryActiveLoops(): List<LoopBase> {
-        val today = LocalDate.now().toMs()
-        return appDb.loopDao().getAllLoops().filter { loop ->
-            loop.enabled &&
-                loop.startInDay >= 0 && loop.endInDay >= 0 &&
-                loop.isActiveDay() &&
-                loop.isActiveTime() &&
-                !respondedToday(loop.loopId, today)
+        return appDb.fullLoopDao().getAllLoops().filter { loop ->
+            loop.isActive()
         }
-    }
-
-    private suspend fun respondedToday(loopId: Int, today: Long): Boolean {
-        val state = appDb.loopDoneDao().getDoneState(loopId, today)?.done
-        return state == DoneState.DONE || state == DoneState.SKIP
     }
 
     private fun stopSelfAndForeground() {
@@ -136,11 +127,12 @@ class LoopForegroundService : Service() {
         fun refresh(context: Context) {
             val intent = Intent(context, LoopForegroundService::class.java)
             try {
+                logger.i { "Request to start the loop foreground service" }
                 ContextCompat.startForegroundService(context, intent)
             } catch (e: Exception) {
                 // Android 12+ 백그라운드 시작 제한 등으로 실패할 수 있다. 이 경우 다음
                 // 알람(시작/동기화)이나 재부팅 시 다시 시도된다.
-                log("LoopForegroundService").e { "failed to start service: ${e.message}" }
+                logger.e { "failed to start service: ${e.message}" }
             }
         }
     }

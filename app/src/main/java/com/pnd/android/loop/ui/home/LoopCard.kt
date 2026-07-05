@@ -124,8 +124,6 @@ private object LoopCardDefaults {
     val ActiveBarWidth = 3.dp
     val ActiveBarInset = 10.dp
 
-    /** 시작 전(아직 시간이 안 된) 카드의 색 도트는 옅게 낮춰 진행 중 카드와 대비시킨다. */
-    const val UpcomingDotAlpha = 0.45f
 
     /** Circular start / stop button trailing an "any time" card. */
     val ResponseButtonSize = 36.dp
@@ -182,7 +180,6 @@ fun LoopCard(
     // 세워 목록에서 "지금 이거"가 한눈에 튀도록 한다.
     val isInProgress = syncWithTime && loop.enabled && cardValues.isActive
     // 시작 전: 오늘 예정돼 있지만 아직 시작 시각 전인 상태. 색 도트만 옅게 낮춰 진행 중과 구분한다.
-    val isBeforeStart = syncWithTime && loop.enabled && timeStat is TimeStat.BeforeStart
 
     val background = if (awaitsResponse) {
         // 종료 카드는 강조 표면 대신 한 단계 낮은 컨테이너 톤으로 가라앉힌다.
@@ -248,7 +245,6 @@ fun LoopCard(
                 syncWithTime = syncWithTime,
                 contentAlpha = contentAlpha,
                 isInProgress = isInProgress,
-                isBeforeStart = isBeforeStart,
                 onStateChanged = onStateChanged,
                 onEdit = onEdit,
                 onEnabled = onEnabled,
@@ -271,7 +267,6 @@ private fun RowScope.ActiveCardContent(
     syncWithTime: Boolean,
     contentAlpha: Float,
     isInProgress: Boolean,
-    isBeforeStart: Boolean,
     onStateChanged: (loop: LoopBase, doneState: Int) -> Unit,
     onEdit: (LoopBase) -> Unit,
     onEnabled: (Boolean) -> Unit,
@@ -283,7 +278,6 @@ private fun RowScope.ActiveCardContent(
         color = loop.color,
         // 진행 중이면 도트 뒤로 헤일로가 숨 쉬고, 시작 전이면 도트를 옅게 낮춰 대비시킨다.
         isPulsing = isInProgress,
-        dimmed = isBeforeStart,
     )
     Column(
         modifier = Modifier
@@ -392,7 +386,6 @@ private fun LoopColorDot(
     modifier: Modifier = Modifier,
     color: Int,
     isPulsing: Boolean,
-    dimmed: Boolean = false,
 ) {
     val dotColor = color.compositeOverOnSurface()
 
@@ -439,11 +432,6 @@ private fun rememberDotPulseScale(): Float {
     return scale
 }
 
-/**
- * Single meta line under the title. While syncing with the clock it shows the live status
- * ("32 mins left", …); otherwise it shows the repeat interval and active days.
- * Cards awaiting a response swap this line for [LoopSwipeAffordance] instead.
- */
 @Composable
 private fun LoopCardMeta(
     modifier: Modifier = Modifier,

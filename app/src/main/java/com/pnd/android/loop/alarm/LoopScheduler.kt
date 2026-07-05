@@ -24,6 +24,7 @@ import com.pnd.android.loop.data.description
 import com.pnd.android.loop.data.putTo
 import com.pnd.android.loop.util.dayForLoop
 import com.pnd.android.loop.util.dh2m2
+import com.pnd.android.loop.util.isActive
 import com.pnd.android.loop.util.isActiveDay
 import com.pnd.android.loop.util.isActiveTime
 import com.pnd.android.loop.util.toLocalDate
@@ -39,14 +40,16 @@ import javax.inject.Inject
 
 
 class LoopScheduler @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val alarmManager: AlarmManager,
     appDb: AppDatabase
 ) {
     private val logger = log("LoopScheduler")
 
     private val coroutineScope = CoroutineScope(SupervisorJob())
+
     private val loopDao = appDb.loopDao()
+    private val fullLoopDao = appDb.fullLoopDao()
     private val loopDoneDao = appDb.loopDoneDao()
 
     private fun canScheduleExactAlarms(): Boolean {
@@ -82,7 +85,7 @@ class LoopScheduler @Inject constructor(
                 reservedTime,
                 pendingIntent
             )
-            logger.d {
+            logger.i {
                 " - repeat after:${dh2m2(after)} ${loop.description(context)}"
             }
 
@@ -93,19 +96,14 @@ class LoopScheduler @Inject constructor(
     }
 
     fun syncLoops() {
-        logger.d { "start sync" }
         coroutineScope.launch {
             var hasActiveLoop = false
-            loopDao.getAllLoops().forEach { loop ->
+            fullLoopDao.getAllLoops().forEach { loop ->
+                logger.e { "Loop:${loop.title}, isActive:${loop.isActive()}, isActiveDay:${loop.isActiveDay()}, isActiveTime:${loop.isActiveTime()}, isAnyTime:${loop.isAnyTime}, done:${loop.done}" }
                 fillNoResponse(loop)
                 if (loop.enabled) {
                     reserveAlarm(scheduleStart(loop))
-
-                    // 동기화 시점(앱 시작·재부팅 등)에 이미 진행 중인 루프는 시작 알람이
-                    // 지나갔으므로, 아래에서 포그라운드 서비스를 띄워 알림을 복구한다.
-                    if (loop.hasTimeWindow && loop.isActiveDay() && loop.isActiveTime()) {
-                        hasActiveLoop = true
-                    }
+                    hasActiveLoop = hasActiveLoop or loop.isActive()
                 } else {
                     cancelAlarm(loop)
                 }
@@ -115,6 +113,7 @@ class LoopScheduler @Inject constructor(
             // 진행 중인 루프가 있으면 상시 알림 서비스를 (재)시작한다. 실제로 보여줄
             // 루프가 없다면 서비스가 스스로 종료하므로 안전하다.
             if (hasActiveLoop) LoopForegroundService.refresh(context)
+            logger.i { "Start syncLoops hasActiveLoop:$hasActiveLoop" }
         }
     }
 
@@ -161,7 +160,7 @@ class LoopScheduler @Inject constructor(
         if (loop.enabled) {
             coroutineScope.launch { loopDao.addOrUpdate(loop.asLoopVo(enabled = false)) }
         }
-        logger.d { " - cancel id:${loop.loopId}, title:${loop.title}" }
+        logger.i { " - cancel id:${loop.loopId}, title:${loop.title}" }
 
         val alarmIntent = Intent(context, AlarmReceiver::class.java).apply {
             action = ACTION_LOOP_START
@@ -227,13 +226,13 @@ class LoopScheduler @Inject constructor(
 
             // 진행 중인 루프를 상시 알림 서비스로 넘긴다. 서비스가 알림을 소유하므로
             // 앱이 실행 중이 아니어도 유지되고, 사용자가 스와이프로 지울 수 없다.
-            notifyLoop(context, loop)
+            notifyActiveLoop(context, loop)
             AppWidgetUpdateWorker.updateWidget(context)
 
             val isAllowedDay = loop.isActiveDay()
             val isAllowedTime = loop.isActiveTime()
             val today = dayForLoop(LocalDate.now())
-            logger.d {
+            logger.i {
                 """ -->
                 |Received alarm id:${loop.loopId} 
                 | title:${loop.title},
@@ -254,7 +253,7 @@ class LoopScheduler @Inject constructor(
 
             reserveRepeat(loop)
             // 반복 간격마다 알림 내용을 조용히 갱신한다.
-            notifyLoop(context, loop)
+            notifyActiveLoop(context, loop)
         }
 
         private fun reserveRepeat(loop: LoopBase) {
@@ -271,9 +270,8 @@ class LoopScheduler @Inject constructor(
          * 현재 진행 중인 모든 루프를 하나의 알림으로 묶어 보여주고 1분마다 갱신하므로,
          * 여기서는 유효한 루프일 때 서비스를 (재)시작하기만 하면 된다.
          */
-        private fun notifyLoop(context: Context, loop: LoopBase) {
-            if (loop.isMock || !loop.hasTimeWindow) return
-            if (!loop.isActiveDay() || !loop.isActiveTime()) return
+        private fun notifyActiveLoop(context: Context, loop: LoopBase) {
+            if (!loop.isActive()) return
 
             LoopForegroundService.refresh(context)
         }
@@ -302,17 +300,13 @@ class LoopScheduler @Inject constructor(
             loop = loop
         )
 
-        /** 시작·종료 시각이 모두 있어 남은 시간을 계산할 수 있는 루프인지 */
-        val LoopBase.hasTimeWindow: Boolean
-            get() = startInDay >= 0 && endInDay >= 0
-
         fun scheduleSync() = LoopSchedule(
             action = ACTION_LOOP_SYNC,
             after = LoopVo.midnight().startInDay - msNow,
             loop = LoopVo.midnight()
         )
 
-        data class LoopSchedule internal constructor(
+        data class LoopSchedule(
             @LoopScheduleAction val action: String,
             val after: Long,
             val loop: LoopBase

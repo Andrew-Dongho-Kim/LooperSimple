@@ -8,7 +8,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.add
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -49,6 +51,7 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
@@ -60,18 +63,19 @@ import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.asLoopVo
 import com.pnd.android.loop.data.common.MAX_LOOPS_TOGETHER
 import com.pnd.android.loop.data.isDisabled
-import com.pnd.android.loop.data.isInProgressState
+import com.pnd.android.loop.data.isInProgress
 import com.pnd.android.loop.data.isNotRespond
 import com.pnd.android.loop.data.isRespond
-import com.pnd.android.loop.ui.home.input.UserInput
-import com.pnd.android.loop.ui.home.input.UserInputState
-import com.pnd.android.loop.ui.home.input.loopInputPanelBackgroundColor
 import com.pnd.android.loop.ui.common.BackdropState
 import com.pnd.android.loop.ui.common.NavigationBarFadingEdge
 import com.pnd.android.loop.ui.common.StatusBarFadingEdge
 import com.pnd.android.loop.ui.common.backdropSource
+import com.pnd.android.loop.ui.common.isPortrait
 import com.pnd.android.loop.ui.common.rememberBackdropState
 import com.pnd.android.loop.ui.common.supportsBackdropBlur
+import com.pnd.android.loop.ui.home.input.UserInput
+import com.pnd.android.loop.ui.home.input.UserInputState
+import com.pnd.android.loop.ui.home.input.loopInputPanelBackgroundColor
 import com.pnd.android.loop.ui.home.input.rememberUserInputState
 import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.theme.AppColor
@@ -79,7 +83,6 @@ import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.background
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
-import com.pnd.android.loop.ui.theme.surface
 import com.pnd.android.loop.ui.theme.surfaceElevated
 import com.pnd.android.loop.util.isActiveDay
 import com.pnd.android.loop.util.toMs
@@ -114,9 +117,23 @@ fun Home(
         if (tab == HomeTab.TODAY) inputState.close(context)
     }
 
+
+    val contentWindowInsets = if (LocalConfiguration.current.isPortrait()) {
+        ScaffoldDefaults.contentWindowInsets
+            .exclude(WindowInsets.navigationBars)
+            .exclude(WindowInsets.statusBars)
+            .exclude(WindowInsets.ime)
+    } else {
+        ScaffoldDefaults.contentWindowInsets
+            .add(WindowInsets.displayCutout)
+            .exclude(WindowInsets.statusBars)
+            .exclude(WindowInsets.ime)
+    }
+
     Scaffold(
         modifier = modifier
             .fillMaxSize()
+            .background(color = AppColor.background)
             .blur(radius = blurState.radius),
         snackbarHost = {
             SnackbarHost(
@@ -138,11 +155,7 @@ fun Home(
         contentColor = Color.Transparent,
         // The floating app bar and pinned tabs handle the status-bar area themselves, so the
         // scrolling content is allowed to draw all the way up behind them.
-        contentWindowInsets = ScaffoldDefaults
-            .contentWindowInsets
-            .exclude(WindowInsets.navigationBars)
-            .exclude(WindowInsets.statusBars)
-            .exclude(WindowInsets.ime),
+        contentWindowInsets = contentWindowInsets,
     )
     { contentPadding ->
         HomeContent(
@@ -178,7 +191,7 @@ private fun HomeContent(
     onNavigateToStatisticsPage: () -> Unit,
     onNavigateToHistoryPage: () -> Unit,
 ) {
-    Box(modifier = modifier.background(color = AppColor.background)) {
+    Box(modifier = modifier) {
         val lazyListState = rememberLazyListState()
         // A real backdrop blur is only available on API 31+; elsewhere the floating surfaces fall
         // back to translucent white, so we only bother capturing the content where it's used.
@@ -237,8 +250,8 @@ private fun HomeContent(
         UserInput(
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .navigationBarsPadding()
-                .imePadding(),
+                .imePadding()
+                .then(if (LocalConfiguration.current.isPortrait()) Modifier.navigationBarsPadding() else Modifier),
             inputState = inputState,
             snackBarHostState = snackBarHostState,
             lazyListState = lazyListState,
@@ -329,7 +342,11 @@ private fun HomeContent(
     val backdropModifier = backdrop?.let { Modifier.backdropSource(it) } ?: Modifier
 
     // backdropSource wraps the background so the captured layer (sampled by the blur) includes it.
-    Box(modifier = modifier.then(backdropModifier).background(AppColor.background)) {
+    Box(
+        modifier = modifier
+            .then(backdropModifier)
+            .background(AppColor.background)
+    ) {
         if (sections.isEmpty()) {
             EmptyLoops(
                 modifier = Modifier
@@ -498,7 +515,7 @@ private fun rememberTodaySection(
 ): Section {
     val resultLoops = remember(loops) {
         loops.filter {
-            (it.isActiveDay() && (it.isNotRespond || it.isDisabled || it.isInProgressState))
+            (it.isActiveDay() && (it.isNotRespond || it.isDisabled || it.isInProgress))
         }
     }
 

@@ -149,7 +149,7 @@ private fun TodayStats(
             ) {
                 IconStat(
                     icon = Icons.Outlined.LocalFireDepartment,
-                    iconTint = AppColor.secondary,
+                    iconTint = AppColor.primary,
                     value = stringResource(id = R.string.stat_streak_days, currentStreak),
                     label = stringResource(id = R.string.stat_streak_current),
                 )

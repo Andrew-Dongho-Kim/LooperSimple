@@ -20,7 +20,9 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.add
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -42,22 +44,23 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.Stable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -71,12 +74,14 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.FullLoopVo
+import com.pnd.android.loop.data.isDisabled
 import com.pnd.android.loop.data.isDone
-import com.pnd.android.loop.data.isSkip
+import com.pnd.android.loop.data.isRespond
 import com.pnd.android.loop.ui.common.BackdropState
 import com.pnd.android.loop.ui.common.StatusBarFadingEdge
 import com.pnd.android.loop.ui.common.backdropSource
 import com.pnd.android.loop.ui.common.findLastFullyVisibleItemIndex
+import com.pnd.android.loop.ui.common.isPortrait
 import com.pnd.android.loop.ui.common.rememberBackdropState
 import com.pnd.android.loop.ui.common.rememberListCollapseProgress
 import com.pnd.android.loop.ui.common.supportsBackdropBlur
@@ -90,14 +95,15 @@ import com.pnd.android.loop.ui.theme.error
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.ui.theme.surfaceContainer
+import com.pnd.android.loop.ui.theme.surfaceElevated
 import com.pnd.android.loop.util.formatMonthDateDay
 import com.pnd.android.loop.util.formatStartEndTime
 import com.pnd.android.loop.util.formatYearMonth
 import com.pnd.android.loop.util.toLocalDate
 import kotlinx.coroutines.launch
-import kotlin.math.roundToInt
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
+import kotlin.math.roundToInt
 
 @Composable
 fun DailyAchievementPage(
@@ -156,6 +162,16 @@ fun DailyAchievementPage(
         reverseLayout = true,
     )
 
+    val contentWindowInsets = if (LocalConfiguration.current.isPortrait()) {
+        ScaffoldDefaults.contentWindowInsets
+            .exclude(WindowInsets.statusBars)
+            .exclude(WindowInsets.navigationBars)
+    } else {
+        ScaffoldDefaults.contentWindowInsets
+            .add(WindowInsets.displayCutout)
+            .exclude(WindowInsets.statusBars)
+    }
+
     Scaffold(
         modifier = modifier
             .fillMaxWidth()
@@ -163,9 +179,7 @@ fun DailyAchievementPage(
             .background(color = AppColor.background),
         // 상태바 영역까지 콘텐츠가 그려지도록 상태바 인셋을 제외한다(접히는 헤더 + 상태바 페이딩 엣지가 처리).
         // 내비게이션 바 인셋도 제외해, 아래 달력 패널이 내비게이션 바 영역까지 같은 배경색으로 이어지게 한다.
-        contentWindowInsets = ScaffoldDefaults.contentWindowInsets
-            .exclude(WindowInsets.statusBars)
-            .exclude(WindowInsets.navigationBars),
+        contentWindowInsets = contentWindowInsets,
     ) { contentPadding ->
         Box(modifier = Modifier.padding(contentPadding)) {
             DailyAchievementPageContent(
@@ -245,7 +259,7 @@ private fun DailyAchievementPageContent(
     ) {
         val density = LocalDensity.current
         // 펼침: 화면의 일정 비율. 접힘: 그래버 + 내비게이션 바만 남긴다.
-        val expandedHeight = maxHeight * CalendarExpandedHeightFraction
+        val expandedHeight = this.maxHeight * CalendarExpandedHeightFraction
         val collapsedHeight = CalendarGrabHandleHeight + navigationBarHeight
         // 화면(펼침/접힘 높이)이 바뀌면 접힘 상태를 새 값으로 다시 만든다.
         val collapseState = remember(density, expandedHeight, collapsedHeight) {
@@ -292,7 +306,13 @@ private fun DailyAchievementPageContent(
                     .height(panelHeight),
                 navigationBarHeight = navigationBarHeight,
                 onDrag = { deltaPx -> coroutineScope.launch { collapseState.dragBy(deltaPx) } },
-                onDragStopped = { velocityPx -> coroutineScope.launch { collapseState.settle(velocityPx) } },
+                onDragStopped = { velocityPx ->
+                    coroutineScope.launch {
+                        collapseState.settle(
+                            velocityPx
+                        )
+                    }
+                },
                 onToggle = { coroutineScope.launch { collapseState.toggle() } },
             ) {
                 DailyAchievementCalendar(
@@ -578,7 +598,7 @@ private fun DailyAchievementsRecords(
 
             AchievementItem(
                 modifier = Modifier.padding(vertical = Dimens.contentPadding),
-                item = item
+                loops = item
             )
         }
     }
@@ -587,13 +607,12 @@ private fun DailyAchievementsRecords(
 @Composable
 private fun AchievementItem(
     modifier: Modifier = Modifier,
-    item: List<FullLoopVo>
+    loops: List<FullLoopVo>
 ) {
-    val itemDate = item[0].date.toLocalDate()
-    val doneList = item.filter { it.done.isDone() }
-    val skipList = item.filter { it.done.isSkip() }
-    // 타임라인은 완료한 루프를 먼저, 건너뛴 루프를 뒤에 이어 하나의 세로 레일로 보여준다.
-    val timelineLoops = remember(item) { doneList + skipList }
+    val itemDate = loops[0].date.toLocalDate()
+    val doneList = loops.filter { it.done.isDone() }
+    val enabledLoops = loops.filter { !it.done.isDisabled() }
+    val respondLoops = enabledLoops.filter { it.done.isRespond() }
 
     Column(modifier = modifier) {
         // 하루치 기록을 하나의 카드로 묶고, 맨 위에 달성 요약(진행바)을 얹는다.
@@ -601,22 +620,22 @@ private fun AchievementItem(
             DaySummaryHeader(
                 itemDate = itemDate,
                 doneCount = doneList.size,
-                totalCount = timelineLoops.size,
+                totalCount = enabledLoops.size,
             )
 
-            if (timelineLoops.isEmpty()) {
+            if (respondLoops.isEmpty()) {
                 EmptyDayContent(modifier = Modifier.padding(top = Dimens.contentPadding))
                 return@DayCard
             }
 
             Column(modifier = Modifier.padding(top = Dimens.contentPadding)) {
-                timelineLoops.forEachIndexed { index, loop ->
+                respondLoops.forEachIndexed { index, loop ->
                     key(loop.loopId) {
                         TimelineLoopRow(
                             loop = loop,
                             itemDate = itemDate,
                             isDone = loop.done.isDone(),
-                            isLast = index == timelineLoops.lastIndex,
+                            isLast = index == respondLoops.lastIndex,
                         )
                     }
                 }
@@ -637,7 +656,7 @@ private fun DayCard(
     Column(
         modifier = modifier
             .clip(RoundShapes.large)
-            .background(AppColor.surfaceContainer)
+            .background(AppColor.surfaceElevated)
             .border(
                 width = 0.5.dp,
                 color = AppColor.onSurface.copy(alpha = 0.1f),
@@ -716,9 +735,15 @@ private fun progressTierOf(fraction: Float): ProgressTier {
     return when {
         // 완료: 성취를 강조하는 초록. 파랑(primary)과 구분돼 "다 했다"가 한눈에 보인다.
         fraction >= 1f -> if (isDark) {
-            ProgressTier(accent = Color(0xFF7DD3A8), container = Color(0xFF7DD3A8).copy(alpha = 0.16f))
+            ProgressTier(
+                accent = Color(0xFF7DD3A8),
+                container = Color(0xFF7DD3A8).copy(alpha = 0.16f)
+            )
         } else {
-            ProgressTier(accent = Color(0xFF1E7A46), container = Color(0xFF1E7A46).copy(alpha = 0.12f))
+            ProgressTier(
+                accent = Color(0xFF1E7A46),
+                container = Color(0xFF1E7A46).copy(alpha = 0.12f)
+            )
         }
         // 높음(67~99%): 앱의 기본 강조색인 파랑.
         fraction >= 0.67f -> ProgressTier(
@@ -727,9 +752,15 @@ private fun progressTierOf(fraction: Float): ProgressTier {
         )
         // 중간(34~66%): 진행 중임을 따뜻하게 알리는 앰버.
         fraction >= 0.34f -> if (isDark) {
-            ProgressTier(accent = Color(0xFFE0A93C), container = Color(0xFFE0A93C).copy(alpha = 0.18f))
+            ProgressTier(
+                accent = Color(0xFFE0A93C),
+                container = Color(0xFFE0A93C).copy(alpha = 0.18f)
+            )
         } else {
-            ProgressTier(accent = Color(0xFF8A5A00), container = Color(0xFF8A5A00).copy(alpha = 0.12f))
+            ProgressTier(
+                accent = Color(0xFF8A5A00),
+                container = Color(0xFF8A5A00).copy(alpha = 0.12f)
+            )
         }
         // 저조(0~33%): 판단·경고 느낌 없이 담담한 중립 회색.
         else -> ProgressTier(
@@ -799,7 +830,7 @@ private fun TimelineLoopRow(
                         text = loop.title,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        style = AppTypography.bodyLarge.copy(
+                        style = AppTypography.bodyMedium.copy(
                             color = if (isDone) {
                                 AppColor.onSurface
                             } else {

@@ -3,7 +3,6 @@ package com.pnd.android.loop.data
 import android.content.Context
 import androidx.compose.runtime.Immutable
 import com.pnd.android.loop.data.LoopDoneVo.DoneState
-import com.pnd.android.loop.data.LoopVo.Factory.ANY_TIME
 import com.pnd.android.loop.util.intervalString
 import com.pnd.android.loop.util.toLocalTime
 
@@ -54,6 +53,6 @@ fun LoopBase.description(context: Context) =
 val LoopBase.doneState get() = (this as? LoopWithDone)?.done
 val LoopBase.isRespond get() = doneState == DoneState.DONE || doneState == DoneState.SKIP
 val LoopBase.isNotRespond get() = doneState == DoneState.NO_RESPONSE
-val LoopBase.isInProgressState get() = doneState == DoneState.IN_PROGRESS
+val LoopBase.isInProgress get() = doneState == DoneState.IN_PROGRESS
 val LoopBase.isDisabled get() = doneState == DoneState.DISABLED
 

@@ -25,7 +25,7 @@ class BootReceiver : BroadcastReceiver() {
             Intent.ACTION_BOOT_COMPLETED,
             Intent.ACTION_LOCKED_BOOT_COMPLETED,
             "android.intent.action.QUICKBOOT_POWERON" -> {
-                logger.d { "reboot detected, re-syncing loops" }
+                logger.i { "reboot detected, re-syncing loops" }
                 loopScheduler.syncLoops()
             }
         }

@@ -7,13 +7,15 @@ import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.LoopWithDone
 import com.pnd.android.loop.data.LoopWithStatistics
 import com.pnd.android.loop.data.MonthlyLoopDuration
+import com.pnd.android.loop.util.toMs
 import kotlinx.coroutines.flow.Flow
+import java.time.LocalDate
 
 @Dao
 interface FullLoopDao {
 
     @Query(
-        "SELECT loop.loopId, loop.color, loop.title, loop.created, loop_done.startInDay, loop_done.endInDay, loop.activeDays, loop.interval, loop.enabled, loop.isAnyTime, loop_done.date, loop_done.done " +
+        "SELECT loop.loopId, loop.color, loop.title, loop.created, loop.startInDay, loop.endInDay, loop.activeDays, loop.interval, loop.enabled, loop.isAnyTime, loop_done.date, loop_done.done " +
                 "FROM loop LEFT JOIN loop_done " +
                 "ON loop.loopId == loop_done.loopId AND loop_done.date ==:date " +
                 "ORDER BY loop.enabled DESC, loop.endInDay ASC, loop.startInDay ASC, loop.title ASC"
@@ -21,15 +23,15 @@ interface FullLoopDao {
     fun getAllLoopsFlow(date: Long): Flow<List<LoopWithDone>>
 
     @Query(
-        "SELECT loop.loopId, loop.color, loop.title, loop.created, loop_done.startInDay, loop_done.endInDay, loop.activeDays, loop.interval, loop.enabled, loop.isAnyTime, loop_done.date, loop_done.done " +
+        "SELECT loop.loopId, loop.color, loop.title, loop.created, loop.startInDay, loop.endInDay, loop.activeDays, loop.interval, loop.enabled, loop.isAnyTime, loop_done.date, loop_done.done " +
                 "FROM loop LEFT JOIN loop_done " +
                 "ON loop.loopId == loop_done.loopId AND loop_done.date ==:date " +
                 "ORDER BY loop.enabled DESC, loop.endInDay ASC, loop.startInDay ASC, loop.title ASC"
     )
-    suspend fun getAllLoops(date: Long): List<LoopWithDone>
+    suspend fun getAllLoops(date: Long = LocalDate.now().toMs()): List<LoopWithDone>
 
     @Query(
-        "SELECT loop.loopId, loop.color, loop.title, loop.created, loop_done.startInDay, loop_done.endInDay, loop.activeDays, loop.interval, loop.enabled, loop.isAnyTime, loop_done.date, loop_done.done " +
+        "SELECT loop.loopId, loop.color, loop.title, loop.created, loop.startInDay, loop.endInDay, loop.activeDays, loop.interval, loop.enabled, loop.isAnyTime, loop_done.date, loop_done.done " +
                 "FROM loop LEFT JOIN loop_done " +
                 "ON loop.loopId == loop_done.loopId AND loop_done.date ==:date WHERE loop.enabled == 1 " +
                 "ORDER BY loop.endInDay ASC, loop.startInDay ASC, loop.title ASC"

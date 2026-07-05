@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.pnd.android.loop.common.log
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.ui.common.BackdropState
 import com.pnd.android.loop.ui.common.floatingSurfaceBackground
@@ -67,7 +68,6 @@ fun UserInput(
     onLoopSubmitted: (LoopBase) -> Unit,
 ) {
     SharedTransitionLayout(modifier = modifier) {
-
         AnimatedContent(
             targetState = inputState.isVisible,
             label = "shared_transition",
@@ -157,6 +157,7 @@ fun UserInput(
                     if (onEnsureLoop(loop)) {
                         onLoopSubmitted(loop)
                         inputState.reset()
+                        log(TAG).i { "submitted: $loop" }
                     }
                 }
             },

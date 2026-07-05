@@ -10,10 +10,16 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.core.content.edit
+import com.pnd.android.loop.common.Logger
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopVo
+import com.pnd.android.loop.data.LoopVo.Factory.ANY_TIME
 import com.pnd.android.loop.data.asLoop
 import com.pnd.android.loop.data.putTo
+
+
+const val TAG = "UserInputState"
+private val logger = Logger(tag = TAG)
 
 @Stable
 class UserInputState(
@@ -76,14 +82,15 @@ class UserInputState(
             title = title.text,
             color = color,
             isAnyTime = isAnyTime,
-            startInDay = loopStart,
-            endInDay = loopEnd,
+            startInDay = if (isAnyTime) ANY_TIME else loopStart,
+            endInDay = if (isAnyTime) ANY_TIME else loopEnd,
             activeDays = loopActiveDays,
             interval = interval,
             enabled = enabled,
             isMock = value.isMock,
         )
         textFieldValue = title
+        logger.i { "update to $value" }
         ensureState()
     }
 

@@ -30,7 +30,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.launch
@@ -197,13 +196,13 @@ class LoopViewModel @Inject constructor(
         }
     }
 
-    fun doneLoop(
+    fun changeLoopState(
         loop: LoopBase,
         localDate: LocalDate = LocalDate.now(),
         @LoopDoneVo.DoneState doneState: Int
     ) {
         coroutineScope.launch {
-            loopRepository.doneLoop(
+            loopRepository.changeLoopState(
                 loop = loop,
                 localDate = localDate,
                 doneState = doneState,
