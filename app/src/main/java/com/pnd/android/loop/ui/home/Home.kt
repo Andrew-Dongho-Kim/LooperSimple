@@ -62,9 +62,6 @@ import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.asLoopVo
 import com.pnd.android.loop.data.common.MAX_LOOPS_TOGETHER
-import com.pnd.android.loop.data.isDisabled
-import com.pnd.android.loop.data.isInProgress
-import com.pnd.android.loop.data.isNotRespond
 import com.pnd.android.loop.data.isRespond
 import com.pnd.android.loop.ui.common.BackdropState
 import com.pnd.android.loop.ui.common.NavigationBarFadingEdge
@@ -333,6 +330,12 @@ private fun HomeContent(
         selectedTab = selectedTab,
     )
     val onEdit = remember { { loop: LoopBase -> inputState.edit(loop) } }
+    val onDelete = remember { { loop: LoopBase -> loopViewModel.deleteLoop(loop) } }
+    val onStateChanged: (LoopBase, Int) -> Unit = remember {
+        { loop, doneState ->
+            loopViewModel.changeLoopState(loop = loop, doneState = doneState)
+        }
+    }
 
     // The collapsing header (title + icons + tabs) is drawn as an overlay, so the list simply
     // starts below its expanded height and then scrolls up underneath it. This content is also
@@ -366,6 +369,8 @@ private fun HomeContent(
                         loopViewModel = loopViewModel,
                         selectedTab = selectedTab,
                         onEdit = onEdit,
+                        onDelete = onDelete,
+                        onStateChanged = onStateChanged,
                         onNavigateToGroupPicker = onNavigateToGroupPicker,
                         onNavigateToDetailPage = onNavigateToDetailPage,
                         onNavigateToHistoryPage = onNavigateToHistoryPage,
@@ -459,7 +464,8 @@ private fun LoopViewModel.observeSectionsAsState(
     return if (loops.isEmpty() && inputState.mode == UserInputState.Mode.None) {
         remember { mutableStateOf(emptyList()) }
     } else {
-        val resultLoops = ArrayList<LoopBase>(loops)
+        val resultLoops = ArrayList<LoopBase>(
+            if (selectedTab == HomeTab.TODAY) loops.filter { loop -> loop.enabled && loop.isActiveDay() } else loops)
         if (inputState.mode == UserInputState.Mode.Edit) {
             val edited = inputState.value
             val index = resultLoops.indexOfFirst { it.loopId == edited.loopId }
@@ -468,28 +474,30 @@ private fun LoopViewModel.observeSectionsAsState(
             if (index != -1) resultLoops[index] = edited
         }
 
-        // The 오늘 / 전체 tab is pinned in the app bar; here we only pick which loop list
-        // its selection maps to.
-        val doneSection = rememberDoneSection(resultLoops)
-        val sections = mutableListOf(
-            rememberHeaderSection(resultLoops),
-            if (selectedTab == HomeTab.ALL) {
-                rememberAllSection(resultLoops, inputState)
-            } else {
-                rememberTodaySection(resultLoops)
-            },
+
+        val isAllTab = selectedTab == HomeTab.ALL
+        val sections = buildList {
+            add(rememberHeaderSection(resultLoops))
+            add(
+                if (isAllTab) {
+                    rememberAllSection(resultLoops, inputState)
+                } else {
+                    rememberTodaySection(resultLoops)
+                }
+            )
             // 전체 탭에서는 어제 미응답 루프 카드를 노출하지 않는다.
-            if (selectedTab == HomeTab.ALL) null else rememberYesterdaySection(yesterdayLoops),
-            rememberAdSection(),
+            if (!isAllTab) add(rememberYesterdaySection(yesterdayLoops))
+            add(rememberAdSection())
             // 전체 탭에서는 오늘 Done/Skip한 루프 정보를 노출하지 않는다.
-            if (selectedTab == HomeTab.ALL) null else doneSection,
+            if (!isAllTab) add(rememberDoneSection(resultLoops))
             // 전체 탭 하단에는 전체 루프의 done/skip 이력을 매트릭스 그리드로 덧붙인다.
-            if (selectedTab == HomeTab.ALL) rememberAllHistoryGridSection(resultLoops) else null,
-        ).filterNotNull().filter { it.size > 0 }
+            if (isAllTab) add(rememberAllHistoryGridSection(resultLoops))
+        }.filter { it.size > 0 }
 
         remember(sections) { mutableStateOf(sections) }
     }
 }
+
 
 @Composable
 private fun rememberHeaderSection(
@@ -516,17 +524,11 @@ private fun rememberYesterdaySection(
 private fun rememberTodaySection(
     loops: List<LoopBase>,
 ): Section {
-    val resultLoops = remember(loops) {
-        loops.filter {
-            (it.isActiveDay() && (it.isNotRespond || it.isDisabled || it.isInProgress))
-        }
-    }
-
     val context = LocalContext.current
     return rememberSaveable(saver = Section.Today.Saver) {
         Section.Today().apply { load(context) }
     }.apply {
-        items.value = resultLoops
+        items.value = loops
     }
 }
 

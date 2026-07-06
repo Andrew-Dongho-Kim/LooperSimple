@@ -39,14 +39,14 @@ sealed class TimeStat {
         }
 
         private fun abb(context: Context) = when {
-            isAnyTime -> context.getString(R.string.anytime)
+            isAnyTime -> ""
             time.hour > 0 -> context.getString(R.string.time_stat_before_start_hours, time.hour)
             time.minute >= 5 -> context.getString(R.string.time_stat_before_start_mins, time.minute)
             else -> context.getString(R.string.time_stat_before_start_soon)
         }
 
         private fun full(context: Context) = when {
-            isAnyTime -> context.getString(R.string.anytime)
+            isAnyTime -> ""
             time.hour > 0 -> context.getString(
                 R.string.time_stat_full_before_start_hours,
                 time.hour

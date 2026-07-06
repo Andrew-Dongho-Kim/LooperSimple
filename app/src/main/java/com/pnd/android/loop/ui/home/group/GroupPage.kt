@@ -52,11 +52,11 @@ import com.pnd.android.loop.ui.home.LoopCardWithOption
 import com.pnd.android.loop.ui.home.rememberBlurState
 import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.theme.AppColor
+import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.Dimens
+import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.background
 import com.pnd.android.loop.ui.theme.error
-import com.pnd.android.loop.ui.theme.AppTypography
-import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.surfaceElevated
 
@@ -326,6 +326,10 @@ private fun LoopCardItem(
                 showAddToGroup = false,
             ),
             onEdit = {},
+            onDelete = {},
+            onStateChanged = { loop, doneState ->
+                loopViewModel.changeLoopState(loop = loop, doneState = doneState)
+            },
             onNavigateToGroupPicker = {},
             onNavigateToDetailPage = {},
         )

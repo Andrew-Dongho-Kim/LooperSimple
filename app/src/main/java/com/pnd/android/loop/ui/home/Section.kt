@@ -50,6 +50,7 @@ import androidx.core.content.edit
 import com.pnd.android.loop.BuildConfig
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
+import com.pnd.android.loop.data.isNotRespond
 import com.pnd.android.loop.ui.common.ExpandableNativeAd
 import com.pnd.android.loop.ui.home.timeline.LoopCircularDial
 import com.pnd.android.loop.ui.home.timeline.LoopTimeline
@@ -78,6 +79,8 @@ fun LazyListScope.section(
     loopViewModel: LoopViewModel,
     @HomeTab.Type selectedTab: Int,
     onEdit: (LoopBase) -> Unit,
+    onDelete: (LoopBase) -> Unit,
+    onStateChanged: (LoopBase, Int) -> Unit,
     onNavigateToGroupPicker: (LoopBase) -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
     onNavigateToHistoryPage: () -> Unit,
@@ -94,6 +97,8 @@ fun LazyListScope.section(
             blurState = blurState,
             loopViewModel = loopViewModel,
             onEdit = onEdit,
+            onDelete = onDelete,
+            onStateChanged = onStateChanged,
             onNavigateToGroupPicker = onNavigateToGroupPicker,
             onNavigateToDetailPage = onNavigateToDetailPage,
         )
@@ -119,6 +124,7 @@ fun LazyListScope.section(
             blurState = blurState,
             loopViewModel = loopViewModel,
             onEdit = onEdit,
+            onDelete = onDelete,
             onNavigateToGroupPicker = onNavigateToGroupPicker,
             onNavigateToDetailPage = onNavigateToDetailPage,
         )
@@ -128,6 +134,8 @@ fun LazyListScope.section(
             blurState = blurState,
             loopViewModel = loopViewModel,
             onEdit = onEdit,
+            onDelete = onDelete,
+            onStateChanged = onStateChanged,
             onNavigateToGroupPicker = onNavigateToGroupPicker,
             onNavigateToDetailPage = onNavigateToDetailPage,
         )
@@ -190,6 +198,8 @@ private fun LazyListScope.sectionToday(
     blurState: BlurState,
     loopViewModel: LoopViewModel,
     onEdit: (LoopBase) -> Unit,
+    onDelete: (LoopBase) -> Unit,
+    onStateChanged: (LoopBase, Int) -> Unit,
     onNavigateToGroupPicker: (LoopBase) -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
@@ -204,6 +214,8 @@ private fun LazyListScope.sectionToday(
             loopViewModel = loopViewModel,
             loops = loops,
             onEdit = onEdit,
+            onDelete = onDelete,
+            onStateChanged = onStateChanged,
             onNavigateToGroupPicker = onNavigateToGroupPicker,
             onNavigateToDetailPage = onNavigateToDetailPage,
         )
@@ -248,6 +260,8 @@ private fun LazyListScope.sectionTodayBody(
     loopViewModel: LoopViewModel,
     loops: List<LoopBase>,
     onEdit: (LoopBase) -> Unit,
+    onDelete: (LoopBase) -> Unit,
+    onStateChanged: (LoopBase, Int) -> Unit,
     onNavigateToGroupPicker: (LoopBase) -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
@@ -268,7 +282,6 @@ private fun LazyListScope.sectionTodayBody(
             }
         )
     }
-
     when (viewMode) {
         TodayViewMode.TIMELINE -> item(
             contentType = ContentTypes.LOOP_TIMELINE,
@@ -277,10 +290,10 @@ private fun LazyListScope.sectionTodayBody(
             LoopTimeline(
                 modifier = Modifier.padding(top = HomeCardSpacing),
                 blurState = blurState,
-                loopViewModel = loopViewModel,
                 loops = loops.filter { loop -> loop.enabled },
                 onNavigateToDetailPage = onNavigateToDetailPage,
                 onEdit = onEdit,
+                onDelete = onDelete,
             )
         }
 
@@ -293,13 +306,14 @@ private fun LazyListScope.sectionTodayBody(
                     horizontal = Dimens.screenHorizontalPadding,
                     vertical = HomeCardSpacing,
                 ),
-                loopViewModel = loopViewModel,
+                loops = loops,
+                onStateChanged = onStateChanged,
                 onNavigateToDetailPage = onNavigateToDetailPage,
             )
         }
 
         TodayViewMode.LIST -> items(
-            items = loops,
+            items = loops.filter { loop -> loop.isNotRespond },
             contentType = { ContentTypes.LOOP_CARD },
             key = { loop -> loop.loopId },
         ) { loop ->
@@ -320,6 +334,8 @@ private fun LazyListScope.sectionTodayBody(
                     isHighlighted = highlightId == loop.loopId,
                 ),
                 onEdit = onEdit,
+                onDelete = onDelete,
+                onStateChanged = onStateChanged,
                 onNavigateToGroupPicker = onNavigateToGroupPicker,
                 onNavigateToDetailPage = onNavigateToDetailPage,
             )
@@ -446,6 +462,8 @@ private fun LazyListScope.sectionAll(
     blurState: BlurState,
     loopViewModel: LoopViewModel,
     onEdit: (LoopBase) -> Unit,
+    onDelete: (LoopBase) -> Unit,
+    onStateChanged: (LoopBase, Int) -> Unit,
     onNavigateToGroupPicker: (LoopBase) -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
 
@@ -462,14 +480,16 @@ private fun LazyListScope.sectionAll(
                     horizontal = Dimens.screenHorizontalPadding,
                     vertical = Dimens.cardSpacing,
                 ),
-            blurState = blurState,
-            loopViewModel = loopViewModel,
-            loop = loop,
-            onEdit = onEdit,
             cardValues = LoopCardValues(
                 syncWithTime = false,
                 isHighlighted = false,
             ),
+            blurState = blurState,
+            loopViewModel = loopViewModel,
+            loop = loop,
+            onEdit = onEdit,
+            onDelete = onDelete,
+            onStateChanged = onStateChanged,
             onNavigateToGroupPicker = onNavigateToGroupPicker,
             onNavigateToDetailPage = onNavigateToDetailPage,
         )
@@ -509,6 +529,7 @@ private fun LazyListScope.sectionLater(
     blurState: BlurState,
     loopViewModel: LoopViewModel,
     onEdit: (LoopBase) -> Unit,
+    onDelete: (LoopBase) -> Unit,
     onNavigateToGroupPicker: (LoopBase) -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
@@ -527,6 +548,9 @@ private fun LazyListScope.sectionLater(
 
     val duration = 500
     val loops by section.items
+    val onStateChanged: (LoopBase, Int) -> Unit = { loop, doneState ->
+        loopViewModel.changeLoopState(loop = loop, doneState = doneState)
+    }
     items(
         items = loops,
         contentType = { ContentTypes.LOOP_CARD },
@@ -551,6 +575,8 @@ private fun LazyListScope.sectionLater(
                     isHighlighted = false
                 ),
                 onEdit = onEdit,
+                onDelete = onDelete,
+                onStateChanged = onStateChanged,
                 onNavigateToGroupPicker = onNavigateToGroupPicker,
                 onNavigateToDetailPage = onNavigateToDetailPage,
             )

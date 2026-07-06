@@ -26,7 +26,6 @@ import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.ui.common.VerticalDashedDivider
 import com.pnd.android.loop.ui.common.VerticalDivider
 import com.pnd.android.loop.ui.home.BlurState
-import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.WineRed
 import com.pnd.android.loop.ui.theme.onSurface
@@ -38,10 +37,10 @@ import kotlin.math.max
 fun LoopTimeline(
     modifier: Modifier = Modifier,
     blurState: BlurState,
-    loopViewModel: LoopViewModel,
     loops: List<LoopBase>,
-    onNavigateToDetailPage: (LoopBase) -> Unit,
     onEdit: (LoopBase) -> Unit,
+    onDelete: (LoopBase) -> Unit,
+    onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
     val horizontalScrollState = rememberScrollState()
 
@@ -50,10 +49,10 @@ fun LoopTimeline(
             modifier = Modifier.height(timelineHeight),
             blurState = blurState,
             horizontalScrollState = horizontalScrollState,
-            loopViewModel = loopViewModel,
             loops = loops,
-            onNavigateToDetailPage = onNavigateToDetailPage,
             onEdit = onEdit,
+            onDelete = onDelete,
+            onNavigateToDetailPage = onNavigateToDetailPage,
         )
         HorizontalTimeBar(
             modifier = Modifier.padding(top = 4.dp),
@@ -68,24 +67,24 @@ private fun TimeGrid(
     modifier: Modifier = Modifier,
     blurState: BlurState,
     horizontalScrollState: ScrollState,
-    loopViewModel: LoopViewModel,
     loops: List<LoopBase>,
-    onNavigateToDetailPage: (LoopBase) -> Unit,
     onEdit: (LoopBase) -> Unit,
+    onDelete: (LoopBase) -> Unit,
+    onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
     BoxWithConstraints(modifier = modifier) {
         ScrollToLocalTime(
             scrollState = horizontalScrollState,
-            timeGridWidth = constraints.maxWidth,
+            timeGridWidth = this.constraints.maxWidth,
         )
 
         TimeGridContent(
             horizontalScrollState = horizontalScrollState,
             blurState = blurState,
-            loopViewModel = loopViewModel,
             loops = loops,
             onNavigateToDetailPage = onNavigateToDetailPage,
             onEdit = onEdit,
+            onDelete = onDelete,
         )
     }
 }
@@ -95,10 +94,10 @@ private fun TimeGridContent(
     modifier: Modifier = Modifier,
     blurState: BlurState,
     horizontalScrollState: ScrollState,
-    loopViewModel: LoopViewModel,
     loops: List<LoopBase>,
-    onNavigateToDetailPage: (LoopBase) -> Unit,
     onEdit: (LoopBase) -> Unit,
+    onDelete: (LoopBase) -> Unit,
+    onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
     Row(
         modifier = modifier.horizontalScroll(horizontalScrollState)
@@ -119,10 +118,10 @@ private fun TimeGridContent(
             TimelineLoops(
                 modifier = Modifier.align(Alignment.BottomStart),
                 blurState = blurState,
-                loopViewModel = loopViewModel,
                 loops = loops,
-                onNavigateToDetailPage = onNavigateToDetailPage,
                 onEdit = onEdit,
+                onDelete = onDelete,
+                onNavigateToDetailPage = onNavigateToDetailPage,
             )
             LocalTimeVerticalLineIndicator()
         }
@@ -134,10 +133,10 @@ private fun TimeGridContent(
 private fun TimelineLoops(
     modifier: Modifier = Modifier,
     blurState: BlurState,
-    loopViewModel: LoopViewModel,
     loops: List<LoopBase>,
-    onNavigateToDetailPage: (LoopBase) -> Unit,
     onEdit: (LoopBase) -> Unit,
+    onDelete: (LoopBase) -> Unit,
+    onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
     val slots = rememberTimelineSlots(loops = loops)
     Column(
@@ -158,7 +157,7 @@ private fun TimelineLoops(
                             loop = loop,
                             onNavigateToDetailPage = onNavigateToDetailPage,
                             onEdit = onEdit,
-                            onDelete = { loop -> loopViewModel.deleteLoop(loop) }
+                            onDelete = onDelete,
                         )
                     }
                 }

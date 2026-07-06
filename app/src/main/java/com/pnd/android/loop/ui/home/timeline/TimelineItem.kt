@@ -201,7 +201,6 @@ private fun LoopOptions(
             contentDescription = stringResource(id = R.string.delete),
             onClick = {
                 showDeleteDialog = true
-//                onTooltipDismiss()
                 blurState.on()
             }
         )

@@ -27,15 +27,15 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.automirrored.rounded.Undo
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -81,13 +81,11 @@ import com.pnd.android.loop.data.doneState
 import com.pnd.android.loop.data.isInProgress
 import com.pnd.android.loop.data.isRespond
 import com.pnd.android.loop.ui.home.AnyTimeLoopStartOrStop
-import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.compositedOnSurface
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
-import com.pnd.android.loop.ui.theme.surfaceContainer
 import com.pnd.android.loop.ui.theme.surfaceElevated
 import com.pnd.android.loop.util.MS_1DAY
 import com.pnd.android.loop.util.MS_1MIN
@@ -118,28 +116,17 @@ import kotlin.math.sin
 @Composable
 fun LoopCircularDial(
     modifier: Modifier = Modifier,
-    loopViewModel: LoopViewModel,
+    loops:List<LoopBase>,
+    onStateChanged: (LoopBase, Int) -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
-    // 다이얼은 "오늘 하루 전체"를 보여주는 뷰이므로, Today 섹션의 미완 목록이 아니라
-    // 완료/스킵까지 포함한 오늘의 모든 활성 루프를 직접 구독한다.
-    val allLoops by loopViewModel.allLoopsWithDoneStates.collectAsState(initial = emptyList())
-    val todayLoops = remember(allLoops) {
-        allLoops.filter { loop -> loop.enabled && loop.isActiveDay() }
-    }
-    val (anyTimeLoops, timedLoops) = remember(todayLoops) {
-        todayLoops.partition { loop -> loop.isAnyTime }
+    val (anyTimeLoops, timedLoops) = remember(loops) {
+        loops.partition { loop -> loop.isAnyTime }
     }
 
     // 현재 시각(분 단위로 갱신)을 하루 기준 ms 로 환산해 둔다.
     val localTime by rememberLocalTime()
     val nowMs = localTime.toMs()
-
-    // done/skip/되돌리기 공통 처리. copyAs 로 실제 시작·종료 시각을 실어 넘겨야 하는 경우는
-    // 각 UI(시작/정지 버튼 등)에서 처리하고, 여기서는 상태 전환만 담당한다.
-    val onStateChanged: (LoopBase, Int) -> Unit = { loop, doneState ->
-        loopViewModel.changeLoopState(loop = loop, doneState = doneState)
-    }
 
     Box(modifier = modifier.fillMaxWidth()) {
         DialFace(
@@ -259,7 +246,11 @@ private class DialGeometry(
  * 캔버스 픽셀 크기로부터 다이얼 지오메트리를 만든다. DrawScope·PointerInputScope 모두 Density 라 재사용 가능.
  * [reserveOrbit] 가 true 면 24시간 링을 안쪽으로 줄여, 시각 라벨 바깥에 AnyTime 궤도 자리를 확보한다.
  */
-private fun Density.dialGeometry(widthPx: Float, heightPx: Float, reserveOrbit: Boolean): DialGeometry {
+private fun Density.dialGeometry(
+    widthPx: Float,
+    heightPx: Float,
+    reserveOrbit: Boolean
+): DialGeometry {
     val stroke = 13.dp.toPx()
     // 바깥쪽 여백: 시각 라벨(기본) + AnyTime 궤도(있을 때).
     val labelInset = (if (reserveOrbit) 46.dp else 26.dp).toPx()
@@ -321,10 +312,16 @@ private fun DialGeometry.hitTest(
 private data class AnyTimeHit(val loop: LoopBase, val anchor: Offset)
 
 /** 바깥 궤도의 AnyTime 노드 중 탭 지점과 겹치는 것을 찾는다. */
-private fun DialGeometry.hitTestAnyTime(tap: Offset, loops: List<LoopBase>, nodeRadius: Float, slop: Float): AnyTimeHit? {
+private fun DialGeometry.hitTestAnyTime(
+    tap: Offset,
+    loops: List<LoopBase>,
+    nodeRadius: Float,
+    slop: Float
+): AnyTimeHit? {
     loops.forEachIndexed { i, loop ->
         val a = Math.toRadians(-90.0 + anyTimeNodeAngle(i, loops.size))
-        val center = Offset(cx + orbitRadius * cos(a).toFloat(), cy + orbitRadius * sin(a).toFloat())
+        val center =
+            Offset(cx + orbitRadius * cos(a).toFloat(), cy + orbitRadius * sin(a).toFloat())
         if (hypot(tap.x - center.x, tap.y - center.y) <= nodeRadius + slop) {
             return AnyTimeHit(loop = loop, anchor = center)
         }
@@ -413,8 +410,10 @@ private fun DialFace(
     val primaryColor = AppColor.primary
     val badgeFillColor = primaryColor.copy(alpha = 0.16f) // "+N" 배지 배경(primary 틴트)
     val orbitColor = AppColor.onSurface.copy(alpha = 0.3f) // AnyTime 바깥 점선 궤도
-    val labelStyle = TextStyle(color = tickMajorColor, fontSize = 11.sp, fontWeight = FontWeight.Medium)
-    val badgeTextStyle = TextStyle(color = primaryColor, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+    val labelStyle =
+        TextStyle(color = tickMajorColor, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+    val badgeTextStyle =
+        TextStyle(color = primaryColor, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
     val textMeasurer = rememberTextMeasurer()
 
     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -432,7 +431,11 @@ private fun DialFace(
                         // 탭하면 히트 판정. 바깥 AnyTime 노드를 먼저 보고, 없으면 시간 호를 본다.
                         // 둘 다 아니면(빈 곳) 두 팝업 모두 닫는다.
                         detectTapGestures { tap ->
-                            val geometry = dialGeometry(size.width.toFloat(), size.height.toFloat(), hasAnyTime)
+                            val geometry = dialGeometry(
+                                size.width.toFloat(),
+                                size.height.toFloat(),
+                                hasAnyTime
+                            )
                             val anyHit = if (hasAnyTime) {
                                 geometry.hitTestAnyTime(
                                     tap = tap,
@@ -538,7 +541,10 @@ private fun DialFace(
                             useCenter = false,
                             topLeft = topLeft,
                             size = arcSize,
-                            style = Stroke(width = width + glowWidth.dp.toPx(), cap = StrokeCap.Round),
+                            style = Stroke(
+                                width = width + glowWidth.dp.toPx(),
+                                cap = StrokeCap.Round
+                            ),
                         )
                     }
 
@@ -563,7 +569,10 @@ private fun DialFace(
                                 useCenter = false,
                                 topLeft = topLeft,
                                 size = arcSize,
-                                style = Stroke(width = (width - rim * 2f).coerceAtLeast(1f), cap = StrokeCap.Round),
+                                style = Stroke(
+                                    width = (width - rim * 2f).coerceAtLeast(1f),
+                                    cap = StrokeCap.Round
+                                ),
                             )
                         }
 
@@ -659,7 +668,8 @@ private fun DialFace(
                     // 진행 중이면 현재 위치에 맥박 점을 얹어 "지금 이거"를 즉시 인지시킨다.
                     if (isActive) {
                         val a = Math.toRadians(-90.0 + nowMs.toDouble() / MS_1DAY * 360.0)
-                        val pos = Offset(cx + radius * cos(a).toFloat(), cy + radius * sin(a).toFloat())
+                        val pos =
+                            Offset(cx + radius * cos(a).toFloat(), cy + radius * sin(a).toFloat())
                         drawCircle(loopColor.copy(alpha = pulseAlpha), pulseRadius.dp.toPx(), pos)
                         drawCircle(loopColor, 3.5.dp.toPx(), pos)
                     }
@@ -668,12 +678,21 @@ private fun DialFace(
                 // 3-1) 접힌 겹침을 "+N" 배지로 표시. 겹친 구간 가운데, 가장 안쪽 레인보다 살짝 안쪽에 둔다.
                 if (overflowBadges.isNotEmpty()) {
                     val badgeRadius = 9.dp.toPx()
-                    val ringRadius = (geo.laneRadius(visibleLanes - 1) - stroke).coerceAtLeast(badgeRadius)
+                    val ringRadius =
+                        (geo.laneRadius(visibleLanes - 1) - stroke).coerceAtLeast(badgeRadius)
                     overflowBadges.forEach { badge ->
                         val a = Math.toRadians(-90.0 + badge.atMs.toDouble() / MS_1DAY * 360.0)
-                        val center = Offset(cx + ringRadius * cos(a).toFloat(), cy + ringRadius * sin(a).toFloat())
+                        val center = Offset(
+                            cx + ringRadius * cos(a).toFloat(),
+                            cy + ringRadius * sin(a).toFloat()
+                        )
                         drawCircle(badgeFillColor, badgeRadius, center)
-                        drawCircle(primaryColor, badgeRadius, center, style = Stroke(width = 1.dp.toPx()))
+                        drawCircle(
+                            primaryColor,
+                            badgeRadius,
+                            center,
+                            style = Stroke(width = 1.dp.toPx())
+                        )
                         val layout = textMeasurer.measure("+${badge.count}", badgeTextStyle)
                         drawText(
                             textLayoutResult = layout,
@@ -709,7 +728,12 @@ private fun DialFace(
                         center = Offset(cx, cy),
                         style = Stroke(
                             width = 1.2.dp.toPx(),
-                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(3.dp.toPx(), 4.dp.toPx())),
+                            pathEffect = PathEffect.dashPathEffect(
+                                floatArrayOf(
+                                    3.dp.toPx(),
+                                    4.dp.toPx()
+                                )
+                            ),
                         ),
                     )
                     val nodeRadius = 6.dp.toPx()
@@ -721,18 +745,30 @@ private fun DialFace(
                         )
                         val loopColor = Color(loop.color)
                         if (loop.isInProgress) {
-                            drawCircle(loopColor.copy(alpha = pulseAlpha), nodeRadius + pulseRadius.dp.toPx(), center)
+                            drawCircle(
+                                loopColor.copy(alpha = pulseAlpha),
+                                nodeRadius + pulseRadius.dp.toPx(),
+                                center
+                            )
                             drawCircle(loopColor, nodeRadius, center)
                         } else {
                             drawCircle(hollowFillColor, nodeRadius, center)
-                            drawCircle(loopColor, nodeRadius, center, style = Stroke(width = 2.4.dp.toPx()))
+                            drawCircle(
+                                loopColor,
+                                nodeRadius,
+                                center,
+                                style = Stroke(width = 2.4.dp.toPx())
+                            )
                         }
                     }
                 }
             }
 
             // 중앙 오버레이: 현재 시각.
-            DialCenterLabel(currentTimeText = currentTimeText)
+            DialCenterLabel(
+                modifier = Modifier.padding(bottom = 32.dp),
+                currentTimeText = currentTimeText
+            )
 
             // 탭한 호를 가리키는 말풍선 팝업(시안 1). 별도 윈도우(Popup)라 부모에 잘리지 않고
             // 항상 최상단에 뜨며, 위치는 화면 밖으로 넘치지 않게 보정된다.
@@ -791,9 +827,11 @@ private fun DialFace(
 
 @Composable
 private fun DialCenterLabel(
+    modifier: Modifier = Modifier,
     currentTimeText: String,
 ) {
     Text(
+        modifier = modifier,
         text = currentTimeText,
         style = AppTypography.headlineSmall.copy(
             color = AppColor.onSurface,
@@ -820,7 +858,11 @@ private fun DialStateHelpDialog(onDismiss: () -> Unit) {
                 .widthIn(max = 340.dp) // 태블릿 등에서 과도하게 넓어지지 않도록만 제한
                 .clip(shape)
                 .background(color = AppColor.surfaceElevated)
-                .border(width = 0.5.dp, color = AppColor.onSurface.copy(alpha = 0.14f), shape = shape)
+                .border(
+                    width = 0.5.dp,
+                    color = AppColor.onSurface.copy(alpha = 0.14f),
+                    shape = shape
+                )
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
@@ -834,7 +876,11 @@ private fun DialStateHelpDialog(onDismiss: () -> Unit) {
             HelpRow(StateSwatchKind.STRIKE, R.string.skip, R.string.dial_desc_skip)
             HelpRow(StateSwatchKind.HOLLOW, R.string.no_response, R.string.dial_desc_noresp)
             HelpRow(StateSwatchKind.THICK, R.string.dial_running, R.string.dial_desc_active)
-            HelpRow(StateSwatchKind.LIGHT, R.string.dial_status_upcoming, R.string.dial_desc_upcoming)
+            HelpRow(
+                StateSwatchKind.LIGHT,
+                R.string.dial_status_upcoming,
+                R.string.dial_desc_upcoming
+            )
 
             Text(
                 modifier = Modifier

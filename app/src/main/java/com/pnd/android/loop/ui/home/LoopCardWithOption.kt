@@ -10,7 +10,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.pnd.android.loop.data.LoopBase
-import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.asLoopVo
 import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
 import com.pnd.android.loop.util.isActive
@@ -31,6 +30,8 @@ fun LoopCardWithOption(
     loop: LoopBase,
     cardValues: LoopCardValues,
     onEdit: (LoopBase) -> Unit,
+    onDelete: (LoopBase) -> Unit,
+    onStateChanged: (LoopBase, Int) -> Unit,
     onNavigateToGroupPicker: (LoopBase) -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
@@ -49,11 +50,11 @@ fun LoopCardWithOption(
                 showDeleteDialog = false
                 blurState.off()
             },
-            onDelete = { loopViewModel.deleteLoop(loop) }
+            onDelete = { onDelete(loop) },
         )
     }
 
-    LoopCardWithOption(
+    LoopCard(
         modifier = modifier,
         loop = loop,
         cardValues = cardValues.copy(isActive = isActive),
@@ -61,48 +62,13 @@ fun LoopCardWithOption(
             val updated = loop.copyAs(enabled = enabled).asLoopVo()
             loopViewModel.addOrUpdateLoop(updated)
         },
-        onStateChanged = { newLoop, doneState ->
-            loopViewModel.changeLoopState(
-                loop = newLoop,
-                doneState = doneState
-            )
-        },
+        onStateChanged = onStateChanged,
         onEdit = onEdit,
-        onShowDeleteDialog = {
+        onDelete = {
             showDeleteDialog = true
             blurState.on()
         },
         onNavigateToGroupPicker = onNavigateToGroupPicker,
         onNavigateToDetailPage = onNavigateToDetailPage
-    )
-}
-
-/**
- * Thin wrapper over [LoopCard] that maps the delete action to the shared delete-confirmation
- * dialog. Done / skip on a finished card are plain tap buttons inside the card itself, so there
- * is no gesture layer here anymore.
- */
-@Composable
-fun LoopCardWithOption(
-    modifier: Modifier = Modifier,
-    loop: LoopBase,
-    cardValues: LoopCardValues,
-    onEnabled: (Boolean) -> Unit,
-    onStateChanged: (LoopBase, @LoopDoneVo.DoneState Int) -> Unit,
-    onEdit: (LoopBase) -> Unit,
-    onShowDeleteDialog: (Boolean) -> Unit,
-    onNavigateToGroupPicker: (LoopBase) -> Unit,
-    onNavigateToDetailPage: (LoopBase) -> Unit,
-) {
-    LoopCard(
-        modifier = modifier,
-        loop = loop,
-        cardValues = cardValues,
-        onStateChanged = onStateChanged,
-        onEdit = onEdit,
-        onEnabled = onEnabled,
-        onDelete = { onShowDeleteDialog(true) },
-        onNavigateToGroupPicker = onNavigateToGroupPicker,
-        onNavigateToDetailPage = onNavigateToDetailPage,
     )
 }

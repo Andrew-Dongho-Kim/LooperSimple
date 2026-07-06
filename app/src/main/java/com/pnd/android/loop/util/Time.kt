@@ -21,6 +21,8 @@ import com.pnd.android.loop.data.LoopDay.Companion.WEEKDAYS
 import com.pnd.android.loop.data.LoopDay.Companion.WEEKENDS
 import com.pnd.android.loop.data.LoopDay.Companion.isOn
 import com.pnd.android.loop.data.LoopDoneVo
+import com.pnd.android.loop.data.actualEndInDay
+import com.pnd.android.loop.data.actualStartInDay
 import com.pnd.android.loop.data.doneState
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.BlueGreen
@@ -92,15 +94,18 @@ val DAY_STRING_MAP = mapOf(
 )
 
 @Composable
-fun LoopBase.formatStartEndTime(context: Context = LocalContext.current) = when {
-    isAnyTime -> stringResource(id = R.string.anytime)
-    else -> "${
-        startInDay.formatHourMinute(
+fun LoopBase.formatStartEndTime(context: Context = LocalContext.current): String {
+    val start = if (actualStartInDay >= 0) actualStartInDay else startInDay
+    val end = if (actualEndInDay >= 0) actualEndInDay else endInDay
+    if (start < 0 || end < 0) return ""
+
+    return "${
+        start.formatHourMinute(
             context = context,
             withAmPm = false
         )
     } ~ ${
-        endInDay.formatHourMinute(
+        end.formatHourMinute(
             context = context,
             withAmPm = false
         )
