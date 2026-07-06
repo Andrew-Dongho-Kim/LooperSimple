@@ -171,6 +171,9 @@ class LoopViewModel @Inject constructor(
         computeWeekdayStats(doneDates = millis.map { it.toLocalDate() })
     }
 
+    /** 전체 탭 하단 기록 그리드: loopId -> (날짜(ms) -> done 상태). */
+    val allDoneHistory: Flow<Map<Int, Map<Long, Int>>> = loopRepository.allDoneHistory
+
     private fun percentOf(count: Int, total: Int): Float =
         if (total > 0) count.toFloat() / total * 100f else 0f
 

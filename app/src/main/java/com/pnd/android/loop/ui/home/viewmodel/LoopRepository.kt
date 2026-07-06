@@ -137,6 +137,16 @@ class LoopRepository @Inject constructor(
     // 완료(DONE) 기록이 있는 날짜(전체 기간). 헤더의 연속 달성/요일 패턴 계산에 쓰인다.
     val doneDates = fullLoopDao.getDoneDatesFlow()
 
+    // 전체 탭 하단 기록 그리드용 데이터.
+    // 완료/건너뜀/비활성(DISABLED) 기록을 loopId -> (날짜(ms) -> 상태) 형태로 묶어 노출한다.
+    // 그리드 셀은 이 map을 조회해 해당 날짜의 상태를 O(1)로 판단하며, 값이 없으면 미응답으로 본다.
+    val allDoneHistory: Flow<Map<Int, Map<Long, Int>>> =
+        loopDoneDao.getAllHistoryFlow().map { records ->
+            records
+                .groupBy { it.loopId }
+                .mapValues { (_, dones) -> dones.associate { it.date to it.done } }
+        }
+
     // Counts scoped to the current day so the header can show "today's" done rate
     // separately from the all-time figures above. They re-query whenever the day rolls over.
     @OptIn(ExperimentalCoroutinesApi::class)

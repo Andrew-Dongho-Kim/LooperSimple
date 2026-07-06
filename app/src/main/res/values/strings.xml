@@ -84,6 +84,16 @@
     <string name="delete">Delete</string>
     <string name="done">DONE</string>
     <string name="skip">SKIP</string>
+    <string name="all_history_title">History</string>
+    <string name="all_history_empty">No loops to show yet.</string>
+    <string name="all_history_created">Created</string>
+    <string name="all_history_help">Legend</string>
+    <string name="all_history_help_title">What the colors mean</string>
+    <string name="all_history_help_done">Completed the loop that day</string>
+    <string name="all_history_help_skip">Skipped the loop that day</string>
+    <string name="all_history_help_no_response">Scheduled but no response</string>
+    <string name="all_history_help_disabled">Disabled that day</string>
+    <string name="all_history_help_created">The day the loop was created</string>
     <string name="loop_enable">Enable</string>
     <string name="loop_disable">Disable</string>
     <string name="no_response">No Response</string>
@@ -112,6 +122,21 @@
     <string name="skip_confirm_message">Skip \"%s\"?</string>
 
     <string name="timeline">Timeline</string>
+    <string name="dial_view">Dial</string>
+    <string name="dial_in_progress_count">In progress %1$d</string>
+    <string name="dial_remaining_minutes">%1$d min left</string>
+    <string name="dial_next">Next</string>
+    <string name="dial_running">Running</string>
+    <string name="dial_status_upcoming">Upcoming</string>
+    <string name="dial_status_past">Missed</string>
+    <string name="dial_needs_review">Needs review %1$d</string>
+    <string name="dial_undo">Undo</string>
+    <string name="dial_help_title">What the styles mean</string>
+    <string name="dial_desc_done">Completed today</string>
+    <string name="dial_desc_skip">Skipped today</string>
+    <string name="dial_desc_noresp">Past due, no response yet</string>
+    <string name="dial_desc_active">In progress right now</string>
+    <string name="dial_desc_upcoming">Not started yet</string>
     <string name="no_repeat">No Repeat</string>
 
     <string name="alarm_category_sounds">Sounds</string>

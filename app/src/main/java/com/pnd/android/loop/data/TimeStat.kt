@@ -134,7 +134,6 @@ val LoopBase.currentTimeStat: TimeStat
 private val LoopBase.timeStatFlow
     get() = flow {
         val startTime = if (isAnyTime) LocalTime.MIN else startInDay.toLocalTime()
-        val endTime = if (isAnyTime) LocalTime.MAX else endInDay.toLocalTime()
 
         while (currentCoroutineContext().isActive) {
             val delayInMs = when {
@@ -151,15 +150,17 @@ private val LoopBase.timeStatFlow
 
                 isFinished() -> finished(
                     title = title,
-                    startTime = actualStartInDay.toLocalTime(),
-                    endTime = actualEndInDay.toLocalTime(),
+                    // actual 시각은 아직 기록되지 않았을 때 ANY_TIME(-1)일 수 있으므로,
+                    // toLocalTime() 이 음수로 크래시하지 않도록 MIN/MAX 로 가드한다.
+                    startTime = if (actualStartInDay < 0) LocalTime.MIN else actualStartInDay.toLocalTime(),
+                    endTime = if (actualEndInDay < 0) LocalTime.MAX else actualEndInDay.toLocalTime(),
                     isAnyTime = isAnyTime
                 )
 
                 else -> inProgress(
                     title = title,
-                    startTime = actualStartInDay.toLocalTime(),
-                    endTime = actualEndInDay.toLocalTime(),
+                    startTime = if (actualStartInDay < 0) LocalTime.MIN else actualStartInDay.toLocalTime(),
+                    endTime = if (actualEndInDay < 0) LocalTime.MAX else actualEndInDay.toLocalTime(),
                     isAnyTime = isAnyTime,
                 )
             }
@@ -169,7 +170,9 @@ private val LoopBase.timeStatFlow
     }
 
 private fun LoopBase.isBeforeStart(): Boolean {
-    if (isAnyTime) return doneState != DoneState.IN_PROGRESS
+    // anytime 루프의 실제 상태는 base start/end(항상 ANY_TIME)가 아니라 done 기록에 있다.
+    // 아직 시작 전 = 진행 중도 아니고, 종료 기록(actualEnd)도 없는 상태.
+    if (isAnyTime) return doneState != DoneState.IN_PROGRESS && actualEndInDay == ANY_TIME
 
     val now = LocalTime.now()
     val startTime = startInDay.toLocalTime()
@@ -177,7 +180,9 @@ private fun LoopBase.isBeforeStart(): Boolean {
 }
 
 private fun LoopBase.isFinished(): Boolean {
-    if (isAnyTime) return startInDay != ANY_TIME && endInDay != ANY_TIME
+    // anytime 루프는 정지(=종료 시각 기록)된 순간 완료로 본다. base end 는 항상 ANY_TIME 이라
+    // 참고할 수 없으므로, done 기록의 actualEnd 유무로 판단한다.
+    if (isAnyTime) return actualEndInDay != ANY_TIME
 
     val now = LocalTime.now()
     val endTime = endInDay.toLocalTime()

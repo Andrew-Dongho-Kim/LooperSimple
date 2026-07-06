@@ -478,10 +478,13 @@ private fun LoopViewModel.observeSectionsAsState(
             } else {
                 rememberTodaySection(resultLoops)
             },
-            rememberYesterdaySection(yesterdayLoops),
+            // 전체 탭에서는 어제 미응답 루프 카드를 노출하지 않는다.
+            if (selectedTab == HomeTab.ALL) null else rememberYesterdaySection(yesterdayLoops),
             rememberAdSection(),
             // 전체 탭에서는 오늘 Done/Skip한 루프 정보를 노출하지 않는다.
             if (selectedTab == HomeTab.ALL) null else doneSection,
+            // 전체 탭 하단에는 전체 루프의 done/skip 이력을 매트릭스 그리드로 덧붙인다.
+            if (selectedTab == HomeTab.ALL) rememberAllHistoryGridSection(resultLoops) else null,
         ).filterNotNull().filter { it.size > 0 }
 
         remember(sections) { mutableStateOf(sections) }
@@ -551,6 +554,19 @@ private fun rememberAllSection(
 
 @Composable
 private fun rememberAdSection() = remember { Section.Ad() }
+
+/**
+ * 전체 탭 하단 기록 그리드 섹션. 전달받은 전체 루프 목록을 그대로 그리드 데이터로 쓴다.
+ * (임시 mock 루프 필터링은 그리드 컴포저블 내부에서 처리한다.)
+ */
+@Composable
+private fun rememberAllHistoryGridSection(
+    loops: List<LoopBase>,
+): Section = remember {
+    Section.AllHistoryGrid()
+}.apply {
+    items.value = loops
+}
 
 @Composable
 private fun rememberDoneSection(loops: List<LoopBase>): Section {

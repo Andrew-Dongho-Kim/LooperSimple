@@ -4,12 +4,12 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -35,7 +35,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -51,6 +50,7 @@ import com.pnd.android.loop.ui.theme.error
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.ui.theme.surface
+import com.pnd.android.loop.ui.theme.surfaceContainer
 import com.pnd.android.loop.util.annotatedString
 import java.time.LocalDate
 
@@ -66,35 +66,41 @@ fun LoopYesterdayCard(
     // The loop awaiting a done/skip confirmation, or null when no dialog is shown.
     var pendingAction by remember { mutableStateOf<YesterdayAction?>(null) }
 
-    Column(
+    Box(
         modifier = modifier
             .padding(vertical = 16.dp, horizontal = 20.dp)
             .clip(RoundShapes.large)
-            .background(color = yesterdayContainerColor())
-            .border(
-                width = 1.dp,
-                color = AppColor.error.copy(alpha = 0.24f),
-                shape = RoundShapes.large
-            )
+            .background(color = AppColor.surfaceContainer)
             .animateContentSize()
     ) {
-        LoopYesterdayHeader(
-            count = loops.size,
-            isExpanded = isExpanded,
-            onExpandChanged = onExpandChanged
+        // 카드 왼쪽 끝의 얇은 강조 바 — "미확인" 상태를 알리는 포인트 컬러
+        Box(
+            modifier = Modifier
+                .width(3.dp)
+                .fillMaxHeight()
+                .align(Alignment.CenterStart)
+                .background(color = AppColor.error)
         )
 
-        if (isExpanded) {
-            loops.forEach { loop ->
-                YesterdayDivider()
-                LoopYesterdayItem(
-                    loop = loop,
-                    onRequestDone = { pendingAction = YesterdayAction(loop, LoopDoneVo.DoneState.DONE) },
-                    onRequestSkip = { pendingAction = YesterdayAction(loop, LoopDoneVo.DoneState.SKIP) },
-                    onNavigateToDetailPage = onNavigateToDetailPage,
-                )
+        Column(modifier = Modifier.padding(start = 3.dp)) {
+            LoopYesterdayHeader(
+                count = loops.size,
+                isExpanded = isExpanded,
+                onExpandChanged = onExpandChanged
+            )
+
+            if (isExpanded) {
+                loops.forEach { loop ->
+                    YesterdayDivider()
+                    LoopYesterdayItem(
+                        loop = loop,
+                        onRequestDone = { pendingAction = YesterdayAction(loop, LoopDoneVo.DoneState.DONE) },
+                        onRequestSkip = { pendingAction = YesterdayAction(loop, LoopDoneVo.DoneState.SKIP) },
+                        onNavigateToDetailPage = onNavigateToDetailPage,
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
             }
-            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 
@@ -121,16 +127,6 @@ private data class YesterdayAction(
     val loop: LoopBase,
     @LoopDoneVo.DoneState val doneState: Int,
 )
-
-/**
- * Opaque container fill for the card: a faint error tint over [surface] so the
- * "unchecked" warning reads in both light and dark themes without transparency.
- */
-@Composable
-private fun yesterdayContainerColor(): Color {
-    val tintAlpha = if (isSystemInDarkTheme()) 0.10f else 0.06f
-    return AppColor.error.copy(alpha = tintAlpha).compositeOver(AppColor.surface)
-}
 
 @Composable
 private fun YesterdayDivider() {

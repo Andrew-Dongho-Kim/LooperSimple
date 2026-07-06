@@ -83,6 +83,16 @@
     <string name="delete">삭제</string>
     <string name="done">완료</string>
     <string name="skip">건너뜀</string>
+    <string name="all_history_title">전체 기록</string>
+    <string name="all_history_empty">아직 표시할 루프가 없어요.</string>
+    <string name="all_history_created">생성일</string>
+    <string name="all_history_help">도움말</string>
+    <string name="all_history_help_title">표시 안내</string>
+    <string name="all_history_help_done">그날 루프를 완료함</string>
+    <string name="all_history_help_skip">그날 루프를 건너뜀</string>
+    <string name="all_history_help_no_response">예정됐지만 응답하지 않음</string>
+    <string name="all_history_help_disabled">그날 비활성화됨</string>
+    <string name="all_history_help_created">루프를 만든 날</string>
     <string name="loop_enable">활성화</string>
     <string name="loop_disable">비활성화</string>
     <string name="no_response">응답없음</string>
@@ -111,6 +121,21 @@
     <string name="skip_confirm_message">\"%s\"을(를) 건너뛸까요?</string>
 
     <string name="timeline">타임라인</string>
+    <string name="dial_view">다이얼</string>
+    <string name="dial_in_progress_count">진행 중 %1$d</string>
+    <string name="dial_remaining_minutes">%1$d분 남음</string>
+    <string name="dial_next">다음</string>
+    <string name="dial_running">진행 중</string>
+    <string name="dial_status_upcoming">예정</string>
+    <string name="dial_status_past">지남</string>
+    <string name="dial_needs_review">확인 필요 %1$d</string>
+    <string name="dial_undo">되돌리기</string>
+    <string name="dial_help_title">상태 표기 안내</string>
+    <string name="dial_desc_done">오늘 완료한 루프</string>
+    <string name="dial_desc_skip">오늘 건너뛴 루프</string>
+    <string name="dial_desc_noresp">시간이 지났지만 아직 미응답</string>
+    <string name="dial_desc_active">지금 진행 중</string>
+    <string name="dial_desc_upcoming">아직 시작 전</string>
     <string name="no_repeat">반복없음</string>
 
     <string name="alarm_category_sounds">소리</string>

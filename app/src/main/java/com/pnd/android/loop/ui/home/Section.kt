@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Timeline
 import androidx.compose.material.icons.outlined.ViewAgenda
 import androidx.compose.material.icons.rounded.ExpandMore
@@ -50,6 +51,7 @@ import com.pnd.android.loop.BuildConfig
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.ui.common.ExpandableNativeAd
+import com.pnd.android.loop.ui.home.timeline.LoopCircularDial
 import com.pnd.android.loop.ui.home.timeline.LoopTimeline
 import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.theme.AppColor
@@ -128,6 +130,11 @@ fun LazyListScope.section(
             onEdit = onEdit,
             onNavigateToGroupPicker = onNavigateToGroupPicker,
             onNavigateToDetailPage = onNavigateToDetailPage,
+        )
+
+        is Section.AllHistoryGrid -> sectionAllHistoryGrid(
+            section = section,
+            loopViewModel = loopViewModel,
         )
     }
 }
@@ -245,9 +252,9 @@ private fun LazyListScope.sectionTodayBody(
     onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
 
-    val isTimeline by section.isSelected
+    val viewMode by section.viewMode
 
-    // View-mode toggle sits above the content so switching list <-> timeline is discoverable.
+    // View-mode toggle sits above the content so switching list / timeline / dial is discoverable.
     item(
         contentType = ContentTypes.TIMELINE_TOGGLE_BUTTON,
         key = section.key
@@ -255,15 +262,15 @@ private fun LazyListScope.sectionTodayBody(
         val context = LocalContext.current
         ViewModeToggle(
             modifier = Modifier.padding(bottom = HomeCardSpacing),
-            isTimeline = isTimeline,
+            viewMode = viewMode,
             onSelected = { selected ->
-                section.save(context = context, selected = selected)
+                section.save(context = context, mode = selected)
             }
         )
     }
 
-    if (isTimeline) {
-        item(
+    when (viewMode) {
+        TodayViewMode.TIMELINE -> item(
             contentType = ContentTypes.LOOP_TIMELINE,
             key = "LoopTimeline",
         ) {
@@ -276,8 +283,22 @@ private fun LazyListScope.sectionTodayBody(
                 onEdit = onEdit,
             )
         }
-    } else {
-        items(
+
+        TodayViewMode.DIAL -> item(
+            contentType = ContentTypes.LOOP_DIAL,
+            key = "LoopDial",
+        ) {
+            LoopCircularDial(
+                modifier = Modifier.padding(
+                    horizontal = Dimens.screenHorizontalPadding,
+                    vertical = HomeCardSpacing,
+                ),
+                loopViewModel = loopViewModel,
+                onNavigateToDetailPage = onNavigateToDetailPage,
+            )
+        }
+
+        TodayViewMode.LIST -> items(
             items = loops,
             contentType = { ContentTypes.LOOP_CARD },
             key = { loop -> loop.loopId },
@@ -307,15 +328,15 @@ private fun LazyListScope.sectionTodayBody(
 }
 
 /**
- * Compact segmented control that flips the Today section between a plain card
- * list and the hourly timeline view. Replaces the old italic text button so the
- * two view modes read as equal, tappable options.
+ * Compact segmented control that flips the Today section between three view modes:
+ * a plain card list, the hourly timeline, and the 24-hour circular dial. Each mode
+ * reads as an equal, tappable icon option.
  */
 @Composable
 private fun ViewModeToggle(
     modifier: Modifier = Modifier,
-    isTimeline: Boolean,
-    onSelected: (timeline: Boolean) -> Unit,
+    viewMode: TodayViewMode,
+    onSelected: (mode: TodayViewMode) -> Unit,
 ) {
     Row(
         modifier = modifier
@@ -333,14 +354,20 @@ private fun ViewModeToggle(
             ViewModeButton(
                 icon = Icons.Outlined.ViewAgenda,
                 contentDescription = stringResource(R.string.list_view),
-                selected = !isTimeline,
-                onClick = { onSelected(false) },
+                selected = viewMode == TodayViewMode.LIST,
+                onClick = { onSelected(TodayViewMode.LIST) },
             )
             ViewModeButton(
                 icon = Icons.Outlined.Timeline,
                 contentDescription = stringResource(R.string.timeline),
-                selected = isTimeline,
-                onClick = { onSelected(true) },
+                selected = viewMode == TodayViewMode.TIMELINE,
+                onClick = { onSelected(TodayViewMode.TIMELINE) },
+            )
+            ViewModeButton(
+                icon = Icons.Outlined.Schedule,
+                contentDescription = stringResource(R.string.dial_view),
+                selected = viewMode == TodayViewMode.DIAL,
+                onClick = { onSelected(TodayViewMode.DIAL) },
             )
         }
     }
@@ -452,6 +479,31 @@ private fun LazyListScope.sectionAll(
     }
 }
 
+/**
+ * 전체 탭 하단의 기록 그리드 섹션. 전체 루프의 done/skip 이력을
+ * (행=루프, 열=생성일~오늘) 매트릭스로 보여준다.
+ */
+private fun LazyListScope.sectionAllHistoryGrid(
+    section: Section.AllHistoryGrid,
+    loopViewModel: LoopViewModel,
+) {
+    item(
+        contentType = ContentTypes.ALL_HISTORY_GRID,
+        key = section.key,
+    ) {
+        val loops by section.items
+        val doneHistory by loopViewModel.allDoneHistory.collectAsState(initial = emptyMap())
+        AllDoneHistoryGrid(
+            modifier = Modifier.padding(
+                horizontal = Dimens.screenHorizontalPadding,
+                vertical = Dimens.contentPadding,
+            ),
+            loops = loops,
+            doneHistory = doneHistory,
+        )
+    }
+}
+
 private fun LazyListScope.sectionLater(
     section: Section.Later,
     blurState: BlurState,
@@ -553,11 +605,34 @@ enum class ContentTypes {
     TIMELINE_TOGGLE_BUTTON,
     LOOP_EMPTY,
     LOOP_TIMELINE,
+    LOOP_DIAL,
     LATER_HEADER,
     YESTERDAY_CARD,
     LOOP_CARD,
     DONE_SKIP_CARD,
     AD_CARD,
+    ALL_HISTORY_GRID,
+}
+
+/**
+ * 오늘 섹션의 표시 방식.
+ * - [LIST]: 기본 카드 목록
+ * - [TIMELINE]: 가로 스크롤 시간대 타임라인
+ * - [DIAL]: 24시간 원형 다이얼(시안 A)
+ *
+ * SharedPreferences 에는 [ordinal] 로 저장하므로, 뒤에 새 모드를 추가하는 것은 안전하지만
+ * 순서를 바꾸면 저장된 값의 의미가 달라진다. 항목 순서는 유지할 것.
+ */
+enum class TodayViewMode {
+    LIST,
+    TIMELINE,
+    DIAL;
+
+    companion object {
+        /** 저장된 ordinal 이 범위를 벗어나면 안전하게 [LIST] 로 되돌린다. */
+        fun fromOrdinal(ordinal: Int): TodayViewMode =
+            entries.getOrElse(ordinal) { LIST }
+    }
 }
 
 sealed class Section(val key: String) {
@@ -592,24 +667,25 @@ sealed class Section(val key: String) {
     }
 
     class Today(
-        isSelected: Boolean = false
+        viewMode: TodayViewMode = TodayViewMode.LIST
     ) : Section(
         key = "TodaySection"
     ) {
-        private val _isSelected = mutableStateOf(isSelected)
-        val isSelected: State<Boolean> = _isSelected
+        private val _viewMode = mutableStateOf(viewMode)
+        val viewMode: State<TodayViewMode> = _viewMode
 
         fun load(context: Context) {
-            _isSelected.value = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
-                .getBoolean(KEY_IS_SELECTED, false)
+            val ordinal = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+                .getInt(KEY_VIEW_MODE, TodayViewMode.LIST.ordinal)
+            _viewMode.value = TodayViewMode.fromOrdinal(ordinal)
         }
 
-        fun save(context: Context, selected: Boolean) {
-            _isSelected.value = selected
+        fun save(context: Context, mode: TodayViewMode) {
+            _viewMode.value = mode
             context
                 .getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
                 .edit {
-                    putBoolean(KEY_IS_SELECTED, selected)
+                    putInt(KEY_VIEW_MODE, mode.ordinal)
                 }
         }
 
@@ -618,16 +694,16 @@ sealed class Section(val key: String) {
 
         companion object {
             private const val PREF_NAME = "loops_timeline"
-            private const val KEY_IS_SELECTED = "key_is_selected"
+            private const val KEY_VIEW_MODE = "key_view_mode"
             val Saver = listSaver(
                 save = {
                     listOf(
-                        it.isSelected.value
+                        it.viewMode.value.ordinal
                     )
                 },
                 restore = { list ->
                     Today(
-                        isSelected = list[0]
+                        viewMode = TodayViewMode.fromOrdinal(list[0])
                     )
                 }
             )
@@ -674,4 +750,7 @@ sealed class Section(val key: String) {
     }
 
     class All : Section(key = "AllSection")
+
+    /** 전체 탭 하단 기록 그리드 섹션. 표시할 루프가 있을 때만(size>0) 노출된다. */
+    class AllHistoryGrid : Section(key = "AllHistoryGridSection")
 }
