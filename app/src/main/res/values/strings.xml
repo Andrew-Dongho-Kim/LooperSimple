@@ -128,6 +128,7 @@
     <string name="dial_view">Dial</string>
     <string name="dial_in_progress_count">In progress %1$d</string>
     <string name="dial_remaining_minutes">%1$d min left</string>
+    <string name="dial_past_minutes">%1$d min past</string>
     <string name="dial_next">Next</string>
     <string name="dial_running">Running</string>
     <string name="dial_status_upcoming">Upcoming</string>

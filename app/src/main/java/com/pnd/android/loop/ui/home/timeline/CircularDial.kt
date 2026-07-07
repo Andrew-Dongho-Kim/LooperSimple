@@ -94,7 +94,6 @@ import com.pnd.android.loop.ui.theme.surfaceElevated
 import com.pnd.android.loop.util.MS_1DAY
 import com.pnd.android.loop.util.MS_1MIN
 import com.pnd.android.loop.util.formatHourMinute
-import com.pnd.android.loop.util.isActiveDay
 import com.pnd.android.loop.util.toMs
 import kotlinx.coroutines.launch
 import kotlin.math.atan2
@@ -1257,9 +1256,16 @@ private fun DialTooltipCard(
 
         // 진행 중일 때만 잔여 시간을 덧붙인다.
         if (arc.state == DialState.ACTIVE) {
-            val remainingMin = ((arc.loop.endMsInDay() - nowMs) / MS_1MIN).toInt().coerceAtLeast(0)
+            val durationMs = if (arc.loop.isAnyTime) {
+                ((nowMs - arc.loop.startInDay) / MS_1MIN).toInt().coerceAtLeast(0)
+            } else {
+                ((arc.loop.endMsInDay() - nowMs) / MS_1MIN).toInt().coerceAtLeast(0)
+            }
             Text(
-                text = stringResource(id = R.string.dial_remaining_minutes, remainingMin),
+                text = stringResource(
+                    id = if (arc.loop.isAnyTime) R.string.dial_past_minutes else R.string.dial_remaining_minutes,
+                    durationMs
+                ),
                 style = AppTypography.labelMedium.copy(color = AppColor.primary),
             )
         }

@@ -782,19 +782,20 @@ private fun AchievementProgressRing(
  * 앰버(중간)→파랑(높음)→초록(완료)으로 바뀌며 성취 정도를 색으로 전한다.
  * 라이트/다크 각각 대비가 유지되도록 색을 따로 지정한다.
  */
-@Composable
+@Composable   
 private fun progressColorOf(fraction: Float): Color {
     val isDark = isSystemInDarkTheme()
-    return when {
-        // 완료: 성취를 강조하는 초록. 파랑(primary)과 구분돼 "다 했다"가 한눈에 보인다.
-        fraction >= 1f -> if (isDark) Color(0xFF7DD3A8) else Color(0xFF1E7A46)
-        // 높음(67~99%): 앱의 기본 강조색인 파랑.
-        fraction >= 0.67f -> AppColor.primary
-        // 중간(34~66%): 진행 중임을 따뜻하게 알리는 앰버.
-        fraction >= 0.34f -> if (isDark) Color(0xFFE0A93C) else Color(0xFF8A5A00)
-        // 저조(0~33%): 판단·경고 느낌 없이 담담한 중립 회색.
-        else -> AppColor.onSurface.copy(alpha = if (isDark) 0.60f else 0.50f)
-    }
+    return AppColor.onSurface.copy(alpha = if (isDark) 0.60f else 0.50f)
+//    when {
+//        // 완료: 성취를 강조하는 초록. 파랑(primary)과 구분돼 "다 했다"가 한눈에 보인다.
+//        fraction >= 1f -> if (isDark) Color(0xFF7DD3A8) else Color(0xFF1E7A46)
+//        // 높음(67~99%): 앱의 기본 강조색인 파랑.
+//        fraction >= 0.67f -> AppColor.primary
+//        // 중간(34~66%): 진행 중임을 따뜻하게 알리는 앰버.
+//        fraction >= 0.34f -> if (isDark) Color(0xFFE0A93C) else Color(0xFF8A5A00)
+//        // 저조(0~33%): 판단·경고 느낌 없이 담담한 중립 회색.
+//        else -> AppColor.onSurface.copy(alpha = if (isDark) 0.60f else 0.50f)
+//    }
 }
 
 /** 기록이 하나도 없는 날 카드 안에 보여주는 안내 문구. */

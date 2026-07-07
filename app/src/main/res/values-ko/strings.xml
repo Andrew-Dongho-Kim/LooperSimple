@@ -127,6 +127,7 @@
     <string name="dial_view">다이얼</string>
     <string name="dial_in_progress_count">진행 중 %1$d</string>
     <string name="dial_remaining_minutes">%1$d분 남음</string>
+    <string name="dial_past_minutes">%1$d분 지남</string>
     <string name="dial_next">다음</string>
     <string name="dial_running">진행 중</string>
     <string name="dial_status_upcoming">예정</string>
