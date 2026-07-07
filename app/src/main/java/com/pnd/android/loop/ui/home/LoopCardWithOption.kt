@@ -46,6 +46,7 @@ fun LoopCardWithOption(
     if (showDeleteDialog) {
         DeleteLoopDialog(
             loopTitle = loop.title,
+            loopColor = loop.color,
             onDismiss = {
                 showDeleteDialog = false
                 blurState.off()

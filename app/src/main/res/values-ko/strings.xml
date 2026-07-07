@@ -44,6 +44,8 @@
     <string name="go_to_statistics">통계페이지로 이동</string>
 
     <string name="no_achievements">완료하거나 건너뛴 루프가 없습니다.</string>
+    <!-- 하루 요약 헤더의 달성 부제: "3/4 완료" 형태로 완료/전체 개수를 보여준다. -->
+    <string name="achievement_done_ratio">%1$d/%2$d 완료</string>
 
     <string name="total">전체</string>
 
@@ -116,6 +118,7 @@
     <string name="detail_schedule">시간 설정</string>
     <string name="detail_repeat">반복</string>
 
+    <string name="delete_loop_title">루프 삭제</string>
     <string name="delete_confirm_message">이 루프를 삭제하시겠습니까?</string>
     <string name="done_confirm_message">\"%s\"을(를) 완료로 표시할까요?</string>
     <string name="skip_confirm_message">\"%s\"을(를) 건너뛸까요?</string>

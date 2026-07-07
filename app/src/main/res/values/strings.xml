@@ -45,6 +45,8 @@
     <string name="go_to_statistics">statistics</string>
 
     <string name="no_achievements">There are no done or skipped loops.</string>
+    <!-- 하루 요약 헤더의 달성 부제: "3/4 done" 형태로 완료/전체 개수를 보여준다. -->
+    <string name="achievement_done_ratio">%1$d/%2$d done</string>
 
     <string name="total">Total</string>
 
@@ -117,6 +119,7 @@
     <string name="detail_schedule">Schedule</string>
     <string name="detail_repeat">Repeat</string>
 
+    <string name="delete_loop_title">Delete loop</string>
     <string name="delete_confirm_message">Do you want to delete this loop?</string>
     <string name="done_confirm_message">Mark \"%s\" as done?</string>
     <string name="skip_confirm_message">Skip \"%s\"?</string>

@@ -1,5 +1,7 @@
 package com.pnd.android.loop.ui.home
 
+import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -16,8 +18,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -26,7 +29,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -34,15 +39,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.lerp
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.pnd.android.loop.R
@@ -60,7 +72,9 @@ import com.pnd.android.loop.util.color
 import com.pnd.android.loop.util.dayForLoop
 import com.pnd.android.loop.util.toLocalDate
 import com.pnd.android.loop.util.toMs
+import kotlinx.coroutines.delay
 import java.time.LocalDate
+import kotlin.math.abs
 
 // 그리드 치수. 셀·행·헤더 높이를 상수로 묶어 왼쪽 이름 열과 날짜 열의 높이가 항상 정확히 맞도록 한다.
 private val CellSize = 28.dp          // 실제 ✓/✕가 그려지는 정사각 셀
@@ -68,6 +82,8 @@ private val CellGap = 2.dp            // 셀 사이 여백
 private val ColumnWidth = CellSize + CellGap * 2   // 날짜 한 열의 폭
 private val RowHeight = CellSize + CellGap * 2     // 루프 한 행의 높이
 private val NameColumnWidth = 96.dp   // 왼쪽 고정 루프 이름 열 폭
+private val NameColumnCollapsedWidth = 14.dp // 완전히 접혔을 때 남겨 두는 폭(루프 색상 점은 항상 보이도록)
+private val CollapseScrollDistance = 120.dp  // 이만큼 스크롤하면 이름 열이 완전히 접힌다(스크롤 양에 비례해 접힘)
 
 private val YearBandHeight = 15.dp    // 헤더: 연도 표시 줄
 private val WeekdayBandHeight = 16.dp // 헤더: 요일 줄
@@ -137,30 +153,85 @@ fun AllDoneHistoryGrid(
     Column(modifier = modifier) {
         AllHistoryHeader()
 
+        // 오른쪽 스크롤 열의 상태. 스크롤 여부에 따라 왼쪽 이름 열 노출을 제어한다.
+        val listState = rememberLazyListState()
+        // 최초 진입 시 가장 최근(오늘)이 보이도록 끝으로 스크롤한다.
+        LaunchedEffect(columns.size) {
+            if (columns.isNotEmpty()) listState.scrollToItem(columns.lastIndex)
+        }
+
+        // 현재 왼쪽 가장자리에 걸쳐 잘리지 않고 '완전히' 보이는 첫 열의 인덱스.
+        // 이 열의 요일 줄에 "연도.월" 배지를 표시해, 스크롤 위치와 무관하게 항상 기준 년/월이 보이도록 한다.(스크롤 시 자동 갱신)
+        val leadingIndex by remember {
+            derivedStateOf {
+                val info = listState.layoutInfo
+                info.visibleItemsInfo.firstOrNull { it.offset >= info.viewportStartOffset }?.index
+                    ?: listState.firstVisibleItemIndex
+            }
+        }
+
+        // 이름 열 접힘 정도(0=완전히 펼침, 1=완전히 접힘). 스크롤 양에 비례해 커진다.
+        val collapseProgress = remember { mutableFloatStateOf(0f) }
+
+        // 스크롤 델타를 누적해 접힘 정도를 갱신한다. 손가락 이동량만큼 천천히 접히도록,
+        // [CollapseScrollDistance]만큼 스크롤하면 완전히 접히도록 정규화한다.
+        val collapseDistancePx = with(LocalDensity.current) { CollapseScrollDistance.toPx() }
+        val nestedScrollConnection = remember(collapseDistancePx) {
+            object : NestedScrollConnection {
+                override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                    val next = collapseProgress.floatValue + abs(available.x) / collapseDistancePx
+                    collapseProgress.floatValue = next.coerceIn(0f, 1f)
+                    return Offset.Zero
+                }
+            }
+        }
+
+        // 스크롤이 멈추면 2초 뒤에 이름 열을 애니메이션으로 다시 펼친다.
+        LaunchedEffect(listState.isScrollInProgress) {
+            if (!listState.isScrollInProgress) {
+                delay(2000)
+                animate(
+                    initialValue = collapseProgress.floatValue,
+                    targetValue = 0f,
+                    animationSpec = tween(durationMillis = 300),
+                ) { value, _ -> collapseProgress.floatValue = value }
+            }
+        }
+
+        // 접혀도 색상 점은 보이도록 최소 폭([NameColumnCollapsedWidth])까지만 줄인다.
+        val nameColumnWidth = lerp(
+            start = NameColumnWidth,
+            stop = NameColumnCollapsedWidth,
+            fraction = collapseProgress.floatValue,
+        )
+
         Row(modifier = Modifier.padding(top = 12.dp)) {
             // 왼쪽 고정 열: 헤더 높이만큼 비운 뒤 루프 이름을 세로로 나열한다.
-            HistoryNameColumn(loops = gridLoops)
-
-            // 오른쪽 스크롤 열: 날짜별로 헤더 + 각 루프의 셀을 한 컬럼으로 묶는다.
-            val listState = rememberLazyListState()
-            // 최초 진입 시 가장 최근(오늘)이 보이도록 끝으로 스크롤한다.
-            LaunchedEffect(columns.size) {
-                if (columns.isNotEmpty()) listState.scrollToItem(columns.lastIndex)
+            // 내부 콘텐츠는 고정 폭을 유지한 채 바깥 폭만 줄여, 접힐 때 텍스트가 재배치되지 않도록 clip 한다.
+            Box(
+                modifier = Modifier
+                    .width(nameColumnWidth)
+                    .clipToBounds(),
+            ) {
+                HistoryNameColumn(loops = gridLoops)
             }
 
             LazyRow(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .nestedScroll(nestedScrollConnection),
                 state = listState,
                 contentPadding = PaddingValues(horizontal = 4.dp),
             ) {
-                items(
+                itemsIndexed(
                     items = columns,
-                    key = { column -> column.dateMs },
-                ) { column ->
+                    key = { _, column -> column.dateMs },
+                ) { index, column ->
                     HistoryDateColumn(
                         column = column,
                         loops = gridLoops,
                         doneHistory = doneHistory,
+                        isLeading = index == leadingIndex,
                     )
                 }
             }
@@ -257,12 +328,16 @@ private fun HistoryDateColumn(
     column: HistoryColumn,
     loops: List<LoopBase>,
     doneHistory: Map<Int, Map<Long, Int>>,
+    isLeading: Boolean,
 ) {
     Column(
-        modifier = Modifier.width(ColumnWidth),
+        modifier = Modifier
+            // 배지가 좁은 열 폭을 넘어 옆 열 위로 겹칠 수 있으므로, 리딩 열을 항상 위에 그린다.
+            .then(if (isLeading) Modifier.zIndex(1f) else Modifier)
+            .width(ColumnWidth),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        HistoryColumnHeader(column = column)
+        HistoryColumnHeader(column = column, isLeading = isLeading)
         loops.forEach { loop ->
             HistoryCell(
                 loop = loop,
@@ -276,36 +351,60 @@ private fun HistoryDateColumn(
 /**
  * 날짜 열 헤더. 위에서부터 연도 / 요일 / 일자 3단이며,
  * - 연도는 [HistoryColumn.isYearChanged]일 때만(= 해가 바뀌는 지점) 표시한다.
+ * - 단, 가장 왼쪽에 보이는 열([isLeading])이면 스크롤 기준점이 되도록 "연도.월" 배지를 항상 표시한다.
  * - 일자 줄은 매월 1일이면 "월/1", 그 외에는 일(day) 숫자를 보여준다.
  * - 오늘은 강조색으로 표시한다.
  */
 @Composable
-private fun HistoryColumnHeader(column: HistoryColumn) {
+private fun HistoryColumnHeader(column: HistoryColumn, isLeading: Boolean) {
     val date = column.date
     val isToday = date == LocalDate.now()
 
-    // 연도 줄: 폭이 좁아도 잘리지 않도록 열 너비에 맞춰 가운데 정렬한다.
+    // 연도 줄(요일 위): 폭이 좁아도 잘리지 않도록 열 너비에 맞춰 가운데 정렬한다.
+    // - 가장 왼쪽에 '완전히' 보이는 열([isLeading])이면 스크롤 기준점이 되도록 "연도.월" 배지를 항상 표시한다.
+    //   좁은 열 폭을 넘어가는 배지는 왼쪽 정렬 + 오른쪽(대부분 비어 있는 옆 열의 연도 칸)으로 확장한다.
+    // - 그 외에는 해가 바뀌는 지점에서만 연도를 표시한다.
     Box(
         modifier = Modifier
             .width(ColumnWidth)
             .height(YearBandHeight),
-        contentAlignment = Alignment.Center,
+        contentAlignment = if (isLeading) Alignment.CenterStart else Alignment.Center,
     ) {
-        if (column.isYearChanged) {
-            Text(
-                text = "${date.year}",
-                maxLines = 1,
-                style = AppTypography.labelSmall.copy(
-                    color = AppColor.onSurface,
-                    fontWeight = FontWeight.Medium,
-                ),
-            )
+        when {
+            isLeading -> {
+                Text(
+                    modifier = Modifier
+                        .wrapContentWidth(align = Alignment.Start, unbounded = true)
+                        .clip(RoundShapes.small)
+                        .background(color = accentColor().copy(alpha = 0.12f))
+                        .padding(horizontal = 4.dp, vertical = 1.dp),
+                    text = "${date.year}.${date.monthValue}",
+                    maxLines = 1,
+                    style = AppTypography.labelSmall.copy(
+                        color = accentColor(),
+                        fontWeight = FontWeight.Medium,
+                    ),
+                )
+            }
+
+            column.isYearChanged -> {
+                Text(
+                    text = "${date.year}",
+                    maxLines = 1,
+                    style = AppTypography.labelSmall.copy(
+                        color = AppColor.onSurface,
+                        fontWeight = FontWeight.Medium,
+                    ),
+                )
+            }
         }
     }
 
-    // 요일 줄: 일요일/토요일은 기존 규칙대로 색을 달리한다.
+    // 요일 줄: 항상 표시한다. 일요일/토요일은 기존 규칙대로 색을 달리한다.
     Box(
-        modifier = Modifier.height(WeekdayBandHeight),
+        modifier = Modifier
+            .width(ColumnWidth)
+            .height(WeekdayBandHeight),
         contentAlignment = Alignment.Center,
     ) {
         Text(

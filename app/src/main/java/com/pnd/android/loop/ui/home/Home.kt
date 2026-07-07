@@ -476,20 +476,23 @@ private fun LoopViewModel.observeSectionsAsState(
 
 
         val isAllTab = selectedTab == HomeTab.ALL
+        val todayOrAllSection = if (isAllTab) {
+            rememberAllSection(resultLoops, inputState)
+        } else {
+            rememberTodaySection(resultLoops)
+        }
         val sections = buildList {
             add(rememberHeaderSection(resultLoops))
-            add(
-                if (isAllTab) {
-                    rememberAllSection(resultLoops, inputState)
-                } else {
-                    rememberTodaySection(resultLoops)
-                }
-            )
+            add(todayOrAllSection)
             // 전체 탭에서는 어제 미응답 루프 카드를 노출하지 않는다.
             if (!isAllTab) add(rememberYesterdaySection(yesterdayLoops))
             add(rememberAdSection())
             // 전체 탭에서는 오늘 Done/Skip한 루프 정보를 노출하지 않는다.
-            if (!isAllTab) add(rememberDoneSection(resultLoops))
+            // 또한 타임라인/다이얼 뷰는 자체적으로 완료/스킵 상태를 표시하므로,
+            // 리스트 뷰일 때만 Done/Skip 카드를 노출한다.
+            val isListView =
+                (todayOrAllSection as? Section.Today)?.viewMode?.value == TodayViewMode.LIST
+            if (!isAllTab && isListView) add(rememberDoneSection(resultLoops))
             // 전체 탭 하단에는 전체 루프의 done/skip 이력을 매트릭스 그리드로 덧붙인다.
             if (isAllTab) add(rememberAllHistoryGridSection(resultLoops))
         }.filter { it.size > 0 }

@@ -13,6 +13,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -28,7 +29,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
@@ -45,8 +46,9 @@ import com.pnd.android.loop.ui.home.DeleteLoopDialog
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.RoundShapes
+import com.pnd.android.loop.ui.theme.compositeOverSurface
 import com.pnd.android.loop.ui.theme.onSurface
-import com.pnd.android.loop.ui.theme.surface
+import com.pnd.android.loop.util.isActive
 
 @Composable
 fun TimelineItem(
@@ -97,37 +99,44 @@ private fun LoopInTimeline(
     loop: LoopBase,
 ) {
     val alpha = animateCardAlphaWithMock(loopBase = loop)
-    val shape = RoundShapes.small
-    Box(
+    val shape = RoundShapes.medium
+    val loopColor = Color(loop.color)
+    val isActive = loop.isActive() // 현재 진행 중인 루프 여부
+
+    Row(
         modifier = modifier
-            .alpha(0.7f)
-            .padding(1.dp)
+            .padding(1.5.dp)
             .graphicsLayer { this.alpha = alpha }
-            .background(
-                color = Color(loop.color),
-                shape = shape
-            )
-            .background(
-                color = AppColor.surface.copy(alpha = 0.25f),
-                shape = shape
-            )
+            .clip(shape)
+            // 루프 색을 은은하게 깔아 부드러운 톤 카드로 표현 (라이트/다크 모두 자연스럽게 합성)
+            .background(color = loopColor.compositeOverSurface(alpha = 0.16f))
+            // 진행 중이면 루프 색 링으로 강조, 아니면 얇은 중립 테두리
             .border(
-                width = 0.5.dp,
-                color = AppColor.onSurface.copy(alpha = 0.2f),
+                width = if (isActive) 1.5.dp else 0.5.dp,
+                color = if (isActive) loopColor else AppColor.onSurface.copy(alpha = 0.15f),
                 shape = shape
             )
             .width(loop.timelineWidth())
-            .height(timelineItemHeightDp)
+            .height(timelineItemHeightDp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
+        // 좌측 컬러 액센트 바 — 루프 색을 또렷하게 드러내는 시각적 앵커
+        Box(
+            modifier = Modifier
+                .fillMaxHeight()
+                .width(4.dp)
+                .background(color = loopColor)
+        )
         Text(
             modifier = Modifier
-                .align(Alignment.Center)
-                .padding(2.dp),
+                .weight(1f)
+                .padding(horizontal = 6.dp),
             text = loop.title,
+            maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             style = AppTypography.labelMedium.copy(
                 color = AppColor.onSurface,
-                fontWeight = FontWeight.Normal
+                fontWeight = if (isActive) FontWeight.Medium else FontWeight.Normal
             )
         )
     }
@@ -216,6 +225,7 @@ private fun LoopOptions(
     if (showDeleteDialog) {
         DeleteLoopDialog(
             loopTitle = loop.title,
+            loopColor = loop.color,
             onDismiss = {
                 blurState.off()
                 showDeleteDialog = false

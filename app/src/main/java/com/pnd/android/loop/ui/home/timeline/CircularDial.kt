@@ -2,6 +2,7 @@ package com.pnd.android.loop.ui.home.timeline
 
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -37,9 +38,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -77,6 +79,8 @@ import androidx.compose.ui.window.PopupProperties
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
+import com.pnd.android.loop.data.actualEndInDay
+import com.pnd.android.loop.data.actualStartInDay
 import com.pnd.android.loop.data.doneState
 import com.pnd.android.loop.data.isInProgress
 import com.pnd.android.loop.data.isRespond
@@ -92,6 +96,7 @@ import com.pnd.android.loop.util.MS_1MIN
 import com.pnd.android.loop.util.formatHourMinute
 import com.pnd.android.loop.util.isActiveDay
 import com.pnd.android.loop.util.toMs
+import kotlinx.coroutines.launch
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.hypot
@@ -116,22 +121,47 @@ import kotlin.math.sin
 @Composable
 fun LoopCircularDial(
     modifier: Modifier = Modifier,
-    loops:List<LoopBase>,
+    loops: List<LoopBase>,
     onStateChanged: (LoopBase, Int) -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
-    val (anyTimeLoops, timedLoops) = remember(loops) {
-        loops.partition { loop -> loop.isAnyTime }
-    }
-
     // 현재 시각(분 단위로 갱신)을 하루 기준 ms 로 환산해 둔다.
     val localTime by rememberLocalTime()
     val nowMs = localTime.toMs()
 
+    // 루프를 "시간 레인에 그릴 것"과 "바깥 궤도 노드로 둘 것"으로 나눈다.
+    // - 시간이 정해진 루프: 그대로 레인에.
+    // - 실행 중 AnyTime: 시작 시각~현재까지 "자라는 시간 루프"로 변환 → 다른 루프와 동일한 진행 이펙트.
+    // - 정지(완료/스킵)된 AnyTime: 시작~정지 구간의 완료 조각으로 고정.
+    // - 대기 중 AnyTime: 바깥 궤도 노드로.
+    // nowMs 를 키에 포함해 실행 중 호가 분 단위로 자라도록 한다.
+    val (idleAnyTimeLoops, timedLoops) = remember(loops, nowMs) {
+        val idle = ArrayList<LoopBase>()
+        val timed = ArrayList<LoopBase>()
+        loops.forEach { loop ->
+            when {
+                !loop.isAnyTime -> timed += loop
+                // isAnyTime=true 를 유지해, 그릴 때 "시작→안쪽 이동" 진입 애니메이션 대상인지 식별한다.
+                loop.isInProgress -> timed += loop.copyAs(
+                    startInDay = loop.actualStartInDay,
+                    endInDay = nowMs,
+                    isAnyTime = true,
+                )
+                loop.isRespond -> timed += loop.copyAs(
+                    startInDay = loop.actualStartInDay,
+                    endInDay = loop.actualEndInDay,
+                    isAnyTime = true,
+                )
+                else -> idle += loop
+            }
+        }
+        idle to timed
+    }
+
     Box(modifier = modifier.fillMaxWidth()) {
         DialFace(
             timedLoops = timedLoops,
-            anyTimeLoops = anyTimeLoops,
+            anyTimeLoops = idleAnyTimeLoops,
             nowMs = nowMs,
             currentTimeText = localTime.formatHourMinute(withAmPm = false),
             onLoopClick = onNavigateToDetailPage,
@@ -294,12 +324,18 @@ private fun DialGeometry.hitTest(
     if (deg < 0) deg += 360.0
     val tappedMs = (deg / 360.0 * MS_1DAY).toLong()
 
+    // 그린 최소 스윕(약 4°)과 좌우 여유(3°)를 히트 범위에도 반영한다.
+    // 방금 시작한 AnyTime 처럼 지속시간이 0 에 가까운 호도 탭할 수 있게 하기 위함.
+    val minSpanMs = MS_1DAY * 4 / 360
+    val angleSlopMs = MS_1DAY * 3 / 360
     val arc = arcs.firstOrNull { arc ->
         if (arc.lane >= visibleLanes) return@firstOrNull false // 접힌(숨긴) 호는 탭 대상에서 제외
         val radius = laneRadius(arc.lane)
         val half = stroke / 2f + slop
         if (dist < radius - half || dist > radius + half) return@firstOrNull false
-        tappedMs in arc.loop.startInDay.coerceAtLeast(0L)..arc.loop.endMsInDay()
+        val s = arc.loop.startInDay.coerceAtLeast(0L)
+        val e = maxOf(arc.loop.endMsInDay(), s + minSpanMs)
+        tappedMs in (s - angleSlopMs)..(e + angleSlopMs)
     } ?: return null
 
     val radius = laneRadius(arc.lane)
@@ -397,6 +433,31 @@ private fun DialFace(
         animationSpec = infiniteRepeatable(tween(700, easing = LinearEasing), RepeatMode.Restart),
         label = "dashPhase",
     )
+
+    // 방금 시작한 AnyTime 이 "바깥 궤도 → 안쪽 레인"으로 들어오는 진입 애니메이션 진행값(loopId -> 0..1).
+    // 값이 없거나 1 이면 완전히 자리잡은 상태.
+    val enterProgress = remember { mutableStateMapOf<Int, Float>() }
+    val runningAnyTimeIds = remember(arcs) {
+        arcs.filter { it.loop.isAnyTime && it.state == DialState.ACTIVE }
+            .map { it.loop.loopId }
+            .toSet()
+    }
+    // null = 최초 구성(이때는 애니메이션 없이 기준선만 잡는다). 이후 새로 등장한 id 만 진입 애니메이션.
+    var knownRunningIds by remember { mutableStateOf<Set<Int>?>(null) }
+    LaunchedEffect(runningAnyTimeIds) {
+        val prev = knownRunningIds
+        knownRunningIds = runningAnyTimeIds
+        enterProgress.keys.retainAll(runningAnyTimeIds) // 종료된 것은 진입값 제거
+        if (prev == null) return@LaunchedEffect
+        (runningAnyTimeIds - prev).forEach { id ->
+            launch {
+                animate(initialValue = 0f, targetValue = 1f, animationSpec = tween(450)) { v, _ ->
+                    enterProgress[id] = v
+                }
+                enterProgress[id] = 1f
+            }
+        }
+    }
 
     // 테마 토큰을 미리 읽어 Canvas 람다에서 재사용한다(다크/라이트 자동 대응).
     val trackColor = AppColor.onSurface.copy(alpha = 0.08f)
@@ -668,8 +729,27 @@ private fun DialFace(
                     // 진행 중이면 현재 위치에 맥박 점을 얹어 "지금 이거"를 즉시 인지시킨다.
                     if (isActive) {
                         val a = Math.toRadians(-90.0 + nowMs.toDouble() / MS_1DAY * 360.0)
-                        val pos =
-                            Offset(cx + radius * cos(a).toFloat(), cy + radius * sin(a).toFloat())
+                        val cosA2 = cos(a).toFloat()
+                        val sinA2 = sin(a).toFloat()
+                        val pos = Offset(cx + radius * cosA2, cy + radius * sinA2)
+
+                        // 방금 시작한 AnyTime 은 바깥 궤도에서 현재 위치(리딩 엣지)로 점이 날아 들어온다.
+                        val enter = if (arc.loop.isAnyTime) (enterProgress[arc.loop.loopId] ?: 1f) else 1f
+                        if (enter < 1f) {
+                            val fromR = geo.orbitRadius
+                            val curR = fromR + (radius - fromR) * enter
+                            val fromPos = Offset(cx + fromR * cosA2, cy + fromR * sinA2)
+                            val curPos = Offset(cx + curR * cosA2, cy + curR * sinA2)
+                            drawLine(
+                                color = loopColor.copy(alpha = (1f - enter) * 0.5f),
+                                start = fromPos,
+                                end = curPos,
+                                strokeWidth = 2.dp.toPx(),
+                                cap = StrokeCap.Round,
+                            )
+                            drawCircle(loopColor, 5.dp.toPx(), curPos)
+                        }
+
                         drawCircle(loopColor.copy(alpha = pulseAlpha), pulseRadius.dp.toPx(), pos)
                         drawCircle(loopColor, 3.5.dp.toPx(), pos)
                     }

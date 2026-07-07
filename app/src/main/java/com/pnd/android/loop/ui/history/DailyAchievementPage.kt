@@ -3,6 +3,7 @@ package com.pnd.android.loop.ui.history
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -44,7 +45,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.collectAsState
@@ -59,7 +59,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -103,7 +107,6 @@ import com.pnd.android.loop.util.toLocalDate
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
-import kotlin.math.roundToInt
 
 @Composable
 fun DailyAchievementPage(
@@ -668,10 +671,10 @@ private fun DayCard(
 }
 
 /**
- * 하루 요약 헤더. 날짜와 함께 달성률을 색이 있는 퍼센트 알약으로 보여주고, 아래에 아주 얇은
- * 헤어라인으로 진행 정도를 은은하게 얹는다. 알약·헤어라인 색은 달성 단계([progressTierOf])에 따라
- * 회색→앰버→파랑→초록으로 바뀌어, 강렬한 진행바 대신 색으로 성취 정도를 전한다.
- * 오늘이면 날짜를 primary 색으로 강조한다.
+ * 하루 요약 헤더. 왼쪽에 달성 정도를 나타내는 얇은 원형 진행 링을 두고, 오른쪽에 날짜와
+ * "완료/전체" 부제를 세로로 쌓는다. 링 색은 달성 단계([progressColorOf])에 따라
+ * 회색(저조)→앰버(중간)→파랑(높음)→초록(완료)으로 바뀌어, 강렬한 진행바 대신 색으로 성취 정도를 전한다.
+ * 오늘이면 날짜를 primary 색으로 강조하고, 기록이 없는 날은 링·부제 없이 날짜만 보여준다.
  */
 @Composable
 private fun DaySummaryHeader(
@@ -681,38 +684,43 @@ private fun DaySummaryHeader(
     totalCount: Int,
 ) {
     val isToday = itemDate == LocalDate.now()
-    // 기록이 없는 날(totalCount == 0)은 0f로 두고 알약·헤어라인을 그리지 않는다.
-    val fraction = if (totalCount > 0) doneCount.toFloat() / totalCount else 0f
-    val tier = progressTierOf(fraction)
+    // 기록이 없는 날(totalCount == 0)은 진행 링·부제를 그리지 않고 날짜만 보여준다.
+    val hasRecords = totalCount > 0
+    val fraction = if (hasRecords) doneCount.toFloat() / totalCount else 0f
 
-    Column(
+    Row(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = Dimens.contentPadding),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+        if (hasRecords) {
+            AchievementProgressRing(
+                fraction = fraction,
+                color = progressColorOf(fraction),
+                modifier = Modifier.padding(end = Dimens.contentPadding),
+            )
+        }
+
+        Column(modifier = Modifier.weight(1f)) {
             Text(
-                modifier = Modifier.weight(1f),
                 text = itemDate.formatMonthDateDay(),
                 style = AppTypography.titleSmall.copy(
                     color = if (isToday) AppColor.primary else AppColor.onSurface.copy(alpha = 0.9f),
                     fontWeight = FontWeight.SemiBold,
                 ),
             )
-            // 기록이 있는 날에만 달성률 알약을 보여준다. 단계 색의 옅은 배경 위에 진한 같은 계열 텍스트.
-            if (totalCount > 0) {
+            // 완료/전체 개수를 담담한 부제로 덧붙인다(예: "3/4 완료").
+            if (hasRecords) {
                 Text(
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .background(tier.container)
-                        .padding(horizontal = 8.dp, vertical = 2.dp),
-                    text = "${(fraction * 100).roundToInt()}%",
+                    modifier = Modifier.padding(top = 2.dp),
+                    text = stringResource(
+                        id = R.string.achievement_done_ratio,
+                        doneCount,
+                        totalCount,
+                    ),
                     style = AppTypography.labelMedium.copy(
-                        color = tier.accent,
-                        fontWeight = FontWeight.SemiBold,
+                        color = AppColor.onSurface.copy(alpha = 0.55f),
                     ),
                 )
             }
@@ -720,53 +728,72 @@ private fun DaySummaryHeader(
     }
 }
 
-/**
- * 달성 비율에 따른 진행 색상 단계. 강렬한 단색 진행바 대신, 담담한 회색(저조)→앰버(중간)→
- * 파랑(높음)→초록(완료)으로 바뀌며 성취 정도를 색으로 전한다.
- * [accent]는 알약 텍스트·헤어라인 채움 색, [container]는 알약의 옅은 배경색이다.
- */
-@Immutable
-private data class ProgressTier(val accent: Color, val container: Color)
+/** 진행 링의 바깥 지름과 선 굵기. */
+private val ProgressRingDiameter = 34.dp
+private val ProgressRingStroke = 3.dp
 
-/** [fraction](0~1)을 4단계로 나눠 색을 고른다. 라이트/다크 각각 대비가 유지되도록 색을 따로 지정한다. */
+/**
+ * 달성 정도를 나타내는 얇은 원형 진행 링. 12시 방향에서 시작해 시계 방향으로 [fraction]만큼 채운다.
+ * 채우는 색([color])은 달성 단계 색이고, 바탕 트랙은 라이트/다크 모두에서 은은한 중립색이라
+ * 채워지지 않은 부분도 자연스럽게 얹힌다.
+ */
 @Composable
-private fun progressTierOf(fraction: Float): ProgressTier {
+private fun AchievementProgressRing(
+    fraction: Float,
+    color: Color,
+    modifier: Modifier = Modifier,
+) {
+    // 채워지지 않은 바탕 트랙 색. onSurface 기반 반투명이라 두 테마 모두에서 어색하지 않다.
+    val trackColor = AppColor.onSurface.copy(alpha = if (isSystemInDarkTheme()) 0.14f else 0.10f)
+    val sweepAngle = fraction.coerceIn(0f, 1f) * 360f
+
+    Canvas(modifier = modifier.size(ProgressRingDiameter)) {
+        val strokeWidthPx = ProgressRingStroke.toPx()
+        // 선은 경로의 중심을 따라 그려지므로, 굵기의 절반만큼 안으로 들여 캔버스 밖으로 잘리지 않게 한다.
+        val inset = strokeWidthPx / 2f
+        val arcTopLeft = Offset(inset, inset)
+        val arcSize = Size(size.width - strokeWidthPx, size.height - strokeWidthPx)
+
+        // 바탕 트랙(전체 원).
+        drawArc(
+            color = trackColor,
+            startAngle = -90f,
+            sweepAngle = 360f,
+            useCenter = false,
+            topLeft = arcTopLeft,
+            size = arcSize,
+            style = Stroke(width = strokeWidthPx),
+        )
+        // 달성 정도만큼 채우는 진행 호. 끝을 둥글려(Round) 부드러운 인상을 준다.
+        drawArc(
+            color = color,
+            startAngle = -90f,
+            sweepAngle = sweepAngle,
+            useCenter = false,
+            topLeft = arcTopLeft,
+            size = arcSize,
+            style = Stroke(width = strokeWidthPx, cap = StrokeCap.Round),
+        )
+    }
+}
+
+/**
+ * 달성 비율([fraction], 0~1)에 따른 진행 링 색. 강렬한 단색 진행바 대신, 담담한 회색(저조)→
+ * 앰버(중간)→파랑(높음)→초록(완료)으로 바뀌며 성취 정도를 색으로 전한다.
+ * 라이트/다크 각각 대비가 유지되도록 색을 따로 지정한다.
+ */
+@Composable
+private fun progressColorOf(fraction: Float): Color {
     val isDark = isSystemInDarkTheme()
     return when {
         // 완료: 성취를 강조하는 초록. 파랑(primary)과 구분돼 "다 했다"가 한눈에 보인다.
-        fraction >= 1f -> if (isDark) {
-            ProgressTier(
-                accent = Color(0xFF7DD3A8),
-                container = Color(0xFF7DD3A8).copy(alpha = 0.16f)
-            )
-        } else {
-            ProgressTier(
-                accent = Color(0xFF1E7A46),
-                container = Color(0xFF1E7A46).copy(alpha = 0.12f)
-            )
-        }
+        fraction >= 1f -> if (isDark) Color(0xFF7DD3A8) else Color(0xFF1E7A46)
         // 높음(67~99%): 앱의 기본 강조색인 파랑.
-        fraction >= 0.67f -> ProgressTier(
-            accent = AppColor.primary,
-            container = AppColor.primary.copy(alpha = if (isDark) 0.20f else 0.12f),
-        )
+        fraction >= 0.67f -> AppColor.primary
         // 중간(34~66%): 진행 중임을 따뜻하게 알리는 앰버.
-        fraction >= 0.34f -> if (isDark) {
-            ProgressTier(
-                accent = Color(0xFFE0A93C),
-                container = Color(0xFFE0A93C).copy(alpha = 0.18f)
-            )
-        } else {
-            ProgressTier(
-                accent = Color(0xFF8A5A00),
-                container = Color(0xFF8A5A00).copy(alpha = 0.12f)
-            )
-        }
+        fraction >= 0.34f -> if (isDark) Color(0xFFE0A93C) else Color(0xFF8A5A00)
         // 저조(0~33%): 판단·경고 느낌 없이 담담한 중립 회색.
-        else -> ProgressTier(
-            accent = AppColor.onSurface.copy(alpha = if (isDark) 0.60f else 0.50f),
-            container = AppColor.onSurface.copy(alpha = if (isDark) 0.14f else 0.08f),
-        )
+        else -> AppColor.onSurface.copy(alpha = if (isDark) 0.60f else 0.50f)
     }
 }
 

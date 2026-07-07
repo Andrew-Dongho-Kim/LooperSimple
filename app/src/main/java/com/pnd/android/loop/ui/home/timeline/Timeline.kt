@@ -5,14 +5,17 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -20,13 +23,19 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
-import com.pnd.android.loop.ui.common.VerticalDashedDivider
 import com.pnd.android.loop.ui.common.VerticalDivider
 import com.pnd.android.loop.ui.home.BlurState
 import com.pnd.android.loop.ui.theme.AppColor
+import com.pnd.android.loop.ui.theme.AppTypography
+import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.WineRed
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.util.toMs
@@ -103,6 +112,17 @@ private fun TimeGridContent(
         modifier = modifier.horizontalScroll(horizontalScrollState)
     ) {
         Box(modifier = Modifier.width(timelineWidth)) {
+            // 정오 이후(오후) 구간을 은은한 배경으로 구분해 오전/오후를 직관적으로 인지
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .width(timelineItemWidthDp.times(12))
+                    .offset {
+                        IntOffset(x = timelineItemWidthDp.times(12).roundToPx(), y = 0)
+                    }
+                    .background(color = AppColor.onSurface.copy(alpha = 0.035f))
+            )
+            // 매 시간 세로 눈금 — 부드러운 저대비 라인
             repeat(24) { time ->
                 VerticalDivider(
                     modifier = Modifier.offset {
@@ -112,7 +132,7 @@ private fun TimeGridContent(
                         )
                     },
                     thickness = 0.5.dp,
-                    color = AppColor.onSurface.copy(alpha = 0.3f)
+                    color = AppColor.onSurface.copy(alpha = 0.12f)
                 )
             }
             TimelineLoops(
@@ -141,7 +161,7 @@ private fun TimelineLoops(
     val slots = rememberTimelineSlots(loops = loops)
     Column(
         modifier = modifier
-            .background(color = AppColor.onSurface.copy(alpha = 0.1f))
+            .background(color = AppColor.onSurface.copy(alpha = 0.05f))
             .width(timelineWidth),
         verticalArrangement = Arrangement.Bottom
     ) {
@@ -167,19 +187,48 @@ private fun TimelineLoops(
 }
 
 @Composable
-private fun LocalTimeVerticalLineIndicator(
+private fun BoxScope.LocalTimeVerticalLineIndicator(
     modifier: Modifier = Modifier,
 ) {
     val localTime by rememberLocalTime()
-    VerticalDashedDivider(
-        modifier = modifier.offset {
-            IntOffset(
-                x = localTime.timelineOffsetStart().roundToPx(),
-                y = 0
-            )
-        },
+    val lineX = localTime.timelineOffsetStart()
+
+    // 현재 시각 위치에 넓고 옅은 글로우를 깔아 라인을 은은하게 강조
+    Box(
+        modifier = modifier
+            .fillMaxHeight()
+            .width(6.dp)
+            .offset { IntOffset(x = (lineX - 3.dp).roundToPx(), y = 0) }
+            .background(color = WineRed.copy(alpha = 0.10f))
+    )
+    // 현재 시각 세로 실선
+    VerticalDivider(
+        modifier = Modifier.offset { IntOffset(x = lineX.roundToPx(), y = 0) },
+        thickness = 1.5.dp,
         color = WineRed
     )
+
+    // 상단 현재 시각 pill 라벨 — 라인 위 중앙에 배치
+    val timeText = stringResource(
+        id = R.string.format_hour_minute_24, localTime.hour, localTime.minute
+    )
+    val pillTextStyle = AppTypography.labelSmall.copy(
+        color = Color.White,
+        fontWeight = FontWeight.Medium,
+        letterSpacing = 0.sp
+    )
+    val pillHorizontalPadding = 6.dp
+    val pillWidth = measureTextWidth(text = timeText, style = pillTextStyle) +
+            pillHorizontalPadding * 2
+    Box(
+        modifier = Modifier
+            .align(Alignment.TopStart)
+            .offset { IntOffset(x = (lineX - pillWidth / 2).roundToPx(), y = 0) }
+            .background(color = WineRed, shape = RoundShapes.small)
+            .padding(horizontal = pillHorizontalPadding, vertical = 2.dp)
+    ) {
+        Text(text = timeText, style = pillTextStyle)
+    }
 }
 
 @Composable
