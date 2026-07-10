@@ -5,6 +5,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,7 +26,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -48,8 +51,10 @@ import com.pnd.android.loop.ui.theme.onPrimary
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.ui.theme.surfaceContainer
+import com.pnd.android.loop.ui.statisctics.StreakStat
 import com.pnd.android.loop.util.DAYS_WITH_3CHARS_SUNDAY_FIRST
 import com.pnd.android.loop.util.color
+import com.pnd.android.loop.util.formatYearMonth
 import com.pnd.android.loop.util.isSameMonth
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -67,7 +72,29 @@ fun DailyAchievementCalendar(
     selectedDate: LocalDate,
     onDateSelected: (LocalDate) -> Unit
 ) {
+    // 선택된 날짜가 속한 달을 기준으로 요약/회고를 집계한다.
+    val yearMonth = remember(selectedDate) { YearMonth.from(selectedDate) }
+    val summary by remember(yearMonth) {
+        achievementViewModel.flowMonthSummary(yearMonth)
+    }.collectAsState(initial = MonthAchievementSummary.Empty)
+    // 스트릭은 기간과 무관한 전체 기록 기준이라 selectedDate가 바뀌어도 다시 구독하지 않는다.
+    val streak by remember {
+        achievementViewModel.flowStreak()
+    }.collectAsState(initial = StreakStat(current = 0, longest = 0))
+    val retrospects by remember(yearMonth) {
+        achievementViewModel.flowMonthRetrospects(yearMonth)
+    }.collectAsState(initial = emptyList())
+
+    var showRetrospects by remember { mutableStateOf(false) }
+
     Column(modifier = modifier) {
+        // 선택한 달 요약 배너: 달성률 링 + 완료/전체 + 스트릭·회고 칩.
+        SelectedMonthSummaryBar(
+            modifier = Modifier.padding(bottom = Dimens.itemSpacing),
+            summary = summary,
+            currentStreak = streak.current,
+            onClickRetrospects = { showRetrospects = true },
+        )
         CalendarHeader()
         HorizontalPager(
             modifier = Modifier.padding(top = Dimens.cardSpacing),
@@ -83,6 +110,15 @@ fun DailyAchievementCalendar(
                 onDateSelected = onDateSelected
             )
         }
+    }
+
+    // 회고 칩을 누르면 그 달의 회고를 한곳에 모아 보여준다.
+    if (showRetrospects) {
+        MonthRetrospectsDialog(
+            monthLabel = selectedDate.formatYearMonth(),
+            retrospects = retrospects,
+            onDismiss = { showRetrospects = false },
+        )
     }
 }
 
@@ -237,10 +273,25 @@ private fun CalendarDateItem(
             .padding(all = 2.dp)
             .clip(RoundShapes.medium)
             .achievementHeat(
-                enabled = viewMode == DailyAchievementPageViewMode.DESCRIPTION_TEXT && isInterest,
+                // 두 뷰 모드 모두에서 히트맵을 칠해, 기본(색 도트) 화면에서도 한 달의 흐름이 색으로 읽히게 한다.
+                enabled = isInterest,
                 doneCount = doneLoops.size,
                 totalCount = doneLoops.size + noDoneLoops.size,
                 color = AppColor.primary,
+                isDark = isSystemInDarkTheme(),
+            )
+            // 선택된 날은 셀 전체를 감싸는 외곽 링으로 표시한다. 면이 아니라 경계선이라 히트 농도와
+            // 경쟁하지 않아 어떤 완료율 배경 위에서도 또렷하고, 히트(완료율) 정보도 가리지 않는다.
+            .then(
+                if (isSelected) {
+                    Modifier.border(
+                        width = 2.dp,
+                        color = AppColor.primary,
+                        shape = RoundShapes.medium,
+                    )
+                } else {
+                    Modifier
+                }
             )
             .clickable { onDateSelected(itemDate) },
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -286,16 +337,10 @@ private fun CalendarDayBadge(
     isSelected: Boolean,
     hasRetrospect: Boolean,
 ) {
-    val badgeColor = when {
-        isToday -> AppColor.primary
-        isSelected -> AppColor.primary.copy(alpha = 0.14f)
-        else -> Color.Transparent
-    }
-    val textColor = when {
-        isToday -> AppColor.onPrimary
-        isSelected -> AppColor.primary
-        else -> dayColor
-    }
+    // 선택 표시는 셀 외곽 링이 담당하므로, 배지에는 '오늘'만 primary 채움으로 강조한다.
+    // (선택 상태의 파란 반투명 원/파란 글자는 파란 히트 배경과 겹쳐 보이지 않아 제거)
+    val badgeColor = if (isToday) AppColor.primary else Color.Transparent
+    val textColor = if (isToday) AppColor.onPrimary else dayColor
     Box(
         modifier = modifier.padding(top = 2.dp),
         contentAlignment = Alignment.Center,
@@ -343,23 +388,39 @@ private fun CalendarDayBadge(
 }
 
 /**
- * 달성도(완료 비율)에 비례해 셀 뒤에 옅은 "히트" 배경을 칠한다.
- * 카운트(설명) 뷰 모드에서만 적용되어 한 달이 은은한 성취 히트맵처럼 보이게 한다.
+ * 달성률(완료 비율)을 5단계로 나눠 셀 뒤에 "히트" 배경을 칠한다. GitHub 잔디처럼 한 달의 성취
+ * 흐름이 색 농도로 한눈에 읽히게 한다. 색은 앱 강조색([color], primary)을 그대로 써 앱과 통일감을 준다.
+ *
+ * 단계별 알파는 라이트/다크에서 각각 대비가 유지되도록 따로 둔다([isDark]가 참이면 더 진하게).
+ * 완료가 하나도 없는 날은 칠하지 않아, 색이 곧 "그날 얼마나 해냈는가"를 뜻하게 한다.
  */
 private fun Modifier.achievementHeat(
     enabled: Boolean,
     doneCount: Int,
     totalCount: Int,
     color: Color,
+    isDark: Boolean,
 ) = drawBehind {
-    if (!enabled || totalCount == 0) return@drawBehind
+    if (!enabled || totalCount == 0 || doneCount == 0) return@drawBehind
 
     val doneRate = doneCount.toFloat() / totalCount
-    if (doneRate <= 0.1f) return@drawBehind
-
-    val intensity = (0.4f * doneRate) * (0.4f * doneRate)
+    // 저조 → 완료(100%)로 갈수록 진해지는 5단계 강도. 다크 모드는 배경이 어두워 같은 채도라도
+    // 옅게 보이므로 각 단계 알파를 조금씩 높여 두 테마에서 비슷한 존재감을 갖게 한다.
+    val level = when {
+        doneRate < 0.25f -> 0
+        doneRate < 0.50f -> 1
+        doneRate < 0.75f -> 2
+        doneRate < 1f -> 3
+        else -> 4
+    }
+    val alphas = if (isDark) {
+        floatArrayOf(0.14f, 0.24f, 0.36f, 0.48f, 0.62f)
+    } else {
+        floatArrayOf(0.10f, 0.18f, 0.28f, 0.40f, 0.55f)
+    }
     drawRoundRect(
-        color = color.copy(alpha = intensity),
+        // 완료 루프 도트가 히트 배경에 묻히지 않도록 전면 워시 강도를 낮춘다(도트는 배경판으로 한 번 더 분리).
+        color = color.copy(alpha = alphas[level] * HeatIntensityScale),
         cornerRadius = CornerRadius(x = 8.dp.toPx(), y = 8.dp.toPx()),
     )
 }
@@ -405,8 +466,22 @@ private fun ColorDotIndicator(
     modifier: Modifier = Modifier,
     doneLoops: List<LoopByDate>,
 ) {
+    // 완료한 루프가 없으면 배경판만 덩그러니 남지 않도록 아무것도 그리지 않는다.
+    if (doneLoops.isEmpty()) return
+
     Row(
-        modifier = modifier.padding(top = 2.dp),
+        modifier = modifier
+            .padding(top = 2.dp)
+            // 히트 배경 위에서도 도트 색이 선명하도록, 도트 묶음 뒤에 불투명 배경판(알약)을 깐다.
+            // surfaceContainer는 합성된 불투명색이라 어떤 히트 농도도 확실히 가린다.
+            .clip(CircleShape)
+            .background(AppColor.surfaceContainer)
+            .border(
+                width = 0.5.dp,
+                color = AppColor.onSurface.copy(alpha = 0.10f),
+                shape = CircleShape,
+            )
+            .padding(horizontal = 4.dp, vertical = 3.dp),
         horizontalArrangement = Arrangement.spacedBy(2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -438,3 +513,6 @@ private const val DAYS_OF_WEEK = 7
 
 /** 한 셀에 표시할 색상 도트의 최대 개수. 초과분은 "+" 로 축약한다. */
 private const val MAX_VISIBLE_DOTS = 5
+
+/** 히트 배경 강도 배율. 도트가 배경에 겹쳐 묻히지 않도록 전면 워시를 절반 남짓으로 낮춘다. */
+private const val HeatIntensityScale = 0.55f

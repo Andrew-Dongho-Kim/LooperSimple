@@ -152,7 +152,15 @@ fun AppNavHost(
         }
 
         page(page = NavigatePage.DailyAchievementPage) {
-            DailyAchievementPage(onNavigateUp = onNavigateUp)
+            DailyAchievementPage(
+                onNavigateToLoopDetail = { id ->
+                    NavigatePage.DetailPage.navigate(
+                        navController = navController,
+                        id = id,
+                    )
+                },
+                onNavigateUp = onNavigateUp,
+            )
         }
 
         page(page = NavigatePage.StatisticsPage) {

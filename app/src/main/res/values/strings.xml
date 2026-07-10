@@ -21,6 +21,20 @@
     <string name="today_loop_state">Active:%d, Remain:%d, Total:%d</string>
     <string name="desc_no_loops">There are no loops yet.</string>
     <string name="desc_no_loops_hint">Add your first loop below to get started.</string>
+
+    <!-- OOBE(첫 실행 · 루프가 하나도 없을 때) 빈 화면 -->
+    <string name="oobe_title">No loops yet</string>
+    <string name="oobe_subtitle">Pick one below to start in a tap, or add your own.</string>
+    <string name="oobe_quickstart_label">Quick start</string>
+    <string name="oobe_create_own">Add your own</string>
+    <!-- 빠른 시작으로 루프를 추가했을 때의 확인 스낵바 + 실행취소 -->
+    <string name="oobe_loop_added">Added \"%1$s\"</string>
+    <string name="action_undo">Undo</string>
+    <!-- 빠른 시작 템플릿 제목 -->
+    <string name="oobe_tpl_water_title">Drink water</string>
+    <string name="oobe_tpl_reading_title">Reading</string>
+    <string name="oobe_tpl_workout_title">Workout</string>
+    <string name="oobe_tpl_walk_title">Walk</string>
     <string name="greeting_morning">Good morning</string>
     <string name="greeting_afternoon">Good afternoon</string>
     <string name="greeting_evening">Good evening</string>
@@ -47,6 +61,10 @@
     <string name="no_achievements">There are no done or skipped loops.</string>
     <!-- 하루 요약 헤더의 달성 부제: "3/4 done" 형태로 완료/전체 개수를 보여준다. -->
     <string name="achievement_done_ratio">%1$d/%2$d done</string>
+    <!-- 달력 상단 월 요약 배너: 활동일 수 부제 및 회고 모음 다이얼로그 문구. -->
+    <string name="achievement_active_days">%d active days</string>
+    <string name="achievement_month_notes_title">Notes · %s</string>
+    <string name="achievement_no_notes">No notes this month yet.</string>
 
     <string name="total">Total</string>
 
@@ -98,6 +116,8 @@
     <string name="all_history_help_created">The day the loop was created</string>
     <string name="loop_enable">Enable</string>
     <string name="loop_disable">Disable</string>
+    <string name="disabled_loops_header">Disabled loops %1$d</string>
+    <string name="disabled_since">Since %1$s</string>
     <string name="no_response">No Response</string>
     <string name="memo">Memo</string>
     <string name="restore">Restore</string>

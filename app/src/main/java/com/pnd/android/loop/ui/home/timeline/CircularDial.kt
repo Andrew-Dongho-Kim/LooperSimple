@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -31,6 +33,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.automirrored.rounded.Undo
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Schedule
@@ -57,6 +61,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
@@ -85,6 +90,8 @@ import com.pnd.android.loop.data.doneState
 import com.pnd.android.loop.data.isInProgress
 import com.pnd.android.loop.data.isRespond
 import com.pnd.android.loop.ui.home.AnyTimeLoopStartOrStop
+import com.pnd.android.loop.ui.home.BlurState
+import com.pnd.android.loop.ui.home.DeleteLoopDialog
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.compositedOnSurface
@@ -120,8 +127,11 @@ import kotlin.math.sin
 @Composable
 fun LoopCircularDial(
     modifier: Modifier = Modifier,
+    blurState: BlurState,
     loops: List<LoopBase>,
     onStateChanged: (LoopBase, Int) -> Unit,
+    onEdit: (LoopBase) -> Unit,
+    onDelete: (LoopBase) -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
     // 현재 시각(분 단위로 갱신)을 하루 기준 ms 로 환산해 둔다.
@@ -143,31 +153,156 @@ fun LoopCircularDial(
                 // isAnyTime=true 를 유지해, 그릴 때 "시작→안쪽 이동" 진입 애니메이션 대상인지 식별한다.
                 loop.isInProgress -> timed += loop.copyAs(
                     startInDay = loop.actualStartInDay,
-                    endInDay = nowMs,
+                    // localTime 은 분 단위로만 갱신돼, 방금 시작한 루프의 실제 시작(actualStartInDay)보다
+                    // nowMs 가 살짝 뒤처질 수 있다. 그대로 두면 end<start 가 되어 endMsInDay() 가 하루를
+                    // 더해 호가 원 전체로 그려진다. 최소 시작 시각으로 clamp 해 이를 막는다.
+                    endInDay = maxOf(nowMs, loop.actualStartInDay),
                     isAnyTime = true,
                 )
+
                 loop.isRespond -> timed += loop.copyAs(
                     startInDay = loop.actualStartInDay,
                     endInDay = loop.actualEndInDay,
                     isAnyTime = true,
                 )
+
                 else -> idle += loop
             }
         }
         idle to timed
     }
 
-    Box(modifier = modifier.fillMaxWidth()) {
+    // 다이얼 호와 하단 범례 칩이 공유하는 선택 상태(loopId). 어느 쪽에서 눌러도 같은 루프가 선택된다.
+    var selectedLoopId by remember { mutableStateOf<Int?>(null) }
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
         DialFace(
             timedLoops = timedLoops,
             anyTimeLoops = idleAnyTimeLoops,
             nowMs = nowMs,
             currentTimeText = localTime.formatHourMinute(withAmPm = false),
+            blurState = blurState,
+            selectedLoopId = selectedLoopId,
+            onSelectLoop = { selectedLoopId = it },
             onLoopClick = onNavigateToDetailPage,
             onStateChanged = onStateChanged,
+            onEdit = onEdit,
+            onDelete = onDelete,
+        )
+
+        // 다이얼 아래: 어떤 색이 어떤 루프인지 대응시키는 색상 범례(시안 A).
+        LoopColorLegend(
+            modifier = Modifier.padding(top = 16.dp, start = 16.dp, end = 16.dp),
+            loops = loops,
+            selectedLoopId = selectedLoopId,
+            // 이미 선택된 칩을 다시 누르면 선택 해제(토글).
+            onChipClick = { id -> selectedLoopId = if (selectedLoopId == id) null else id },
         )
     }
 }
+
+// region ─────────────────────────── 하단 색상 범례(시안 A) ───────────────────────────
+
+/**
+ * 다이얼 아래에 루프의 색과 이름을 칩으로 나열하는 범례(시안 A).
+ *
+ * 다이얼의 호는 색으로만 구분되므로, "이 색 = 이 루프"를 한눈에 대응시켜 준다.
+ * 칩은 좌→우로 흐르다 폭이 차면 다음 줄로 접힌다([FlowRow]).
+ * 색 점·칩 배경·글자 모두 [AppColor] 토큰 기반이라 다크·라이트에서 동일한 강도로 읽힌다.
+ *
+ * - 칩을 누르면 [onChipClick] 으로 해당 루프가 다이얼에서도 선택된다([selectedLoopId] 로 강조).
+ * - 수정 중(임시 mock 루프 존재)에는 편집 대상 칩 하나만 노출해, 편집 중인 루프에 집중시킨다.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun LoopColorLegend(
+    modifier: Modifier = Modifier,
+    loops: List<LoopBase>,
+    selectedLoopId: Int?,
+    onChipClick: (Int) -> Unit,
+) {
+    val legendLoops = remember(loops) {
+        // 수정 중이면(임시 mock 루프 존재) 편집 대상 칩 하나만 남긴다.
+        val editing = loops.firstOrNull { it.isMock }
+        if (editing != null) {
+            listOf(editing)
+        } else {
+            // 같은 루프가 중복 표시되지 않도록 loopId 로 한 번만 남기고,
+            // 시각이 정해진 루프를 시작 시각 순으로 먼저, 시간 미지정(AnyTime) 루프를 뒤로 정렬한다.
+            loops.asSequence()
+                .distinctBy { it.loopId }
+                .sortedWith(compareBy({ it.isAnyTime }, { it.startInDay }))
+                .toList()
+        }
+    }
+    if (legendLoops.isEmpty()) return
+
+    FlowRow(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        legendLoops.forEach { loop ->
+            LegendChip(
+                color = Color(loop.color),
+                name = loop.title,
+                selected = loop.loopId == selectedLoopId,
+                onClick = { onChipClick(loop.loopId) },
+            )
+        }
+    }
+}
+
+/**
+ * 색 점 + 이름으로 이뤄진 범례 칩 하나. 이름이 길면 말줄임(…)으로 자른다.
+ * [selected] 면 primary 틴트 배경 + primary 테두리·글자로 강조한다.
+ */
+@Composable
+private fun LegendChip(
+    color: Color,
+    name: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    val background = if (selected) AppColor.primary.copy(alpha = 0.16f) else AppColor.surfaceElevated
+    val borderColor = if (selected) AppColor.primary else AppColor.onSurface.copy(alpha = 0.14f)
+    val textColor = if (selected) AppColor.primary else AppColor.onSurface
+    Row(
+        modifier = Modifier
+            .clip(CircleShape)
+            .clickable(onClick = onClick)
+            .background(background)
+            .border(
+                width = if (selected) 1.dp else 0.5.dp,
+                color = borderColor,
+                shape = CircleShape,
+            )
+            .padding(horizontal = 10.dp, vertical = 5.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        // 루프 색을 나타내는 점.
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .clip(CircleShape)
+                .background(color),
+        )
+        Text(
+            modifier = Modifier
+                .padding(start = 6.dp)
+                .widthIn(max = 120.dp),
+            text = name,
+            style = AppTypography.labelMedium.copy(color = textColor),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+// endregion
 
 // region ─────────────────────────── 상태 분류 & 레인 배치 ───────────────────────────
 
@@ -259,6 +394,9 @@ private fun foldOverflow(arcs: List<DialArc>, maxVisibleLanes: Int): List<Overfl
 /** 레인은 3개까지만 시각적으로 분리하고, 그 이상 겹치면 가장 안쪽 레인에 겹쳐 그린다. */
 private const val MAX_VISIBLE_LANES = 3
 
+/** 편집 중일 때 편집 대상이 아닌 호/노드에 곱해지는 흐림(dim) 강도. 스포트라이트 효과의 배경 밝기. */
+private const val DIM_ALPHA = 0.22f
+
 /** 다이얼의 크기 정보(중심·반지름·레인·바깥 궤도). 그리기와 탭 히트 판정이 같은 값을 쓰도록 한곳에서 계산한다. */
 private class DialGeometry(
     val cx: Float,
@@ -280,7 +418,7 @@ private fun Density.dialGeometry(
     heightPx: Float,
     reserveOrbit: Boolean
 ): DialGeometry {
-    val stroke = 13.dp.toPx()
+    val stroke = 20.dp.toPx() // 루프/트랙 레일 높이
     // 바깥쪽 여백: 시각 라벨(기본) + AnyTime 궤도(있을 때).
     val labelInset = (if (reserveOrbit) 46.dp else 26.dp).toPx()
     val outer = min(widthPx, heightPx) / 2f - labelInset
@@ -364,14 +502,37 @@ private fun DialGeometry.hitTestAnyTime(
     return null
 }
 
+/**
+ * 호의 시간 구간 가운데를 가리키는 다이얼 좌표(px). 탭이 아닌 경로(범례 칩 클릭)로 선택됐을 때
+ * 팝업 꼬리가 그 호를 가리키도록 앵커를 계산한다.
+ */
+private fun DialGeometry.arcAnchor(arc: DialArc): Offset {
+    val startMs = arc.loop.startInDay.coerceAtLeast(0L)
+    val midMs = (startMs + arc.loop.endMsInDay()) / 2.0
+    val radius = laneRadius(arc.lane)
+    val a = Math.toRadians(-90.0 + midMs / MS_1DAY * 360.0)
+    return Offset(cx + radius * cos(a).toFloat(), cy + radius * sin(a).toFloat())
+}
+
+/** AnyTime 노드 중심을 가리키는 다이얼 좌표(px). 범례 칩 클릭 시 팝업 앵커로 쓴다. */
+private fun DialGeometry.anyTimeAnchor(index: Int, count: Int): Offset {
+    val a = Math.toRadians(-90.0 + anyTimeNodeAngle(index, count))
+    return Offset(cx + orbitRadius * cos(a).toFloat(), cy + orbitRadius * sin(a).toFloat())
+}
+
 @Composable
 private fun DialFace(
     timedLoops: List<LoopBase>,
     anyTimeLoops: List<LoopBase>,
     nowMs: Long,
     currentTimeText: String,
+    blurState: BlurState,
+    selectedLoopId: Int?,
+    onSelectLoop: (Int?) -> Unit,
     onLoopClick: (LoopBase) -> Unit,
     onStateChanged: (loop: LoopBase, doneState: @LoopDoneVo.DoneState Int) -> Unit,
+    onEdit: (LoopBase) -> Unit,
+    onDelete: (LoopBase) -> Unit,
 ) {
     val (arcs, laneCount) = remember(timedLoops, nowMs) { layoutArcs(timedLoops, nowMs) }
     val visibleLanes = min(laneCount, MAX_VISIBLE_LANES)
@@ -379,23 +540,46 @@ private fun DialFace(
     val overflowBadges = remember(arcs, visibleLanes) { foldOverflow(arcs, visibleLanes) }
     val hasAnyTime = anyTimeLoops.isNotEmpty()
 
+    // 편집 중(mock 루프 존재) 여부. 편집 중이면 나머지 호를 흐려(dim) 편집 대상만 또렷하게 남기고,
+    // 편집 대상 호 위로 밝은 빛이 훑고 지나가게 한다(안 C 스포트라이트).
+    val isEditingMode = arcs.any { it.loop.isMock } || anyTimeLoops.any { it.isMock }
+
     // "?" 도움말 팝업 표시 여부.
     var showHelp by remember { mutableStateOf(false) }
 
-    // 탭으로 선택된 호. 앵커(누른 지점)는 그대로 두되 arc 정보는 매 프레임 현재 arcs 에서 다시 찾아,
-    // 분 단위 갱신으로 목록이 바뀌어도 팝업이 유지되도록 한다(루프가 사라지면 자동으로 닫힘).
-    var selection by remember { mutableStateOf<DialHit?>(null) }
-    val selectedHit = selection?.let { sel ->
-        arcs.firstOrNull { it.loop.loopId == sel.arc.loop.loopId }
-            ?.let { DialHit(arc = it, anchor = sel.anchor) }
+    // 삭제 확인 다이얼로그로 지울 루프. null 이 아니면 다이얼로그를 띄운다.
+    // 정보 팝업(툴팁) 밖(DialFace)에 두어, 삭제 버튼을 누르면 툴팁이 닫혀도 다이얼로그는 유지되게 한다.
+    var loopPendingDelete by remember { mutableStateOf<LoopBase?>(null) }
+
+    // 캔버스의 실제 픽셀 크기. 탭이 아닌 경로(범례 칩 클릭)로 선택됐을 때 앵커를 계산하려면 필요하다.
+    val density = LocalDensity.current
+    var dialSizePx by remember { mutableStateOf(IntSize.Zero) }
+    val geometry = remember(dialSizePx, hasAnyTime, density) {
+        if (dialSizePx == IntSize.Zero) null
+        else with(density) {
+            dialGeometry(dialSizePx.width.toFloat(), dialSizePx.height.toFloat(), hasAnyTime)
+        }
+    }
+
+    // 선택된 호. 다이얼 탭이든 범례 칩 클릭이든 selectedLoopId 하나로 결정된다.
+    // 매 프레임 현재 arcs 에서 다시 찾아, 분 단위 갱신으로 목록이 바뀌어도 유지되고(루프가 사라지면 자동 해제),
+    // 앵커는 해당 호의 가운데 지점으로 두어 팝업 꼬리가 그 호를 가리키게 한다.
+    val selectedHit: DialHit? = remember(selectedLoopId, arcs, visibleLanes, geometry) {
+        val id = selectedLoopId ?: return@remember null
+        val geo = geometry ?: return@remember null
+        val arc = arcs.firstOrNull { it.loop.loopId == id && it.lane < visibleLanes }
+            ?: return@remember null
+        DialHit(arc = arc, anchor = geo.arcAnchor(arc))
     }
     val selectedId = selectedHit?.arc?.loop?.loopId
 
-    // 탭으로 선택된 AnyTime 노드. 마찬가지로 loopId 로 현재 목록에서 다시 찾아 유지한다.
-    var anyTimeSelection by remember { mutableStateOf<AnyTimeHit?>(null) }
-    val selectedAnyTime = anyTimeSelection?.let { sel ->
-        anyTimeLoops.firstOrNull { it.loopId == sel.loop.loopId }
-            ?.let { AnyTimeHit(loop = it, anchor = sel.anchor) }
+    // 선택된 AnyTime 노드. 마찬가지로 selectedLoopId 로 현재 목록에서 다시 찾아 유지한다.
+    val selectedAnyTime: AnyTimeHit? = remember(selectedLoopId, anyTimeLoops, geometry) {
+        val id = selectedLoopId ?: return@remember null
+        val geo = geometry ?: return@remember null
+        val index = anyTimeLoops.indexOfFirst { it.loopId == id }
+        if (index < 0) return@remember null
+        AnyTimeHit(loop = anyTimeLoops[index], anchor = geo.anyTimeAnchor(index, anyTimeLoops.size))
     }
 
     // 진행 중 루프의 맥박 애니메이션(반지름·투명도). 하나의 트랜지션을 모든 진행 호가 공유한다.
@@ -431,6 +615,15 @@ private fun DialFace(
         targetValue = 1f,
         animationSpec = infiniteRepeatable(tween(700, easing = LinearEasing), RepeatMode.Restart),
         label = "dashPhase",
+    )
+
+    // 수정중(mock) 호를 알리는 "스포트라이트 + 반짝임"(안 C)의 훑는 빛 위상.
+    // 0→1 을 반복해 편집 중인 호 위로 밝은 빛이 한 방향으로 계속 지나가게 한다.
+    val shimmerPhase by pulse.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(1400, easing = LinearEasing), RepeatMode.Restart),
+        label = "shimmerPhase",
     )
 
     // 방금 시작한 AnyTime 이 "바깥 궤도 → 안쪽 레인"으로 들어오는 진입 애니메이션 진행값(loopId -> 0..1).
@@ -487,35 +680,32 @@ private fun DialFace(
             Canvas(
                 modifier = Modifier
                     .fillMaxSize()
+                    .onSizeChanged { dialSizePx = it }
                     .pointerInput(arcs, visibleLanes, anyTimeLoops, hasAnyTime) {
                         // 탭하면 히트 판정. 바깥 AnyTime 노드를 먼저 보고, 없으면 시간 호를 본다.
-                        // 둘 다 아니면(빈 곳) 두 팝업 모두 닫는다.
+                        // 둘 다 아니면(빈 곳) selectedLoopId 를 비워 팝업을 닫는다.
                         detectTapGestures { tap ->
-                            val geometry = dialGeometry(
+                            val geo = dialGeometry(
                                 size.width.toFloat(),
                                 size.height.toFloat(),
                                 hasAnyTime
                             )
                             val anyHit = if (hasAnyTime) {
-                                geometry.hitTestAnyTime(
+                                geo.hitTestAnyTime(
                                     tap = tap,
                                     loops = anyTimeLoops,
                                     nodeRadius = 6.dp.toPx(),
                                     slop = 8.dp.toPx(),
                                 )
                             } else null
-                            if (anyHit != null) {
-                                anyTimeSelection = anyHit
-                                selection = null
-                            } else {
-                                selection = geometry.hitTest(
+                            val hitId = anyHit?.loop?.loopId
+                                ?: geo.hitTest(
                                     tap = tap,
                                     arcs = arcs,
                                     visibleLanes = visibleLanes,
                                     slop = 8.dp.toPx(),
-                                )
-                                anyTimeSelection = null
-                            }
+                                )?.arc?.loop?.loopId
+                            onSelectLoop(hitId)
                         }
                     },
             ) {
@@ -569,8 +759,13 @@ private fun DialFace(
                     val isActive = arc.state == DialState.ACTIVE
                     val isPast = arc.state == DialState.PAST
                     val isSkip = arc.state == DialState.SKIP
+                    val isEditing = arc.loop.isMock // 편집 중인(임시 mock) 루프
                     // 진행 중은 가장 굵게, 나머지는 기본 두께(스킵은 아래에서 취소선으로 별도 처리).
                     val width = if (isActive) stroke + 4.dp.toPx() else stroke
+
+                    // 안 C(스포트라이트): 편집 중인 루프가 있으면 편집 대상이 아닌 호는 흐려(dim) 편집 호만 부각한다.
+                    val dim = if (isEditingMode && !isEditing) DIM_ALPHA else 1f
+                    fun Color.dimmed(): Color = copy(alpha = alpha * dim)
 
                     val startMs = arc.loop.startInDay.coerceAtLeast(0L)
                     val sweep = ((arc.loop.endMsInDay() - startMs).toFloat() / MS_1DAY * 360f)
@@ -593,9 +788,10 @@ private fun DialFace(
                     }
 
                     // 진행 중 호는 뒤에서 숨쉬는 글로우가 커졌다 작아지며 "지금 진행 중"을 확실히 알린다.
-                    if (isActive) {
+                    // (편집 중인 호 자신은 아래 훑는 빛으로 대신 표현하므로 글로우는 생략한다.)
+                    if (isActive && !isEditing) {
                         drawArc(
-                            color = loopColor.copy(alpha = glowAlpha),
+                            color = loopColor.copy(alpha = glowAlpha).dimmed(),
                             startAngle = startAngle,
                             sweepAngle = sweep,
                             useCenter = false,
@@ -614,7 +810,7 @@ private fun DialFace(
                             // 겹침은 레인(반지름)이 달라 서로 침범하지 않으므로 이 방식이 안전하다.
                             val rim = 2.2.dp.toPx()
                             drawArc(
-                                color = loopColor,
+                                color = loopColor.dimmed(),
                                 startAngle = startAngle,
                                 sweepAngle = sweep,
                                 useCenter = false,
@@ -647,7 +843,7 @@ private fun DialFace(
 
                             // 잔여분(옅게)
                             drawArc(
-                                color = loopColor.copy(alpha = 0.33f),
+                                color = loopColor.copy(alpha = 0.33f).dimmed(),
                                 startAngle = nowAngle,
                                 sweepAngle = remainSweep,
                                 useCenter = false,
@@ -657,7 +853,7 @@ private fun DialFace(
                             )
                             // 경과분(진하게)
                             drawArc(
-                                color = loopColor,
+                                color = loopColor.dimmed(),
                                 startAngle = startAngle,
                                 sweepAngle = elapsedSweep.coerceAtLeast(0.5f),
                                 useCenter = false,
@@ -668,7 +864,7 @@ private fun DialFace(
                             // 흐르는 점선(마칭 앤츠) — 종료 방향으로 계속 흐른다.
                             val period = 2.dp.toPx() + 11.dp.toPx()
                             drawArc(
-                                color = Color.White.copy(alpha = 0.5f),
+                                color = Color.White.copy(alpha = 0.5f).dimmed(),
                                 startAngle = startAngle,
                                 sweepAngle = sweep,
                                 useCenter = false,
@@ -679,7 +875,7 @@ private fun DialFace(
                                     cap = StrokeCap.Round,
                                     pathEffect = PathEffect.dashPathEffect(
                                         intervals = floatArrayOf(2.dp.toPx(), 11.dp.toPx()),
-                                        phase = dashPhase * period,
+                                        phase = -dashPhase * period,
                                     ),
                                 ),
                             )
@@ -688,7 +884,7 @@ private fun DialFace(
                         isSkip -> {
                             // 스킵: 옅은 색 밴드 위에 가운데 관통선(취소선) → "줄 그어 건너뜀".
                             drawArc(
-                                color = loopColor.copy(alpha = 0.32f),
+                                color = loopColor.copy(alpha = 0.28f).dimmed(),
                                 startAngle = startAngle,
                                 sweepAngle = sweep,
                                 useCenter = false,
@@ -697,7 +893,7 @@ private fun DialFace(
                                 style = Stroke(width = width, cap = StrokeCap.Round),
                             )
                             drawArc(
-                                color = loopColor,
+                                color = loopColor.copy(alpha = 0.8f).dimmed(),
                                 startAngle = startAngle,
                                 sweepAngle = sweep,
                                 useCenter = false,
@@ -710,11 +906,11 @@ private fun DialFace(
                         else -> {
                             // 시안 3: 완료=꽉 찬 색, 예정=옅은 색.
                             val arcColor = when (arc.state) {
-                                DialState.UPCOMING -> loopColor.copy(alpha = 0.4f)
-                                else -> loopColor
+                                DialState.UPCOMING -> loopColor
+                                else -> loopColor.copy(alpha = 0.4f)
                             }
                             drawArc(
-                                color = arcColor,
+                                color = arcColor.dimmed(),
                                 startAngle = startAngle,
                                 sweepAngle = sweep,
                                 useCenter = false,
@@ -723,6 +919,29 @@ private fun DialFace(
                                 style = Stroke(width = width, cap = StrokeCap.Round),
                             )
                         }
+                    }
+
+                    // 안 C: 편집 중인 호 위로 밝은 빛이 한 방향으로 훑고 지나가 "지금 편집 중"임을 알린다.
+                    // 짧은 밝은 구간 + 긴 빈 구간의 점선 위상을 이동시켜, 빛이 종료 방향으로 흐르는 것처럼 보인다.
+                    if (isEditing) {
+                        val dash = 22.dp.toPx()
+                        val gap = 120.dp.toPx()
+                        drawArc(
+                            color = Color.White.copy(alpha = 0.7f),
+                            startAngle = startAngle,
+                            sweepAngle = sweep,
+                            useCenter = false,
+                            topLeft = topLeft,
+                            size = arcSize,
+                            style = Stroke(
+                                width = width * 0.55f,
+                                cap = StrokeCap.Round,
+                                pathEffect = PathEffect.dashPathEffect(
+                                    intervals = floatArrayOf(dash, gap),
+                                    phase = -shimmerPhase * (dash + gap),
+                                ),
+                            ),
+                        )
                     }
 
                     // 진행 중이면 현재 위치에 맥박 점을 얹어 "지금 이거"를 즉시 인지시킨다.
@@ -749,8 +968,8 @@ private fun DialFace(
                             drawCircle(loopColor, 5.dp.toPx(), curPos)
                         }
 
-                        drawCircle(loopColor.copy(alpha = pulseAlpha), pulseRadius.dp.toPx(), pos)
-                        drawCircle(loopColor, 3.5.dp.toPx(), pos)
+                        drawCircle(loopColor.copy(alpha = pulseAlpha).dimmed(), pulseRadius.dp.toPx(), pos)
+                        drawCircle(loopColor.dimmed(), 3.5.dp.toPx(), pos)
                     }
                 }
 
@@ -822,10 +1041,25 @@ private fun DialFace(
                             cx + geo.orbitRadius * cos(a).toFloat(),
                             cy + geo.orbitRadius * sin(a).toFloat(),
                         )
-                        val loopColor = Color(loop.color)
+                        val isEditing = loop.isMock // 편집 중인(임시 mock) AnyTime 루프
+                        // 안 C: 편집 중이면 편집 대상이 아닌 노드는 흐려(dim) 편집 노드만 부각한다.
+                        val dim = if (isEditingMode && !isEditing) DIM_ALPHA else 1f
+                        val loopColor = Color(loop.color).copy(
+                            alpha = Color(loop.color).alpha * dim
+                        )
+                        // 편집 중인 노드 위로는 밝은 링이 부드럽게 커졌다 작아지며 "지금 편집 중"을 알린다.
+                        // (점에는 훑는 빛 대신 숨쉬는 밝은 링으로 스포트라이트를 표현한다.)
+                        if (isEditing) {
+                            drawCircle(
+                                Color.White.copy(alpha = pulseAlpha + 0.15f),
+                                nodeRadius + pulseRadius.dp.toPx(),
+                                center,
+                                style = Stroke(width = 1.6.dp.toPx()),
+                            )
+                        }
                         if (loop.isInProgress) {
                             drawCircle(
-                                loopColor.copy(alpha = pulseAlpha),
+                                loopColor.copy(alpha = pulseAlpha * dim),
                                 nodeRadius + pulseRadius.dp.toPx(),
                                 center
                             )
@@ -856,14 +1090,24 @@ private fun DialFace(
                     arc = hit.arc,
                     nowMs = nowMs,
                     anchor = hit.anchor,
-                    onDismiss = { selection = null },
+                    onDismiss = { onSelectLoop(null) },
                     onClick = {
                         onLoopClick(hit.arc.loop)
-                        selection = null
+                        onSelectLoop(null)
                     },
                     onStateChanged = { loop, doneState ->
                         onStateChanged(loop, doneState)
-                        selection = null // 처리 후 팝업을 닫는다
+                        onSelectLoop(null) // 처리 후 팝업을 닫는다
+                    },
+                    onEdit = { loop ->
+                        onEdit(loop)
+                        onSelectLoop(null) // 편집 진입 후 팝업을 닫는다
+                    },
+                    onDelete = { loop ->
+                        // 삭제 확인 다이얼로그를 띄우면서 정보 팝업(툴팁)은 닫는다.
+                        loopPendingDelete = loop
+                        blurState.on()
+                        onSelectLoop(null)
                     },
                 )
             }
@@ -873,14 +1117,24 @@ private fun DialFace(
                 AnyTimeTooltip(
                     loop = hit.loop,
                     anchor = hit.anchor,
-                    onDismiss = { anyTimeSelection = null },
+                    onDismiss = { onSelectLoop(null) },
                     onClick = {
                         onLoopClick(hit.loop)
-                        anyTimeSelection = null
+                        onSelectLoop(null)
                     },
                     onStateChanged = { loop, doneState ->
                         onStateChanged(loop, doneState)
-                        anyTimeSelection = null
+                        onSelectLoop(null)
+                    },
+                    onEdit = { loop ->
+                        onEdit(loop)
+                        onSelectLoop(null) // 편집 진입 후 팝업을 닫는다
+                    },
+                    onDelete = { loop ->
+                        // 삭제 확인 다이얼로그를 띄우면서 정보 팝업(툴팁)은 닫는다.
+                        loopPendingDelete = loop
+                        blurState.on()
+                        onSelectLoop(null)
                     },
                 )
             }
@@ -901,6 +1155,19 @@ private fun DialFace(
 
     if (showHelp) {
         DialStateHelpDialog(onDismiss = { showHelp = false })
+    }
+
+    // 삭제 확인 다이얼로그. 툴팁이 닫힌 뒤에도 유지되도록 DialFace 에서 직접 띄운다.
+    loopPendingDelete?.let { loop ->
+        DeleteLoopDialog(
+            loopTitle = loop.title,
+            loopColor = loop.color,
+            onDismiss = {
+                loopPendingDelete = null
+                blurState.off()
+            },
+            onDelete = { onDelete(loop) },
+        )
     }
 }
 
@@ -1086,6 +1353,8 @@ private fun DialLoopTooltip(
     onDismiss: () -> Unit,
     onClick: () -> Unit,
     onStateChanged: (loop: LoopBase, doneState: @LoopDoneVo.DoneState Int) -> Unit,
+    onEdit: (LoopBase) -> Unit,
+    onDelete: (LoopBase) -> Unit,
 ) {
     AnchoredTooltip(anchor = anchor, onDismiss = onDismiss) { pointingUp, tailXPx ->
         DialTooltipCard(
@@ -1095,6 +1364,8 @@ private fun DialLoopTooltip(
             tailXPx = tailXPx,
             onClick = onClick,
             onStateChanged = onStateChanged,
+            onEdit = onEdit,
+            onDelete = onDelete,
         )
     }
 }
@@ -1107,6 +1378,8 @@ private fun AnyTimeTooltip(
     onDismiss: () -> Unit,
     onClick: () -> Unit,
     onStateChanged: (loop: LoopBase, doneState: @LoopDoneVo.DoneState Int) -> Unit,
+    onEdit: (LoopBase) -> Unit,
+    onDelete: (LoopBase) -> Unit,
 ) {
     AnchoredTooltip(anchor = anchor, onDismiss = onDismiss) { pointingUp, tailXPx ->
         AnyTimeTooltipCard(
@@ -1115,6 +1388,8 @@ private fun AnyTimeTooltip(
             tailXPx = tailXPx,
             onClick = onClick,
             onStateChanged = onStateChanged,
+            onEdit = onEdit,
+            onDelete = onDelete,
         )
     }
 }
@@ -1214,6 +1489,8 @@ private fun DialTooltipCard(
     tailXPx: Float,
     onClick: () -> Unit,
     onStateChanged: (loop: LoopBase, doneState: @LoopDoneVo.DoneState Int) -> Unit,
+    onEdit: (LoopBase) -> Unit,
+    onDelete: (LoopBase) -> Unit,
 ) {
     TooltipShell(pointingUp = pointingUp, tailXPx = tailXPx, onClick = onClick) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1239,6 +1516,7 @@ private fun DialTooltipCard(
             DialStatusPill(state = arc.state)
         }
 
+        // 시간 행: 좌측에 시작–종료 시각, 우측 끝에 작은 수정/삭제 버튼.
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 modifier = Modifier.size(15.dp),
@@ -1247,10 +1525,22 @@ private fun DialTooltipCard(
                 contentDescription = null,
             )
             Text(
-                modifier = Modifier.padding(start = 6.dp),
+                modifier = Modifier
+                    .padding(start = 6.dp)
+                    .weight(1f),
                 text = "${arc.loop.startInDay.formatHourMinute(withAmPm = false)} – " +
                         arc.loop.endInDay.formatHourMinute(withAmPm = false),
                 style = AppTypography.bodyMedium.copy(color = AppColor.onSurface),
+            )
+            TooltipIconButton(
+                icon = Icons.Outlined.Edit,
+                contentDescription = stringResource(id = R.string.edit),
+                onClick = { onEdit(arc.loop) },
+            )
+            TooltipIconButton(
+                icon = Icons.Outlined.Delete,
+                contentDescription = stringResource(id = R.string.delete),
+                onClick = { onDelete(arc.loop) },
             )
         }
 
@@ -1287,6 +1577,8 @@ private fun AnyTimeTooltipCard(
     tailXPx: Float,
     onClick: () -> Unit,
     onStateChanged: (loop: LoopBase, doneState: @LoopDoneVo.DoneState Int) -> Unit,
+    onEdit: (LoopBase) -> Unit,
+    onDelete: (LoopBase) -> Unit,
 ) {
     TooltipShell(pointingUp = pointingUp, tailXPx = tailXPx, onClick = onClick) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1320,11 +1612,25 @@ private fun AnyTimeTooltipCard(
             )
         }
 
-        // 시간 미지정 루프는 시작/정지로 진행한다(기존 카드에서 쓰던 버튼 재사용).
-        Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
+        // 하단 행: 좌측 시작/정지 버튼, 우측 끝에 작은 수정/삭제 버튼.
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
             AnyTimeLoopStartOrStop(
                 loop = loop,
                 onStateChanged = onStateChanged,
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            TooltipIconButton(
+                icon = Icons.Outlined.Edit,
+                contentDescription = stringResource(id = R.string.edit),
+                onClick = { onEdit(loop) },
+            )
+            TooltipIconButton(
+                icon = Icons.Outlined.Delete,
+                contentDescription = stringResource(id = R.string.delete),
+                onClick = { onDelete(loop) },
             )
         }
     }
@@ -1420,6 +1726,25 @@ private fun TooltipActions(
             )
         }
     }
+}
+
+/** 시간 행 우측 끝에 놓이는 아이콘 전용 소형 버튼(수정·삭제). 작은 크기로 정보 밀도를 해치지 않는다. */
+@Composable
+private fun TooltipIconButton(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+) {
+    Icon(
+        modifier = Modifier
+            .clip(CircleShape)
+            .clickable(onClick = onClick)
+            .padding(5.dp)
+            .size(16.dp),
+        imageVector = icon,
+        tint = AppColor.onSurface.copy(alpha = 0.6f),
+        contentDescription = contentDescription,
+    )
 }
 
 /** 팝업/목록 공용 소형 동작 버튼. [emphasized] 면 primary 틴트, 아니면 중립 톤. */

@@ -112,6 +112,9 @@ data class LoopVo @JvmOverloads constructor(
             activeDays = activeDays,
             interval = interval,
             enabled = enabled,
+            // '언제든지' 루프는 시간이 없음(-1)을 뜻하므로 isAnyTime도 함께 세운다.
+            // (누락 시 start/end가 -1인 채 isAnyTime=false가 되어 시간 포맷 시 크래시)
+            isAnyTime = true,
             isMock = isMock,
         )
 

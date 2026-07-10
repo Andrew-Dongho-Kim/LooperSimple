@@ -20,6 +20,20 @@
     <string name="today_loop_state">진행:%d, 남음:%d, 전체:%d</string>
     <string name="desc_no_loops">아직 루프가 없습니다.</string>
     <string name="desc_no_loops_hint">아래에서 첫 루프를 추가해 시작해보세요.</string>
+
+    <!-- OOBE(첫 실행 · 루프가 하나도 없을 때) 빈 화면 -->
+    <string name="oobe_title">아직 루프가 없어요</string>
+    <string name="oobe_subtitle">아래에서 하나 골라 바로 시작하거나 직접 추가해보세요.</string>
+    <string name="oobe_quickstart_label">빠른 시작</string>
+    <string name="oobe_create_own">직접 추가</string>
+    <!-- 빠른 시작으로 루프를 추가했을 때의 확인 스낵바 + 실행취소 -->
+    <string name="oobe_loop_added">\"%1$s\" 루프를 추가했어요</string>
+    <string name="action_undo">실행취소</string>
+    <!-- 빠른 시작 템플릿 제목 -->
+    <string name="oobe_tpl_water_title">물 마시기</string>
+    <string name="oobe_tpl_reading_title">독서</string>
+    <string name="oobe_tpl_workout_title">운동</string>
+    <string name="oobe_tpl_walk_title">산책</string>
     <string name="greeting_morning">좋은 아침이에요</string>
     <string name="greeting_afternoon">좋은 오후예요</string>
     <string name="greeting_evening">좋은 저녁이에요</string>
@@ -97,6 +111,8 @@
     <string name="all_history_help_created">루프를 만든 날</string>
     <string name="loop_enable">활성화</string>
     <string name="loop_disable">비활성화</string>
+    <string name="disabled_loops_header">비활성 루프 %1$d개</string>
+    <string name="disabled_since">%1$s부터</string>
     <string name="no_response">응답없음</string>
     <string name="memo">메모</string>
     <string name="restore">복원</string>

@@ -174,9 +174,12 @@ class LoopRepository @Inject constructor(
     suspend fun numberOfLoopsAtTheSameTime(loop: LoopBase) =
         loopDao.numberOfLoopsAtTheSameTime(another = loop)
 
-    suspend fun addOrUpdateLoop(vararg loops: LoopVo) {
+    /** 추가/갱신된 루프를 (자동 생성된 loopId가 채워진 상태로) 반환한다. 실행취소 등에서 활용한다. */
+    suspend fun addOrUpdateLoop(vararg loops: LoopVo): List<LoopVo> {
+        val results = mutableListOf<LoopVo>()
         loopDao.addOrUpdate(*loops).forEachIndexed { index, id ->
             val loop = loops[index].copy(loopId = id)
+            results += loop
             logger.i { "$loop is added or updated" }
 
 
@@ -207,6 +210,7 @@ class LoopRepository @Inject constructor(
                 loopScheduler.cancelAlarm(loop)
             }
         }
+        return results
     }
 
     suspend fun deleteLoop(loop: LoopBase) {

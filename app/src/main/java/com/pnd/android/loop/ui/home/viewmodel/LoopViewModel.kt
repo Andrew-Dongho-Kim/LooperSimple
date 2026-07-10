@@ -23,6 +23,7 @@ import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
@@ -191,6 +192,17 @@ class LoopViewModel @Inject constructor(
             AppWidgetUpdateWorker.updateWidget(application)
         }
     }
+
+    /**
+     * 단일 루프를 추가하고, 자동 생성된 loopId가 채워진 루프를 반환한다. 삽입은 뷰모델 스코프에서
+     * 수행하므로 호출한 UI 코루틴이 취소돼도 삽입은 유실되지 않는다. (빠른 시작 추가의 실행취소용)
+     */
+    suspend fun addLoopReturning(loop: LoopVo): LoopBase =
+        coroutineScope.async {
+            val added = loopRepository.addOrUpdateLoop(loop).first()
+            AppWidgetUpdateWorker.updateWidget(application)
+            added
+        }.await()
 
     fun deleteLoop(loop: LoopBase) {
         coroutineScope.launch {

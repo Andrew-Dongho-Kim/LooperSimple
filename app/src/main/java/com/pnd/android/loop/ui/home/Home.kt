@@ -27,13 +27,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Autorenew
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -43,6 +43,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -54,7 +55,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.dimensionResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -83,6 +83,7 @@ import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.ui.theme.surfaceElevated
 import com.pnd.android.loop.util.isActiveDay
 import com.pnd.android.loop.util.toMs
+import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 
 @Composable
@@ -202,10 +203,12 @@ private fun HomeContent(
                 .imePadding(),
             blurState = blurState,
             inputState = inputState,
+            snackBarHostState = snackBarHostState,
             lazyListState = lazyListState,
             backdrop = headerBackdrop,
             loopViewModel = loopViewModel,
             selectedTab = selectedTab,
+            onTabSelected = onTabSelected,
             onNavigateToGroupPicker = onNavigateToGroupPicker,
             onNavigateToDetailPage = onNavigateToDetailPage,
             onNavigateToHistoryPage = onNavigateToHistoryPage,
@@ -228,6 +231,11 @@ private fun HomeContent(
             NavigationBarFadingEdge(modifier = Modifier.align(Alignment.BottomCenter))
         }
 
+        // 루프가 하나도 없고 입력도 닫혀 있으면(= OOBE 빈 화면) 오늘/전체 탭은 의미가 없으므로
+        // 숨긴다. 첫 루프가 추가되거나 입력이 열리면 다시 나타난다.
+        val allLoops by loopViewModel.allLoopsWithDoneStates.collectAsState(initial = emptyList())
+        val showTabs = allLoops.isNotEmpty() || !inputState.isModeNone
+
         // The collapsing action bar: a plain app bar at rest that, as the list scrolls, fades out
         // the title and floats the icons (in place) and the 오늘/전체 tabs (slid up to the left).
         val collapseProgress by rememberHomeHeaderCollapseProgress(lazyListState)
@@ -237,6 +245,7 @@ private fun HomeContent(
             loopViewModel = loopViewModel,
             selectedTab = selectedTab,
             onTabSelected = onTabSelected,
+            showTabs = showTabs,
             onNavigateToGroupPage = onNavigateToGroupPage,
             onNavigateToStatisticsPage = onNavigateToStatisticsPage,
             onNavigateToHistoryPage = onNavigateToHistoryPage,
@@ -317,10 +326,12 @@ private fun HomeContent(
     modifier: Modifier = Modifier,
     blurState: BlurState,
     inputState: UserInputState,
+    snackBarHostState: SnackbarHostState,
     lazyListState: LazyListState,
     backdrop: BackdropState?,
     loopViewModel: LoopViewModel,
     @HomeTab.Type selectedTab: Int,
+    onTabSelected: (Int) -> Unit,
     onNavigateToGroupPicker: (LoopBase) -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
     onNavigateToHistoryPage: () -> Unit,
@@ -341,8 +352,13 @@ private fun HomeContent(
     // starts below its expanded height and then scrolls up underneath it. This content is also
     // the source the floating surfaces sample for their backdrop blur (API 31+ only).
     val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    val headerHeight = homeHeaderExpandedHeight(topInset)
+    // 루프가 없는 빈 상태에서는 헤더에 탭 행이 없으므로 그만큼 높이를 줄여, 콘텐츠가
+    // 불필요한 공백 없이 위로 올라오게 한다. (탭 노출 조건은 헤더의 showTabs와 동일)
+    val headerHeight = homeHeaderExpandedHeight(topInset, includeTabs = sections.isNotEmpty())
     val backdropModifier = backdrop?.let { Modifier.backdropSource(it) } ?: Modifier
+
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     // backdropSource wraps the background so the captured layer (sampled by the blur) includes it.
     Box(
@@ -354,7 +370,29 @@ private fun HomeContent(
             EmptyLoops(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(top = headerHeight)
+                    .padding(top = headerHeight),
+                // 빠른 시작 템플릿 선택 시, 입력창 제출과 동일하게 생성 시각을 채워 바로 추가한다.
+                onSelectTemplate = { template ->
+                    scope.launch {
+                        val added = loopViewModel.addLoopReturning(
+                            template.asLoopVo(created = LocalDateTime.now().toMs())
+                        )
+                        // 추가한 루프가 오늘 예정이 아니어도 곧바로 보이도록 전체 탭으로 전환한다.
+                        // (오늘 탭만 보고 "오늘 완료" 상태로 오인하는 것을 방지)
+                        onTabSelected(HomeTab.ALL)
+                        // 추가 확인 + 실행취소: 오탭으로 들어간 루프를 즉시 되돌릴 수 있게 한다.
+                        val result = snackBarHostState.showSnackbar(
+                            message = context.getString(R.string.oobe_loop_added, added.title),
+                            actionLabel = context.getString(R.string.action_undo),
+                            duration = SnackbarDuration.Short,
+                        )
+                        if (result == SnackbarResult.ActionPerformed) {
+                            loopViewModel.deleteLoop(added)
+                        }
+                    }
+                },
+                // '직접 추가'는 하단 입력 편집기를 열어 사용자가 원하는 루프를 직접 만들게 한다.
+                onCreateManually = { inputState.open(context) },
             )
         } else {
             LazyColumn(
@@ -381,22 +419,6 @@ private fun HomeContent(
                 }
             }
         }
-    }
-}
-
-@Composable
-fun EmptyLoops(
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier.padding(horizontal = 48.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        HomeEmptyState(
-            icon = Icons.Outlined.Autorenew,
-            title = stringResource(R.string.desc_no_loops),
-            hint = stringResource(R.string.desc_no_loops_hint),
-        )
     }
 }
 
@@ -550,7 +572,8 @@ private fun rememberAllSection(
         }
     }
 
-    return remember {
+    // 비활성 루프 그룹의 펼침 상태가 회전 등 구성 변경에도 유지되도록 rememberSaveable로 복원한다.
+    return rememberSaveable(saver = Section.All.Saver) {
         Section.All()
     }.apply {
         items.value = resultLoops

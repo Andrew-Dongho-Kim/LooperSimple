@@ -697,7 +697,13 @@ fun AnyTimeLoopStartOrStop(
             tint = AppColor.primary,
             onClick = {
                 onStateChanged(
-                    loop.copyAs(endInDay = LocalTime.now().toMs()),
+                    // 완료 시각(now)과 함께, 시작 때 기록해 둔 실제 시작 시각(actualStartInDay)을
+                    // 그대로 넘겨야 한다. loop.startInDay 는 anytime 이라 항상 ANY_TIME(-1)이므로,
+                    // 이를 쓰면 done 기록의 시작 시각이 -1 로 덮여 소요 시간 계산이 깨진다.
+                    loop.copyAs(
+                        startInDay = loop.actualStartInDay,
+                        endInDay = LocalTime.now().toMs(),
+                    ),
                     LoopDoneVo.DoneState.DONE
                 )
             },

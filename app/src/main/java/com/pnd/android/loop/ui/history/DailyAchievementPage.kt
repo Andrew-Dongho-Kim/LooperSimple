@@ -3,7 +3,6 @@ package com.pnd.android.loop.ui.history
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -59,11 +58,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -112,6 +107,7 @@ import java.time.temporal.ChronoUnit
 fun DailyAchievementPage(
     modifier: Modifier = Modifier,
     achievementViewModel: DailyAchievementViewModel = hiltViewModel(),
+    onNavigateToLoopDetail: (Int) -> Unit,
     onNavigateUp: () -> Unit,
 ) {
     val minDate by achievementViewModel.flowMinCreatedDate
@@ -194,6 +190,7 @@ fun DailyAchievementPage(
                 selectedDate = selectedDate,
                 onDateSelected = onDateSelected,
                 onUpdateSelectedDate = { localDate -> selectedDate = localDate },
+                onNavigateToLoopDetail = onNavigateToLoopDetail,
                 backdrop = headerBackdrop,
                 // 상단 리스트가 접히는 헤더 뒤로 스크롤되도록, 리스트 상단에 헤더 높이만큼 여백을 준다.
                 listTopPadding = achievementHeaderExpandedHeight(topInset),
@@ -220,8 +217,8 @@ fun DailyAchievementPage(
 /** 아래쪽 달력 패널의 위 모서리 모양. 리스트와의 경계를 명확히 하기 위해 위쪽만 둥글린다. */
 private val CalendarPanelShape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
 
-/** 달력 패널이 펼쳐졌을 때 화면에서 차지하는 세로 비율. */
-private const val CalendarExpandedHeightFraction = 0.46f
+/** 달력 패널이 펼쳐졌을 때 화면에서 차지하는 세로 비율. 상단 월 요약 배너 높이만큼 여유를 둔다. */
+private const val CalendarExpandedHeightFraction = 0.52f
 
 /** 그래버(손잡이) 영역 높이. 접히면 이 높이(+내비게이션 바)만 남는다. */
 private val CalendarGrabHandleHeight = 28.dp
@@ -244,6 +241,7 @@ private fun DailyAchievementPageContent(
     selectedDate: LocalDate,
     onDateSelected: (LocalDate) -> Unit,
     onUpdateSelectedDate: (LocalDate) -> Unit,
+    onNavigateToLoopDetail: (Int) -> Unit,
     backdrop: BackdropState?,
     listTopPadding: Dp,
 ) {
@@ -298,6 +296,7 @@ private fun DailyAchievementPageContent(
                     .padding(horizontal = Dimens.screenHorizontalPadding),
                 lazyListState = lazyListState,
                 achievementViewModel = achievementViewModel,
+                onNavigateToLoopDetail = onNavigateToLoopDetail,
                 // 리스트가 접히는 헤더 뒤로 스크롤되도록 상단 여백을 콘텐츠 패딩으로 준다.
                 contentTopPadding = listTopPadding,
             )
@@ -582,6 +581,7 @@ private fun DailyAchievementsRecords(
     modifier: Modifier = Modifier,
     lazyListState: LazyListState,
     achievementViewModel: DailyAchievementViewModel,
+    onNavigateToLoopDetail: (Int) -> Unit,
     contentTopPadding: Dp = 0.dp,
 ) {
     val items = achievementViewModel.achievementPager.collectAsLazyPagingItems()
@@ -601,7 +601,8 @@ private fun DailyAchievementsRecords(
 
             AchievementItem(
                 modifier = Modifier.padding(vertical = Dimens.contentPadding),
-                loops = item
+                loops = item,
+                onNavigateToLoopDetail = onNavigateToLoopDetail,
             )
         }
     }
@@ -610,7 +611,8 @@ private fun DailyAchievementsRecords(
 @Composable
 private fun AchievementItem(
     modifier: Modifier = Modifier,
-    loops: List<FullLoopVo>
+    loops: List<FullLoopVo>,
+    onNavigateToLoopDetail: (Int) -> Unit,
 ) {
     val itemDate = loops[0].date.toLocalDate()
     val doneList = loops.filter { it.done.isDone() }
@@ -639,6 +641,7 @@ private fun AchievementItem(
                             itemDate = itemDate,
                             isDone = loop.done.isDone(),
                             isLast = index == respondLoops.lastIndex,
+                            onClick = { onNavigateToLoopDetail(loop.loopId) },
                         )
                     }
                 }
@@ -695,7 +698,7 @@ private fun DaySummaryHeader(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (hasRecords) {
-            AchievementProgressRing(
+            AchievementRing(
                 fraction = fraction,
                 color = progressColorOf(fraction),
                 modifier = Modifier.padding(end = Dimens.contentPadding),
@@ -725,55 +728,6 @@ private fun DaySummaryHeader(
                 )
             }
         }
-    }
-}
-
-/** 진행 링의 바깥 지름과 선 굵기. */
-private val ProgressRingDiameter = 34.dp
-private val ProgressRingStroke = 3.dp
-
-/**
- * 달성 정도를 나타내는 얇은 원형 진행 링. 12시 방향에서 시작해 시계 방향으로 [fraction]만큼 채운다.
- * 채우는 색([color])은 달성 단계 색이고, 바탕 트랙은 라이트/다크 모두에서 은은한 중립색이라
- * 채워지지 않은 부분도 자연스럽게 얹힌다.
- */
-@Composable
-private fun AchievementProgressRing(
-    fraction: Float,
-    color: Color,
-    modifier: Modifier = Modifier,
-) {
-    // 채워지지 않은 바탕 트랙 색. onSurface 기반 반투명이라 두 테마 모두에서 어색하지 않다.
-    val trackColor = AppColor.onSurface.copy(alpha = if (isSystemInDarkTheme()) 0.14f else 0.10f)
-    val sweepAngle = fraction.coerceIn(0f, 1f) * 360f
-
-    Canvas(modifier = modifier.size(ProgressRingDiameter)) {
-        val strokeWidthPx = ProgressRingStroke.toPx()
-        // 선은 경로의 중심을 따라 그려지므로, 굵기의 절반만큼 안으로 들여 캔버스 밖으로 잘리지 않게 한다.
-        val inset = strokeWidthPx / 2f
-        val arcTopLeft = Offset(inset, inset)
-        val arcSize = Size(size.width - strokeWidthPx, size.height - strokeWidthPx)
-
-        // 바탕 트랙(전체 원).
-        drawArc(
-            color = trackColor,
-            startAngle = -90f,
-            sweepAngle = 360f,
-            useCenter = false,
-            topLeft = arcTopLeft,
-            size = arcSize,
-            style = Stroke(width = strokeWidthPx),
-        )
-        // 달성 정도만큼 채우는 진행 호. 끝을 둥글려(Round) 부드러운 인상을 준다.
-        drawArc(
-            color = color,
-            startAngle = -90f,
-            sweepAngle = sweepAngle,
-            useCenter = false,
-            topLeft = arcTopLeft,
-            size = arcSize,
-            style = Stroke(width = strokeWidthPx, cap = StrokeCap.Round),
-        )
     }
 }
 
@@ -825,11 +779,14 @@ private fun TimelineLoopRow(
     itemDate: LocalDate,
     isDone: Boolean,
     isLast: Boolean,
+    onClick: () -> Unit,
 ) {
     val loopColor = loop.color.compositeOverOnSurface()
     Row(
         modifier = modifier
             .fillMaxWidth()
+            // 한 줄을 누르면 그 루프의 상세(통계) 화면으로 이동한다.
+            .clickable(onClick = onClick)
             .padding(horizontal = Dimens.contentPadding)
             // 레일의 연결선이 다음 점까지 닿도록, 행 높이를 내용 높이에 맞춘다.
             .height(IntrinsicSize.Min),

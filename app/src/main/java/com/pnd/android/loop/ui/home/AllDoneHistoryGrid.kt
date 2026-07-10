@@ -74,7 +74,6 @@ import com.pnd.android.loop.util.toLocalDate
 import com.pnd.android.loop.util.toMs
 import kotlinx.coroutines.delay
 import java.time.LocalDate
-import kotlin.math.abs
 
 // 그리드 치수. 셀·행·헤더 높이를 상수로 묶어 왼쪽 이름 열과 날짜 열의 높이가 항상 정확히 맞도록 한다.
 private val CellSize = 28.dp          // 실제 ✓/✕가 그려지는 정사각 셀
@@ -173,23 +172,25 @@ fun AllDoneHistoryGrid(
         // 이름 열 접힘 정도(0=완전히 펼침, 1=완전히 접힘). 스크롤 양에 비례해 커진다.
         val collapseProgress = remember { mutableFloatStateOf(0f) }
 
-        // 스크롤 델타를 누적해 접힘 정도를 갱신한다. 손가락 이동량만큼 천천히 접히도록,
-        // [CollapseScrollDistance]만큼 스크롤하면 완전히 접히도록 정규화한다.
+        // 스크롤 방향과 이동량에 따라 접힘 정도를 갱신한다. 손가락 이동량만큼 천천히 반응하도록
+        // [CollapseScrollDistance]만큼 스크롤하면 완전히 접히거나 펼쳐지도록 정규화한다.
+        // - 우측으로 스크롤(양수 델타)하면 날짜 그리드가 이름 열 위로 덮이며 천천히 접힌다.
+        // - 좌측으로 스크롤(음수 델타)하면 반대로 천천히 다시 펼쳐진다.
         val collapseDistancePx = with(LocalDensity.current) { CollapseScrollDistance.toPx() }
         val nestedScrollConnection = remember(collapseDistancePx) {
             object : NestedScrollConnection {
                 override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                    val next = collapseProgress.floatValue + abs(available.x) / collapseDistancePx
+                    val next = collapseProgress.floatValue + available.x / collapseDistancePx
                     collapseProgress.floatValue = next.coerceIn(0f, 1f)
                     return Offset.Zero
                 }
             }
         }
 
-        // 스크롤이 멈추면 2초 뒤에 이름 열을 애니메이션으로 다시 펼친다.
+        // 타이틀이 접혀 있는 상태에서 스크롤이 멈추면 1초 뒤에 이름 열을 애니메이션으로 다시 펼친다.
         LaunchedEffect(listState.isScrollInProgress) {
-            if (!listState.isScrollInProgress) {
-                delay(2000)
+            if (!listState.isScrollInProgress && collapseProgress.floatValue > 0f) {
+                delay(1000)
                 animate(
                     initialValue = collapseProgress.floatValue,
                     targetValue = 0f,

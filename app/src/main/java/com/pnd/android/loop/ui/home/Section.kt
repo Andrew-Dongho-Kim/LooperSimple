@@ -50,6 +50,8 @@ import androidx.core.content.edit
 import com.pnd.android.loop.BuildConfig
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
+import com.pnd.android.loop.data.asLoopVo
+import com.pnd.android.loop.data.isInProgress
 import com.pnd.android.loop.data.isNotRespond
 import com.pnd.android.loop.ui.common.ExpandableNativeAd
 import com.pnd.android.loop.ui.home.timeline.LoopCircularDial
@@ -306,14 +308,20 @@ private fun LazyListScope.sectionTodayBody(
                     horizontal = Dimens.screenHorizontalPadding,
                     vertical = HomeCardSpacing,
                 ),
+                blurState = blurState,
                 loops = loops,
                 onStateChanged = onStateChanged,
+                onEdit = onEdit,
+                onDelete = onDelete,
                 onNavigateToDetailPage = onNavigateToDetailPage,
             )
         }
 
+        // 미응답(NO_RESPONSE)뿐 아니라 진행 중(IN_PROGRESS)인 루프도 오늘 목록에 남긴다.
+        // anytime 루프를 "시작"하면 상태가 IN_PROGRESS 로 바뀌는데, 이때 목록에서 사라지지
+        // 않고 정지 버튼과 함께 그대로 보여야 한다. 완료/스킵(isRespond)만 Done/Skip 으로 이동한다.
         TodayViewMode.LIST -> items(
-            items = loops.filter { loop -> loop.isNotRespond },
+            items = loops.filter { loop -> loop.isNotRespond || loop.isInProgress },
             contentType = { ContentTypes.LOOP_CARD },
             key = { loop -> loop.loopId },
         ) { loop ->
@@ -469,8 +477,14 @@ private fun LazyListScope.sectionAll(
 
     ) {
     val loops by section.items
+    // 활성/비활성 루프를 분리한다. 상위 정렬(TodayLoopOrder)이 이미 활성→비활성 순이라
+    // 여기서 필터만 나눠도 각 그룹 내부 순서는 그대로 유지된다.
+    val enabledLoops = loops.filter { loop -> loop.enabled }
+    val disabledLoops = loops.filter { loop -> !loop.enabled }
+
+    // 활성 루프는 기존과 동일하게 카드 목록으로 노출한다.
     items(
-        items = loops,
+        items = enabledLoops,
         contentType = { ContentTypes.LOOP_CARD },
         key = { loop -> loop.loopId }
     ) { loop ->
@@ -494,6 +508,34 @@ private fun LazyListScope.sectionAll(
             onNavigateToDetailPage = onNavigateToDetailPage,
         )
     }
+
+    // 비활성 루프가 하나라도 있을 때만, 이들을 하나의 카드로 묶어 접었다 펼치는 아이템을 덧붙인다.
+    if (disabledLoops.isNotEmpty()) {
+        item(
+            contentType = ContentTypes.ALL_DISABLED_GROUP,
+            key = "AllDisabledGroup",
+        ) {
+            var isExpanded by section.isExpanded
+            // "언제부터 비활성인지"는 done 이력에서 유도하므로 함께 전달한다.
+            val doneHistory by loopViewModel.allDoneHistory.collectAsState(initial = emptyMap())
+            DisabledLoopsCard(
+                modifier = Modifier.padding(
+                    horizontal = Dimens.screenHorizontalPadding,
+                    vertical = Dimens.cardSpacing,
+                ),
+                loops = disabledLoops,
+                doneHistory = doneHistory,
+                isExpanded = isExpanded,
+                onExpandChanged = { expanded -> isExpanded = expanded },
+                // 활성화 버튼: 루프의 enabled 플래그만 켜서 저장한다.
+                onEnable = { loop ->
+                    loopViewModel.addOrUpdateLoop(loop.copyAs(enabled = true).asLoopVo())
+                },
+                onNavigateToDetailPage = onNavigateToDetailPage,
+            )
+        }
+    }
+
     item {
         Spacer(modifier = Modifier.height(Dimens.sectionSpacing))
     }
@@ -633,6 +675,7 @@ enum class ContentTypes {
     LOOP_TIMELINE,
     LOOP_DIAL,
     LATER_HEADER,
+    ALL_DISABLED_GROUP,
     YESTERDAY_CARD,
     LOOP_CARD,
     DONE_SKIP_CARD,
@@ -775,7 +818,27 @@ sealed class Section(val key: String) {
         }
     }
 
-    class All : Section(key = "AllSection")
+    class All(
+        isExpanded: Boolean = false
+    ) : Section(key = "AllSection") {
+        // 전체 탭에서 비활성 루프 그룹의 펼침 상태. 기본은 접힘이라 활성 루프에 집중되도록 한다.
+        val isExpanded = mutableStateOf(isExpanded)
+
+        companion object {
+            val Saver = listSaver(
+                save = {
+                    listOf(
+                        it.isExpanded.value
+                    )
+                },
+                restore = { list ->
+                    All(
+                        isExpanded = list[0]
+                    )
+                }
+            )
+        }
+    }
 
     /** 전체 탭 하단 기록 그리드 섹션. 표시할 루프가 있을 때만(size>0) 노출된다. */
     class AllHistoryGrid : Section(key = "AllHistoryGridSection")

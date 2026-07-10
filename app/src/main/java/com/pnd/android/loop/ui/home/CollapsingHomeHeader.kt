@@ -1,5 +1,10 @@
 package com.pnd.android.loop.ui.home
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.WindowInsets
@@ -51,9 +56,13 @@ private val TabFloatingRim = 5.dp
 /** Track height so the tabs' pill (track + rim on both sides) equals [FloatingPillHeight]. */
 private val CollapsedTabTrackHeight = FloatingPillHeight - TabFloatingRim * 2
 
-/** Full height the header occupies at rest, so the scrolling content can start just below it. */
-fun homeHeaderExpandedHeight(topInset: Dp) =
-    topInset + HomeActionBarHeight + HomeTabsRowHeight
+/**
+ * Full height the header occupies at rest, so the scrolling content can start just below it.
+ * [includeTabs]가 false면(루프가 없는 빈 상태) 탭 행 높이를 빼서 헤더가 인사말/아이콘 줄까지만
+ * 차지하도록 한다.
+ */
+fun homeHeaderExpandedHeight(topInset: Dp, includeTabs: Boolean = true) =
+    topInset + HomeActionBarHeight + (if (includeTabs) HomeTabsRowHeight else 0.dp)
 
 /** Top of the collapsed tabs pill, vertically centered in the action-bar row like the icons. */
 private fun collapsedTabTop(topInset: Dp) =
@@ -90,6 +99,7 @@ fun CollapsingHomeHeader(
     onNavigateToHistoryPage: () -> Unit,
     backdrop: BackdropState?,
     modifier: Modifier = Modifier,
+    showTabs: Boolean = true,
 ) {
     val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val screenPadding = Dimens.screenHorizontalPadding
@@ -99,10 +109,12 @@ fun CollapsingHomeHeader(
     // Both floating pills tuck 8dp further in from the screen edges as they collapse.
     val floatingMargin = lerp(0.dp, 0.dp, progress)
 
+    // 탭이 없는 빈 상태에서는 헤더 높이도 그만큼 줄여 위쪽 공백을 없앤다.
+    val headerHeight = homeHeaderExpandedHeight(topInset, includeTabs = showTabs)
     BoxWithConstraints(
         modifier = modifier
             .fillMaxWidth()
-            .height(homeHeaderExpandedHeight(topInset)),
+            .height(headerHeight),
     ) {
         // Greeting + date: pinned to the action-bar row, fading out as the list scrolls.
         Box(
@@ -153,21 +165,28 @@ fun CollapsingHomeHeader(
         val tabTrackHeight = lerp(HomeTabsTrackHeight, CollapsedTabTrackHeight, progress)
         val tabRim = lerp(0.dp, TabFloatingRim, progress)
 
-        FloatingSurface(
-            progress = surfaceProgress,
-            shape = FloatingHeaderShape,
-            backdrop = backdrop,
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .offset(x = screenPadding + floatingMargin, y = tabTop)
-                .width(tabWidth),
+        // 루프가 없는 OOBE 상태에서는 탭을 숨기고, 첫 루프가 생기면 아래에서 부드럽게 나타난다.
+        AnimatedVisibility(
+            visible = showTabs,
+            modifier = Modifier.align(Alignment.TopStart),
+            enter = fadeIn() + slideInVertically(initialOffsetY = { it / 3 }),
+            exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 3 }),
         ) {
-            HomeTabs(
-                modifier = Modifier.padding(horizontal = tabRim, vertical = tabRim),
-                selectedTab = selectedTab,
-                onTabSelected = onTabSelected,
-                trackHeight = tabTrackHeight,
-            )
+            FloatingSurface(
+                progress = surfaceProgress,
+                shape = FloatingHeaderShape,
+                backdrop = backdrop,
+                modifier = Modifier
+                    .offset(x = screenPadding + floatingMargin, y = tabTop)
+                    .width(tabWidth),
+            ) {
+                HomeTabs(
+                    modifier = Modifier.padding(horizontal = tabRim, vertical = tabRim),
+                    selectedTab = selectedTab,
+                    onTabSelected = onTabSelected,
+                    trackHeight = tabTrackHeight,
+                )
+            }
         }
     }
 }

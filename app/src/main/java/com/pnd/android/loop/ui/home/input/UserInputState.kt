@@ -100,6 +100,14 @@ class UserInputState(
         pref.edit { putBoolean(KEY_IS_USER_INPUT_OPEN, isOpen) }
     }
 
+    /** 입력 편집기를 연다(이미 열려 있으면 아무 것도 하지 않음). OOBE의 '직접 추가' 진입점 등에서 쓴다. */
+    fun open(context: Context) {
+        if (isOpen) return
+        isOpen = true
+        val pref = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+        pref.edit { putBoolean(KEY_IS_USER_INPUT_OPEN, true) }
+    }
+
     fun close(context: Context) {
         isOpen = false
         val pref = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
