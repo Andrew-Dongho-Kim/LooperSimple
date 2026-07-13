@@ -85,6 +85,10 @@ data class LoopWithStatistics(
     val title: String,
     val color: Int,
     val doneRate: Float,
+    // 기간 내 완료(DONE)한 횟수와 그 완료들에 투자한 시간(ms) 총합.
+    // 순위 정렬 기준(완료율/누적시간/완료횟수)에 사용한다.
+    val doneCount: Int,
+    val investedTimeMs: Long,
 )
 
 /**

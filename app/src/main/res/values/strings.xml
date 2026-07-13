@@ -76,7 +76,10 @@
     <string name="stat_weekly_consistency">Weekly consistency</string>
     <string name="stat_weekly_consistency_desc">Completed loops by day of the week</string>
     <string name="stat_ranking">Loop ranking</string>
-    <string name="stat_ranking_desc">Loops ordered by completion rate</string>
+    <string name="stat_ranking_desc">Loops ranked by the selected metric</string>
+    <string name="stat_ranking_sort_rate">Completion</string>
+    <string name="stat_ranking_sort_time">Total time</string>
+    <string name="stat_ranking_sort_count">Times done</string>
     <string name="stat_empty">No statistics for this period yet.</string>
     <string name="stat_unit_count">%d times</string>
     <string name="stat_summary_invested">Total time</string>
@@ -94,6 +97,75 @@
     <string name="stat_duration_dh">%1$dd %2$dh</string>
     <string name="stat_duration_hm">%1$dh %2$dm</string>
     <string name="stat_duration_m">%1$dm</string>
+
+    <!-- Statistics tabs -->
+    <string name="stat_tab_summary">Summary</string>
+    <string name="stat_tab_pattern">Pattern</string>
+    <string name="stat_tab_habit">Habits</string>
+    <string name="stat_tab_achievement">Achievements</string>
+
+    <!-- Summary extras -->
+    <string name="stat_summary_perfect_days">Perfect days</string>
+    <string name="stat_summary_skipped">Skipped</string>
+
+    <!-- Insight feed -->
+    <string name="stat_insight_title">This month\'s highlights</string>
+    <string name="stat_insight_desc">What to notice right now</string>
+    <string name="stat_insight_projection">On track for %1$d completions</string>
+    <string name="stat_insight_projection_desc">At your current pace (%1$d so far)</string>
+    <string name="stat_insight_at_risk">\'%1$s\' is slipping</string>
+    <string name="stat_insight_at_risk_desc">%1$d%% → %2$d%% recently</string>
+    <string name="stat_insight_milestone">%1$s reached</string>
+
+    <!-- Completion trend -->
+    <string name="stat_trend_title">Completion trend</string>
+    <string name="stat_trend_desc">Monthly completion rate</string>
+
+    <!-- Hourly heatmap -->
+    <string name="stat_hourly_title">Completion by hour</string>
+    <string name="stat_hourly_desc">When you complete the most</string>
+    <string name="stat_hourly_peak">Most active around %1$d:00</string>
+    <string name="stat_hourly_none">No timed records yet</string>
+
+    <!-- Planned vs actual -->
+    <string name="stat_plan_title">Planned vs actual</string>
+    <string name="stat_plan_desc">How close to your planned start</string>
+    <string name="stat_plan_late">Starts %1$d min late on average</string>
+    <string name="stat_plan_early">Starts %1$d min early on average</string>
+    <string name="stat_plan_ontime">Usually starts on time</string>
+    <string name="stat_plan_ontime_rate">On time %1$d%%</string>
+
+    <!-- Habit health -->
+    <string name="stat_health_title">Habits to watch</string>
+    <string name="stat_health_desc">Loops slipping recently</string>
+    <string name="stat_health_change">%1$d%% → %2$d%%</string>
+    <string name="stat_health_at_risk">At risk</string>
+    <string name="stat_health_watch">Watch</string>
+
+    <!-- New loop settling -->
+    <string name="stat_settling_title">New habit settling</string>
+    <string name="stat_settling_desc">Loops created in the last 30 days</string>
+    <string name="stat_settling_days">Day %1$d</string>
+    <string name="stat_settling_settled">Settled</string>
+    <string name="stat_settling_settling">Settling</string>
+    <string name="stat_settling_struggling">Struggling</string>
+
+    <!-- Milestones -->
+    <string name="stat_milestone_title">Milestones</string>
+    <string name="stat_milestone_desc">Achievements from your totals</string>
+    <string name="stat_milestone_invested_hours">Time invested</string>
+    <string name="stat_milestone_total_done">Total completions</string>
+    <string name="stat_milestone_longest_streak">Longest streak</string>
+    <string name="stat_milestone_unit_hours">%1$dh</string>
+    <string name="stat_milestone_unit_count">%1$d times</string>
+    <string name="stat_milestone_unit_days">%1$d days</string>
+    <string name="stat_milestone_next">Next: %1$s</string>
+    <string name="stat_milestone_max">Top tier reached</string>
+
+    <!-- Reflections -->
+    <string name="stat_retrospect_title">Reflections</string>
+    <string name="stat_retrospect_desc">Share of completions with a note</string>
+    <string name="stat_retrospect_ratio">%1$d of %2$d completions</string>
 
     <string name="save">Save</string>
     <string name="ok">Ok</string>

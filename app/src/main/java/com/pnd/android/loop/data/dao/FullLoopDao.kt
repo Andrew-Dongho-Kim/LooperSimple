@@ -4,9 +4,12 @@ import androidx.room.Dao
 import androidx.room.Query
 import com.pnd.android.loop.data.LoopByDate
 import com.pnd.android.loop.data.LoopDoneVo
+import com.pnd.android.loop.data.LoopResponseRecord
 import com.pnd.android.loop.data.LoopWithDone
 import com.pnd.android.loop.data.LoopWithStatistics
+import com.pnd.android.loop.data.MonthlyCompletionCount
 import com.pnd.android.loop.data.MonthlyLoopDuration
+import com.pnd.android.loop.data.NewLoopRecord
 import com.pnd.android.loop.util.toMs
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
@@ -69,11 +72,12 @@ interface FullLoopDao {
     ): Flow<List<LoopByDate>>
 
     @Query(
-        """SELECT loopId, title, color, doneCount /  CAST(allCount AS REAL) AS doneRate FROM 
+        """SELECT loopId, title, color, doneCount /  CAST(allCount AS REAL) AS doneRate, doneCount, investedTimeMs FROM
                 (SELECT *,
-                    (SELECT COUNT(*) FROM loop_done WHERE loopId==loop.loopId AND :from <= date AND date <= :to) AS allCount, 
-                    (SELECT COUNT(*) FROM loop_done WHERE done == ${LoopDoneVo.DoneState.DONE} AND loopId==loop.loopId AND :from <= date AND date <= :to) AS doneCount
-                FROM loop WHERE created <= :to) 
+                    (SELECT COUNT(*) FROM loop_done WHERE loopId==loop.loopId AND :from <= date AND date <= :to) AS allCount,
+                    (SELECT COUNT(*) FROM loop_done WHERE done == ${LoopDoneVo.DoneState.DONE} AND loopId==loop.loopId AND :from <= date AND date <= :to) AS doneCount,
+                    (SELECT COALESCE(SUM(CASE WHEN loop_done.endInDay >= loop_done.startInDay THEN loop_done.endInDay - loop_done.startInDay ELSE loop_done.endInDay - loop_done.startInDay + 86400000 END), 0) FROM loop_done WHERE done == ${LoopDoneVo.DoneState.DONE} AND loopId==loop.loopId AND :from <= date AND date <= :to) AS investedTimeMs
+                FROM loop WHERE created <= :to)
             ORDER BY doneRate DESC
         """
     )
@@ -125,4 +129,59 @@ interface FullLoopDao {
                 "WHERE done == ${LoopDoneVo.DoneState.DONE} ORDER BY date ASC"
     )
     fun getDoneDatesFlow(): Flow<List<Long>>
+
+    /**
+     * 기간(:from..:to) 내 모든 응답 기록(DISABLED 제외)을 루프 메타·회고와 함께 반환한다.
+     * 시간대 히트맵·완벽한 날·회고율·계획대비 실제 등 기간 기반 지표를 이 한 쿼리에서 계산한다.
+     */
+    @Query(
+        "SELECT loop_done.loopId AS loopId, loop.title AS title, loop.color AS color, " +
+                "loop_done.date AS date, loop_done.done AS done, " +
+                "loop_done.startInDay AS startInDay, loop_done.endInDay AS endInDay, " +
+                "loop.startInDay AS plannedStartInDay, loop.isAnyTime AS isAnyTime, " +
+                "loop_memo.text AS retrospect " +
+                "FROM loop_done " +
+                "LEFT JOIN loop ON loop.loopId == loop_done.loopId " +
+                "LEFT JOIN loop_memo ON loop_done.loopId == loop_memo.loopId AND loop_done.date == loop_memo.date " +
+                "WHERE loop_done.done != ${LoopDoneVo.DoneState.DISABLED} " +
+                "AND :from <= loop_done.date AND loop_done.date <= :to " +
+                "ORDER BY loop_done.date ASC, loop_done.loopId ASC"
+    )
+    fun getResponsesFlow(from: Long, to: Long): Flow<List<LoopResponseRecord>>
+
+    /**
+     * 전체 기록을 월(연/월)별로 묶어 완료 횟수와 응답 횟수를 집계한다.
+     * 완료율 추세(월별 완료율 = doneCount / respondedCount) 계산에 사용한다.
+     */
+    @Query(
+        "SELECT " +
+                "CAST(strftime('%Y', date / 1000, 'unixepoch', 'localtime') AS INTEGER) AS year, " +
+                "CAST(strftime('%m', date / 1000, 'unixepoch', 'localtime') AS INTEGER) AS month, " +
+                "SUM(CASE WHEN done == ${LoopDoneVo.DoneState.DONE} THEN 1 ELSE 0 END) AS doneCount, " +
+                "COUNT(*) AS respondedCount " +
+                "FROM loop_done " +
+                "WHERE done != ${LoopDoneVo.DoneState.DISABLED} " +
+                "GROUP BY year, month ORDER BY year ASC, month ASC"
+    )
+    fun getMonthlyCompletionCountFlow(): Flow<List<MonthlyCompletionCount>>
+
+    /**
+     * :since 이후에 생성된, 현재 활성화된 루프들의 누적 성과(응답/완료 횟수)를 반환한다.
+     * 신규 루프 정착률 계산에 사용한다. 최근에 만든 루프가 위로 오도록 정렬한다.
+     */
+    @Query(
+        "SELECT loop.loopId AS loopId, loop.title AS title, loop.color AS color, loop.created AS created, " +
+                "(SELECT COUNT(*) FROM loop_done WHERE loopId == loop.loopId AND done != ${LoopDoneVo.DoneState.DISABLED}) AS respondedCount, " +
+                "(SELECT COUNT(*) FROM loop_done WHERE loopId == loop.loopId AND done == ${LoopDoneVo.DoneState.DONE}) AS doneCount " +
+                "FROM loop " +
+                "WHERE loop.created >= :since AND loop.enabled == 1 " +
+                "ORDER BY loop.created DESC"
+    )
+    fun getNewLoopsFlow(since: Long): Flow<List<NewLoopRecord>>
+
+    /**
+     * 전체 기록에서 완료(DONE)한 총 횟수. 누적 성취(마일스톤) 계산에 사용한다.
+     */
+    @Query("SELECT COUNT(*) FROM loop_done WHERE done == ${LoopDoneVo.DoneState.DONE}")
+    fun getTotalDoneCountFlow(): Flow<Int>
 }

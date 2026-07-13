@@ -71,7 +71,10 @@
     <string name="stat_weekly_consistency">요일별 꾸준함</string>
     <string name="stat_weekly_consistency_desc">요일별 완료한 루프 수</string>
     <string name="stat_ranking">루프 순위</string>
-    <string name="stat_ranking_desc">완료율 순으로 정렬된 루프</string>
+    <string name="stat_ranking_desc">선택한 기준으로 정렬된 루프</string>
+    <string name="stat_ranking_sort_rate">완료율</string>
+    <string name="stat_ranking_sort_time">누적 시간</string>
+    <string name="stat_ranking_sort_count">완료 횟수</string>
     <string name="stat_empty">아직 이 기간의 통계가 없습니다.</string>
     <string name="stat_unit_count">%d회</string>
     <string name="stat_summary_invested">투자 시간</string>
@@ -89,6 +92,75 @@
     <string name="stat_duration_dh">%1$d일 %2$d시간</string>
     <string name="stat_duration_hm">%1$d시간 %2$d분</string>
     <string name="stat_duration_m">%1$d분</string>
+
+    <!-- 통계 탭 -->
+    <string name="stat_tab_summary">요약</string>
+    <string name="stat_tab_pattern">패턴</string>
+    <string name="stat_tab_habit">습관</string>
+    <string name="stat_tab_achievement">성취</string>
+
+    <!-- 요약 추가 지표 -->
+    <string name="stat_summary_perfect_days">완벽한 날</string>
+    <string name="stat_summary_skipped">스킵</string>
+
+    <!-- 인사이트 피드 -->
+    <string name="stat_insight_title">이달의 하이라이트</string>
+    <string name="stat_insight_desc">지금 주목할 것</string>
+    <string name="stat_insight_projection">이달 %1$d회 완료 예상</string>
+    <string name="stat_insight_projection_desc">현재 페이스 기준 (지금까지 %1$d회)</string>
+    <string name="stat_insight_at_risk">\'%1$s\' 완료율 하락 중</string>
+    <string name="stat_insight_at_risk_desc">최근 %1$d%% → %2$d%%</string>
+    <string name="stat_insight_milestone">%1$s 달성</string>
+
+    <!-- 완료율 추세 -->
+    <string name="stat_trend_title">완료율 추세</string>
+    <string name="stat_trend_desc">월별 완료율 변화</string>
+
+    <!-- 시간대별 완료 -->
+    <string name="stat_hourly_title">시간대별 완료</string>
+    <string name="stat_hourly_desc">언제 가장 많이 완료했는지</string>
+    <string name="stat_hourly_peak">가장 활발한 시간대 %1$d시</string>
+    <string name="stat_hourly_none">아직 시간 기록이 없어요</string>
+
+    <!-- 계획 대비 실제 -->
+    <string name="stat_plan_title">계획 대비 실제</string>
+    <string name="stat_plan_desc">계획한 시각에 얼마나 맞췄는지</string>
+    <string name="stat_plan_late">평균 %1$d분 늦게 시작</string>
+    <string name="stat_plan_early">평균 %1$d분 일찍 시작</string>
+    <string name="stat_plan_ontime">대체로 정시에 시작</string>
+    <string name="stat_plan_ontime_rate">정시 시작 %1$d%%</string>
+
+    <!-- 습관 건강 -->
+    <string name="stat_health_title">관리가 필요한 습관</string>
+    <string name="stat_health_desc">최근 완료율이 떨어진 루프</string>
+    <string name="stat_health_change">%1$d%% → %2$d%%</string>
+    <string name="stat_health_at_risk">위험</string>
+    <string name="stat_health_watch">주의</string>
+
+    <!-- 신규 루프 정착 -->
+    <string name="stat_settling_title">새 습관 정착</string>
+    <string name="stat_settling_desc">최근 30일 안에 만든 루프</string>
+    <string name="stat_settling_days">%1$d일째</string>
+    <string name="stat_settling_settled">정착</string>
+    <string name="stat_settling_settling">정착 중</string>
+    <string name="stat_settling_struggling">위태</string>
+
+    <!-- 마일스톤 -->
+    <string name="stat_milestone_title">마일스톤</string>
+    <string name="stat_milestone_desc">누적 기록으로 얻은 성취</string>
+    <string name="stat_milestone_invested_hours">투자 시간</string>
+    <string name="stat_milestone_total_done">총 완료</string>
+    <string name="stat_milestone_longest_streak">최장 연속</string>
+    <string name="stat_milestone_unit_hours">%1$d시간</string>
+    <string name="stat_milestone_unit_count">%1$d회</string>
+    <string name="stat_milestone_unit_days">%1$d일</string>
+    <string name="stat_milestone_next">다음 목표 %1$s</string>
+    <string name="stat_milestone_max">최고 단계 달성</string>
+
+    <!-- 회고 작성 -->
+    <string name="stat_retrospect_title">회고 작성</string>
+    <string name="stat_retrospect_desc">완료 후 회고를 남긴 비율</string>
+    <string name="stat_retrospect_ratio">%1$d / %2$d 완료에 회고</string>
 
     <string name="save">저장</string>
     <string name="ok">확인</string>

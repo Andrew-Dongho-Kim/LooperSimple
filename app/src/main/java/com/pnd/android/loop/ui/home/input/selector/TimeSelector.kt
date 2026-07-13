@@ -3,6 +3,9 @@ package com.pnd.android.loop.ui.home.input.selector
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,12 +23,17 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -49,6 +57,8 @@ import com.pnd.android.loop.util.ABB_DAYS
 import com.pnd.android.loop.util.rememberDayColor
 import com.pnd.android.loop.util.toLocalTime
 import com.pnd.android.loop.util.toMs
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.time.LocalTime
 
 /** Minimum gap the loop must span; the end time has to sit at least this far after the start. */
@@ -245,11 +255,47 @@ private fun StepperArrow(
         modifier = Modifier
             .size(24.dp)
             .clip(RoundShapes.small)
-            .clickable(enabled = enabled, onClick = onClick),
+            .repeatingClickable(enabled = enabled, onClick = onClick),
         imageVector = imageVector,
         contentDescription = null,
         tint = AppColor.onSurface.copy(alpha = 0.4f)
     )
+}
+
+/**
+ * Like [clickable] but keeps firing [onClick] while the finger stays down, so holding a stepper
+ * arrow keeps nudging the value. A single tap fires once (immediate); a hold repeats after a short
+ * initial delay and then accelerates down to [minDelayMillis] between steps.
+ */
+private fun Modifier.repeatingClickable(
+    enabled: Boolean,
+    onClick: () -> Unit,
+    initialDelayMillis: Long = 350,
+    minDelayMillis: Long = 50,
+    delayDecayFactor: Float = 0.85f,
+): Modifier = composed {
+    val currentOnClick by rememberUpdatedState(onClick)
+    val scope = rememberCoroutineScope()
+    pointerInput(enabled) {
+        if (!enabled) return@pointerInput
+        awaitEachGesture {
+            awaitFirstDown(requireUnconsumed = false)
+            val repeatJob = scope.launch {
+                currentOnClick()
+                delay(initialDelayMillis)
+                var currentDelay = initialDelayMillis
+                while (true) {
+                    currentOnClick()
+                    currentDelay = (currentDelay * delayDecayFactor)
+                        .toLong()
+                        .coerceAtLeast(minDelayMillis)
+                    delay(currentDelay)
+                }
+            }
+            waitForUpOrCancellation()
+            repeatJob.cancel()
+        }
+    }
 }
 
 /** A tap-to-flip AM·PM label sharing the card row. */
