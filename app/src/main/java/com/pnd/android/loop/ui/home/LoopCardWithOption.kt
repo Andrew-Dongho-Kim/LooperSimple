@@ -20,6 +20,10 @@ data class LoopCardValues(
     val isActive: Boolean = false,
     val isHighlighted: Boolean = false,
     val showAddToGroup: Boolean = true,
+    // 지금 이 카드가 하단 입력 패널에서 편집 중인 대상인지. 강조 테두리 + "수정 중" 배지로 스포트라이트한다.
+    val isEditing: Boolean = false,
+    // 편집 중인 다른 카드가 있어 이 카드는 배경으로 물러나야 하는지(디밍 대상).
+    val isEditDimmed: Boolean = false,
 )
 
 @Composable

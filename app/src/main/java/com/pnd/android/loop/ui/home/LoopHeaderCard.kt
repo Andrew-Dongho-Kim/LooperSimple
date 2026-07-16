@@ -13,11 +13,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.TrendingDown
+import androidx.compose.material.icons.automirrored.outlined.TrendingUp
 import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.LocalFireDepartment
-import androidx.compose.material.icons.outlined.PendingActions
+import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -42,7 +48,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.ui.home.viewmodel.LoopRates
+import com.pnd.android.loop.ui.home.viewmodel.LoopTrend
 import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
+import com.pnd.android.loop.ui.home.viewmodel.NextLoopInfo
+import com.pnd.android.loop.ui.home.viewmodel.TodayLoopTrends
 import com.pnd.android.loop.ui.statisctics.DayOfWeekStat
 import com.pnd.android.loop.ui.statisctics.StreakStat
 import com.pnd.android.loop.ui.theme.AppColor
@@ -50,10 +59,10 @@ import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.Dimens
 import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.compositeOverSurface
+import com.pnd.android.loop.ui.theme.error
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.ui.theme.secondary
-import com.pnd.android.loop.ui.theme.surfaceContainer
 import java.time.DayOfWeek
 import java.util.Locale
 import java.time.format.TextStyle as JavaTextStyle
@@ -62,7 +71,7 @@ import java.time.format.TextStyle as JavaTextStyle
  * Summary card shown at the top of Home.
  *
  * 오늘 / 전체 탭([selectedTab])에 따라 "성격이 다른" 통계를 보여준다.
- *  - 오늘 탭: 지금 실행에 집중 — 오늘 달성률(원형 링) + 현재 연속 + 남은 오늘 루프.
+ *  - 오늘 탭: 지금·다음에 집중 — 오늘 달성률(원형 링) + 다음 루프 + 진행 중·현재 연속.
  *  - 전체 탭: 장기 축적에 집중 — 전체 달성률 + 최장 연속 + 요일별 달성 패턴.
  *
  * 뷰모델 상태는 이 함수에서 모두 collect 하고 하위 컴포저블에는 평범한 값으로만 넘겨,
@@ -78,7 +87,9 @@ fun LoopHeaderCard(
     val overallRates by loopViewModel.overallRates.collectAsState(initial = LoopRates.Empty)
     val streak by loopViewModel.streak.collectAsState(initial = StreakStat(current = 0, longest = 0))
     val weekdayStats by loopViewModel.weekdayStats.collectAsState(initial = emptyList())
-    val remainingToday by loopViewModel.countInTodayRemain.collectAsState(initial = 0)
+    val inProgress by loopViewModel.countInActive.collectAsState(initial = 0)
+    val nextLoop by loopViewModel.nextLoop.collectAsState(initial = null)
+    val loopTrends by loopViewModel.todayLoopTrends.collectAsState(initial = TodayLoopTrends.Empty)
     val wiseSaying by loopViewModel.wiseSaying.collectAsState(initial = loopViewModel.wiseSayingText)
 
     Card(
@@ -91,10 +102,12 @@ fun LoopHeaderCard(
     ) {
         Column(modifier = Modifier.padding(Dimens.contentPadding)) {
             if (selectedTab == HomeTab.TODAY) {
-                TodayStats(
+                TodayPager(
                     rates = todayRates,
                     currentStreak = streak.current,
-                    remainingToday = remainingToday,
+                    inProgress = inProgress,
+                    nextLoop = nextLoop,
+                    trends = loopTrends,
                 )
             } else {
                 OverallStats(
@@ -121,67 +134,216 @@ private fun headerContainerColor(): Color =
         alpha = if (isSystemInDarkTheme()) 0.20f else 0.08f
     )
 
-// region 오늘 탭 — 원형 링 + 현재 연속 + 남은 루프 (시안 A)
+// region 오늘 탭 — 3페이지 뷰페이저(지금·다음 / 잘하고 있는 / 주의가 필요한 루프)
+
+/** 오늘 탭 헤더 페이저의 페이지 수와 고정 높이. 높이는 페이지가 바뀌어도 카드가 출렁이지 않게 고정한다. */
+private const val TODAY_PAGE_COUNT = 3
+private val TodayPagerHeight = 112.dp
 
 /**
- * 오늘의 실행 현황. 달성률을 원형 링으로 크게 세워 성취감을 주고, 옆에는 오늘에만 의미 있는
- * 두 지표(현재 연속·남은 루프)를 둔다. 응답률/스킵률은 하단에 보조 pill로 접는다.
+ * 오늘 탭 헤더를 좌우로 넘겨 보는 3페이지 묶음.
+ *  0) 지금·다음 — 달성률 링 + 다음 루프 + 진행 중·연속.
+ *  1) 잘하고 있는 루프 — 최근 완료율이 높은 오늘 루프.
+ *  2) 주의가 필요한 루프 — 최근 놓치고 있는 오늘 루프.
+ * 페이지마다 콘텐츠 양이 달라도 카드 높이가 일정하도록 페이저에 고정 높이를 주고, 하단에 점 인디케이터를 둔다.
+ */
+@Composable
+private fun TodayPager(
+    modifier: Modifier = Modifier,
+    rates: LoopRates,
+    currentStreak: Int,
+    inProgress: Int,
+    nextLoop: NextLoopInfo?,
+    trends: TodayLoopTrends,
+) {
+    val pagerState = rememberPagerState { TODAY_PAGE_COUNT }
+    Column(modifier = modifier.fillMaxWidth()) {
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(TodayPagerHeight),
+            verticalAlignment = Alignment.CenterVertically,
+        ) { page ->
+            when (page) {
+                0 -> TodayStats(
+                    rates = rates,
+                    currentStreak = currentStreak,
+                    inProgress = inProgress,
+                    nextLoop = nextLoop,
+                )
+
+                1 -> LoopTrendPage(
+                    icon = Icons.AutoMirrored.Outlined.TrendingUp,
+                    accent = AppColor.primary,
+                    caption = stringResource(id = R.string.header_trend_doing_well),
+                    trends = trends.doingWell,
+                    positive = true,
+                )
+
+                else -> LoopTrendPage(
+                    icon = Icons.AutoMirrored.Outlined.TrendingDown,
+                    accent = AppColor.error,
+                    caption = stringResource(id = R.string.header_trend_need_attention),
+                    trends = trends.needAttention,
+                    positive = false,
+                )
+            }
+        }
+        PagerDots(
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .padding(top = 12.dp),
+            count = TODAY_PAGE_COUNT,
+            selected = pagerState.currentPage,
+        )
+    }
+}
+
+/** 페이저 하단 인디케이터. 현재 페이지만 강조 색·길쭉한 점으로 표시한다. */
+@Composable
+private fun PagerDots(
+    modifier: Modifier = Modifier,
+    count: Int,
+    selected: Int,
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        repeat(count) { index ->
+            val isSelected = index == selected
+            Box(
+                modifier = Modifier
+                    .height(6.dp)
+                    .width(if (isSelected) 16.dp else 6.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (isSelected) AppColor.primary
+                        else AppColor.onSurface.copy(alpha = 0.2f)
+                    ),
+            )
+        }
+    }
+}
+
+/**
+ * 오늘의 실행 현황. 달성률을 원형 링(완료/전체)으로 세워 성취감을 주고, 옆에는 "지금·다음"에
+ * 집중한 정보 — 곧 시작할 다음 루프와, 진행 중·현재 연속 두 인라인 지표 — 를 둔다.
  */
 @Composable
 private fun TodayStats(
     modifier: Modifier = Modifier,
     rates: LoopRates,
     currentStreak: Int,
-    remainingToday: Int,
+    inProgress: Int,
+    nextLoop: NextLoopInfo?,
 ) {
-    Column(modifier = modifier.fillMaxWidth()) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            DoneRing(
-                fraction = rates.doneRate / 100f,
-                percentText = formatPercent(rates.doneRate),
-                caption = stringResource(id = R.string.today_done_rate),
-            )
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                IconStat(
-                    icon = Icons.Outlined.LocalFireDepartment,
-                    iconTint = AppColor.primary,
-                    value = stringResource(id = R.string.stat_streak_days, currentStreak),
-                    label = stringResource(id = R.string.stat_streak_current),
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        DoneRing(
+            fraction = rates.doneRate / 100f,
+            centerText = "${rates.doneCount}/${rates.totalCount}",
+            caption = stringResource(id = R.string.header_done_caption),
+        )
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            NextLoopStat(nextLoop = nextLoop)
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                InlineStat(
+                    icon = Icons.Outlined.PlayCircle,
+                    text = stringResource(id = R.string.header_in_progress, inProgress),
                 )
-                IconStat(
-                    icon = Icons.Outlined.PendingActions,
-                    iconTint = AppColor.primary,
-                    value = stringResource(id = R.string.header_remaining_count, remainingToday),
-                    label = stringResource(id = R.string.header_remaining_today),
+                InlineStat(
+                    icon = Icons.Outlined.LocalFireDepartment,
+                    text = stringResource(id = R.string.header_streak, currentStreak),
                 )
             }
-        }
-
-        Row(modifier = Modifier.padding(top = 16.dp)) {
-            RatePill(
-                label = stringResource(id = R.string.response_rate),
-                value = rates.responseRate,
-            )
-            RatePill(
-                modifier = Modifier.padding(start = 8.dp),
-                label = stringResource(id = R.string.skip_rate),
-                value = rates.skipRate,
-            )
         }
     }
 }
 
-/** 오늘 달성률을 나타내는 원형 게이지. 탭이 바뀌면 채움 정도가 부드럽게 애니메이션된다. */
+/** 헤더 상단의 "다음 루프" 한 줄. 예정된 루프가 없으면 대비를 낮춰 안내 문구만 조용히 보여준다. */
+@Composable
+private fun NextLoopStat(
+    modifier: Modifier = Modifier,
+    nextLoop: NextLoopInfo?,
+) {
+    Column(modifier = modifier) {
+        Text(
+            text = stringResource(id = R.string.header_next_loop),
+            maxLines = 1,
+            style = AppTypography.bodySmall.copy(
+                color = AppColor.onSurface.copy(alpha = 0.55f),
+            ),
+        )
+        Text(
+            modifier = Modifier.padding(top = 2.dp),
+            text = nextLoop?.let { "${it.title} · ${formatRemaining(it.remainingMinutes)}" }
+                ?: stringResource(id = R.string.header_next_loop_none),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            style = AppTypography.titleMedium.copy(
+                color = if (nextLoop != null) AppColor.onSurface
+                else AppColor.onSurface.copy(alpha = 0.5f),
+            ),
+        )
+    }
+}
+
+/** 남은 시간을 "N시간 M분 후 / M분 후 / 곧 시작"으로 표기한다. */
+@Composable
+private fun formatRemaining(minutes: Long): String = when {
+    minutes <= 0L -> stringResource(id = R.string.header_next_loop_soon)
+    minutes >= 60L -> stringResource(
+        id = R.string.header_next_after_hm,
+        (minutes / 60L).toInt(),
+        (minutes % 60L).toInt(),
+    )
+    else -> stringResource(id = R.string.header_next_after_m, minutes.toInt())
+}
+
+/** 아이콘 + 한 줄 텍스트의 작은 인라인 지표. 오늘 탭의 진행 중·현재 연속에 쓰인다. */
+@Composable
+private fun InlineStat(
+    modifier: Modifier = Modifier,
+    icon: ImageVector,
+    text: String,
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            modifier = Modifier.size(16.dp),
+            imageVector = icon,
+            contentDescription = null,
+            tint = AppColor.primary,
+        )
+        Text(
+            modifier = Modifier.padding(start = 5.dp),
+            text = text,
+            maxLines = 1,
+            style = AppTypography.bodySmall.copy(
+                color = AppColor.onSurface.copy(alpha = 0.7f),
+            ),
+        )
+    }
+}
+
+/** 오늘 달성률을 나타내는 원형 게이지. 가운데엔 완료/전체를 적고, 값이 바뀌면 부드럽게 채운다. */
 @Composable
 private fun DoneRing(
     modifier: Modifier = Modifier,
     fraction: Float,
-    percentText: String,
+    centerText: String,
     caption: String,
 ) {
     val animatedFraction by animateFloatAsState(
@@ -193,10 +355,10 @@ private fun DoneRing(
     val progressColor = AppColor.primary
 
     Box(
-        modifier = modifier.size(96.dp),
+        modifier = modifier.size(84.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Canvas(modifier = Modifier.fillMaxWidth().height(96.dp)) {
+        Canvas(modifier = Modifier.fillMaxWidth().height(84.dp)) {
             val strokeWidth = 8.dp.toPx()
             val inset = strokeWidth / 2f
             val arcSize = Size(size.width - strokeWidth, size.height - strokeWidth)
@@ -225,9 +387,9 @@ private fun DoneRing(
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text = percentText,
+                text = centerText,
                 maxLines = 1,
-                style = AppTypography.headlineSmall.copy(
+                style = AppTypography.titleLarge.copy(
                     color = AppColor.primary,
                     fontWeight = FontWeight.Bold,
                 ),
@@ -243,60 +405,148 @@ private fun DoneRing(
     }
 }
 
-/** 아이콘 + 수치 + 라벨로 구성한 한 줄 지표. 오늘 탭의 현재 연속·남은 루프에 쓰인다. */
+/**
+ * 추세 페이지(잘하고 있는/주의가 필요한 루프) 공통 레이아웃. 상단 캡션(아이콘+문구) 아래에
+ * 루프별 한 줄(제목·최근 점·지표)을 쌓는다. [positive]가 true면 지표를 "연속 N일", false면
+ * "N일째 놓침"으로 보여주며, 연속이 짧을 때는 대신 "완료수/기록수"를 쓴다.
+ * 표시할 루프가 없으면(표본 부족 포함) 안내 문구만 조용히 보여준다.
+ */
 @Composable
-private fun IconStat(
+private fun LoopTrendPage(
     modifier: Modifier = Modifier,
     icon: ImageVector,
-    iconTint: Color,
-    value: String,
-    label: String,
+    accent: Color,
+    caption: String,
+    trends: List<LoopTrend>,
+    positive: Boolean,
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                modifier = Modifier.size(16.dp),
+                imageVector = icon,
+                contentDescription = null,
+                tint = accent,
+            )
+            Text(
+                modifier = Modifier.padding(start = 6.dp),
+                text = caption,
+                maxLines = 1,
+                style = AppTypography.bodySmall.copy(
+                    color = AppColor.onSurface.copy(alpha = 0.6f),
+                ),
+            )
+        }
+
+        if (trends.isEmpty()) {
+            Text(
+                modifier = Modifier.padding(top = 12.dp),
+                text = stringResource(id = R.string.header_trend_empty),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                style = AppTypography.bodySmall.copy(
+                    color = AppColor.onSurface.copy(alpha = 0.45f),
+                ),
+            )
+        } else {
+            Column(
+                modifier = Modifier.padding(top = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                trends.forEach { trend ->
+                    TrendRow(
+                        title = trend.title,
+                        flags = trend.recentDoneFlags,
+                        metric = trendMetric(trend = trend, positive = positive),
+                        accent = accent,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** 추세 지표 문구. 연속(완료/놓침)이 2 이상이면 그 연속을, 아니면 "완료수/기록수"를 보여준다. */
+@Composable
+private fun trendMetric(trend: LoopTrend, positive: Boolean): String = when {
+    positive && trend.currentStreak >= 2 ->
+        stringResource(id = R.string.header_streak, trend.currentStreak)
+
+    !positive && trend.currentMiss >= 2 ->
+        stringResource(id = R.string.header_trend_missed, trend.currentMiss)
+
+    else -> "${trend.doneCount}/${trend.totalCount}"
+}
+
+/** 추세 페이지의 한 줄: 제목(가변폭) + 최근 완료 점 + 우측 지표. */
+@Composable
+private fun TrendRow(
+    modifier: Modifier = Modifier,
+    title: String,
+    flags: List<Boolean>,
+    metric: String,
+    accent: Color,
 ) {
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(
-            modifier = Modifier.size(22.dp),
-            imageVector = icon,
-            contentDescription = null,
-            tint = iconTint,
+        // 좌측 강조 바: 이 행(페이지)의 성격(잘함=primary / 주의=error)을 색으로 즉시 구분한다.
+        Box(
+            modifier = Modifier
+                .size(width = 3.dp, height = 24.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(accent),
         )
-        Column(modifier = Modifier.padding(start = 10.dp)) {
-            Text(
-                text = value,
-                maxLines = 1,
-                style = AppTypography.titleMedium.copy(color = AppColor.onSurface),
-            )
-            Text(
-                text = label,
-                maxLines = 1,
-                style = AppTypography.bodySmall.copy(
-                    color = AppColor.onSurface.copy(alpha = 0.5f),
-                ),
-            )
-        }
+        Text(
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = 10.dp),
+            text = title,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            style = AppTypography.bodyMedium.copy(color = AppColor.onSurface),
+        )
+        TrendSegments(
+            modifier = Modifier.padding(start = 10.dp),
+            flags = flags,
+            accent = accent,
+        )
+        Text(
+            modifier = Modifier.padding(start = 10.dp),
+            text = metric,
+            maxLines = 1,
+            style = AppTypography.bodySmall.copy(
+                color = accent,
+                fontWeight = FontWeight.SemiBold,
+            ),
+        )
     }
 }
 
-/** 응답률/스킵률처럼 조용히 놓는 보조 지표. 라벨과 값을 한 알약(pill) 안에 담는다. */
+/** 최근 완료 여부를 각진 세그먼트로 나열한다. 채운 칸 = 완료, 옅은 칸 = 미완료. 왼쪽이 과거, 오른쪽이 최신. */
 @Composable
-private fun RatePill(
+private fun TrendSegments(
     modifier: Modifier = Modifier,
-    label: String,
-    value: Float,
+    flags: List<Boolean>,
+    accent: Color,
 ) {
-    Text(
-        modifier = modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(AppColor.surfaceContainer)
-            .padding(horizontal = 12.dp, vertical = 5.dp),
-        text = "$label ${formatPercent(value)}",
-        maxLines = 1,
-        style = AppTypography.bodySmall.copy(
-            color = AppColor.onSurface.copy(alpha = 0.7f),
-        ),
-    )
+    val missColor = AppColor.onSurface.copy(alpha = 0.18f)
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        // recentDoneFlags는 최신→과거 순이므로, 왼쪽부터 과거가 오도록 뒤집어 그린다.
+        flags.reversed().forEach { done ->
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(if (done) accent else missColor),
+            )
+        }
+    }
 }
 
 // endregion

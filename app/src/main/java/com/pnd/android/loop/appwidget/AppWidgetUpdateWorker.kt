@@ -18,6 +18,7 @@ import com.pnd.android.loop.appwidget.AppWidgetUpdateWorker.Companion.Action.Com
 import com.pnd.android.loop.appwidget.AppWidgetUpdateWorker.Companion.Action.Companion.SKIP_LOOP
 import com.pnd.android.loop.appwidget.AppWidgetUpdateWorker.Companion.Action.Companion.START_LOOP
 import com.pnd.android.loop.appwidget.AppWidgetUpdateWorker.Companion.Action.Companion.STOP_LOOP
+import com.pnd.android.loop.alarm.notification.LoopForegroundService
 import com.pnd.android.loop.common.Logger
 import com.pnd.android.loop.data.AppDatabase
 import com.pnd.android.loop.data.LoopBase
@@ -58,17 +59,23 @@ class AppWidgetUpdateWorker @AssistedInject constructor(
     private val loopDoneDao = appDb.loopDoneDao()
 
     override suspend fun doWork(): Result {
+        var loopStateChanged = false
         when {
-            has(DONE_LOOP) -> done()
-            has(SKIP_LOOP) -> skip()
-            has(START_LOOP) -> start()
-            has(STOP_LOOP) -> stop()
+            has(DONE_LOOP) -> { done(); loopStateChanged = true }
+            has(SKIP_LOOP) -> { skip(); loopStateChanged = true }
+            has(START_LOOP) -> { start(); loopStateChanged = true }
+            has(STOP_LOOP) -> { stop(); loopStateChanged = true }
             else -> {
                 // do nothing
             }
         }
 
         refresh()
+
+        // 위젯에서 루프를 시작/정지(완료/스킵)했을 때도 상시 알림을 즉시 동기화한다.
+        //  - 시작(IN_PROGRESS)하면 곧바로 알림에 등록되고,
+        //  - 정지/완료/스킵하면 진행 중인 루프가 없어질 경우 서비스가 스스로 알림을 내린다.
+        if (loopStateChanged) LoopForegroundService.refresh(context)
         return Result.success()
     }
 

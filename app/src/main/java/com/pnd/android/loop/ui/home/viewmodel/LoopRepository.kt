@@ -210,6 +210,10 @@ class LoopRepository @Inject constructor(
                 loopScheduler.cancelAlarm(loop)
             }
         }
+
+        // 활성화/비활성화도 상시 알림에 즉시 반영한다. 현재 진행 시간대인 루프를 켜면
+        // 곧바로 알림에 등록되고, 끄면 알림에서 삭제(또는 서비스 자동 종료)된다.
+        loopScheduler.refreshOngoingNotification()
         return results
     }
 
@@ -229,10 +233,12 @@ class LoopRepository @Inject constructor(
             doneState = doneState
         )
 
-        // 완료/스킵으로 응답한 순간, 통합 알림을 갱신해 이 루프를 목록에서 뺀다.
-        if (doneState == LoopDoneVo.DoneState.DONE || doneState == LoopDoneVo.DoneState.SKIP) {
-            loopScheduler.refreshOngoingNotification()
-        }
+        // 루프 상태가 바뀔 때마다 통합 알림을 즉시 동기화한다.
+        //  - anytime 루프를 시작(IN_PROGRESS)하면 곧바로 알림에 등록되고,
+        //  - 완료/스킵(DONE/SKIP)으로 종료하면 곧바로 알림에서 삭제된다.
+        // 서비스가 DB를 다시 읽어 진행 중인 루프가 없으면 스스로 알림을 내리므로,
+        // 어떤 상태 변경이든 refresh 한 번으로 등록/삭제가 항상 동기화된다.
+        loopScheduler.refreshOngoingNotification()
     }
 
     suspend fun getMemo(

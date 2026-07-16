@@ -65,6 +65,10 @@
             </intent-filter>
         </receiver>
 
+        <receiver
+            android:name=".alarm.notification.LoopNotificationActionReceiver"
+            android:exported="false" />
+
         <service
             android:name=".alarm.notification.LoopForegroundService"
             android:exported="false"

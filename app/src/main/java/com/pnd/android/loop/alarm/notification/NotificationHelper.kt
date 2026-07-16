@@ -9,6 +9,9 @@ import android.content.Intent
 import androidx.core.app.NotificationCompat
 import com.pnd.android.loop.HomeActivity
 import com.pnd.android.loop.R
+import com.pnd.android.loop.appwidget.AppWidgetUpdateWorker.Companion.Action
+import com.pnd.android.loop.appwidget.PARAMS_ACTION
+import com.pnd.android.loop.appwidget.PARAMS_LOOP_ID
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.actualStartInDay
 import com.pnd.android.loop.util.MS_1DAY
@@ -86,6 +89,7 @@ class NotificationHelper @Inject constructor(
                 LoopTimeWindow.of(loop)?.let { window ->
                     builder.setProgress(window.totalMinutes, window.elapsedMinutes, false)
                 }
+                addLoopActions(builder, loop)
             }
 
             else -> {
@@ -109,6 +113,62 @@ class NotificationHelper @Inject constructor(
     /** 이미 표시 중인 통합 알림 내용을 조용히 갱신한다. */
     fun updateOngoing(loops: List<LoopBase>) {
         nm.notify(FOREGROUND_NOTIFICATION_ID, buildOngoingNotification(loops))
+    }
+
+    /**
+     * 상시 알림에 앱을 열지 않고 응답할 수 있는 액션 버튼을 붙인다. 알림 액션은 라인별이
+     * 아니라 알림 전체에 적용되므로, 대상이 하나로 명확한 단일 루프 알림에만 노출한다.
+     *
+     * - anytime 루프(진행 중) → [정지]
+     * - 시간대 루프          → [완료] · [건너뛰기]
+     */
+    private fun addLoopActions(builder: NotificationCompat.Builder, loop: LoopBase) {
+        if (loop.isAnyTime) {
+            builder.addAction(
+                R.drawable.stop,
+                context.getString(R.string.notification_action_stop),
+                loopActionIntent(loop.loopId, Action.STOP_LOOP),
+            )
+        } else {
+            builder.addAction(
+                R.drawable.done,
+                context.getString(R.string.notification_action_done),
+                loopActionIntent(loop.loopId, Action.DONE_LOOP),
+            )
+            builder.addAction(
+                R.drawable.skip,
+                context.getString(R.string.notification_action_skip),
+                loopActionIntent(loop.loopId, Action.SKIP_LOOP),
+            )
+        }
+    }
+
+    /**
+     * 액션 버튼 하나에 대응하는 PendingIntent. Intent 동등성은 extra 를 보지 않으므로,
+     * 루프·액션마다 고유한 requestCode 를 부여해 서로 덮어쓰지 않게 한다.
+     */
+    private fun loopActionIntent(loopId: Int, @Action action: String): PendingIntent {
+        val intent = Intent(context, LoopNotificationActionReceiver::class.java).apply {
+            putExtra(PARAMS_ACTION, action)
+            putExtra(PARAMS_LOOP_ID, loopId)
+        }
+        return PendingIntent.getBroadcast(
+            context,
+            requestCode(loopId, action),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
+
+    private fun requestCode(loopId: Int, @Action action: String): Int {
+        val actionCode = when (action) {
+            Action.DONE_LOOP -> 1
+            Action.SKIP_LOOP -> 2
+            Action.START_LOOP -> 3
+            Action.STOP_LOOP -> 4
+            else -> 0
+        }
+        return loopId * 10 + actionCode
     }
 
     private fun contentIntent(): PendingIntent {

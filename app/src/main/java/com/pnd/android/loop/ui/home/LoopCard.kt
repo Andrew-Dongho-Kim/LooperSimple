@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.outlined.ModeEdit
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -71,6 +72,7 @@ import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.compositeOver
 import com.pnd.android.loop.ui.theme.compositeOverOnSurface
+import com.pnd.android.loop.ui.theme.onPrimary
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.ui.theme.surfaceContainer
@@ -140,6 +142,22 @@ private object LoopCardDefaults {
      * sinks one step and the ink softens, while the swipe peek badges stay full-strength.
      */
     const val DimmedInkAlpha = 0.6f
+
+    /**
+     * 편집 스포트라이트: 하단 패널에서 수정 중인 카드는 primary 색 테두리로 도드라지게 하고,
+     * 나머지 카드는 배경으로 물러나도록(EditDimmedAlpha) 흐리게 낮춘다.
+     */
+    val EditBorderWidth = 1.5.dp
+    const val EditBorderAlpha = 0.9f
+    const val EditDimmedAlpha = 0.4f
+
+    /**
+     * 편집 중 색 도트 오른쪽 아래에 얹는 코너 연필 배지(아바타 상태점 방식). 루프 색을 가리지
+     * 않도록 작게 두고, 카드 표면색 링으로 도트/배경과 분리해 라이트·다크 모두에서 또렷하게 보이게 한다.
+     */
+    val EditDotBadgeSize = 12.dp
+    val EditDotBadgeRing = 1.5.dp
+    val EditDotBadgeIcon = 7.dp
 }
 
 /** Shared rounded shape of the card surface. */
@@ -164,7 +182,10 @@ fun LoopCard(
     onNavigateToGroupPicker: (LoopBase) -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
-    val mockAlpha = animateCardAlphaWithMock(loopBase = loop)
+    // 편집 중인 카드는 깜빡임(mock 펄스) 대신 안정적으로 강조한다. 그 외 mock(신규 작성) 카드만
+    // 기존처럼 펄스한다. 편집 중인 다른 카드가 있으면 이 카드는 흐리게 물러난다.
+    val mockAlpha = if (cardValues.isEditing) 1f else animateCardAlphaWithMock(loopBase = loop)
+    val editDimAlpha = if (cardValues.isEditDimmed) LoopCardDefaults.EditDimmedAlpha else 1f
     val contentAlpha = if (loop.enabled) {
         LoopCardDefaults.EnabledAlpha
     } else {
@@ -199,7 +220,7 @@ fun LoopCard(
 
     Row(
         modifier = modifier
-            .graphicsLayer { alpha = mockAlpha }
+            .graphicsLayer { alpha = mockAlpha * editDimAlpha }
             .fillMaxWidth()
             .clip(LoopCardShape)
             .background(background)
@@ -221,10 +242,19 @@ fun LoopCard(
                     Modifier
                 }
             )
-            // 배경과 카드를 분리해주는 은은한 헤어라인 테두리 (다크/라이트 공통).
+            // 편집 중이면 primary 색 테두리로 스포트라이트하고, 평소에는 배경과 카드를
+            // 분리해주는 은은한 헤어라인 테두리를 쓴다(다크/라이트 공통).
             .border(
-                width = LoopCardDefaults.BorderWidth,
-                color = AppColor.onSurface.copy(alpha = LoopCardDefaults.BorderAlpha),
+                width = if (cardValues.isEditing) {
+                    LoopCardDefaults.EditBorderWidth
+                } else {
+                    LoopCardDefaults.BorderWidth
+                },
+                color = if (cardValues.isEditing) {
+                    AppColor.primary.copy(alpha = LoopCardDefaults.EditBorderAlpha)
+                } else {
+                    AppColor.onSurface.copy(alpha = LoopCardDefaults.BorderAlpha)
+                },
                 shape = LoopCardShape,
             )
             .clickable(enabled = !loop.isMock) { onNavigateToDetailPage(loop) }
@@ -280,6 +310,8 @@ private fun RowScope.ActiveCardContent(
         color = loop.color,
         // 진행 중이면 도트 뒤로 헤일로가 숨 쉬고, 시작 전이면 도트를 옅게 낮춰 대비시킨다.
         isPulsing = isInProgress,
+        // 편집 중이면 도트 색은 그대로 두고 오른쪽 아래에 연필 코너 배지를 얹는다.
+        isEditing = cardValues.isEditing,
     )
     Column(
         modifier = Modifier
@@ -382,12 +414,15 @@ private fun loopCardBackground(
 /**
  * Leading identity dot in the loop's own color. While the loop is in progress a soft halo
  * of the same color breathes behind it — the only "live" cue on the quiet card surface.
+ * 편집 중일 때는 도트 색은 유지한 채 오른쪽 아래에 작은 연필 배지를 얹어(EditingDotBadge)
+ * "지금 고치는 카드"임을 알린다.
  */
 @Composable
 private fun LoopColorDot(
     modifier: Modifier = Modifier,
     color: Int,
     isPulsing: Boolean,
+    isEditing: Boolean = false,
 ) {
     val dotColor = color.compositeOverOnSurface()
 
@@ -414,6 +449,39 @@ private fun LoopColorDot(
                 .size(LoopCardDefaults.ColorDotSize)
                 .clip(CircleShape)
                 .background(dotColor),
+        )
+
+        // 색 도트를 가리지 않도록, 편집 배지는 도트의 오른쪽 아래 모서리(BottomEnd)에 겹쳐 얹는다.
+        if (isEditing) {
+            EditingDotBadge(modifier = Modifier.align(Alignment.BottomEnd))
+        }
+    }
+}
+
+/**
+ * 색 도트 위에 얹는 코너 연필 배지. 바깥은 카드 표면색 링으로 도트/배경과 분리하고, 안쪽은
+ * primary 원 + onPrimary 연필 아이콘이라 라이트·다크 어디서든 또렷하게 "편집 중"으로 읽힌다.
+ */
+@Composable
+private fun EditingDotBadge(
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .size(LoopCardDefaults.EditDotBadgeSize)
+            // 표면색 링(도트와 배지 사이 여백) → 안쪽 primary 원 순서로 겹쳐 그린다.
+            .clip(CircleShape)
+            .background(color = AppColor.surfaceElevated)
+            .padding(LoopCardDefaults.EditDotBadgeRing)
+            .clip(CircleShape)
+            .background(color = AppColor.primary),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            modifier = Modifier.size(LoopCardDefaults.EditDotBadgeIcon),
+            imageVector = Icons.Outlined.ModeEdit,
+            tint = AppColor.onPrimary,
+            contentDescription = stringResource(id = R.string.loop_editing_badge),
         )
     }
 }

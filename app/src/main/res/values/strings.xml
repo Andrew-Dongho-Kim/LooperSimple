@@ -91,6 +91,20 @@
     <!-- 홈 헤더(오늘 탭): 아직 응답하지 않은 오늘 루프 -->
     <string name="header_remaining_today">Remaining today</string>
     <string name="header_remaining_count">%d</string>
+    <!-- 홈 헤더(오늘 탭) — 지금·다음 집중형: 링 캡션·다음 루프·진행 중·연속 -->
+    <string name="header_done_caption">Done</string>
+    <string name="header_next_loop">Next</string>
+    <string name="header_next_loop_none">No more loops today</string>
+    <string name="header_next_loop_soon">Starting soon</string>
+    <string name="header_next_after_hm">in %1$dh %2$dm</string>
+    <string name="header_next_after_m">in %1$dm</string>
+    <string name="header_in_progress">%d in progress</string>
+    <string name="header_streak">%d-day streak</string>
+    <!-- 홈 헤더(오늘 탭) 추세 페이지: 잘하고 있는/주의가 필요한 루프 -->
+    <string name="header_trend_doing_well">On a good streak</string>
+    <string name="header_trend_need_attention">Needs attention</string>
+    <string name="header_trend_missed">missed %d days</string>
+    <string name="header_trend_empty">Not enough history yet</string>
     <string name="stat_monthly_invested">Monthly time</string>
     <string name="stat_monthly_invested_desc">Time invested in loops each month (hours)</string>
     <!-- 투자 시간 표기 형식: 일/시간, 시간/분, 분 단위 -->
@@ -173,6 +187,9 @@
     <string name="more">More</string>
     <string name="add">Add</string>
     <string name="edit">Edit</string>
+    <string name="loop_editing_banner">Editing \'%1$s\'</string>
+    <string name="loop_editing_banner_untitled">Editing loop</string>
+    <string name="loop_editing_badge">Editing</string>
     <string name="delete">Delete</string>
     <string name="done">DONE</string>
     <string name="skip">SKIP</string>
@@ -265,6 +282,11 @@
         <item quantity="other">%d mins left</item>
     </plurals>
 
+    <!-- 상시 알림의 액션 버튼 라벨 (완료/건너뛰기/정지) -->
+    <string name="notification_action_done">Done</string>
+    <string name="notification_action_skip">Skip</string>
+    <string name="notification_action_stop">Stop</string>
+
     <!-- 진행 중 루프 상시 알림 채널 이름 -->
     <string name="notification_ongoing_channel">In-progress loops</string>
     <!-- 진행 중인 루프가 여러 개일 때 통합 알림 제목 -->
@@ -277,5 +299,33 @@
     <string name="desc_native_ad">Advertisement</string>
     <string name="ad_expand">View details</string>
     <string name="ad_collapse">Show less</string>
+
+    <!-- 상세 페이지 · 코치형(A) 성취 요약 -->
+    <string name="detail_streak_current_days">%1$d day streak</string>
+    <string name="detail_streak_best">Best %1$d days</string>
+    <string name="detail_week_progress">%1$d of %2$d done</string>
+    <string name="detail_week_trend_up">Better than last week</string>
+    <string name="detail_week_trend_same">On pace with last week</string>
+    <string name="detail_week_trend_down">Slower than last week</string>
+    <string name="detail_best_weekday">Best on %1$s</string>
+
+    <!-- 상세 페이지 · 저널형(C) 달력·회고 -->
+    <string name="detail_journal_hint">Tap a day to look back and jot a note</string>
+    <string name="detail_day_no_record">No record</string>
+
+    <!-- 상세 페이지 · 응답 요약(구성 비율 막대) -->
+    <string name="detail_response_summary">Response summary</string>
+    <string name="detail_rate_done">Done</string>
+    <string name="detail_rate_skip">Skip</string>
+    <string name="detail_rate_no_response">No response</string>
+
+    <!-- 상세 페이지 · 추세 카드(인사이트 요약형) 한 줄 결론 -->
+    <string name="detail_trend_daily_up">Completion is trending up</string>
+    <string name="detail_trend_daily_down">Completion is slipping</string>
+    <string name="detail_trend_daily_steady">Completion is holding steady</string>
+    <string name="detail_trend_this_month">%1$d%% this month</string>
+    <string name="detail_trend_monthly_up">%1$d%% this month, up from last month</string>
+    <string name="detail_trend_monthly_down">%1$d%% this month, down from last month</string>
+    <string name="detail_trend_monthly_steady">%1$d%% this month, same as last month</string>
 
 </resources>

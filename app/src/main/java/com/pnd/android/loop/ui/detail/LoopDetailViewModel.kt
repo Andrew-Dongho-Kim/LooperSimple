@@ -10,6 +10,7 @@ import com.pnd.android.loop.common.NavigatePage
 import com.pnd.android.loop.data.AppDatabase
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
+import com.pnd.android.loop.data.LoopRetrospectVo
 import com.pnd.android.loop.data.asLoopVo
 import com.pnd.android.loop.ui.home.viewmodel.LoopRepository
 import com.pnd.android.loop.util.toMs
@@ -36,8 +37,12 @@ class LoopDetailViewModel @Inject constructor(
 
     private val loopDao = appDb.loopDao()
     private val loopDoneDao = appDb.loopDoneDao()
+    private val loopRetrospectDao = appDb.loopRetrospectDao()
 
     val loop = loopDao.getLoopFlow(loopId)
+
+    // 이 루프에 남긴 회고 메모 전체. 달력에서 "메모가 있는 날"에 마커를 찍는 데 사용한다.
+    val retrospects = loopRetrospectDao.getRetrospectsFlow(loopId)
 
     val allEnabledCount = loopDoneDao.getAllEnabledCountFlow(loopId)
     val respondCount = loopDoneDao.getRespondCountFlow(loopId)
@@ -56,20 +61,25 @@ class LoopDetailViewModel @Inject constructor(
         }
     ).flow
 
-    suspend fun allEnabledDoneStates(loopId: Int) =
-        loopDoneDao.getAllEnabled(loopId = loopId)
+    /** 선택한 날짜에 남긴 회고 메모 본문. 없으면 null. */
+    suspend fun retrospectOf(date: LocalDate): String? =
+        loopRetrospectDao.getRetrospect(loopId = loopId, localDate = date.toMs())?.text
 
-    suspend fun allEnabledCountBefore(loopId: Int, date: LocalDate) =
-        loopDoneDao.getAllEnabledCountBefore(loopId, date.toMs())
-
-    suspend fun doneCountBefore(loopId: Int, date: LocalDate) =
-        loopDoneDao.getDoneCountBefore(loopId, date.toMs())
-
-    suspend fun allEnabledCountBetween(loopId: Int, from: LocalDate, to: LocalDate) =
-        loopDoneDao.getAllEnabledCountBetween(loopId, from.toMs(), to.toMs())
-
-    suspend fun doneCountBetween(loopId: Int, from: LocalDate, to: LocalDate) =
-        loopDoneDao.getDoneCountBetween(loopId, from.toMs(), to.toMs())
+    /**
+     * 선택한 날짜의 회고 메모를 저장한다. 내용이 비어 있으면 null 로 지워, 달력의 메모 마커도
+     * 함께 사라지게 한다.
+     */
+    fun saveRetrospect(date: LocalDate, text: String) {
+        coroutineScope.launch {
+            loopRetrospectDao.insert(
+                LoopRetrospectVo(
+                    loopId = loopId,
+                    date = date.toMs(),
+                    text = text.ifBlank { null },
+                )
+            )
+        }
+    }
 
     fun doneLoop(
         loop: LoopBase,

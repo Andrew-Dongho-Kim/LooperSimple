@@ -46,6 +46,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -83,6 +84,8 @@ import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.ui.theme.surfaceElevated
 import com.pnd.android.loop.util.isActiveDay
 import com.pnd.android.loop.util.toMs
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 
@@ -360,6 +363,35 @@ private fun HomeContent(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
+    // 하단 패널에서 수정 중인 루프 id. 목록의 해당 카드를 스포트라이트(강조 테두리 + "수정 중" 배지)
+    // 하고 나머지 카드는 흐리게 물러나게 하는 데 쓴다.
+    val editingLoopId = if (inputState.mode == UserInputState.Mode.Edit) {
+        inputState.value.loopId
+    } else {
+        null
+    }
+
+    // 새 루프(New 모드) 진입 시 목록을 맨 위로 보내 새 카드가 보이게 하는 스크롤은 UserInput의
+    // SideEffect가 이미 담당한다. 여기서 mode를 key로 또 스크롤하면 빈 제목에서 일어나는
+    // None↔New 토글마다 재실행되어 그 스크롤과 경쟁하고, 결국 텍스트 입력 포커스가 흔들린다.
+    // 그래서 New 스크롤은 여기서 다루지 않고 Edit 케이스만 처리한다.
+
+    // 편집을 시작하면 대상 카드가 떠 있는 헤더/입력 패널에 가리지 않도록 목록에서 보이게 스크롤한다.
+    // 편집 진입은 오늘→전체 탭 전환과 목록 재구성을 함께 유발하므로, 레이아웃을 한 번만 읽지 않고
+    // snapshotFlow로 대상 카드가 실제 배치에 나타날 때까지 기다렸다가 스크롤한다. (editingLoopId가
+    // 바뀌면 LaunchedEffect가 취소되므로 카드가 끝내 나타나지 않아도 매달려 있을 뿐 부작용은 없다.)
+    // contentPadding(top = headerHeight) 덕분에 animateScrollToItem은 카드를 헤더 아래에 정렬하고,
+    // 목록의 imePadding으로 뷰포트가 줄어 키보드에도 가리지 않는다.
+    LaunchedEffect(editingLoopId) {
+        if (editingLoopId == null) return@LaunchedEffect
+        val index = snapshotFlow {
+            lazyListState.layoutInfo.visibleItemsInfo
+                .firstOrNull { it.key == editingLoopId }
+                ?.index
+        }.filterNotNull().first()
+        lazyListState.animateScrollToItem(index)
+    }
+
     // backdropSource wraps the background so the captured layer (sampled by the blur) includes it.
     Box(
         modifier = modifier
@@ -406,6 +438,7 @@ private fun HomeContent(
                         blurState = blurState,
                         loopViewModel = loopViewModel,
                         selectedTab = selectedTab,
+                        editingLoopId = editingLoopId,
                         onEdit = onEdit,
                         onDelete = onDelete,
                         onStateChanged = onStateChanged,

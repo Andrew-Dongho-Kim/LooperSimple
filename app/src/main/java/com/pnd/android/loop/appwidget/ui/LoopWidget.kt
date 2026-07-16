@@ -268,6 +268,40 @@ fun LoopDoneOrSkipMedium(
     }
 }
 
+/**
+ * Compact done / skip pair sized for a list row's trailing slot. Unlike
+ * [LoopDoneOrSkipMedium] it takes only its intrinsic width (no fillMaxWidth) and uses
+ * slightly smaller buttons, so it sits neatly next to the title without stretching the row.
+ */
+@Composable
+fun LoopDoneOrSkipCompact(
+    modifier: GlanceModifier = GlanceModifier,
+    loopId: Int
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.Vertical.CenterVertically
+    ) {
+        WidgetIconButton(
+            onClick = doneAction(loopId = loopId),
+            resId = R.drawable.done,
+            contentDescription = stringResourceGlance(id = R.string.done),
+            tint = accentColor(),
+            background = accentColor().copy(alpha = 0.14f),
+            size = 30.dp,
+        )
+        Spacer(modifier = GlanceModifier.width(8.dp))
+        WidgetIconButton(
+            onClick = skipAction(loopId = loopId),
+            resId = R.drawable.skip,
+            contentDescription = stringResourceGlance(id = R.string.skip),
+            tint = onSurfaceColor().copy(alpha = 0.55f),
+            background = onSurfaceColor().copy(alpha = 0.06f),
+            size = 30.dp,
+        )
+    }
+}
+
 @Composable
 fun AnyTimeLoopStartOrStop(
     modifier: GlanceModifier = GlanceModifier,

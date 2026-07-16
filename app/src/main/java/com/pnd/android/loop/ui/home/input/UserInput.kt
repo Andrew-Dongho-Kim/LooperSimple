@@ -15,6 +15,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -23,10 +24,13 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.ModeEdit
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
@@ -40,7 +44,11 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.pnd.android.loop.R
 import com.pnd.android.loop.common.log
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.ui.common.BackdropState
@@ -49,6 +57,9 @@ import com.pnd.android.loop.ui.home.input.SharedElementsOfUserInput.KEY_BUTTON_I
 import com.pnd.android.loop.ui.home.input.SharedElementsOfUserInput.TRANSITION_DURATION
 import com.pnd.android.loop.ui.home.input.selector.Selectors
 import com.pnd.android.loop.ui.theme.AppColor
+import com.pnd.android.loop.ui.theme.AppTypography
+import com.pnd.android.loop.ui.theme.compositeOverOnSurface
+import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.outline
 import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.ui.theme.surfaceElevated
@@ -115,7 +126,11 @@ fun UserInput(
 
     val coroutineScope = rememberCoroutineScope()
     SideEffect {
-        if (!keyboardShown) focusRequester.requestFocus()
+        // 셀렉터(색/시간/간격)가 열려 있을 때만 포커스를 셀렉터 타깃으로 옮겨 키보드를 내린다.
+        // 과거 조건(`!keyboardShown`)은 키보드가 아직 뜨지 않은 프레임(텍스트 필드를 막 탭해
+        // 포커스를 얻었지만 IME 인셋이 아직 0인 순간)에도 발동해, 텍스트 필드의 포커스를
+        // 셀렉터 타깃으로 빼앗아 키보드가 닫히면서 루프 이름 입력이 불가능해지는 문제가 있었다.
+        if (inputState.isSelectorOpened) focusRequester.requestFocus()
 
         if (inputState.mode == UserInputState.Mode.New) {
             coroutineScope.launch { lazyListState.animateScrollToItem(0) }
@@ -134,6 +149,13 @@ fun UserInput(
             thickness = 0.5.dp,
             color = AppColor.outline.copy(alpha = 0.5f)
         )
+        // 수정 모드일 때만, 지금 어떤 루프를 고치는 중인지 패널 상단에 명시하고 취소 버튼을 둔다.
+        if (inputState.mode == UserInputState.Mode.Edit) {
+            EditModeBanner(
+                loop = inputState.value,
+                onCancel = { inputState.reset() },
+            )
+        }
         UserInputText(
             textField = inputState.textFieldValue,
             hasFocus = keyboardShown,
@@ -271,6 +293,70 @@ private fun UserInputExpandButton(
     }
 }
 
+
+/**
+ * 수정 모드 배너. 편집 대상 루프의 색 도트 + 연필 아이콘 + "'제목' 수정 중" 문구를 패널 상단에
+ * 항상 띄워, 신규 추가와 헷갈리지 않게 한다. 오른쪽 X 로 편집을 즉시 취소할 수 있다.
+ */
+@Composable
+private fun EditModeBanner(
+    modifier: Modifier = Modifier,
+    loop: LoopBase,
+    onCancel: () -> Unit,
+) {
+    val title = loop.title.trim()
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(color = AppColor.primary.copy(alpha = 0.10f))
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .clip(CircleShape)
+                .background(color = loop.color.compositeOverOnSurface())
+        )
+        Icon(
+            modifier = Modifier
+                .padding(start = 10.dp)
+                .size(16.dp),
+            imageVector = Icons.Outlined.ModeEdit,
+            tint = AppColor.primary,
+            contentDescription = null,
+        )
+        Text(
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = 8.dp),
+            text = if (title.isEmpty()) {
+                stringResource(id = R.string.loop_editing_banner_untitled)
+            } else {
+                stringResource(id = R.string.loop_editing_banner, title)
+            },
+            style = AppTypography.labelLarge.copy(
+                color = AppColor.primary,
+                fontWeight = FontWeight.Medium,
+            ),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Box(
+            modifier = Modifier
+                .clip(CircleShape)
+                .clickable(onClick = onCancel)
+                .padding(4.dp)
+        ) {
+            Icon(
+                modifier = Modifier.size(18.dp),
+                imageVector = Icons.Filled.Close,
+                tint = AppColor.onSurface.copy(alpha = 0.6f),
+                contentDescription = stringResource(id = R.string.cancel),
+            )
+        }
+    }
+}
 
 /**
  * 루프 추가 UX 패널의 배경색. 약간의 투명도를 줘서 하단에 스크롤되는 콘텐츠가 살짝 비치도록 한다.

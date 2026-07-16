@@ -330,26 +330,47 @@ private data class DialArc(
 )
 
 /**
+ * 두 루프가 원형(24시간) 다이얼 위에서 각도 구간이 겹치는지 판정한다.
+ *
+ * 다이얼은 원형이라 자정을 넘기는 루프(예: 22:00~06:30)는 호가 00:00 을 가로질러 감긴다.
+ * 끝 시각만 선형으로 비교하면(22:00 시작이 13:00 끝보다 뒤라 안 겹친다고 오판) 이 감긴 부분의
+ * 충돌을 놓친다. 그래서 시작점이 상대 호 안에 들어오는지를 원 둘레(mod 24h)로 직접 확인한다.
+ */
+private fun circularOverlap(a: LoopBase, b: LoopBase): Boolean {
+    val day = MS_1DAY
+    val startA = ((a.startInDay % day) + day) % day
+    val startB = ((b.startInDay % day) + day) % day
+    val lenA = a.endMsInDay() - a.startInDay
+    val lenB = b.endMsInDay() - b.startInDay
+    // 하루를 꽉 채우거나 넘기는 루프는 어떤 루프와도 겹친다.
+    if (lenA >= day || lenB >= day) return true
+    // 한쪽의 시작점이 다른 호의 구간(길이 이내) 안에 들어오면 겹친다.
+    val bFromA = ((startB - startA) % day + day) % day
+    val aFromB = ((startA - startB) % day + day) % day
+    return bFromA < lenA || aFromB < lenB
+}
+
+/**
  * 겹치는 루프를 서로 다른 레인으로 배치한다(그리디 인터벌 배치).
- * 시작 시각 순으로 훑으며, 아직 끝나지 않은 레인이 없으면 새 레인을 연다.
+ * 시작 시각 순으로 훑으며, 이미 배치된 루프와 (자정 넘김까지 고려해) 겹치지 않는 첫 레인에 놓고,
+ * 그런 레인이 없으면 새 레인을 연다.
  * @return (배치된 호 목록, 사용된 레인 수)
  */
 private fun layoutArcs(loops: List<LoopBase>, nowMs: Long): Pair<List<DialArc>, Int> {
-    val laneEndMs = ArrayList<Long>() // 레인별 현재까지 채워진 끝 시각
+    val lanes = ArrayList<MutableList<LoopBase>>() // 레인별로 이미 배치된 루프들
     val arcs = loops
         .sortedBy { loop -> loop.startInDay }
         .map { loop ->
-            val start = loop.startInDay
-            var lane = laneEndMs.indexOfFirst { end -> end <= start }
+            var lane = lanes.indexOfFirst { placed -> placed.none { circularOverlap(it, loop) } }
             if (lane == -1) {
-                lane = laneEndMs.size
-                laneEndMs.add(loop.endMsInDay())
+                lane = lanes.size
+                lanes.add(mutableListOf(loop))
             } else {
-                laneEndMs[lane] = loop.endMsInDay()
+                lanes[lane].add(loop)
             }
             DialArc(loop = loop, lane = lane, state = loop.dialStateAt(nowMs))
         }
-    return arcs to maxOf(1, laneEndMs.size)
+    return arcs to maxOf(1, lanes.size)
 }
 
 /** 3레인을 넘겨 접힌(숨긴) 루프 묶음을 나타내는 "+N" 배지. [atMs]=배지를 놓을 대표 시각. */
@@ -418,7 +439,7 @@ private fun Density.dialGeometry(
     heightPx: Float,
     reserveOrbit: Boolean
 ): DialGeometry {
-    val stroke = 20.dp.toPx() // 루프/트랙 레일 높이
+    val stroke = 24.dp.toPx() // 루프/트랙 레일 높이
     // 바깥쪽 여백: 시각 라벨(기본) + AnyTime 궤도(있을 때).
     val labelInset = (if (reserveOrbit) 46.dp else 26.dp).toPx()
     val outer = min(widthPx, heightPx) / 2f - labelInset

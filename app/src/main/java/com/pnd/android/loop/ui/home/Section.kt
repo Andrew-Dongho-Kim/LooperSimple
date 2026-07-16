@@ -80,6 +80,8 @@ fun LazyListScope.section(
     blurState: BlurState,
     loopViewModel: LoopViewModel,
     @HomeTab.Type selectedTab: Int,
+    // 하단 패널에서 편집 중인 루프 id. 목록에서 해당 카드를 스포트라이트하고 나머지를 흐리게 하는 데 쓴다.
+    editingLoopId: Int?,
     onEdit: (LoopBase) -> Unit,
     onDelete: (LoopBase) -> Unit,
     onStateChanged: (LoopBase, Int) -> Unit,
@@ -98,6 +100,7 @@ fun LazyListScope.section(
             section = section,
             blurState = blurState,
             loopViewModel = loopViewModel,
+            editingLoopId = editingLoopId,
             onEdit = onEdit,
             onDelete = onDelete,
             onStateChanged = onStateChanged,
@@ -135,6 +138,7 @@ fun LazyListScope.section(
             section = section,
             blurState = blurState,
             loopViewModel = loopViewModel,
+            editingLoopId = editingLoopId,
             onEdit = onEdit,
             onDelete = onDelete,
             onStateChanged = onStateChanged,
@@ -199,6 +203,7 @@ private fun LazyListScope.sectionToday(
     section: Section.Today,
     blurState: BlurState,
     loopViewModel: LoopViewModel,
+    editingLoopId: Int?,
     onEdit: (LoopBase) -> Unit,
     onDelete: (LoopBase) -> Unit,
     onStateChanged: (LoopBase, Int) -> Unit,
@@ -215,6 +220,7 @@ private fun LazyListScope.sectionToday(
             blurState = blurState,
             loopViewModel = loopViewModel,
             loops = loops,
+            editingLoopId = editingLoopId,
             onEdit = onEdit,
             onDelete = onDelete,
             onStateChanged = onStateChanged,
@@ -261,6 +267,7 @@ private fun LazyListScope.sectionTodayBody(
     blurState: BlurState,
     loopViewModel: LoopViewModel,
     loops: List<LoopBase>,
+    editingLoopId: Int?,
     onEdit: (LoopBase) -> Unit,
     onDelete: (LoopBase) -> Unit,
     onStateChanged: (LoopBase, Int) -> Unit,
@@ -326,6 +333,7 @@ private fun LazyListScope.sectionTodayBody(
             key = { loop -> loop.loopId },
         ) { loop ->
             val highlightId by loopViewModel.highlightId.collectAsState()
+            val isEditing = editingLoopId != null && loop.loopId == editingLoopId
 
             LoopCardWithOption(
                 modifier = Modifier
@@ -340,6 +348,8 @@ private fun LazyListScope.sectionTodayBody(
                 cardValues = LoopCardValues(
                     syncWithTime = true,
                     isHighlighted = highlightId == loop.loopId,
+                    isEditing = isEditing,
+                    isEditDimmed = editingLoopId != null && !isEditing,
                 ),
                 onEdit = onEdit,
                 onDelete = onDelete,
@@ -469,6 +479,7 @@ private fun LazyListScope.sectionAll(
     section: Section.All,
     blurState: BlurState,
     loopViewModel: LoopViewModel,
+    editingLoopId: Int?,
     onEdit: (LoopBase) -> Unit,
     onDelete: (LoopBase) -> Unit,
     onStateChanged: (LoopBase, Int) -> Unit,
@@ -488,6 +499,7 @@ private fun LazyListScope.sectionAll(
         contentType = { ContentTypes.LOOP_CARD },
         key = { loop -> loop.loopId }
     ) { loop ->
+        val isEditing = editingLoopId != null && loop.loopId == editingLoopId
         LoopCardWithOption(
             modifier = Modifier
                 .padding(
@@ -497,6 +509,8 @@ private fun LazyListScope.sectionAll(
             cardValues = LoopCardValues(
                 syncWithTime = false,
                 isHighlighted = false,
+                isEditing = isEditing,
+                isEditDimmed = editingLoopId != null && !isEditing,
             ),
             blurState = blurState,
             loopViewModel = loopViewModel,
