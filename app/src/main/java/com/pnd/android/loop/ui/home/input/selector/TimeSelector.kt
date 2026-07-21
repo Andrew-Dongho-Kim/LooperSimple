@@ -171,9 +171,11 @@ private fun AnyTimeCheckbox(
  * A single edge of the span. Hour and minute are nudged with up/down steppers, and a tap on the
  * AM/PM label flips the period. Values wrap (12→1, 59→00) and never flip the period on their own,
  * matching how the old wheels behaved.
+ *
+ * 루프 카드의 '완료로 기록' 다이얼로그에서도 같은 시각 입력 UI를 쓰기 위해 internal 로 공개한다.
  */
 @Composable
-private fun TimeStepperCard(
+internal fun TimeStepperCard(
     modifier: Modifier = Modifier,
     label: String,
     localTime: LocalTime,

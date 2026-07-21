@@ -17,7 +17,9 @@ import com.pnd.android.loop.ui.statisctics.DayOfWeekStat
 import com.pnd.android.loop.ui.statisctics.StreakStat
 import com.pnd.android.loop.ui.statisctics.computeStreak
 import com.pnd.android.loop.ui.statisctics.computeWeekdayStats
+import com.pnd.android.loop.util.MS_1DAY
 import com.pnd.android.loop.util.MS_1MIN
+import com.pnd.android.loop.util.isActive
 import com.pnd.android.loop.util.isActiveDay
 import com.pnd.android.loop.util.toLocalDate
 import com.pnd.android.loop.util.toMs
@@ -53,6 +55,9 @@ private const val TREND_MIN_RECORDS = 3
 private const val TREND_MAX_ITEMS = 3
 private const val TREND_GOOD_RATE = 0.6f
 private const val TREND_BAD_RATE = 0.5f
+
+// 오늘 탭 헤더 1페이지의 "최근 N일" 잔디 스트립에서 보여줄 날짜 수.
+private const val RECENT_DAYS = 7
 
 @Stable
 @HiltViewModel
@@ -204,6 +209,46 @@ class LoopViewModel @Inject constructor(
                     remainingMinutes = (loop.startInDay - nowInDayMs) / MS_1MIN,
                 )
             }
+    }.distinctUntilChanged()
+
+    /**
+     * 지금 실제로 진행 중인 루프 중 가장 먼저 끝나는 하나. 오늘 탭 헤더 1페이지 하단 줄에 쓰인다.
+     * "진행 중"은 활동 요일이면서 활동 시간대 안(isActive)인 시간제 루프를 뜻한다. anytime 루프는
+     * 종료 시각이 없어 "남은 시간"을 셀 수 없으므로 제외한다. 함께 진행 중인 다른 루프 수는
+     * [CurrentLoopInfo.othersCount]("외 N개")로 전달한다.
+     * 남은 시간은 '분'으로 내린 뒤 distinctUntilChanged로 걸러, 분이 바뀔 때만 아래로 흘려보낸다.
+     */
+    val currentLoop: Flow<CurrentLoopInfo?> = combine(
+        loopRepository.allLoopsWithDoneStates,
+        localDateTime,
+    ) { loops, now ->
+        val nowInDayMs = now.toLocalTime().toMs()
+        val active = loops
+            .filter { loop -> !loop.isMock && !loop.isAnyTime && loop.isActive(now) }
+            .map { loop -> loop to remainingUntilEnd(loop, nowInDayMs) }
+            .sortedBy { (_, remainingMs) -> remainingMs }
+
+        active.firstOrNull()?.let { (loop, remainingMs) ->
+            CurrentLoopInfo(
+                title = loop.title,
+                remainingMinutes = (remainingMs / MS_1MIN).coerceAtLeast(0L),
+                othersCount = active.size - 1,
+            )
+        }
+    }.distinctUntilChanged()
+
+    /**
+     * 최근 [RECENT_DAYS]일 각 날짜에 완료(DONE)한 루프가 하나라도 있었는지. 과거→오늘 순서의
+     * 불리언 리스트로, 오늘 탭 헤더 1페이지의 잔디 스트립에 쓰인다.
+     */
+    val recentDailyDone: Flow<List<Boolean>> = combine(
+        loopRepository.doneDates,
+        localDate,
+    ) { doneMillis, today ->
+        val doneDates = doneMillis.map { it.toLocalDate() }.toHashSet()
+        (RECENT_DAYS - 1 downTo 0).map { offset ->
+            today.minusDays(offset.toLong()) in doneDates
+        }
     }.distinctUntilChanged()
 
     /**
@@ -373,6 +418,16 @@ data class NextLoopInfo(
 )
 
 /**
+ * 오늘 탭 헤더 1페이지 하단의 "진행 중" 표시용. [remainingMinutes]는 종료까지 남은 분(0이면 곧 종료),
+ * [othersCount]는 함께 진행 중인 다른 루프 수("외 N개")다.
+ */
+data class CurrentLoopInfo(
+    val title: String,
+    val remainingMinutes: Long,
+    val othersCount: Int,
+)
+
+/**
  * 한 루프의 최근 수행 추세. [recentDoneFlags]는 최신→과거 순의 완료 여부이며(막대/점 표시에 사용),
  * 완료율([doneRate])과 최근부터 이어지는 연속 완료·연속 놓침을 함께 담는다.
  */
@@ -403,9 +458,26 @@ data class TodayLoopTrends(
 
 /**
  * [history](날짜(ms)→완료상태)로 한 루프의 추세를 만든다. 오늘([todayMs]) 기록은 아직 미수행일 수
- * 있어 빼고, 어제 이전의 최근 [TREND_WINDOW]개를 최신순으로 본다. 기록이 [TREND_MIN_RECORDS]
- * 미만이면 표본 부족으로 null을 돌려준다.
+ * 있어 빼고, 루프가 활동하지 않은 날(DISABLED)도 빼서, 어제 이전의 최근 [TREND_WINDOW]개 활동일만
+ * 최신순으로 본다. 활동일 기록이 [TREND_MIN_RECORDS] 미만이면 표본 부족으로 null을 돌려준다.
+ *
+ * DISABLED 날을 포함하면 그날이 완료가 아니라는 이유로 연속 달성이 끊기거나, 최근 비활동일이
+ * "연속 놓침"으로 잘못 잡히므로 반드시 제외한다.
  */
+/**
+ * 진행 중인 루프가 끝날 때까지 남은 시간(ms). 자정을 넘기는 루프(종료<시작)도 올바르게 계산한다.
+ * 아직 자정 전(now가 시작 이후)이면 종료 시각에 하루를 더해 남은 시간을 잰다.
+ */
+private fun remainingUntilEnd(loop: LoopBase, nowInDayMs: Long): Long {
+    val crossesMidnight = loop.startInDay > loop.endInDay
+    val endMs = if (crossesMidnight && nowInDayMs >= loop.startInDay) {
+        loop.endInDay + MS_1DAY
+    } else {
+        loop.endInDay
+    }
+    return endMs - nowInDayMs
+}
+
 private fun computeLoopTrend(
     loopId: Int,
     title: String,
@@ -416,6 +488,7 @@ private fun computeLoopTrend(
 
     val recentDoneFlags = history
         .filterKeys { date -> date < todayMs }
+        .filterValues { state -> state != LoopDoneVo.DoneState.DISABLED }
         .entries
         .sortedByDescending { entry -> entry.key }
         .take(TREND_WINDOW)

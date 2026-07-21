@@ -176,6 +176,7 @@ fun LoopCard(
     loop: LoopBase,
     cardValues: LoopCardValues,
     onStateChanged: (loop: LoopBase, doneState: Int) -> Unit,
+    onRecordDone: (LoopBase) -> Unit,
     onEdit: (LoopBase) -> Unit,
     onEnabled: (Boolean) -> Unit,
     onDelete: () -> Unit,
@@ -278,6 +279,7 @@ fun LoopCard(
                 contentAlpha = contentAlpha,
                 isInProgress = isInProgress,
                 onStateChanged = onStateChanged,
+                onRecordDone = onRecordDone,
                 onEdit = onEdit,
                 onEnabled = onEnabled,
                 onDelete = onDelete,
@@ -300,6 +302,7 @@ private fun RowScope.ActiveCardContent(
     contentAlpha: Float,
     isInProgress: Boolean,
     onStateChanged: (loop: LoopBase, doneState: Int) -> Unit,
+    onRecordDone: (LoopBase) -> Unit,
     onEdit: (LoopBase) -> Unit,
     onEnabled: (Boolean) -> Unit,
     onDelete: () -> Unit,
@@ -347,6 +350,9 @@ private fun RowScope.ActiveCardContent(
             modifier = Modifier.padding(start = 4.dp),
             loop = loop,
             showAddToGroup = cardValues.showAddToGroup,
+            showRecordActions = cardValues.showRecordActions,
+            onStateChanged = onStateChanged,
+            onRecordDone = onRecordDone,
             onEdit = onEdit,
             onEnabled = onEnabled,
             onDelete = onDelete,
@@ -607,6 +613,9 @@ private fun LoopCardMenu(
     modifier: Modifier = Modifier,
     loop: LoopBase,
     showAddToGroup: Boolean,
+    showRecordActions: Boolean,
+    onStateChanged: (loop: LoopBase, doneState: Int) -> Unit,
+    onRecordDone: (LoopBase) -> Unit,
     onEdit: (LoopBase) -> Unit,
     onEnabled: (Boolean) -> Unit,
     onDelete: () -> Unit,
@@ -636,6 +645,24 @@ private fun LoopCardMenu(
     LoopCardPopupMenu(
         onDismiss = { isPopupMenuOpen = false },
     ) {
+        // 예정된 시간창이 아직 오지 않았거나(시작 전) 진행 중이어도, 지금 바로 완료/건너뜀으로
+        // 남길 수 있게 한다. 완료는 시각을 직접 입력받도록 다이얼로그를 띄우고, 건너뜀은 즉시
+        // 처리한다. 비활성 루프는 응답 대상이 아니고, 전체 탭처럼 응답이 목적이 아닌 화면
+        // (showRecordActions=false)에서도 숨긴다.
+        if (loop.enabled && showRecordActions) {
+            LoopCardPopupMenuItem(
+                text = stringResource(id = R.string.loop_record_done),
+                onClick = { closeAfter { onRecordDone(loop) } },
+            )
+            LoopCardPopupMenuItem(
+                text = stringResource(id = R.string.loop_record_skip),
+                onClick = { closeAfter { onStateChanged(loop, LoopDoneVo.DoneState.SKIP) } },
+            )
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 4.dp),
+                color = AppColor.onSurface.copy(alpha = 0.08f),
+            )
+        }
         LoopCardPopupMenuItem(
             text = stringResource(id = R.string.edit),
             onClick = { closeAfter { onEdit(loop) } },

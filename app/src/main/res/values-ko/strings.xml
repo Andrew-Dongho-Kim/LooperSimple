@@ -95,11 +95,20 @@
     <string name="header_next_after_m">%1$d분 후</string>
     <string name="header_in_progress">진행 중 %d개</string>
     <string name="header_streak">연속 %d일</string>
+    <!-- 홈 헤더(오늘 탭) 1페이지 — 진행 중 루프 하단 줄, 최근 7일 스트립 -->
+    <string name="header_current_prefix">진행 중</string>
+    <string name="header_current_remaining_hm">%1$d시간 %2$d분 남음</string>
+    <string name="header_current_remaining_m">%1$d분 남음</string>
+    <string name="header_current_remaining_soon">곧 종료</string>
+    <string name="header_current_others">외 %d개</string>
+    <string name="header_recent_days">최근 7일</string>
     <!-- 홈 헤더(오늘 탭) 추세 페이지: 잘하고 있는/주의가 필요한 루프 -->
     <string name="header_trend_doing_well">최근 잘 지키는 루프</string>
     <string name="header_trend_need_attention">최근 놓치고 있는 루프</string>
     <string name="header_trend_missed">%d일째 놓침</string>
     <string name="header_trend_empty">아직 추세를 낼 기록이 부족해요</string>
+    <!-- 주의가 필요한 루프의 대표 항목에서 상세로 이동하는 버튼 -->
+    <string name="header_trend_check">확인하기</string>
     <string name="stat_monthly_invested">월별 투자 시간</string>
     <string name="stat_monthly_invested_desc">월별로 루프에 투자한 시간 (시간 단위)</string>
     <!-- 투자 시간 표기 형식: 일/시간, 시간/분, 분 단위 -->
@@ -188,6 +197,10 @@
     <string name="delete">삭제</string>
     <string name="done">완료</string>
     <string name="skip">건너뜀</string>
+    <string name="loop_record_done">완료로 기록</string>
+    <string name="loop_record_skip">건너뜀으로 기록</string>
+    <string name="loop_record_done_title">완료 기록</string>
+    <string name="loop_record_done_invalid_time">종료 시각은 시작 시각 이후여야 해요.</string>
     <string name="all_history_title">전체 기록</string>
     <string name="all_history_empty">아직 표시할 루프가 없어요.</string>
     <string name="all_history_created">생성일</string>

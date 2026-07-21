@@ -94,6 +94,7 @@ fun LazyListScope.section(
             section = section,
             loopViewModel = loopViewModel,
             selectedTab = selectedTab,
+            onNavigateToDetailPage = onNavigateToDetailPage,
         )
 
         is Section.Today -> sectionToday(
@@ -157,6 +158,7 @@ private fun LazyListScope.sectionHeader(
     section: Section.HeaderCard,
     loopViewModel: LoopViewModel,
     @HomeTab.Type selectedTab: Int,
+    onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
     item(
         contentType = ContentTypes.STATISTICS_CARD,
@@ -171,6 +173,7 @@ private fun LazyListScope.sectionHeader(
             ),
             loopViewModel = loopViewModel,
             selectedTab = selectedTab,
+            onNavigateToDetailPage = onNavigateToDetailPage,
         )
     }
 }
@@ -511,6 +514,8 @@ private fun LazyListScope.sectionAll(
                 isHighlighted = false,
                 isEditing = isEditing,
                 isEditDimmed = editingLoopId != null && !isEditing,
+                // 전체 탭은 루프 관리가 목적이라 완료/건너뜀 기록 메뉴는 숨긴다.
+                showRecordActions = false,
             ),
             blurState = blurState,
             loopViewModel = loopViewModel,

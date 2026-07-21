@@ -100,11 +100,20 @@
     <string name="header_next_after_m">in %1$dm</string>
     <string name="header_in_progress">%d in progress</string>
     <string name="header_streak">%d-day streak</string>
+    <!-- 홈 헤더(오늘 탭) 1페이지 — 진행 중 루프 하단 줄, 최근 7일 스트립 -->
+    <string name="header_current_prefix">In progress</string>
+    <string name="header_current_remaining_hm">%1$dh %2$dm left</string>
+    <string name="header_current_remaining_m">%1$dm left</string>
+    <string name="header_current_remaining_soon">Ending soon</string>
+    <string name="header_current_others">+%d more</string>
+    <string name="header_recent_days">Last 7 days</string>
     <!-- 홈 헤더(오늘 탭) 추세 페이지: 잘하고 있는/주의가 필요한 루프 -->
     <string name="header_trend_doing_well">On a good streak</string>
     <string name="header_trend_need_attention">Needs attention</string>
     <string name="header_trend_missed">missed %d days</string>
     <string name="header_trend_empty">Not enough history yet</string>
+    <!-- 주의가 필요한 루프의 대표 항목에서 상세로 이동하는 버튼 -->
+    <string name="header_trend_check">Check</string>
     <string name="stat_monthly_invested">Monthly time</string>
     <string name="stat_monthly_invested_desc">Time invested in loops each month (hours)</string>
     <!-- 투자 시간 표기 형식: 일/시간, 시간/분, 분 단위 -->
@@ -193,6 +202,10 @@
     <string name="delete">Delete</string>
     <string name="done">DONE</string>
     <string name="skip">SKIP</string>
+    <string name="loop_record_done">Log as done</string>
+    <string name="loop_record_skip">Log as skipped</string>
+    <string name="loop_record_done_title">Log completion</string>
+    <string name="loop_record_done_invalid_time">End time must be after the start time.</string>
     <string name="all_history_title">History</string>
     <string name="all_history_empty">No loops to show yet.</string>
     <string name="all_history_created">Created</string>
