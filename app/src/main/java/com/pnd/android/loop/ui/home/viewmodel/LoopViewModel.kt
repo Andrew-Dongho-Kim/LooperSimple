@@ -4,8 +4,6 @@ import android.app.Application
 import androidx.compose.runtime.Stable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.ai.client.generativeai.GenerativeModel
-import com.google.ai.client.generativeai.type.generationConfig
 import com.pnd.android.loop.appwidget.AppWidgetUpdateWorker
 import com.pnd.android.loop.common.NavigatePage
 import com.pnd.android.loop.common.log
@@ -28,8 +26,8 @@ import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.async
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -42,8 +40,7 @@ import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
-
-private const val GENERATIVE_AI_KEY = "AIzaSyDBPQuAGgOyw3m03HCpBSonqes-ojqMZ7A"
+import kotlin.time.Duration.Companion.milliseconds
 
 // 오늘 루프의 "최근 추세" 계산 파라미터.
 //  - TREND_WINDOW: 어제 이전에서 최근 몇 개의 활동일 기록을 볼지.
@@ -72,20 +69,6 @@ class LoopViewModel @Inject constructor(
     }
     private val coroutineScope = CoroutineScope(SupervisorJob() + coroutineExceptionHandler)
 
-    private val generativeModel by lazy {
-        GenerativeModel(
-            modelName = "gemini-1.0-pro",
-            apiKey = GENERATIVE_AI_KEY,
-            generationConfig = generationConfig {
-                temperature = 0.7f
-            }
-        )
-    }
-    private val chat by lazy { generativeModel.startChat() }
-
-    private val _wiseSaying = MutableStateFlow("")
-    val wiseSayingText get() = _wiseSaying.value
-    val wiseSaying: StateFlow<String> = _wiseSaying
 
     fun loadWiseSaying() {
         viewModelScope.launch {
@@ -113,10 +96,6 @@ class LoopViewModel @Inject constructor(
         loops.sortedWith(TodayLoopOrder())
     }
 
-    val countInActive = loopRepository.countInActive
-    val countInToday = loopRepository.countInToday
-    val countInTodayRemain = loopRepository.countInTodayRemain
-
     private val allCount = loopRepository.allEnabledCount
     private val allResponseCount = loopRepository.allRespondCount
     private val doneCount = loopRepository.doneCount
@@ -142,7 +121,7 @@ class LoopViewModel @Inject constructor(
         savedHighlightKey = highlightKey
         resetHighlightJob?.cancel()
         resetHighlightJob = coroutineScope.launch {
-            delay(2_500L)
+            delay(2_500L.milliseconds)
             _highlightId.value = NavigatePage.UNKNOWN_ID
             resetHighlightJob = null
         }
@@ -256,14 +235,14 @@ class LoopViewModel @Inject constructor(
      * 오늘 기록은 아직 수행 전일 수 있어 제외하고, 어제까지의 최근 [TREND_WINDOW]개 활동일 기록만으로
      * 완료율·연속을 계산한다. 기록이 부족한 루프([TREND_MIN_RECORDS] 미만)는 후보에서 뺀다.
      */
-    val todayLoopTrends: Flow<TodayLoopTrends> = combine(
+    val loopTrends: Flow<LoopTrends> = combine(
         loopRepository.allLoopsWithDoneStates,
         loopRepository.allDoneHistory,
         localDate,
     ) { loops, history, today ->
         val todayMs = today.toMs()
         val trends = loops
-            .filter { loop -> loop.enabled && !loop.isMock && loop.isActiveDay(today) }
+            .filter { loop -> loop.enabled && !loop.isMock }
             .mapNotNull { loop ->
                 computeLoopTrend(
                     loopId = loop.loopId,
@@ -273,7 +252,7 @@ class LoopViewModel @Inject constructor(
                 )
             }
 
-        TodayLoopTrends(
+        LoopTrends(
             // 잘함: 완료율이 높은 순, 같으면 연속 완료가 긴 순.
             doingWell = trends
                 .filter { trend -> trend.doneRate >= TREND_GOOD_RATE }
@@ -444,15 +423,15 @@ data class LoopTrend(
 }
 
 /**
- * 오늘 탭 헤더의 추세 페이지 묶음. [doingWell]은 최근 잘 지키는 루프, [needAttention]은 최근
+ * 추세 페이지 묶음. [doingWell]은 최근 잘 지키는 루프, [needAttention]은 최근
  * 놓치고 있는 루프. 각 리스트는 표시 상한만큼 이미 잘려 있다.
  */
-data class TodayLoopTrends(
+data class LoopTrends(
     val doingWell: List<LoopTrend>,
     val needAttention: List<LoopTrend>,
 ) {
     companion object {
-        val Empty = TodayLoopTrends(doingWell = emptyList(), needAttention = emptyList())
+        val Empty = LoopTrends(doingWell = emptyList(), needAttention = emptyList())
     }
 }
 

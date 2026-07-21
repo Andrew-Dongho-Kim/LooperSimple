@@ -36,7 +36,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -49,7 +48,7 @@ import com.pnd.android.loop.ui.home.viewmodel.LoopRates
 import com.pnd.android.loop.ui.home.viewmodel.LoopTrend
 import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.home.viewmodel.NextLoopInfo
-import com.pnd.android.loop.ui.home.viewmodel.TodayLoopTrends
+import com.pnd.android.loop.ui.home.viewmodel.LoopTrends
 import com.pnd.android.loop.ui.statisctics.DayOfWeekStat
 import com.pnd.android.loop.ui.statisctics.StreakStat
 import com.pnd.android.loop.ui.theme.AppColor
@@ -85,14 +84,18 @@ fun LoopHeaderCard(
 ) {
     val todayRates by loopViewModel.todayRates.collectAsState(initial = LoopRates.Empty)
     val overallRates by loopViewModel.overallRates.collectAsState(initial = LoopRates.Empty)
-    val streak by loopViewModel.streak.collectAsState(initial = StreakStat(current = 0, longest = 0))
+    val streak by loopViewModel.streak.collectAsState(
+        initial = StreakStat(
+            current = 0,
+            longest = 0
+        )
+    )
     val weekdayStats by loopViewModel.weekdayStats.collectAsState(initial = emptyList())
     val nextLoop by loopViewModel.nextLoop.collectAsState(initial = null)
     val currentLoop by loopViewModel.currentLoop.collectAsState(initial = null)
     val recentDays by loopViewModel.recentDailyDone.collectAsState(initial = emptyList())
-    val loopTrends by loopViewModel.todayLoopTrends.collectAsState(initial = TodayLoopTrends.Empty)
+    val loopTrends by loopViewModel.loopTrends.collectAsState(initial = LoopTrends.Empty)
     val loops by loopViewModel.allLoopsWithDoneStates.collectAsState(initial = emptyList())
-    val wiseSaying by loopViewModel.wiseSaying.collectAsState(initial = loopViewModel.wiseSayingText)
 
     Card(
         modifier = modifier,
@@ -124,13 +127,6 @@ fun LoopHeaderCard(
                         loops.firstOrNull { loop -> loop.loopId == loopId }
                             ?.let(onNavigateToDetailPage)
                     },
-                )
-            }
-
-            if (wiseSaying.isNotBlank()) {
-                WiseSaying(
-                    modifier = Modifier.padding(top = 14.dp),
-                    text = wiseSaying,
                 )
             }
         }
@@ -392,6 +388,7 @@ private fun formatRemaining(minutes: Long): String = when {
         (minutes / 60L).toInt(),
         (minutes % 60L).toInt(),
     )
+
     else -> stringResource(id = R.string.header_next_after_m, minutes.toInt())
 }
 
@@ -404,6 +401,7 @@ private fun formatEnding(minutes: Long): String = when {
         (minutes / 60L).toInt(),
         (minutes % 60L).toInt(),
     )
+
     else -> stringResource(id = R.string.header_current_remaining_m, minutes.toInt())
 }
 
@@ -659,7 +657,7 @@ private fun OverallPager(
     rates: LoopRates,
     longestStreak: Int,
     weekdayStats: List<DayOfWeekStat>,
-    trends: TodayLoopTrends,
+    trends: LoopTrends,
     onCheckLoop: (Int) -> Unit,
 ) {
     val pagerState = rememberPagerState { OVERALL_PAGE_COUNT }
@@ -899,24 +897,3 @@ private fun WeekdayPattern(
 // endregion
 
 private fun formatPercent(value: Float): String = String.format("%.1f%%", value)
-
-// region Wise saying
-
-@Composable
-private fun WiseSaying(
-    modifier: Modifier = Modifier,
-    text: String,
-) {
-    Text(
-        modifier = modifier.fillMaxWidth(),
-        text = text,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        style = AppTypography.bodySmall.copy(
-            color = AppColor.onSurface.copy(alpha = 0.55f),
-            fontStyle = FontStyle.Italic,
-        ),
-    )
-}
-
-// endregion
