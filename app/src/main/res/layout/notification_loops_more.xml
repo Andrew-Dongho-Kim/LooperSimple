@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 펼침 알림에서 표시 한도를 넘은 루프 수를 "외 N개"로 알리는 줄. -->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/loops_more"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="13dp"
+    android:paddingTop="4dp"
+    android:textAppearance="@style/TextAppearance.Compat.Notification.Info"
+    android:textSize="12sp" />

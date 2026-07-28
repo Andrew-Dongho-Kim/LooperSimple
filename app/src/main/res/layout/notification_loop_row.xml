@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 진행 중 루프 알림(펼침)의 한 줄. 왼쪽 색상 바 + 제목/남은시간 + 진행률 + 종료시각. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:paddingTop="6dp"
+    android:paddingBottom="6dp">
+
+    <!-- 루프 색상 액센트 바 (loop.color 로 배경색을 지정한다).
+         RemoteViews 는 기본 View 를 인플레이트하지 못하므로 허용 클래스인 ImageView 를 쓴다. -->
+    <ImageView
+        android:id="@+id/loop_row_accent"
+        android:layout_width="3dp"
+        android:layout_height="match_parent"
+        android:layout_marginEnd="10dp"
+        android:background="#000000"
+        android:importantForAccessibility="no" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:baselineAligned="true"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/loop_row_title"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textAppearance="@style/TextAppearance.Compat.Notification.Title"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/loop_row_remaining"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:textAppearance="@style/TextAppearance.Compat.Notification.Info"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <ProgressBar
+            android:id="@+id/loop_row_progress"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="6dp"
+            android:layout_marginTop="5dp"
+            android:max="100" />
+
+        <TextView
+            android:id="@+id/loop_row_end"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:textAppearance="@style/TextAppearance.Compat.Notification.Info"
+            android:textSize="11sp" />
+    </LinearLayout>
+</LinearLayout>

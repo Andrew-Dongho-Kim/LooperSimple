@@ -4,6 +4,7 @@ import android.app.AlarmManager
 import android.app.NotificationManager
 import android.content.Context
 import android.media.AudioManager
+import android.os.PowerManager
 import androidx.room.Room
 import com.pnd.android.loop.alarm.LoopScheduler
 import com.pnd.android.loop.alarm.notification.NotificationHelper
@@ -43,6 +44,11 @@ class AppModule {
     @Provides
     fun provideAlarmManager(@ApplicationContext context: Context): AlarmManager {
         return context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+    }
+
+    @Provides
+    fun providePowerManager(@ApplicationContext context: Context): PowerManager {
+        return context.getSystemService(Context.POWER_SERVICE) as PowerManager
     }
 
     @Provides

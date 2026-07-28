@@ -300,6 +300,21 @@
     <plurals name="notification_loops_in_progress">
         <item quantity="other">진행 중인 루프 %d개</item>
     </plurals>
+    <!-- 접힌 알림에서 가장 먼저 끝나는 루프의 종료 시각 요약 -->
+    <string name="notification_next_end">다음 종료 · %s</string>
+    <!-- 펼친 알림에서 표시 한도를 넘은 나머지 루프 수 -->
+    <plurals name="notification_more_loops">
+        <item quantity="other">외 %d개</item>
+    </plurals>
+
+    <!-- 루프 시작 안내(heads-up) 알림 -->
+    <string name="notification_loop_started_channel">루프 시작 알림</string>
+    <!-- 루프 1개 시작 안내 제목 -->
+    <string name="notification_loop_started_title">%s 시작</string>
+    <!-- 화면이 꺼진 사이 여러 루프가 시작되어 모아서 알릴 때 제목 -->
+    <plurals name="notification_loops_started">
+        <item quantity="other">루프 %d개 시작</item>
+    </plurals>
 
     <string name="desc_native_ad">광고</string>
     <string name="ad_expand">자세히 보기</string>

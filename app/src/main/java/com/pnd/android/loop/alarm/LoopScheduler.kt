@@ -8,6 +8,7 @@ import android.content.Intent
 import android.os.Build
 import android.os.SystemClock
 import com.pnd.android.loop.alarm.notification.LoopForegroundService
+import com.pnd.android.loop.alarm.notification.LoopStartAnnouncer
 import com.pnd.android.loop.appwidget.AppWidgetUpdateWorker
 import com.pnd.android.loop.common.log
 import com.pnd.android.loop.data.AppDatabase
@@ -183,6 +184,9 @@ class LoopScheduler @Inject constructor(
         @Inject
         lateinit var alarmController: LoopScheduler
 
+        @Inject
+        lateinit var loopStartAnnouncer: LoopStartAnnouncer
+
         override fun onReceive(context: Context, intent: Intent) {
             when (intent.action) {
                 ACTION_LOOP_START -> handleActionLoopStart(context, intent)
@@ -227,6 +231,9 @@ class LoopScheduler @Inject constructor(
             // 진행 중인 루프를 상시 알림 서비스로 넘긴다. 서비스가 알림을 소유하므로
             // 앱이 실행 중이 아니어도 유지되고, 사용자가 스와이프로 지울 수 없다.
             notifyActiveLoop(context, loop)
+            // 상시 알림 등록에 더해, 방금 시작된 루프를 화면 상단에 한 번 알린다.
+            // (반복 틱이 아니라 실제 시작 시점에만 호출된다)
+            if (loop.isActive()) loopStartAnnouncer.announce(loop)
             AppWidgetUpdateWorker.updateWidget(context)
 
             val isAllowedDay = loop.isActiveDay()
