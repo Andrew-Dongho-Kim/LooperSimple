@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -44,8 +45,7 @@ import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopGroupVo
 import com.pnd.android.loop.data.LoopGroupWithLoops
-import com.pnd.android.loop.ui.common.AppBarIcon
-import com.pnd.android.loop.ui.common.SimpleAppBar
+import com.pnd.android.loop.ui.common.AppEmptyState
 import com.pnd.android.loop.ui.home.BlurState
 import com.pnd.android.loop.ui.home.LoopCardValues
 import com.pnd.android.loop.ui.home.LoopCardWithOption
@@ -76,7 +76,7 @@ fun GroupPage(
             .blur(radius = blurState.radius)
             .background(color = AppColor.background),
         topBar = {
-            GroupPickerAppBar(
+            GroupTopAppBar(
                 modifier = modifier.statusBarsPadding(),
                 onNavigateUp = onNavigateUp,
                 onCreateGroup = { groupTitle ->
@@ -131,35 +131,50 @@ private fun Groups(
     var deleteGroup by remember { mutableStateOf<LoopGroupVo?>(null) }
     var deleteLoop by remember { mutableStateOf<LoopBase?>(null) }
 
-    LazyColumn(
-        modifier = modifier,
-        state = lazyListState,
-        contentPadding = PaddingValues(
-            horizontal = Dimens.screenHorizontalPadding,
-            vertical = Dimens.contentPadding,
-        ),
-        verticalArrangement = Arrangement.spacedBy(Dimens.cardSpacing),
-    ) {
-        itemsIndexed(
-            items = groups,
-            key = { index, groupWithLoops -> groupWithLoops.group?.loopGroupId ?: index }
-        ) { _, groupWithLoops ->
-            GroupItem(
-                blurState = blurState,
-                loopViewModel = loopViewModel,
-                groupWithLoops = groupWithLoops,
-                onRemoveFromGroup = { group, loop ->
-                    deleteGroup = group
-                    deleteLoop = loop
-                    showRemoveFromGroupDialog = true
-                    blurState.on()
-                },
-                onDeleteGroup = { group ->
-                    deleteGroup = group
-                    showDeleteGroupDialog = true
-                    blurState.on()
-                }
+    if (groups.isEmpty()) {
+        // 그룹이 하나도 없을 때: 다른 화면과 동일한 공용 빈 상태로 첫 그룹 생성을 안내한다.
+        Box(
+            modifier = modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
+        ) {
+            AppEmptyState(
+                modifier = Modifier.padding(horizontal = Dimens.screenHorizontalPadding),
+                icon = Icons.Outlined.Add,
+                title = stringResource(id = R.string.group_empty_title),
+                hint = stringResource(id = R.string.group_empty_hint),
             )
+        }
+    } else {
+        LazyColumn(
+            modifier = modifier,
+            state = lazyListState,
+            contentPadding = PaddingValues(
+                horizontal = Dimens.screenHorizontalPadding,
+                vertical = Dimens.contentPadding,
+            ),
+            verticalArrangement = Arrangement.spacedBy(Dimens.cardSpacing),
+        ) {
+            itemsIndexed(
+                items = groups,
+                key = { index, groupWithLoops -> groupWithLoops.group?.loopGroupId ?: index }
+            ) { _, groupWithLoops ->
+                GroupItem(
+                    blurState = blurState,
+                    loopViewModel = loopViewModel,
+                    groupWithLoops = groupWithLoops,
+                    onRemoveFromGroup = { group, loop ->
+                        deleteGroup = group
+                        deleteLoop = loop
+                        showRemoveFromGroupDialog = true
+                        blurState.on()
+                    },
+                    onDeleteGroup = { group ->
+                        deleteGroup = group
+                        showDeleteGroupDialog = true
+                        blurState.on()
+                    }
+                )
+            }
         }
     }
 
@@ -358,37 +373,6 @@ private fun LoopCardItemRemoveIcon(
             imageVector = Icons.Outlined.Remove,
             tint = AppColor.error.copy(alpha = 0.7f),
             contentDescription = stringResource(id = R.string.remove_from_group),
-        )
-    }
-}
-
-
-@Composable
-private fun GroupPickerAppBar(
-    modifier: Modifier = Modifier,
-    onCreateGroup: (CharSequence) -> Unit,
-    onNavigateUp: () -> Unit,
-) {
-    var showCreateGroupDialog by remember { mutableStateOf(false) }
-
-    SimpleAppBar(
-        modifier = modifier,
-        title = stringResource(id = R.string.group),
-        onNavigateUp = onNavigateUp,
-        actions = {
-            AppBarIcon(
-                imageVector = Icons.Outlined.Add,
-                color = AppColor.onSurface.copy(alpha = 0.8f),
-                descriptionResId = R.string.add_group,
-                onClick = { showCreateGroupDialog = true }
-            )
-        }
-    )
-
-    if (showCreateGroupDialog) {
-        CreateGroupDialog(
-            onCreate = onCreateGroup,
-            onDismiss = { showCreateGroupDialog = false }
         )
     }
 }

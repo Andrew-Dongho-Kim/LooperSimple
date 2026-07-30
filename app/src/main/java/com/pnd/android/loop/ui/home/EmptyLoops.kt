@@ -33,6 +33,7 @@ import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDay
 import com.pnd.android.loop.data.LoopVo
+import com.pnd.android.loop.ui.common.AppEmptyState
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.Dimens
@@ -48,7 +49,7 @@ import java.time.LocalTime
 /**
  * 루프가 하나도 없을 때 보여주는 OOBE(첫 실행) 빈 화면.
  *
- * 위쪽은 앱의 다른 빈 상태("오늘 완료" 등)와 똑같은 공용 [HomeEmptyState]를 그대로 써서
+ * 위쪽은 앱의 다른 빈 상태("오늘 완료" 등)와 똑같은 공용 [AppEmptyState]를 그대로 써서
  * 이질감 없이 이어지고, 아래쪽 "빠른 시작"에서는 추천 루프를 **실제 루프 카드와 같은 문법**
  * (색 도트 + 제목 + 요일 + 시간 알약)으로 보여준다. 카드를 누르면 [onSelectTemplate]로
  * 미리 채워진 루프가 전달되어 그대로 추가된다 — 첫 루프를 한 번에 시작할 수 있다.
@@ -69,7 +70,7 @@ fun EmptyLoops(
         Spacer(modifier = Modifier.height(40.dp))
 
         // 상단: 공용 빈 상태(틴트 원 안 아이콘 + 제목 + 힌트)를 재사용한다.
-        HomeEmptyState(
+        AppEmptyState(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = Dimens.screenHorizontalPadding),

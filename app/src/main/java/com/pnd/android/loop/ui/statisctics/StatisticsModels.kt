@@ -128,15 +128,37 @@ data class DayOfWeekStat(
 )
 
 /**
- * 통계 화면 상단 탭. 지표 10종이 늘어나면서 한 화면에 다 담으면 스크롤이 과해지므로,
- * 목적별 4개 카테고리로 나눈다. (요약 / 패턴 / 습관 / 성취)
+ * 통계 화면 상단 탭. 지표가 많아 한 화면에 다 담으면 스크롤이 과해지므로 목적별로 나눈다.
+ *
+ * 탭은 "기간 선택에 반응하는가([usesPeriod])"를 기준으로 두 묶음으로 배치한다.
+ * - 앞의 두 탭(요약·패턴)은 상단 기간 선택기의 영향을 받는 지표만 담는다.
+ * - 뒤의 두 탭(추세·성취)은 기간과 무관하게 전체·최근 흐름을 보는 지표만 담는다.
+ * 이렇게 스코프가 섞이지 않게 해, 사용자가 "지금 보는 값이 어떤 기간인지" 헷갈리지 않게 한다.
  */
-enum class StatisticsTab(@StringRes val titleRes: Int) {
-    SUMMARY(R.string.stat_tab_summary),
-    PATTERN(R.string.stat_tab_pattern),
-    HABIT(R.string.stat_tab_habit),
-    ACHIEVEMENT(R.string.stat_tab_achievement),
+enum class StatisticsTab(
+    @StringRes val titleRes: Int,
+    val usesPeriod: Boolean,
+) {
+    SUMMARY(R.string.stat_tab_summary, usesPeriod = true),
+    PATTERN(R.string.stat_tab_pattern, usesPeriod = true),
+    TREND(R.string.stat_tab_trend, usesPeriod = false),
+    ACHIEVEMENT(R.string.stat_tab_achievement, usesPeriod = false),
 }
+
+/**
+ * 비동기 조회 값의 로딩 여부를 구분하는 래퍼.
+ *
+ * Flow를 그냥 `collectAsState(initial = emptyList())`로 받으면 "아직 로딩 중"과 "정말 비어 있음"을
+ * 구분할 수 없어, 데이터가 있는 화면도 최초에 빈 화면처럼 깜빡인다. 첫 방출 전에는 [Loading],
+ * 방출 후에는 [Loaded]로 감싸 이 둘을 구분한다.
+ */
+sealed interface Loadable<out T> {
+    data object Loading : Loadable<Nothing>
+    data class Loaded<T>(val value: T) : Loadable<T>
+}
+
+val <T> Loadable<T>.valueOrNull: T? get() = (this as? Loadable.Loaded)?.value
+val Loadable<*>.isLoading: Boolean get() = this is Loadable.Loading
 
 /**
  * 시간대(0~23시)별 완료 횟수. 실제 시작 시각을 기준으로 분류한 히트맵에 사용한다.

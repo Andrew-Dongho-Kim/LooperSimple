@@ -91,9 +91,10 @@ class LoopViewModel @Inject constructor(
 
     val loopsNoResponseYesterday = loopRepository.loopsNoResponseYesterday
 
+    // null = 아직 DB 로딩 전. UI는 이 값이 null인 동안 빈 화면(EmptyLoops)을 그리지 않는다.
     @OptIn(ExperimentalCoroutinesApi::class)
     val allLoopsWithDoneStates = loopRepository.allLoopsWithDoneStates.mapLatest { loops ->
-        loops.sortedWith(TodayLoopOrder())
+        loops?.sortedWith(TodayLoopOrder())
     }
 
     private val allCount = loopRepository.allEnabledCount
@@ -169,7 +170,7 @@ class LoopViewModel @Inject constructor(
      * 시작 시각이 없는 anytime 루프와 오늘 활동일이 아닌 루프는 후보에서 제외한다.
      */
     val nextLoop: Flow<NextLoopInfo?> = combine(
-        loopRepository.allLoopsWithDoneStates,
+        loopRepository.loadedLoops,
         localDateTime,
     ) { loops, now ->
         val nowInDayMs = now.toLocalTime().toMs()
@@ -198,7 +199,7 @@ class LoopViewModel @Inject constructor(
      * 남은 시간은 '분'으로 내린 뒤 distinctUntilChanged로 걸러, 분이 바뀔 때만 아래로 흘려보낸다.
      */
     val currentLoop: Flow<CurrentLoopInfo?> = combine(
-        loopRepository.allLoopsWithDoneStates,
+        loopRepository.loadedLoops,
         localDateTime,
     ) { loops, now ->
         val nowInDayMs = now.toLocalTime().toMs()
@@ -236,7 +237,7 @@ class LoopViewModel @Inject constructor(
      * 완료율·연속을 계산한다. 기록이 부족한 루프([TREND_MIN_RECORDS] 미만)는 후보에서 뺀다.
      */
     val loopTrends: Flow<LoopTrends> = combine(
-        loopRepository.allLoopsWithDoneStates,
+        loopRepository.loadedLoops,
         loopRepository.allDoneHistory,
         localDate,
     ) { loops, history, today ->

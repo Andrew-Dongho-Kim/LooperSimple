@@ -24,6 +24,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
@@ -79,14 +80,20 @@ class LoopRepository @Inject constructor(
 
     // Shared so the multiple downstream consumers (UI sections, active/today counts)
     // collect a single DB stream instead of each re-running the query.
-    val allLoopsWithDoneStates: Flow<List<LoopWithDone>> = localDate.transform { currDate ->
+    // initialValue = null 은 "아직 DB에서 로딩 전"을 뜻한다. 로딩 완료 후 값이 비어 있으면(진짜
+    // 루프 0개) emptyList()가 방출된다. UI는 이 null/empty 구분으로 로딩 중 빈 화면 깜빡임을 막는다.
+    val allLoopsWithDoneStates: Flow<List<LoopWithDone>?> = localDate.transform { currDate ->
         emit(fullLoopDao.getAllLoops(currDate.toLocalTime()))
         emitAll(fullLoopDao.getAllLoopsFlow(currDate.toLocalTime()))
     }.stateIn(
         scope = coroutineScope,
         started = SharingStarted.WhileSubscribed(5_000L),
-        initialValue = emptyList()
+        initialValue = null
     )
+
+    // 로딩 여부(null)를 신경 쓰지 않는 내부 소비자용 non-null 뷰. 상위 stateIn을 공유하므로
+    // 추가 DB 쿼리는 발생하지 않고, 로딩 전(null)에는 아무 값도 흘려보내지 않는다.
+    val loadedLoops: Flow<List<LoopWithDone>> = allLoopsWithDoneStates.filterNotNull()
 
     // @formatter:off
     val loopsNoResponseYesterday = localDate.transform { currDate ->
@@ -104,13 +111,13 @@ class LoopRepository @Inject constructor(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val activeLoops = localDateTime.flatMapLatest { now ->
-        allLoopsWithDoneStates.map { loops -> loops.filter { loop -> loop.isActive(now) } }
+        loadedLoops.map { loops -> loops.filter { loop -> loop.isActive(now) } }
     }.flowOn(Dispatchers.Default)
     val countInActive = activeLoops.map { it.size }
 
     // countInToday and countInTodayRemain both scan the same list, so compute them in a
     // single pass off the main thread and expose each value as a cheap projection.
-    private val todayCounts = allLoopsWithDoneStates.map { loops ->
+    private val todayCounts = loadedLoops.map { loops ->
         var today = 0
         var remain = 0
         loops.forEach { loop ->

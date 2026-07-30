@@ -2,16 +2,10 @@ package com.pnd.android.loop.ui.common
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -19,32 +13,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.pnd.android.loop.ui.theme.AppColor
-import com.pnd.android.loop.ui.theme.onSurface
 
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun AppBar(
-    modifier: Modifier = Modifier,
-    navigationIcon: @Composable (() -> Unit) = {},
-    title: @Composable RowScope.() -> Unit,
-    actions: @Composable RowScope.() -> Unit = {}
-) {
-    Column(
-        modifier = modifier,
-    ) {
-        TopAppBar(
-            colors = TopAppBarDefaults.topAppBarColors(
-                titleContentColor = AppColor.onSurface
-            ),
-            navigationIcon = navigationIcon,
-            actions = actions,
-            title = { Row { title() } },
-        )
-    }
-}
-
+/**
+ * 앱 전역 아이콘 버튼. 48dp 터치 타깃(Material 최소) 안에 14dp 패딩으로 아이콘을 배치해,
+ * 모든 화면의 앱바/헤더 아이콘이 같은 크기·히트영역을 갖도록 한다.
+ */
 @Composable
 fun AppBarIcon(
     modifier: Modifier = Modifier,

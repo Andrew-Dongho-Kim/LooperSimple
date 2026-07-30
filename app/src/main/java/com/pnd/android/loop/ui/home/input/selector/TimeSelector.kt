@@ -54,6 +54,7 @@ import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.outlineVariant
 import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.util.ABB_DAYS
+import com.pnd.android.loop.util.MS_1DAY
 import com.pnd.android.loop.util.rememberDayColor
 import com.pnd.android.loop.util.toLocalTime
 import com.pnd.android.loop.util.toMs
@@ -62,7 +63,10 @@ import kotlinx.coroutines.launch
 import java.time.LocalTime
 
 /** Minimum gap the loop must span; the end time has to sit at least this far after the start. */
-private const val MIN_DIFF_MINUTES = 15
+internal const val MIN_DIFF_MINUTES = 15
+
+/** Minute stepper granularity: nudging the minute field moves in whole 5-minute marks. */
+private const val MINUTE_STEP = 5
 
 @Composable
 fun StartEndTimeSelector(
@@ -168,9 +172,13 @@ private fun AnyTimeCheckbox(
 }
 
 /**
- * A single edge of the span. Hour and minute are nudged with up/down steppers, and a tap on the
- * AM/PM label flips the period. Values wrap (12→1, 59→00) and never flip the period on their own,
- * matching how the old wheels behaved.
+ * A single edge of the span. Hour and minute are nudged with up/down steppers, and the AM·PM
+ * segmented toggle below picks the period. The hour steps in 24-hour space, so crossing the 11↔12
+ * boundary carries into AM/PM on its own (11 AM → 12 PM, 11 PM → 12 AM). The minute moves in whole
+ * 5-minute marks and wraps within the hour (55→00) without touching the hour or the period.
+ *
+ * AM/PM 은 시·분 스테퍼와 같은 줄에 두면 좁은 '완료로 기록' 다이얼로그 카드에서 잘려 보이지 않으므로
+ * 아래쪽 별도 줄의 세그먼트 토글로 분리해, 어느 화면에서든 온전히 보이고 조작 대상임이 분명하게 한다.
  *
  * 루프 카드의 '완료로 기록' 다이얼로그에서도 같은 시각 입력 UI를 쓰기 위해 internal 로 공개한다.
  */
@@ -205,8 +213,10 @@ internal fun TimeStepperCard(
             Stepper(
                 value = hour12.toString(),
                 enabled = enabled,
-                onIncrease = { onTimeChanged(buildTime(hour12 % 12 + 1, minute, isPm)) },
-                onDecrease = { onTimeChanged(buildTime(if (hour12 == 1) 12 else hour12 - 1, minute, isPm)) }
+                // Step in 24-hour space so crossing the 11↔12 boundary carries into AM/PM on its
+                // own (11 AM → 12 PM, 11 PM → 12 AM); the toggle re-derives isPm from the new hour.
+                onIncrease = { onTimeChanged(LocalTime.of((localTime.hour + 1) % 24, minute)) },
+                onDecrease = { onTimeChanged(LocalTime.of((localTime.hour + 23) % 24, minute)) }
             )
             Text(
                 text = ":",
@@ -215,15 +225,16 @@ internal fun TimeStepperCard(
             Stepper(
                 value = "%02d".format(minute),
                 enabled = enabled,
-                onIncrease = { onTimeChanged(buildTime(hour12, (minute + 1) % 60, isPm)) },
-                onDecrease = { onTimeChanged(buildTime(hour12, (minute + 59) % 60, isPm)) }
-            )
-            AmPmToggle(
-                isPm = isPm,
-                enabled = enabled,
-                onClick = { onTimeChanged(buildTime(hour12, minute, !isPm)) }
+                onIncrease = { onTimeChanged(buildTime(hour12, nextSteppedMinute(minute), isPm)) },
+                onDecrease = { onTimeChanged(buildTime(hour12, prevSteppedMinute(minute), isPm)) }
             )
         }
+        Spacer(modifier = Modifier.height(10.dp))
+        AmPmToggle(
+            isPm = isPm,
+            enabled = enabled,
+            onPeriodChanged = { pm -> onTimeChanged(buildTime(hour12, minute, pm)) }
+        )
     }
 }
 
@@ -294,27 +305,68 @@ private fun Modifier.repeatingClickable(
                     delay(currentDelay)
                 }
             }
-            waitForUpOrCancellation()
-            repeatJob.cancel()
+            // repeatJob runs on the composition scope, so if this gesture is cancelled
+            // (e.g. pointerInput restarts when `enabled` flips) the code after
+            // waitForUpOrCancellation() would be skipped and the job would keep firing
+            // forever. finally guarantees it is torn down on both up and cancellation.
+            try {
+                waitForUpOrCancellation()
+            } finally {
+                repeatJob.cancel()
+            }
         }
     }
 }
 
-/** A tap-to-flip AM·PM label sharing the card row. */
+/**
+ * A compact AM·PM segmented toggle placed on its own row below the steppers. The active period is
+ * filled with the primary color while the other reads as a quiet label, so the current choice is
+ * obvious at a glance. Colours are AppColor tokens, keeping the same contrast in light and dark.
+ */
 @Composable
 private fun AmPmToggle(
     isPm: Boolean,
+    enabled: Boolean,
+    onPeriodChanged: (isPm: Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .clip(RoundShapes.medium)
+            .border(1.dp, AppColor.outlineVariant, RoundShapes.medium)
+            .alpha(if (enabled) 1f else 0.4f),
+    ) {
+        AmPmSegment(
+            text = stringResource(id = R.string.am),
+            selected = !isPm,
+            enabled = enabled,
+            onClick = { onPeriodChanged(false) }
+        )
+        AmPmSegment(
+            text = stringResource(id = R.string.pm),
+            selected = isPm,
+            enabled = enabled,
+            onClick = { onPeriodChanged(true) }
+        )
+    }
+}
+
+/** One half of [AmPmToggle]; fills with the primary color when it is the active period. */
+@Composable
+private fun AmPmSegment(
+    text: String,
+    selected: Boolean,
     enabled: Boolean,
     onClick: () -> Unit,
 ) {
     Text(
         modifier = Modifier
-            .padding(start = 4.dp)
-            .clip(RoundShapes.medium)
             .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-        text = stringResource(id = if (isPm) R.string.pm else R.string.am),
-        style = AppTypography.labelLarge.copy(color = AppColor.primary)
+            .background(if (selected) AppColor.primary else Color.Transparent)
+            .padding(horizontal = 16.dp, vertical = 5.dp),
+        text = text,
+        style = AppTypography.labelLarge.copy(
+            color = if (selected) AppColor.onPrimary else AppColor.onSurface.copy(alpha = 0.6f)
+        )
     )
 }
 
@@ -389,6 +441,22 @@ private fun DaySegment(
     )
 }
 
+/**
+ * Next [MINUTE_STEP]-minute mark at or after [minute], wrapping past the top of the hour
+ * (…50 → 55 → 00). An off-grid value (e.g. 07) snaps up to the next mark (10).
+ */
+private fun nextSteppedMinute(minute: Int): Int = (minute / MINUTE_STEP + 1) * MINUTE_STEP % 60
+
+/**
+ * Previous [MINUTE_STEP]-minute mark before [minute], wrapping past the bottom of the hour
+ * (00 → 55). An off-grid value (e.g. 07) snaps down to the mark below it (05); an on-grid value
+ * drops a full step (10 → 05).
+ */
+private fun prevSteppedMinute(minute: Int): Int {
+    val flooredToStep = minute - minute % MINUTE_STEP
+    return if (flooredToStep == minute) (minute + 60 - MINUTE_STEP) % 60 else flooredToStep
+}
+
 /** Rebuilds a [LocalTime] from the 12-hour value, minute and AM/PM state. */
 private fun buildTime(hour12: Int, minute: Int, isPm: Boolean): LocalTime {
     val hour24 = (hour12 % 12) + if (isPm) 12 else 0
@@ -398,9 +466,13 @@ private fun buildTime(hour12: Int, minute: Int, isPm: Boolean): LocalTime {
 /**
  * True when a span from [startInDay] to [endInDay] (both millis-of-day) is shorter than the
  * minimum a loop may cover. Callers use this to warn when the end sits too close to the start.
+ *
+ * 종료가 시작보다 앞서면 자정을 넘기는 루프(예: 23:00~02:00)로 보고 하루(24h)를 더해 실제 지속 시간을
+ * 계산한다. 따라서 자정을 넘기는 것 자체는 허용되고, 순수하게 "너무 짧은지"만 경고한다.
  */
 fun isLoopDurationTooShort(startInDay: Long, endInDay: Long): Boolean {
-    return endInDay - startInDay < MIN_DIFF_MINUTES * 60_000L
+    val duration = if (endInDay >= startInDay) endInDay - startInDay else endInDay - startInDay + MS_1DAY
+    return duration < MIN_DIFF_MINUTES * 60_000L
 }
 
 @Preview(

@@ -23,6 +23,7 @@ import com.pnd.android.loop.data.asLoopVo
 import com.pnd.android.loop.data.common.NO_REPEAT
 import com.pnd.android.loop.data.description
 import com.pnd.android.loop.data.putTo
+import com.pnd.android.loop.util.MS_1DAY
 import com.pnd.android.loop.util.dayForLoop
 import com.pnd.android.loop.util.dh2m2
 import com.pnd.android.loop.util.isActive
@@ -264,8 +265,11 @@ class LoopScheduler @Inject constructor(
         }
 
         private fun reserveRepeat(loop: LoopBase) {
-            val now = msNow
-            if (now + loop.interval >= loop.endInDay) {
+            // 다음 반복 틱이 종료 시각을 넘기면(=종료가 먼저 오면) 종료 알람을, 아니면 다음 반복 알람을 건다.
+            // 두 값 모두 자정 넘김을 고려한 "지금부터 남은 ms" 로 계산해, 23:00~02:00 같은 루프도 정확히 처리한다.
+            val untilEnd = msUntilInDay(loop.endInDay)
+            val untilNextTick = loop.interval - (msSinceStart(loop) % loop.interval)
+            if (untilNextTick >= untilEnd) {
                 alarmController.reserveAlarm(scheduleEnd(loop))
             } else {
                 alarmController.reserveAlarm(scheduleRepeat(loop))
@@ -289,21 +293,31 @@ class LoopScheduler @Inject constructor(
 
         val msNow get() = LocalTime.now().toMs()
 
+        /** msNow 기준으로 하루 안의 [targetInDay] 시각까지 남은 ms(자정 넘김 고려, 0 ~ 24h). */
+        fun msUntilInDay(targetInDay: Long): Long =
+            ((targetInDay - msNow) % MS_1DAY + MS_1DAY) % MS_1DAY
+
+        /** msNow 기준으로 루프 시작 이후 하루 안에서의 경과 ms(자정 넘김 고려, 0 ~ 24h). */
+        fun msSinceStart(loop: LoopBase): Long =
+            ((msNow - loop.startInDay) % MS_1DAY + MS_1DAY) % MS_1DAY
+
         fun scheduleStart(loop: LoopBase) = LoopSchedule(
             action = ACTION_LOOP_START,
+            // 시작은 오늘 안의 고정 시각. 이미 지났으면 after<=0 이 되어 예약을 건너뛴다(자정 동기화가 내일 것을 잡는다).
             after = loop.startInDay - msNow,
             loop = loop
         )
 
         fun scheduleEnd(loop: LoopBase) = LoopSchedule(
             action = ACTION_LOOP_END,
-            after = loop.endInDay - msNow,
+            // 자정을 넘기는 루프는 종료가 다음 날이므로, 남은 시간을 하루 둘레로 계산한다.
+            after = msUntilInDay(loop.endInDay),
             loop = loop
         )
 
         fun scheduleRepeat(loop: LoopBase) = LoopSchedule(
             action = ACTION_LOOP_REPEAT,
-            after = loop.interval - ((msNow - loop.startInDay) % loop.interval),
+            after = loop.interval - (msSinceStart(loop) % loop.interval),
             loop = loop
         )
 

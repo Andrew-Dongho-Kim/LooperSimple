@@ -73,6 +73,8 @@ import com.pnd.android.loop.ui.common.rememberBackdropState
 import com.pnd.android.loop.ui.common.supportsBackdropBlur
 import com.pnd.android.loop.ui.home.input.UserInput
 import com.pnd.android.loop.ui.home.input.UserInputState
+import com.pnd.android.loop.ui.home.input.selector.MIN_DIFF_MINUTES
+import com.pnd.android.loop.ui.home.input.selector.isLoopDurationTooShort
 import com.pnd.android.loop.ui.home.input.loopInputPanelBackgroundColor
 import com.pnd.android.loop.ui.home.input.rememberUserInputState
 import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
@@ -82,6 +84,7 @@ import com.pnd.android.loop.ui.theme.background
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.ui.theme.surfaceElevated
+import com.pnd.android.loop.util.isActive
 import com.pnd.android.loop.util.isActiveDay
 import com.pnd.android.loop.util.toMs
 import kotlinx.coroutines.flow.filterNotNull
@@ -236,8 +239,8 @@ private fun HomeContent(
 
         // 루프가 하나도 없고 입력도 닫혀 있으면(= OOBE 빈 화면) 오늘/전체 탭은 의미가 없으므로
         // 숨긴다. 첫 루프가 추가되거나 입력이 열리면 다시 나타난다.
-        val allLoops by loopViewModel.allLoopsWithDoneStates.collectAsState(initial = emptyList())
-        val showTabs = allLoops.isNotEmpty() || !inputState.isModeNone
+        val allLoops by loopViewModel.allLoopsWithDoneStates.collectAsState(initial = null)
+        val showTabs = !allLoops.isNullOrEmpty() || !inputState.isModeNone
 
         // The collapsing action bar: a plain app bar at rest that, as the list scrolls, fades out
         // the title and floats the icons (in place) and the 오늘/전체 tabs (slid up to the left).
@@ -357,7 +360,7 @@ private fun HomeContent(
     val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     // 루프가 없는 빈 상태에서는 헤더에 탭 행이 없으므로 그만큼 높이를 줄여, 콘텐츠가
     // 불필요한 공백 없이 위로 올라오게 한다. (탭 노출 조건은 헤더의 showTabs와 동일)
-    val headerHeight = homeHeaderExpandedHeight(topInset, includeTabs = sections.isNotEmpty())
+    val headerHeight = homeHeaderExpandedHeight(topInset, includeTabs = !sections.isNullOrEmpty())
     val backdropModifier = backdrop?.let { Modifier.backdropSource(it) } ?: Modifier
 
     val context = LocalContext.current
@@ -398,7 +401,10 @@ private fun HomeContent(
             .then(backdropModifier)
             .background(AppColor.background)
     ) {
-        if (sections.isEmpty()) {
+        val currentSections = sections
+        if (currentSections == null) {
+            // 아직 DB 로딩 전 — 빈 상태(EmptyLoops)를 그리면 깜빡이므로 배경만 두고 기다린다.
+        } else if (currentSections.isEmpty()) {
             EmptyLoops(
                 modifier = Modifier
                     .fillMaxSize()
@@ -432,11 +438,12 @@ private fun HomeContent(
                 state = lazyListState,
                 contentPadding = PaddingValues(top = headerHeight),
             ) {
-                sections.forEach { section ->
+                currentSections.forEach { section ->
                     section(
                         section = section,
                         blurState = blurState,
                         loopViewModel = loopViewModel,
+                        snackBarHostState = snackBarHostState,
                         selectedTab = selectedTab,
                         editingLoopId = editingLoopId,
                         onEdit = onEdit,
@@ -455,72 +462,24 @@ private fun HomeContent(
     }
 }
 
-/**
- * 홈에서 쓰는 공용 빈 상태 — 틴트 원 안의 아이콘 + 제목 + 힌트. 루프가 하나도 없을 때와
- * 오늘 할 일을 모두 끝냈을 때가 같은 문법으로 읽히도록 한 곳에서 스타일을 관리한다.
- * 색은 모두 테마에서 가져와 라이트/다크 모드에 함께 대응한다.
- */
-@Composable
-fun HomeEmptyState(
-    modifier: Modifier = Modifier,
-    icon: ImageVector,
-    title: String,
-    hint: String,
-) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Box(
-            modifier = Modifier
-                .size(80.dp)
-                .clip(CircleShape)
-                .background(color = AppColor.primary.copy(alpha = 0.10f)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                modifier = Modifier.size(36.dp),
-                imageVector = icon,
-                tint = AppColor.primary,
-                contentDescription = null,
-            )
-        }
-
-        Text(
-            modifier = Modifier.padding(top = 20.dp),
-            text = title,
-            textAlign = TextAlign.Center,
-            style = AppTypography.titleMedium.copy(
-                color = AppColor.onSurface,
-                fontWeight = FontWeight.Bold,
-            ),
-        )
-
-        Text(
-            modifier = Modifier.padding(top = 6.dp),
-            text = hint,
-            textAlign = TextAlign.Center,
-            style = AppTypography.bodyMedium.copy(
-                color = AppColor.onSurface.copy(alpha = 0.55f),
-            ),
-        )
-    }
-}
-
-
 @Composable
 private fun LoopViewModel.observeSectionsAsState(
     inputState: UserInputState,
     @HomeTab.Type selectedTab: Int,
-): State<List<Section>> {
-    val loops by allLoopsWithDoneStates.collectAsState(emptyList())
+): State<List<Section>?> {
+    // null = 아직 DB 로딩 전. 이 동안에는 빈 상태(EmptyLoops)를 그리지 않고 sections도 null로 둔다.
+    val loops by allLoopsWithDoneStates.collectAsState(initial = null)
     val yesterdayLoops by loopsNoResponseYesterday.collectAsState(initial = emptyList())
 
-    return if (loops.isEmpty() && inputState.mode == UserInputState.Mode.None) {
+    val loadedLoops = loops
+    return if (loadedLoops == null) {
+        remember { mutableStateOf<List<Section>?>(null) }
+    } else if (loadedLoops.isEmpty() && inputState.mode == UserInputState.Mode.None) {
         remember { mutableStateOf(emptyList()) }
     } else {
         val resultLoops = ArrayList<LoopBase>(
-            if (selectedTab == HomeTab.TODAY) loops.filter { loop -> loop.enabled && loop.isActiveDay() } else loops)
+            // TODAY 탭: 오늘 활성인 루프에 더해, 자정을 넘겨 지금도 진행 중인(어제 시작한) 루프도 포함한다.
+            if (selectedTab == HomeTab.TODAY) loadedLoops.filter { loop -> loop.enabled && (loop.isActiveDay() || loop.isActive()) } else loadedLoops)
         if (inputState.mode == UserInputState.Mode.Edit) {
             val edited = inputState.value
             val index = resultLoops.indexOfFirst { it.loopId == edited.loopId }
@@ -543,11 +502,13 @@ private fun LoopViewModel.observeSectionsAsState(
             if (!isAllTab) add(rememberYesterdaySection(yesterdayLoops))
             add(rememberAdSection())
             // 전체 탭에서는 오늘 Done/Skip한 루프 정보를 노출하지 않는다.
-            // 또한 타임라인/다이얼 뷰는 자체적으로 완료/스킵 상태를 표시하므로,
-            // 리스트 뷰일 때만 Done/Skip 카드를 노출한다.
-            val isListView =
-                (todayOrAllSection as? Section.Today)?.viewMode?.value == TodayViewMode.LIST
-            if (!isAllTab && isListView) add(rememberDoneSection(resultLoops))
+            // 타임라인 뷰는 자체적으로 완료/스킵 상태를 표시하므로 카드를 생략하고,
+            // 리스트·다이얼 뷰에서는 완료/스킵 루프를 별도 Done/Skip 카드로 모아 보여준다.
+            // (다이얼은 완료/스킵 루프를 다이얼에서 제외하고 이 카드로만 표시한다.)
+            val todayViewMode = (todayOrAllSection as? Section.Today)?.viewMode?.value
+            val showDoneSkipCard =
+                todayViewMode == TodayViewMode.LIST || todayViewMode == TodayViewMode.DIAL
+            if (!isAllTab && showDoneSkipCard) add(rememberDoneSection(resultLoops))
             // 전체 탭 하단에는 전체 루프의 done/skip 이력을 매트릭스 그리드로 덧붙인다.
             if (isAllTab) add(rememberAllHistoryGridSection(resultLoops))
         }.filter { it.size > 0 }
@@ -653,6 +614,18 @@ private suspend fun ensureLoop(
     if (loop.title.trim().isEmpty()) {
         hostState.showSnackbar(
             message = context.getString(R.string.warning_enter_characters_other_than_spaces)
+        )
+        return false
+    }
+
+    // The steppers let the user pass through a too-short span (so an overnight loop is still
+    // reachable); the span is only rejected here, at submit time, where it can't get stuck.
+    if (!loop.isAnyTime && isLoopDurationTooShort(loop.startInDay, loop.endInDay)) {
+        hostState.showSnackbar(
+            message = context.getString(
+                R.string.warning_end_time_should_be_after_start_time,
+                MIN_DIFF_MINUTES
+            )
         )
         return false
     }

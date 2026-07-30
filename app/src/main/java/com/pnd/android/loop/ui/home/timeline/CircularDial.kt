@@ -84,7 +84,6 @@ import androidx.compose.ui.window.PopupProperties
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
-import com.pnd.android.loop.data.actualEndInDay
 import com.pnd.android.loop.data.actualStartInDay
 import com.pnd.android.loop.data.doneState
 import com.pnd.android.loop.data.isInProgress
@@ -94,6 +93,7 @@ import com.pnd.android.loop.ui.home.BlurState
 import com.pnd.android.loop.ui.home.DeleteLoopDialog
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
+import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.compositedOnSurface
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
@@ -101,6 +101,9 @@ import com.pnd.android.loop.ui.theme.surfaceElevated
 import com.pnd.android.loop.util.MS_1DAY
 import com.pnd.android.loop.util.MS_1MIN
 import com.pnd.android.loop.util.formatHourMinute
+import com.pnd.android.loop.util.isOvernight
+import com.pnd.android.loop.util.isTimeInLoop
+import com.pnd.android.loop.util.overlapsInTime
 import com.pnd.android.loop.util.toMs
 import kotlinx.coroutines.launch
 import kotlin.math.atan2
@@ -138,16 +141,19 @@ fun LoopCircularDial(
     val localTime by rememberLocalTime()
     val nowMs = localTime.toMs()
 
+    // 완료/스킵된 루프는 다이얼에 그리지 않는다. 이들은 다이얼 아래 Done/Skip 카드에서 따로 보여주고,
+    // 다이얼에는 아직 처리하지 않은(진행 중·예정·지남) 루프만 남겨 지금 할 일에 집중시킨다.
+    val dialLoops = remember(loops) { loops.filter { loop -> !loop.isRespond } }
+
     // 루프를 "시간 레인에 그릴 것"과 "바깥 궤도 노드로 둘 것"으로 나눈다.
     // - 시간이 정해진 루프: 그대로 레인에.
     // - 실행 중 AnyTime: 시작 시각~현재까지 "자라는 시간 루프"로 변환 → 다른 루프와 동일한 진행 이펙트.
-    // - 정지(완료/스킵)된 AnyTime: 시작~정지 구간의 완료 조각으로 고정.
     // - 대기 중 AnyTime: 바깥 궤도 노드로.
     // nowMs 를 키에 포함해 실행 중 호가 분 단위로 자라도록 한다.
-    val (idleAnyTimeLoops, timedLoops) = remember(loops, nowMs) {
+    val (idleAnyTimeLoops, timedLoops) = remember(dialLoops, nowMs) {
         val idle = ArrayList<LoopBase>()
         val timed = ArrayList<LoopBase>()
-        loops.forEach { loop ->
+        dialLoops.forEach { loop ->
             when {
                 !loop.isAnyTime -> timed += loop
                 // isAnyTime=true 를 유지해, 그릴 때 "시작→안쪽 이동" 진입 애니메이션 대상인지 식별한다.
@@ -157,12 +163,6 @@ fun LoopCircularDial(
                     // nowMs 가 살짝 뒤처질 수 있다. 그대로 두면 end<start 가 되어 endMsInDay() 가 하루를
                     // 더해 호가 원 전체로 그려진다. 최소 시작 시각으로 clamp 해 이를 막는다.
                     endInDay = maxOf(nowMs, loop.actualStartInDay),
-                    isAnyTime = true,
-                )
-
-                loop.isRespond -> timed += loop.copyAs(
-                    startInDay = loop.actualStartInDay,
-                    endInDay = loop.actualEndInDay,
                     isAnyTime = true,
                 )
 
@@ -194,9 +194,10 @@ fun LoopCircularDial(
         )
 
         // 다이얼 아래: 어떤 색이 어떤 루프인지 대응시키는 색상 범례(시안 A).
+        // 다이얼에 그린 루프와 동일하게 완료/스킵을 제외한 목록만 대응시킨다.
         LoopColorLegend(
             modifier = Modifier.padding(top = 16.dp, start = 16.dp, end = 16.dp),
-            loops = loops,
+            loops = dialLoops,
             selectedLoopId = selectedLoopId,
             // 이미 선택된 칩을 다시 누르면 선택 해제(토글).
             onChipClick = { id -> selectedLoopId = if (selectedLoopId == id) null else id },
@@ -317,8 +318,10 @@ private fun LoopBase.dialStateAt(nowMs: Long): DialState = when {
     doneState == LoopDoneVo.DoneState.DONE -> DialState.DONE
     doneState == LoopDoneVo.DoneState.SKIP -> DialState.SKIP
     isInProgress -> DialState.ACTIVE
-    nowMs in startInDay until endMsInDay() -> DialState.ACTIVE
-    endMsInDay() <= nowMs && !isRespond -> DialState.PAST
+    // 진행 중: 시각 창 안(자정을 넘기는 창은 [start,24h)∪[0,end)). 자정 이후에도 올바르게 잡힌다.
+    isTimeInLoop(nowMs) -> DialState.ACTIVE
+    // 자정을 넘기는 루프는 매일 다시 이어지므로 "지남"으로 두지 않고, 창 밖이면 오늘 밤 예정(UPCOMING)으로 본다.
+    !isOvernight && nowMs >= endInDay && !isRespond -> DialState.PAST
     else -> DialState.UPCOMING
 }
 
@@ -329,22 +332,38 @@ private data class DialArc(
     val state: DialState,
 )
 
+/** 아주 짧은 루프도 최소한 보이도록 호에 강제하는 최소 스윕(도). 그리기와 레인 겹침 판정이 같은 값을 공유한다. */
+private const val MIN_ARC_SWEEP_DEG = 2.5f
+
 /**
- * 두 루프가 원형(24시간) 다이얼 위에서 각도 구간이 겹치는지 판정한다.
- *
- * 다이얼은 원형이라 자정을 넘기는 루프(예: 22:00~06:30)는 호가 00:00 을 가로질러 감긴다.
- * 끝 시각만 선형으로 비교하면(22:00 시작이 13:00 끝보다 뒤라 안 겹친다고 오판) 이 감긴 부분의
- * 충돌을 놓친다. 그래서 시작점이 상대 호 안에 들어오는지를 원 둘레(mod 24h)로 직접 확인한다.
+ * 겹침 판정에서 호 양 끝에 더해 주는 여유(도). 둥근 캡(StrokeCap.Round)과 최소 스윕 때문에 호는 실제 시간
+ * 구간보다 살짝 길게 그려지므로, 이 여유만큼 넓혀 시각적으로 맞닿는 호끼리도 겹친 것으로 보고 서로 다른
+ * 레인으로 떼어 놓는다.
  */
-private fun circularOverlap(a: LoopBase, b: LoopBase): Boolean {
+private const val ARC_EDGE_PAD_DEG = 2f
+
+/** 각도(°)를 하루 기준 ms 로 환산한다. */
+private fun degToMs(deg: Float): Long = (MS_1DAY * deg / 360f).toLong()
+
+/**
+ * 두 루프의 "실제 시간"이 아니라 "다이얼에 그려지는 호"가 겹치는지 판정한다.
+ *
+ * 짧은 루프는 최소 스윕([MIN_ARC_SWEEP_DEG])만큼, 모든 호는 둥근 캡을 감안한 여유([ARC_EDGE_PAD_DEG])만큼
+ * 실제 구간보다 길게 그려진다. 그래서 시간은 안 겹쳐도 호가 시각적으로 겹칠 수 있는데, 그만큼 부풀린 구간으로
+ * 겹침을 봐서 그런 호끼리는 다른 레인으로 나뉘게 한다.
+ *
+ * 원형(24h) 판정 방식은 공용 [overlapsInTime] 과 동일하되, 부풀린 길이·시작점을 쓴다.
+ */
+private fun LoopBase.overlapsVisually(other: LoopBase): Boolean {
     val day = MS_1DAY
-    val startA = ((a.startInDay % day) + day) % day
-    val startB = ((b.startInDay % day) + day) % day
-    val lenA = a.endMsInDay() - a.startInDay
-    val lenB = b.endMsInDay() - b.startInDay
-    // 하루를 꽉 채우거나 넘기는 루프는 어떤 루프와도 겹친다.
+    val padMs = degToMs(ARC_EDGE_PAD_DEG)
+    val minLenMs = degToMs(MIN_ARC_SWEEP_DEG)
+    // 실제 길이에 최소 스윕을 적용하고, 양 끝에 캡 여유(padMs)를 더한 "시각적 길이/시작점".
+    val lenA = (endMsInDay() - startInDay).coerceAtLeast(minLenMs) + padMs * 2
+    val lenB = (other.endMsInDay() - other.startInDay).coerceAtLeast(minLenMs) + padMs * 2
+    val startA = (((startInDay - padMs) % day) + day) % day
+    val startB = (((other.startInDay - padMs) % day) + day) % day
     if (lenA >= day || lenB >= day) return true
-    // 한쪽의 시작점이 다른 호의 구간(길이 이내) 안에 들어오면 겹친다.
     val bFromA = ((startB - startA) % day + day) % day
     val aFromB = ((startA - startB) % day + day) % day
     return bFromA < lenA || aFromB < lenB
@@ -353,7 +372,8 @@ private fun circularOverlap(a: LoopBase, b: LoopBase): Boolean {
 /**
  * 겹치는 루프를 서로 다른 레인으로 배치한다(그리디 인터벌 배치).
  * 시작 시각 순으로 훑으며, 이미 배치된 루프와 (자정 넘김까지 고려해) 겹치지 않는 첫 레인에 놓고,
- * 그런 레인이 없으면 새 레인을 연다.
+ * 그런 레인이 없으면 새 레인을 연다. 겹침은 실제 시간이 아니라 "그려지는 호"를 기준으로 보는
+ * [overlapsVisually] 를 써서, 최소 스윕·둥근 캡으로 길게 그려진 호끼리 시각적으로 겹치면 레인을 나눈다.
  * @return (배치된 호 목록, 사용된 레인 수)
  */
 private fun layoutArcs(loops: List<LoopBase>, nowMs: Long): Pair<List<DialArc>, Int> {
@@ -361,7 +381,7 @@ private fun layoutArcs(loops: List<LoopBase>, nowMs: Long): Pair<List<DialArc>, 
     val arcs = loops
         .sortedBy { loop -> loop.startInDay }
         .map { loop ->
-            var lane = lanes.indexOfFirst { placed -> placed.none { circularOverlap(it, loop) } }
+            var lane = lanes.indexOfFirst { placed -> placed.none { it.overlapsVisually(loop) } }
             if (lane == -1) {
                 lane = lanes.size
                 lanes.add(mutableListOf(loop))
@@ -493,7 +513,11 @@ private fun DialGeometry.hitTest(
         if (dist < radius - half || dist > radius + half) return@firstOrNull false
         val s = arc.loop.startInDay.coerceAtLeast(0L)
         val e = maxOf(arc.loop.endMsInDay(), s + minSpanMs)
-        tappedMs in (s - angleSlopMs)..(e + angleSlopMs)
+        val lo = s - angleSlopMs
+        val hi = e + angleSlopMs
+        // 자정을 넘겨 감긴 호는 종료(e)가 24h 를 넘는 단조 좌표라, 아침 쪽(예: 01:00)을 탭하면
+        // tappedMs 는 작은 값이 된다. 하루를 더한 값도 함께 확인해 감긴 구간의 탭을 놓치지 않는다.
+        tappedMs in lo..hi || (tappedMs + MS_1DAY) in lo..hi
     } ?: return null
 
     val radius = laneRadius(arc.lane)
@@ -790,7 +814,7 @@ private fun DialFace(
 
                     val startMs = arc.loop.startInDay.coerceAtLeast(0L)
                     val sweep = ((arc.loop.endMsInDay() - startMs).toFloat() / MS_1DAY * 360f)
-                        .coerceAtLeast(2.5f) // 아주 짧은 루프도 최소한 보이게
+                        .coerceAtLeast(MIN_ARC_SWEEP_DEG) // 아주 짧은 루프도 최소한 보이게
                     val startAngle = -90f + startMs.toFloat() / MS_1DAY * 360f
                     val topLeft = Offset(cx - radius, cy - radius)
                     val arcSize = Size(radius * 2f, radius * 2f)
@@ -857,7 +881,10 @@ private fun DialFace(
                             // 진행 중: 경과분은 진한 색, 잔여분은 옅은 색으로 나눠 진행률을 보여주고(추천 A),
                             // 밴드 위로 흐르는 점선을 옅게 얹어 "지금 흐르고 있다"는 모션을 준다(추천 B).
                             val endMs = arc.loop.endMsInDay()
-                            val nowClamped = nowMs.coerceIn(startMs, endMs)
+                            // 자정을 넘기는 루프의 아침 구간에서는 nowMs(예: 01:00)가 start(예: 23:00)보다
+                            // 작아 단조 좌표를 벗어난다. 하루를 더해 [start, end] 축 위로 올린다.
+                            val nowMonotonic = if (nowMs < startMs) nowMs + MS_1DAY else nowMs
+                            val nowClamped = nowMonotonic.coerceIn(startMs, endMs)
                             val elapsedSweep = ((nowClamped - startMs).toFloat() / MS_1DAY * 360f)
                             val nowAngle = -90f + nowClamped.toFloat() / MS_1DAY * 360f
                             val remainSweep = ((endMs - nowClamped).toFloat() / MS_1DAY * 360f)
@@ -1570,7 +1597,9 @@ private fun DialTooltipCard(
             val durationMs = if (arc.loop.isAnyTime) {
                 ((nowMs - arc.loop.startInDay) / MS_1MIN).toInt().coerceAtLeast(0)
             } else {
-                ((arc.loop.endMsInDay() - nowMs) / MS_1MIN).toInt().coerceAtLeast(0)
+                // 종료까지 남은 분(자정 넘김 보정). 아침 구간(now<end)에서도 올바르게 계산된다.
+                val remainMs = ((arc.loop.endInDay - nowMs) % MS_1DAY + MS_1DAY) % MS_1DAY
+                (remainMs / MS_1MIN).toInt().coerceAtLeast(0)
             }
             Text(
                 text = stringResource(
@@ -1807,4 +1836,4 @@ private fun TooltipActionButton(
 // endregion
 
 private val RowShape = RoundedCornerShape(10.dp)
-private val TooltipShape = RoundedCornerShape(12.dp)
+private val TooltipShape = RoundShapes.large

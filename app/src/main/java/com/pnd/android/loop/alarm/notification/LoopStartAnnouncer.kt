@@ -7,6 +7,7 @@ import android.content.IntentFilter
 import android.os.PowerManager
 import com.pnd.android.loop.common.log
 import com.pnd.android.loop.data.LoopBase
+import com.pnd.android.loop.util.isActive
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -39,7 +40,7 @@ class LoopStartAnnouncer @Inject constructor(
     fun announce(loop: LoopBase) {
         if (powerManager.isInteractive) {
             logger.i { "screen on -> announce now: ${loop.title}" }
-            notificationHelper.notifyLoopStarted(listOf(loop))
+            notificationHelper.notifyLoopStarted(loop)
         } else {
             logger.i { "screen off -> defer: ${loop.title}" }
             pending[loop.loopId] = loop
@@ -62,8 +63,14 @@ class LoopStartAnnouncer @Inject constructor(
     @Synchronized
     private fun flushPending() {
         if (pending.isNotEmpty()) {
-            logger.i { "screen turned on -> flush ${pending.size} pending loop(s)" }
-            notificationHelper.notifyLoopStarted(pending.values.toList())
+            // 화면이 꺼진 사이 이미 종료된(시간 창을 벗어난) 루프는 빼고, 지금도 진행 중인
+            // 루프만 "진행 중" + 시간 정보로 알린다. isActive() 는 현재 시각 기준이라
+            // 스냅샷만으로도 종료 여부를 정확히 판정한다(시작 알람은 시간제 루프에만 발생).
+            val stillRunning = pending.values.filter { it.isActive() }
+            logger.i { "screen turned on -> ${stillRunning.size}/${pending.size} still running" }
+            if (stillRunning.isNotEmpty()) {
+                notificationHelper.notifyLoopsInProgress(stillRunning)
+            }
             pending.clear()
         }
         unregisterScreenReceiver()

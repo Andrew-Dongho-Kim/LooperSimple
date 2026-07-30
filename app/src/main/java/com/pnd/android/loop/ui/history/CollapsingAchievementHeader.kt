@@ -18,7 +18,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -55,7 +54,8 @@ val TitleTranslationX = (-24).dp
  *
  * [progress]는 리스트 스크롤로 계산된 접힘 정도(`0f..1f`):
  * - `0f`(펼침) — 뒤로가기 + 타이틀이 왼쪽에, 액션 아이콘이 오른쪽에 그대로 보인다.
- * - `1f`(접힘) — 뒤로가기 + 타이틀은 서서히 사라지고, 액션 아이콘은 제자리에서 플로팅 배경을 얻는다.
+ * - `1f`(접힘) — 타이틀은 왼쪽으로 이동하며 플로팅 배경을 얻고, 액션 아이콘도 제자리에서 플로팅 배경을 얻는다.
+ *   뒤로가기는 어느 스크롤 위치에서도 상위 화면으로 돌아갈 수 있도록 항상 고정 노출한다.
  *
  * 홈 헤더와 동일한 플로팅/페이딩 규칙을 공유해 두 화면의 상단 동작이 일관되게 느껴지도록 한다.
  */
@@ -80,7 +80,7 @@ fun CollapsingAchievementHeader(
             .fillMaxWidth()
             .height(achievementHeaderExpandedHeight(topInset)),
     ) {
-        // 뒤로가기 + 타이틀: 액션바 행에 고정된 채, 스크롤할수록 alpha가 0으로 사라진다.
+        // 뒤로가기 + 타이틀: 액션바 행에 고정. 뒤로가기는 항상 보이고, 타이틀만 접힘에 따라 위치·배경이 바뀐다.
         Row(
             modifier = Modifier
                 .align(Alignment.TopStart)
@@ -88,7 +88,6 @@ fun CollapsingAchievementHeader(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             AppBarIcon(
-                modifier = Modifier.alpha(1f - progress),
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 color = AppColor.onSurface,
                 descriptionResId = R.string.navi_up,

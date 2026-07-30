@@ -10,6 +10,8 @@
     <string name="enter_group_title">Enter group title</string>
     <string name="remove_from_group_message">Do you want to remove \"%s\" loop from \"%s\" group</string>
     <string name="delete_group_message">Do you want to delete \"%s\" group?</string>
+    <string name="group_empty_title">No groups yet</string>
+    <string name="group_empty_hint">Tap + above to create your first group.</string>
 
     <string name="loop">loop</string>
     <string name="loops">%d loops</string>
@@ -42,6 +44,8 @@
     <string name="finished">Finished</string>
     <string name="today_loops_finished">You\'re all caught up for today!</string>
     <string name="today_loops_finished_hint">Completed and skipped loops are listed below.</string>
+    <string name="today_no_scheduled_loops">Nothing scheduled for today</string>
+    <string name="today_no_scheduled_loops_hint">Add or manage loops in the All tab.</string>
     <string name="unchecked_loops">Yesterday, there were *%d* unchecked loops.</string>
     <string name="response_rate">Response</string>
     <string name="done_rate">Done</string>
@@ -125,7 +129,25 @@
     <string name="stat_tab_summary">Summary</string>
     <string name="stat_tab_pattern">Pattern</string>
     <string name="stat_tab_habit">Habits</string>
+    <string name="stat_tab_trend">Trend</string>
     <string name="stat_tab_achievement">Achievements</string>
+
+    <!-- Scope caption, empty & loading states -->
+    <string name="stat_scope_overall">Based on your overall &amp; recent records, regardless of period</string>
+    <string name="stat_empty_overall">Not enough records to show yet.</string>
+
+    <!-- Ranking controls -->
+    <string name="stat_ranking_sort_label">Sort</string>
+    <string name="stat_ranking_show_all">Show all (%1$d)</string>
+    <string name="stat_ranking_show_less">Show less</string>
+
+    <!-- Hourly heatmap selection -->
+    <string name="stat_hourly_selected">%1$d:00 · %2$d times</string>
+
+    <!-- Chart content descriptions (accessibility) -->
+    <string name="stat_cd_weekly_bar">%1$s, %2$d completed</string>
+    <string name="stat_cd_month_bar">%1$s, %2$d hours</string>
+    <string name="stat_cd_trend_bar">%1$s, %2$d%%</string>
 
     <!-- Summary extras -->
     <string name="stat_summary_perfect_days">Perfect days</string>
@@ -245,6 +267,8 @@
     <string name="delete_confirm_message">Do you want to delete this loop?</string>
     <string name="done_confirm_message">Mark \"%s\" as done?</string>
     <string name="skip_confirm_message">Skip \"%s\"?</string>
+    <string name="done_snack_message">\"%s\" marked as done.</string>
+    <string name="skip_snack_message">\"%s\" skipped.</string>
 
     <string name="timeline">Timeline</string>
     <string name="dial_view">Dial</string>
@@ -315,15 +339,12 @@
         <item quantity="other">%d more</item>
     </plurals>
 
-    <!-- 루프 시작 안내(heads-up) 알림 -->
-    <string name="notification_loop_started_channel">Loop started</string>
-    <!-- 루프 1개 시작 안내 제목 -->
-    <string name="notification_loop_started_title">%s started</string>
-    <!-- 화면이 꺼진 사이 여러 루프가 시작되어 모아서 알릴 때 제목 -->
-    <plurals name="notification_loops_started">
-        <item quantity="one">%d loop started</item>
-        <item quantity="other">%d loops started</item>
-    </plurals>
+    <!-- 루프 시작/진행 중 안내(heads-up) 알림 -->
+    <string name="notification_loop_started_channel">Loop reminders</string>
+    <!-- 루프가 막 시작됐을 때의 친절한 안내 제목 -->
+    <string name="notification_loop_started_title">Time for %s</string>
+    <!-- 화면이 다시 켜졌을 때 아직 진행 중인 루프 안내 제목 -->
+    <string name="notification_loop_in_progress_title">%s in progress</string>
 
     <string name="ad_attribution" translatable="false">AD</string>
     <string name="desc_native_ad">Advertisement</string>

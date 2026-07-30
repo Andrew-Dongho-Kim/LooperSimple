@@ -1,6 +1,13 @@
 package com.pnd.android.loop.ui.statisctics
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -18,8 +25,11 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,23 +37,29 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopWithStatistics
+import com.pnd.android.loop.ui.common.AppEmptyState
 import com.pnd.android.loop.ui.common.SimpleAppBar
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.Dimens
-import com.pnd.android.loop.ui.theme.Yellow800
+import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.background
 import com.pnd.android.loop.ui.theme.compositeOverOnSurface
 import com.pnd.android.loop.ui.theme.error
@@ -51,12 +67,19 @@ import com.pnd.android.loop.ui.theme.onPrimary
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.ui.theme.surfaceContainer
+import com.pnd.android.loop.ui.theme.warning
 import com.pnd.android.loop.util.ABB_MONTHS
 import com.pnd.android.loop.util.DAYS_WITH_3CHARS
 import com.pnd.android.loop.util.MS_1HOUR
 import com.pnd.android.loop.util.MS_1MIN
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
-private val CardShape = RoundedCornerShape(16.dp)
+// 카드 모서리는 다른 화면(홈/기록/상세)과 동일하게 RoundShapes.large(12dp)로 통일한다.
+private val CardShape = RoundShapes.large
+
+// 순위 목록은 기본적으로 상위 N개만 접어서 보여준다. (긴 목록을 한 번에 렌더하지 않기 위한 상한)
+private const val RANKING_COLLAPSED_COUNT = 5
 
 @Composable
 fun StatisticsPage(
@@ -94,55 +117,48 @@ private fun StatisticsPageContent(
     statisticsViewModel: StatisticsViewModel,
     onNavigateToDetailPage: (Int) -> Unit,
 ) {
-    var selectedTab by remember { mutableStateOf(StatisticsTab.SUMMARY) }
-    var selectedPeriod by remember { mutableStateOf(StatisticsPeriod.TOTAL) }
-    var rankingSortOrder by remember { mutableStateOf(RankingSortOrder.COMPLETION_RATE) }
+    // 화면 회전·프로세스 사망에도 사용자의 선택이 유지되도록 rememberSaveable을 쓴다.
+    var selectedTab by rememberSaveable { mutableStateOf(StatisticsTab.SUMMARY) }
+    var selectedPeriod by rememberSaveable { mutableStateOf(StatisticsPeriod.TOTAL) }
+    var rankingSortOrder by rememberSaveable { mutableStateOf(RankingSortOrder.COMPLETION_RATE) }
+    var rankingExpanded by rememberSaveable { mutableStateOf(false) }
 
     // 기간에 따라 달라지는 지표들.
-    val periodStats by remember(selectedPeriod) {
-        statisticsViewModel.flowPeriodStats(selectedPeriod)
-    }.collectAsState(initial = PeriodStats())
-
-    val ranking by remember(selectedPeriod) {
-        statisticsViewModel.flowLoopRanking(selectedPeriod)
-    }.collectAsState(initial = emptyList())
+    val periodStats = rememberLoadable(selectedPeriod) { statisticsViewModel.flowPeriodStats(selectedPeriod) }
+    val ranking = rememberLoadable(selectedPeriod) { statisticsViewModel.flowLoopRanking(selectedPeriod) }
 
     // 기간과 무관하게 항상 전체(또는 최근) 흐름을 보는 지표들.
-    val streak by remember {
-        statisticsViewModel.flowStreak()
-    }.collectAsState(initial = StreakStat(current = 0, longest = 0))
+    val streak = rememberLoadable { statisticsViewModel.flowStreak() }
+    val monthlyInvestedTimes = rememberLoadable { statisticsViewModel.flowMonthlyInvestedTime() }
+    val completionTrend = rememberLoadable { statisticsViewModel.flowCompletionTrend() }
+    val projection = rememberLoadable { statisticsViewModel.flowMonthlyProjection() }
+    val habitHealth = rememberLoadable { statisticsViewModel.flowHabitHealth() }
+    val newLoopSettling = rememberLoadable { statisticsViewModel.flowNewLoopSettling() }
+    val milestones = rememberLoadable { statisticsViewModel.flowMilestones() }
 
-    val monthlyInvestedTimes by remember {
-        statisticsViewModel.flowMonthlyInvestedTime()
-    }.collectAsState(initial = emptyList())
-
-    val completionTrend by remember {
-        statisticsViewModel.flowCompletionTrend()
-    }.collectAsState(initial = emptyList())
-
-    val projection by remember {
-        statisticsViewModel.flowMonthlyProjection()
-    }.collectAsState(initial = MonthlyProjection.Empty)
-
-    val habitHealth by remember {
-        statisticsViewModel.flowHabitHealth()
-    }.collectAsState(initial = emptyList())
-
-    val newLoopSettling by remember {
-        statisticsViewModel.flowNewLoopSettling()
-    }.collectAsState(initial = emptyList())
-
-    val milestones by remember {
-        statisticsViewModel.flowMilestones()
-    }.collectAsState(initial = emptyList())
+    // 로딩/빈 상태 판단과 콘텐츠 렌더에 쓸 실제 값(로딩 중에는 콘텐츠가 호출되지 않으므로 기본값이면 충분).
+    val statsValue = periodStats.valueOrNull ?: PeriodStats()
+    val rankingValue = ranking.valueOrNull ?: emptyList()
+    val streakValue = streak.valueOrNull ?: StreakStat(current = 0, longest = 0)
+    val trendValue = completionTrend.valueOrNull ?: emptyList()
+    val monthlyValue = monthlyInvestedTimes.valueOrNull ?: emptyList()
+    val projectionValue = projection.valueOrNull ?: MonthlyProjection.Empty
+    val habitHealthValue = habitHealth.valueOrNull ?: emptyList()
+    val settlingValue = newLoopSettling.valueOrNull ?: emptyList()
+    val milestonesValue = milestones.valueOrNull ?: emptyList()
 
     // 선택된 정렬 기준으로 순위를 내림차순 정렬한다. (정렬은 목록이 작아 클라이언트에서 처리한다.)
-    val sortedRanking = remember(ranking, rankingSortOrder) {
-        ranking.sortedByDescending { rankingSortOrder.selector(it) }
+    val sortedRanking = remember(rankingValue, rankingSortOrder) {
+        rankingValue.sortedByDescending { rankingSortOrder.selector(it) }
     }
+
+    // 탭마다 독립된 스크롤 상태를 둔다. 탭을 바꾸면 새 상태가 생겨 항상 맨 위에서 시작하므로,
+    // 다른 탭에서 스크롤한 위치에 어정쩡하게 놓이는 일이 없다.
+    val listState = remember(selectedTab) { LazyListState() }
 
     LazyColumn(
         modifier = modifier,
+        state = listState,
         contentPadding = PaddingValues(
             start = Dimens.screenHorizontalPadding,
             end = Dimens.screenHorizontalPadding,
@@ -158,45 +174,81 @@ private fun StatisticsPageContent(
             )
         }
 
-        item(key = "period") {
-            StatisticsPeriodSelector(
-                selectedPeriod = selectedPeriod,
-                onPeriodSelected = { selectedPeriod = it },
-            )
+        // 기간에 반응하는 탭에서만 기간 선택기를 노출한다. 그 외 탭에는 스코프를 알리는 안내 문구를 둔다.
+        item(key = "scope") {
+            if (selectedTab.usesPeriod) {
+                StatisticsPeriodSelector(
+                    selectedPeriod = selectedPeriod,
+                    onPeriodSelected = { selectedPeriod = it },
+                )
+            } else {
+                StatisticsScopeCaption()
+            }
         }
 
         when (selectedTab) {
-            StatisticsTab.SUMMARY -> summaryTab(
-                periodStats = periodStats,
-                projection = projection,
-                completionTrend = completionTrend,
-                habitHealth = habitHealth,
-                milestones = milestones,
-                rankingEmpty = ranking.isEmpty(),
-            )
+            StatisticsTab.SUMMARY -> statefulTab(
+                isLoading = periodStats.isLoading || ranking.isLoading,
+                isEmpty = statsValue.isEmpty && sortedRanking.isEmpty(),
+                isOverall = false,
+            ) {
+                summaryContent(
+                    stats = statsValue,
+                    ranking = sortedRanking,
+                    sortOrder = rankingSortOrder,
+                    onSortSelected = { rankingSortOrder = it },
+                    rankingExpanded = rankingExpanded,
+                    onToggleRanking = { rankingExpanded = !rankingExpanded },
+                    onNavigateToDetailPage = onNavigateToDetailPage,
+                )
+            }
 
-            StatisticsTab.PATTERN -> patternTab(
-                periodStats = periodStats,
-                monthlyInvestedTimes = monthlyInvestedTimes,
-            )
+            StatisticsTab.PATTERN -> statefulTab(
+                isLoading = periodStats.isLoading,
+                isEmpty = statsValue.isEmpty,
+                isOverall = false,
+            ) {
+                patternContent(stats = statsValue)
+            }
 
-            StatisticsTab.HABIT -> habitTab(
-                ranking = sortedRanking,
-                sortOrder = rankingSortOrder,
-                onSortSelected = { rankingSortOrder = it },
-                planVsActual = periodStats.planVsActual,
-                habitHealth = habitHealth,
-                newLoopSettling = newLoopSettling,
-                onNavigateToDetailPage = onNavigateToDetailPage,
-            )
+            StatisticsTab.TREND -> statefulTab(
+                isLoading = completionTrend.isLoading || monthlyInvestedTimes.isLoading,
+                isEmpty = trendValue.size < 2 && monthlyValue.isEmpty(),
+                isOverall = true,
+            ) {
+                trendContent(completionTrend = trendValue, monthlyInvestedTimes = monthlyValue)
+            }
 
-            StatisticsTab.ACHIEVEMENT -> achievementTab(
-                streak = streak,
-                milestones = milestones,
-                retrospect = periodStats.retrospect,
-            )
+            StatisticsTab.ACHIEVEMENT -> statefulTab(
+                isLoading = projection.isLoading || habitHealth.isLoading || milestones.isLoading ||
+                    streak.isLoading || newLoopSettling.isLoading,
+                isEmpty = !hasInsights(projectionValue, habitHealthValue, milestonesValue) &&
+                    streakValue.longest == 0 && milestonesValue.isEmpty() &&
+                    habitHealthValue.isEmpty() && settlingValue.isEmpty(),
+                isOverall = true,
+            ) {
+                achievementContent(
+                    projection = projectionValue,
+                    streak = streakValue,
+                    milestones = milestonesValue,
+                    habitHealth = habitHealthValue,
+                    newLoopSettling = settlingValue,
+                )
+            }
         }
     }
+}
+
+/** Flow를 [Loadable]로 감싸 수집한다. 첫 방출 전에는 [Loadable.Loading]을 반환한다. */
+@Composable
+private fun <T> rememberLoadable(
+    vararg keys: Any?,
+    factory: () -> Flow<T>,
+): Loadable<T> {
+    val loadableFlow = remember(*keys) {
+        factory().map<T, Loadable<T>> { Loadable.Loaded(it) }
+    }
+    return loadableFlow.collectAsState(initial = Loadable.Loading).value
 }
 
 // region Tabs & selectors ----------------------------------------------------
@@ -210,10 +262,19 @@ private fun StatisticsTabRow(
     Row(modifier = modifier.fillMaxWidth()) {
         StatisticsTab.entries.forEach { tab ->
             val isSelected = tab == selectedTab
+            // 선택 전환이 뚝 끊기지 않도록 색과 밑줄 길이를 부드럽게 애니메이션한다.
+            val textColor by animateColorAsState(
+                targetValue = if (isSelected) AppColor.primary else AppColor.onSurface.copy(alpha = 0.6f),
+                label = "tabTextColor",
+            )
+            val indicatorWidth by animateDpAsState(
+                targetValue = if (isSelected) 20.dp else 0.dp,
+                label = "tabIndicatorWidth",
+            )
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(RoundShapes.medium)
                     .clickable { onTabSelected(tab) }
                     .padding(vertical = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -221,22 +282,35 @@ private fun StatisticsTabRow(
                 Text(
                     text = stringResource(id = tab.titleRes),
                     style = AppTypography.bodyMedium.copy(
-                        color = if (isSelected) AppColor.primary else AppColor.onSurface.copy(alpha = 0.6f),
+                        color = textColor,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                     ),
                 )
-                // 선택된 탭 아래에만 강조 밑줄을 둔다.
+                // 선택된 탭 아래에만 강조 밑줄을 둔다. (폭이 0이면 그려지지 않는다.)
                 Box(
                     modifier = Modifier
                         .padding(top = 6.dp)
-                        .width(20.dp)
+                        .width(indicatorWidth)
                         .height(2.dp)
                         .clip(CircleShape)
-                        .background(color = if (isSelected) AppColor.primary else Color.Transparent),
+                        .background(color = AppColor.primary),
                 )
             }
         }
     }
+}
+
+/** 기간과 무관한 탭임을 알리는 안내 문구. (기간 선택기를 대체해 스코프 혼동을 막는다.) */
+@Composable
+private fun StatisticsScopeCaption(modifier: Modifier = Modifier) {
+    Text(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        text = stringResource(id = R.string.stat_scope_overall),
+        textAlign = TextAlign.Center,
+        style = AppTypography.bodySmall.copy(color = AppColor.onSurface.copy(alpha = 0.5f)),
+    )
 }
 
 @Composable
@@ -273,7 +347,7 @@ private fun PeriodSegment(
 ) {
     Text(
         modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundShapes.large)
             .background(color = if (isSelected) AppColor.primary else Color.Transparent)
             .clickable(onClick = onClick)
             .padding(vertical = 10.dp),
@@ -288,16 +362,159 @@ private fun PeriodSegment(
 
 // endregion
 
+// region Loading / empty scaffolding -----------------------------------------
+
+/**
+ * 탭 본문을 로딩/빈/정상 세 상태로 감싼다.
+ * - 로딩 중: 스켈레톤 카드로 자리를 잡아 "빈 화면 → 갑자기 채워짐" 깜빡임을 없앤다.
+ * - 비어 있음: 해당 스코프(기간/전체)에 맞는 안내를 보여 백지 화면을 막는다.
+ * - 정상: [content]를 그대로 방출한다.
+ */
+private fun LazyListScope.statefulTab(
+    isLoading: Boolean,
+    isEmpty: Boolean,
+    isOverall: Boolean,
+    content: LazyListScope.() -> Unit,
+) {
+    when {
+        isLoading -> {
+            item(key = "skeleton_header") { SkeletonCard(height = 44.dp) }
+            item(key = "skeleton_1") { SkeletonCard(height = 120.dp) }
+            item(key = "skeleton_2") { SkeletonCard(height = 120.dp) }
+        }
+
+        isEmpty -> item(key = "empty") { EmptyHint(isOverall = isOverall) }
+
+        else -> content()
+    }
+}
+
+/** 로딩 중 자리를 잡아 주는 은은하게 깜빡이는 플레이스홀더 카드. */
+@Composable
+private fun SkeletonCard(
+    modifier: Modifier = Modifier,
+    height: Dp,
+) {
+    val transition = rememberInfiniteTransition(label = "skeleton")
+    val alpha by transition.animateFloat(
+        initialValue = 0.04f,
+        targetValue = 0.12f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 800),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "skeletonAlpha",
+    )
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(height)
+            .clip(CardShape)
+            .background(color = AppColor.onSurface.copy(alpha = alpha)),
+    )
+}
+
+@Composable
+private fun EmptyHint(
+    modifier: Modifier = Modifier,
+    isOverall: Boolean = false,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 64.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        // 다른 화면과 같은 공용 빈 상태(틴트 원 아이콘 + 안내 문구)로 통일한다.
+        AppEmptyState(
+            icon = Icons.Outlined.BarChart,
+            title = stringResource(
+                id = if (isOverall) R.string.stat_empty_overall else R.string.stat_empty,
+            ),
+        )
+    }
+}
+
+// endregion
+
 // region Tab content builders ------------------------------------------------
 
-/** 요약 탭: 인사이트 피드 + 요약 KPI + 완료율 추세. */
-private fun LazyListScope.summaryTab(
-    periodStats: PeriodStats,
-    projection: MonthlyProjection,
+/** 요약 탭(기간 기준): 요약 KPI + 계획대비 실제 + 회고 + 루프 순위. */
+private fun LazyListScope.summaryContent(
+    stats: PeriodStats,
+    ranking: List<LoopWithStatistics>,
+    sortOrder: RankingSortOrder,
+    onSortSelected: (RankingSortOrder) -> Unit,
+    rankingExpanded: Boolean,
+    onToggleRanking: () -> Unit,
+    onNavigateToDetailPage: (Int) -> Unit,
+) {
+    item(key = "summary") {
+        SummarySection(
+            summary = stats.summary,
+            perfectDays = stats.perfectDays,
+            skipCount = stats.skipCount,
+        )
+    }
+
+    if (stats.planVsActual.hasData) {
+        item(key = "planVsActual") {
+            PlanVsActualSection(stat = stats.planVsActual)
+        }
+    }
+
+    if (stats.retrospect.hasData) {
+        item(key = "retrospect") {
+            RetrospectSection(stat = stats.retrospect)
+        }
+    }
+
+    rankingSection(
+        ranking = ranking,
+        sortOrder = sortOrder,
+        onSortSelected = onSortSelected,
+        expanded = rankingExpanded,
+        onToggleExpanded = onToggleRanking,
+        onNavigateToDetailPage = onNavigateToDetailPage,
+    )
+}
+
+/** 패턴 탭(기간 기준): 시간대 히트맵 + 요일 꾸준함. */
+private fun LazyListScope.patternContent(stats: PeriodStats) {
+    item(key = "hourly") {
+        HourlyHeatmapSection(hourlyStats = stats.hourlyStats)
+    }
+
+    item(key = "weekly") {
+        WeeklyConsistencySection(stats = stats.dayOfWeekStats)
+    }
+}
+
+/** 추세 탭(전체 기준): 완료율 추세 + 월별 투자 시간. */
+private fun LazyListScope.trendContent(
     completionTrend: List<CompletionRatePoint>,
-    habitHealth: List<HabitHealth>,
+    monthlyInvestedTimes: List<MonthlyInvestedTime>,
+) {
+    if (completionTrend.size >= 2) {
+        item(key = "trend") {
+            CompletionTrendSection(points = completionTrend)
+        }
+    }
+
+    if (monthlyInvestedTimes.isNotEmpty()) {
+        item(key = "monthly") {
+            MonthlyInvestedSection(monthlyInvestedTimes = monthlyInvestedTimes)
+        }
+    }
+}
+
+/** 성취 탭(전체 기준): 인사이트 피드 + 연속 달성 + 마일스톤 + 습관 건강 + 신규 루프 정착. */
+private fun LazyListScope.achievementContent(
+    projection: MonthlyProjection,
+    streak: StreakStat,
     milestones: List<Milestone>,
-    rankingEmpty: Boolean,
+    habitHealth: List<HabitHealth>,
+    newLoopSettling: List<NewLoopSettling>,
 ) {
     if (hasInsights(projection, habitHealth, milestones)) {
         item(key = "insight") {
@@ -309,65 +526,15 @@ private fun LazyListScope.summaryTab(
         }
     }
 
-    item(key = "summary") {
-        SummarySection(
-            summary = periodStats.summary,
-            perfectDays = periodStats.perfectDays,
-            skipCount = periodStats.skipCount,
-        )
-    }
-
-    if (completionTrend.size >= 2) {
-        item(key = "trend") {
-            CompletionTrendSection(points = completionTrend)
+    if (streak.longest > 0) {
+        item(key = "streak") {
+            StreakSection(streak = streak)
         }
     }
 
-    if (periodStats.isEmpty && rankingEmpty) {
-        item(key = "empty") { EmptyHint() }
-    }
-}
-
-/** 패턴 탭: 시간대 히트맵 + 요일 꾸준함 + 월별 투자 시간. */
-private fun LazyListScope.patternTab(
-    periodStats: PeriodStats,
-    monthlyInvestedTimes: List<MonthlyInvestedTime>,
-) {
-    item(key = "hourly") {
-        HourlyHeatmapSection(hourlyStats = periodStats.hourlyStats)
-    }
-
-    item(key = "weekly") {
-        WeeklyConsistencySection(stats = periodStats.dayOfWeekStats)
-    }
-
-    if (monthlyInvestedTimes.isNotEmpty()) {
-        item(key = "monthly") {
-            MonthlyInvestedSection(monthlyInvestedTimes = monthlyInvestedTimes)
-        }
-    }
-}
-
-/** 습관 탭: 루프 순위 + 계획대비 실제 + 습관 건강 + 신규 루프 정착. */
-private fun LazyListScope.habitTab(
-    ranking: List<LoopWithStatistics>,
-    sortOrder: RankingSortOrder,
-    onSortSelected: (RankingSortOrder) -> Unit,
-    planVsActual: PlanVsActualStat,
-    habitHealth: List<HabitHealth>,
-    newLoopSettling: List<NewLoopSettling>,
-    onNavigateToDetailPage: (Int) -> Unit,
-) {
-    rankingSection(
-        ranking = ranking,
-        sortOrder = sortOrder,
-        onSortSelected = onSortSelected,
-        onNavigateToDetailPage = onNavigateToDetailPage,
-    )
-
-    if (planVsActual.hasData) {
-        item(key = "planVsActual") {
-            PlanVsActualSection(stat = planVsActual)
+    if (milestones.isNotEmpty()) {
+        item(key = "milestones") {
+            MilestonesSection(milestones = milestones)
         }
     }
 
@@ -384,34 +551,9 @@ private fun LazyListScope.habitTab(
     }
 }
 
-/** 성취 탭: 연속 달성 + 마일스톤 + 회고 작성. */
-private fun LazyListScope.achievementTab(
-    streak: StreakStat,
-    milestones: List<Milestone>,
-    retrospect: RetrospectStat,
-) {
-    if (streak.longest > 0) {
-        item(key = "streak") {
-            StreakSection(streak = streak)
-        }
-    }
-
-    if (milestones.isNotEmpty()) {
-        item(key = "milestones") {
-            MilestonesSection(milestones = milestones)
-        }
-    }
-
-    if (retrospect.hasData) {
-        item(key = "retrospect") {
-            RetrospectSection(stat = retrospect)
-        }
-    }
-}
-
 // endregion
 
-// region Insight feed (요약 상단) --------------------------------------------
+// region Insight feed (성취 상단) --------------------------------------------
 
 /** 인사이트 카드를 하나라도 보여줄 수 있는지 판단한다. (없으면 피드 섹션 자체를 숨긴다.) */
 private fun hasInsights(
@@ -436,7 +578,7 @@ private fun InsightFeedSection(
             // ⑥ 가장 많이 하락한 습관 경고를 가장 먼저 노출한다(행동을 유도).
             habitHealth.firstOrNull()?.let { worst ->
                 InsightCard(
-                    accent = if (worst.level == HabitHealthLevel.AT_RISK) AppColor.error else Yellow800,
+                    accent = if (worst.level == HabitHealthLevel.AT_RISK) AppColor.error else AppColor.warning,
                     title = stringResource(id = R.string.stat_insight_at_risk, worst.title),
                     description = stringResource(
                         id = R.string.stat_insight_at_risk_desc,
@@ -489,7 +631,7 @@ private fun InsightCard(
             .fillMaxWidth()
             .clip(CardShape)
             .background(color = accent.copy(alpha = 0.1f))
-            .padding(horizontal = Dimens.contentPadding, vertical = 14.dp),
+            .padding(horizontal = Dimens.contentPadding, vertical = Dimens.contentPadding),
     ) {
         Text(
             text = title,
@@ -544,7 +686,7 @@ private fun SummarySection(
                 modifier = Modifier.weight(1f),
                 value = "$skipCount",
                 label = stringResource(id = R.string.stat_summary_skipped),
-                valueColor = if (skipCount > 0) Yellow800 else null,
+                valueColor = if (skipCount > 0) AppColor.warning else null,
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(Dimens.cardSpacing)) {
@@ -683,44 +825,17 @@ private fun CompletionRateBar(
     point: CompletionRatePoint,
 ) {
     // 완료율(0~1)을 그대로 막대 높이 비율로 쓴다(정규화하지 않아 절대 수준이 드러난다).
-    val animatedRatio by animateFloatAsState(
-        targetValue = point.rate,
-        label = "completionRateBar",
+    val percent = (point.rate * 100).toInt()
+    val monthName = stringResource(id = ABB_MONTHS[point.yearMonth.monthValue - 1])
+    VerticalBar(
+        modifier = modifier,
+        ratio = point.rate,
+        topLabel = "$percent",
+        topLabelAlpha = if (point.rate > 0f) 0.8f else 0.3f,
+        bottomLabel = monthName,
+        barColor = AppColor.primary.copy(alpha = 0.35f + 0.65f * point.rate),
+        description = stringResource(id = R.string.stat_cd_trend_bar, monthName, percent),
     )
-    Column(
-        modifier = modifier.fillMaxHeight(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Bottom,
-    ) {
-        Text(
-            modifier = Modifier.padding(bottom = 4.dp),
-            text = "${(point.rate * 100).toInt()}",
-            style = AppTypography.labelMedium.copy(
-                color = AppColor.onSurface.copy(alpha = if (point.rate > 0f) 0.8f else 0.3f),
-            ),
-        )
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-            contentAlignment = Alignment.BottomCenter,
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .fillMaxHeight(fraction = animatedRatio.coerceAtLeast(0.02f))
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(color = AppColor.primary.copy(alpha = 0.35f + 0.65f * point.rate)),
-            )
-        }
-        Text(
-            modifier = Modifier.padding(top = Dimens.itemSpacing),
-            text = stringResource(id = ABB_MONTHS[point.yearMonth.monthValue - 1]),
-            style = AppTypography.bodySmall.copy(
-                color = AppColor.onSurface.copy(alpha = 0.6f),
-            ),
-        )
-    }
 }
 
 // endregion
@@ -732,6 +847,10 @@ private fun HourlyHeatmapSection(
     modifier: Modifier = Modifier,
     hourlyStats: List<HourlyCompletion>,
 ) {
+    // 사용자가 특정 시간대를 탭하면 그 시각의 정확한 완료 횟수를 헤더에 보여준다(색만으로 읽기 어려운 값을 보완).
+    var selectedHour by remember(hourlyStats) { mutableStateOf<Int?>(null) }
+    val peak = hourlyStats.maxByOrNull { it.count }?.takeIf { it.count > 0 }
+
     Column(modifier = modifier.fillMaxWidth()) {
         SectionHeader(
             title = stringResource(id = R.string.stat_hourly_title),
@@ -744,33 +863,49 @@ private fun HourlyHeatmapSection(
                 .background(color = AppColor.surfaceContainer)
                 .padding(Dimens.contentPadding),
         ) {
-            val peak = hourlyStats.maxByOrNull { it.count }?.takeIf { it.count > 0 }
+            val hasHighlight = selectedHour != null || peak != null
+            val headerText = when {
+                selectedHour != null -> {
+                    val count = hourlyStats.getOrNull(selectedHour!!)?.count ?: 0
+                    stringResource(id = R.string.stat_hourly_selected, selectedHour!!, count)
+                }
+
+                peak != null -> stringResource(id = R.string.stat_hourly_peak, peak.hour)
+                else -> stringResource(id = R.string.stat_hourly_none)
+            }
             Text(
-                text = peak?.let { stringResource(id = R.string.stat_hourly_peak, it.hour) }
-                    ?: stringResource(id = R.string.stat_hourly_none),
+                text = headerText,
                 style = AppTypography.bodyMedium.copy(
-                    color = AppColor.onSurface.copy(alpha = if (peak != null) 0.8f else 0.5f),
-                    fontWeight = if (peak != null) FontWeight.Bold else FontWeight.Normal,
+                    color = AppColor.onSurface.copy(alpha = if (hasHighlight) 0.8f else 0.5f),
+                    fontWeight = if (hasHighlight) FontWeight.Bold else FontWeight.Normal,
                 ),
             )
+
+            // 스크린리더에는 24개 칸을 따로 읽어 주기보다 대표 문구 하나로 요약한다.
+            val cellsDescription = peak
+                ?.let { stringResource(id = R.string.stat_hourly_peak, it.hour) }
+                ?: stringResource(id = R.string.stat_hourly_none)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = Dimens.contentPadding)
-                    .height(40.dp),
+                    .height(40.dp)
+                    .clearAndSetSemantics { contentDescription = cellsDescription },
                 horizontalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 hourlyStats.forEach { hourly ->
+                    val isSelected = selectedHour == hourly.hour
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
                             .clip(RoundedCornerShape(3.dp))
+                            .clickable { selectedHour = if (isSelected) null else hourly.hour }
                             .background(
-                                color = if (hourly.count == 0) {
-                                    AppColor.onSurface.copy(alpha = 0.06f)
-                                } else {
-                                    AppColor.primary.copy(alpha = 0.25f + 0.75f * hourly.ratio)
+                                color = when {
+                                    isSelected -> AppColor.primary
+                                    hourly.count == 0 -> AppColor.onSurface.copy(alpha = 0.06f)
+                                    else -> AppColor.primary.copy(alpha = 0.25f + 0.75f * hourly.ratio)
                                 },
                             ),
                     )
@@ -835,48 +970,16 @@ private fun DayOfWeekBar(
     modifier: Modifier = Modifier,
     stat: DayOfWeekStat,
 ) {
-    val animatedRatio by animateFloatAsState(
-        targetValue = stat.ratio,
-        label = "dayOfWeekBar",
+    val dayName = stringResource(id = DAYS_WITH_3CHARS[stat.dayOfWeek.value - 1])
+    VerticalBar(
+        modifier = modifier,
+        ratio = stat.ratio,
+        topLabel = "${stat.completedCount}",
+        topLabelAlpha = if (stat.completedCount > 0) 0.8f else 0.3f,
+        bottomLabel = dayName,
+        barColor = AppColor.primary.copy(alpha = 0.35f + 0.65f * stat.ratio),
+        description = stringResource(id = R.string.stat_cd_weekly_bar, dayName, stat.completedCount),
     )
-    Column(
-        modifier = modifier.fillMaxHeight(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Bottom,
-    ) {
-        Text(
-            modifier = Modifier.padding(bottom = 4.dp),
-            text = "${stat.completedCount}",
-            style = AppTypography.labelMedium.copy(
-                color = AppColor.onSurface.copy(alpha = if (stat.completedCount > 0) 0.8f else 0.3f),
-            ),
-        )
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-            contentAlignment = Alignment.BottomCenter,
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .fillMaxHeight(fraction = animatedRatio.coerceAtLeast(0.02f))
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(
-                        color = AppColor.primary.copy(
-                            alpha = 0.35f + 0.65f * stat.ratio,
-                        ),
-                    ),
-            )
-        }
-        Text(
-            modifier = Modifier.padding(top = Dimens.itemSpacing),
-            text = stringResource(id = DAYS_WITH_3CHARS[stat.dayOfWeek.value - 1]),
-            style = AppTypography.bodySmall.copy(
-                color = AppColor.onSurface.copy(alpha = 0.6f),
-            ),
-        )
-    }
 }
 
 // endregion
@@ -918,50 +1021,18 @@ private fun MonthlyInvestedBar(
     modifier: Modifier = Modifier,
     monthly: MonthlyInvestedTime,
 ) {
-    val animatedRatio by animateFloatAsState(
-        targetValue = monthly.ratio,
-        label = "monthlyInvestedBar",
-    )
     // 막대 위 라벨은 요일 차트와 동일하게 시간(hour) 단위 숫자만 간결하게 표기한다.
     val hours = (monthly.investedTimeMs / MS_1HOUR).toInt()
-    Column(
-        modifier = modifier.fillMaxHeight(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Bottom,
-    ) {
-        Text(
-            modifier = Modifier.padding(bottom = 4.dp),
-            text = "$hours",
-            style = AppTypography.labelMedium.copy(
-                color = AppColor.onSurface.copy(alpha = if (hours > 0) 0.8f else 0.3f),
-            ),
-        )
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-            contentAlignment = Alignment.BottomCenter,
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .fillMaxHeight(fraction = animatedRatio.coerceAtLeast(0.02f))
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(
-                        color = AppColor.primary.copy(
-                            alpha = 0.35f + 0.65f * monthly.ratio,
-                        ),
-                    ),
-            )
-        }
-        Text(
-            modifier = Modifier.padding(top = Dimens.itemSpacing),
-            text = stringResource(id = ABB_MONTHS[monthly.yearMonth.monthValue - 1]),
-            style = AppTypography.bodySmall.copy(
-                color = AppColor.onSurface.copy(alpha = 0.6f),
-            ),
-        )
-    }
+    val monthName = stringResource(id = ABB_MONTHS[monthly.yearMonth.monthValue - 1])
+    VerticalBar(
+        modifier = modifier,
+        ratio = monthly.ratio,
+        topLabel = "$hours",
+        topLabelAlpha = if (hours > 0) 0.8f else 0.3f,
+        bottomLabel = monthName,
+        barColor = AppColor.primary.copy(alpha = 0.35f + 0.65f * monthly.ratio),
+        description = stringResource(id = R.string.stat_cd_month_bar, monthName, hours),
+    )
 }
 
 // endregion
@@ -972,6 +1043,8 @@ private fun LazyListScope.rankingSection(
     ranking: List<LoopWithStatistics>,
     sortOrder: RankingSortOrder,
     onSortSelected: (RankingSortOrder) -> Unit,
+    expanded: Boolean,
+    onToggleExpanded: () -> Unit,
     onNavigateToDetailPage: (Int) -> Unit,
 ) {
     if (ranking.isEmpty()) return
@@ -979,6 +1052,7 @@ private fun LazyListScope.rankingSection(
     // 헤더와 순위 목록을 하나의 섹션 아이템으로 묶는다.
     // (개별 행을 LazyColumn 아이템으로 두면 섹션 간격이 행 사이에도 적용돼 여백이 과하게 벌어진다.)
     // 행 사이 간격은 카드 간격(cardSpacing)만 사용해 촘촘하게 유지한다.
+    // 기본은 상위 N개만 접어 두고, 나머지는 '전체 보기'로 펼친다(긴 목록을 한 번에 렌더하지 않기 위함).
     item(key = "ranking") {
         Column(modifier = Modifier.fillMaxWidth()) {
             SectionHeader(
@@ -990,8 +1064,9 @@ private fun LazyListScope.rankingSection(
                 selectedSortOrder = sortOrder,
                 onSortSelected = onSortSelected,
             )
+            val visible = if (expanded) ranking else ranking.take(RANKING_COLLAPSED_COUNT)
             Column(verticalArrangement = Arrangement.spacedBy(Dimens.cardSpacing)) {
-                ranking.forEachIndexed { index, item ->
+                visible.forEachIndexed { index, item ->
                     LoopRankingItem(
                         order = index + 1,
                         item = item,
@@ -1000,13 +1075,45 @@ private fun LazyListScope.rankingSection(
                     )
                 }
             }
+            if (ranking.size > RANKING_COLLAPSED_COUNT) {
+                RankingExpandToggle(
+                    modifier = Modifier.padding(top = Dimens.cardSpacing),
+                    expanded = expanded,
+                    totalCount = ranking.size,
+                    onToggle = onToggleExpanded,
+                )
+            }
         }
     }
 }
 
+/** 접힌 순위를 펼치거나 다시 접는 버튼. */
+@Composable
+private fun RankingExpandToggle(
+    modifier: Modifier = Modifier,
+    expanded: Boolean,
+    totalCount: Int,
+    onToggle: () -> Unit,
+) {
+    Text(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(CardShape)
+            .clickable(onClick = onToggle)
+            .padding(vertical = 12.dp),
+        text = if (expanded) {
+            stringResource(id = R.string.stat_ranking_show_less)
+        } else {
+            stringResource(id = R.string.stat_ranking_show_all, totalCount)
+        },
+        textAlign = TextAlign.Center,
+        style = AppTypography.bodyMedium.copy(color = AppColor.primary, fontWeight = FontWeight.Bold),
+    )
+}
+
 /**
  * 순위 정렬 기준(완료율/누적시간/완료횟수)을 고르는 세그먼트 컨트롤.
- * 상단 기간 선택기와 동일한 스타일을 사용해 일관성을 유지한다.
+ * 상단 기간 선택기와 모양이 비슷하므로, 앞에 '정렬' 라벨을 붙여 무엇을 제어하는지 구분되게 한다.
  */
 @Composable
 private fun RankingSortSelector(
@@ -1020,8 +1127,14 @@ private fun RankingSortSelector(
             .clip(CardShape)
             .background(color = AppColor.surfaceContainer)
             .padding(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
+        Text(
+            modifier = Modifier.padding(start = 8.dp, end = 4.dp),
+            text = stringResource(id = R.string.stat_ranking_sort_label),
+            style = AppTypography.labelMedium.copy(color = AppColor.onSurface.copy(alpha = 0.5f)),
+        )
         RankingSortOrder.entries.forEach { sortOrder ->
             PeriodSegment(
                 modifier = Modifier.weight(1f),
@@ -1047,7 +1160,7 @@ private fun LoopRankingItem(
             .clip(CardShape)
             .background(color = AppColor.surfaceContainer)
             .clickable(onClick = onClick)
-            .padding(horizontal = Dimens.contentPadding, vertical = 14.dp),
+            .padding(horizontal = Dimens.contentPadding, vertical = Dimens.contentPadding),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
@@ -1075,6 +1188,8 @@ private fun LoopRankingItem(
         ) {
             Text(
                 text = item.title,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 style = AppTypography.bodyLarge.copy(color = AppColor.onSurface),
             )
             DoneRateBar(
@@ -1129,7 +1244,7 @@ private fun PlanVsActualSection(
             Text(
                 text = headline,
                 style = AppTypography.titleMedium.copy(
-                    color = if (diffMinutes > 0) Yellow800 else AppColor.primary,
+                    color = if (diffMinutes > 0) AppColor.warning else AppColor.primary,
                     fontWeight = FontWeight.Bold,
                 ),
             )
@@ -1173,13 +1288,13 @@ private fun HabitHealthItem(
     modifier: Modifier = Modifier,
     health: HabitHealth,
 ) {
-    val levelColor = if (health.level == HabitHealthLevel.AT_RISK) AppColor.error else Yellow800
+    val levelColor = if (health.level == HabitHealthLevel.AT_RISK) AppColor.error else AppColor.warning
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clip(CardShape)
             .background(color = AppColor.surfaceContainer)
-            .padding(horizontal = Dimens.contentPadding, vertical = 14.dp),
+            .padding(horizontal = Dimens.contentPadding, vertical = Dimens.contentPadding),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
@@ -1194,6 +1309,8 @@ private fun HabitHealthItem(
         ) {
             Text(
                 text = health.title,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 style = AppTypography.bodyLarge.copy(color = AppColor.onSurface),
             )
             Text(
@@ -1248,7 +1365,7 @@ private fun NewLoopSettlingItem(
 ) {
     val (levelColor, levelRes) = when (settling.level) {
         SettlingLevel.SETTLED -> AppColor.primary to R.string.stat_settling_settled
-        SettlingLevel.SETTLING -> Yellow800 to R.string.stat_settling_settling
+        SettlingLevel.SETTLING -> AppColor.warning to R.string.stat_settling_settling
         SettlingLevel.STRUGGLING -> AppColor.error to R.string.stat_settling_struggling
     }
     Row(
@@ -1256,7 +1373,7 @@ private fun NewLoopSettlingItem(
             .fillMaxWidth()
             .clip(CardShape)
             .background(color = AppColor.surfaceContainer)
-            .padding(horizontal = Dimens.contentPadding, vertical = 14.dp),
+            .padding(horizontal = Dimens.contentPadding, vertical = Dimens.contentPadding),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
@@ -1271,6 +1388,8 @@ private fun NewLoopSettlingItem(
         ) {
             Text(
                 text = settling.title,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 style = AppTypography.bodyLarge.copy(color = AppColor.onSurface),
             )
             Text(
@@ -1354,7 +1473,7 @@ private fun MilestoneItem(
             .fillMaxWidth()
             .clip(CardShape)
             .background(color = AppColor.surfaceContainer)
-            .padding(horizontal = Dimens.contentPadding, vertical = 14.dp),
+            .padding(horizontal = Dimens.contentPadding, vertical = Dimens.contentPadding),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -1437,6 +1556,62 @@ private fun RetrospectSection(
 
 // region Shared --------------------------------------------------------------
 
+/**
+ * 세로 막대 하나(위 라벨 · 자라는 막대 · 아래 라벨). 완료율/요일/월별 차트가 공유한다.
+ *
+ * [animateFloatAsState]는 최초 표시나 스크롤 재진입 때는 목표값에서 시작해 튀지 않고,
+ * 값이 바뀔 때(예: 기간 전환)에만 부드럽게 자란다.
+ * 스크린리더에는 [contentDescription] 한 줄로 묶어 읽어 준다(막대 자체는 의미를 못 읽으므로).
+ */
+@Composable
+private fun VerticalBar(
+    modifier: Modifier = Modifier,
+    ratio: Float,
+    topLabel: String,
+    topLabelAlpha: Float,
+    bottomLabel: String,
+    barColor: Color,
+    description: String,
+) {
+    val animatedRatio by animateFloatAsState(targetValue = ratio, label = "verticalBar")
+    Column(
+        modifier = modifier
+            .fillMaxHeight()
+            .clearAndSetSemantics { contentDescription = description },
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Bottom,
+    ) {
+        Text(
+            modifier = Modifier.padding(bottom = 4.dp),
+            text = topLabel,
+            style = AppTypography.labelMedium.copy(
+                color = AppColor.onSurface.copy(alpha = topLabelAlpha),
+            ),
+        )
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+            contentAlignment = Alignment.BottomCenter,
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(fraction = animatedRatio.coerceAtLeast(0.02f))
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(color = barColor),
+            )
+        }
+        Text(
+            modifier = Modifier.padding(top = Dimens.itemSpacing),
+            text = bottomLabel,
+            style = AppTypography.bodySmall.copy(
+                color = AppColor.onSurface.copy(alpha = 0.6f),
+            ),
+        )
+    }
+}
+
 /** 상태/등급을 나타내는 작은 알약 모양 칩. */
 @Composable
 private fun LevelChip(
@@ -1446,7 +1621,7 @@ private fun LevelChip(
 ) {
     Text(
         modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundShapes.medium)
             .background(color = color.copy(alpha = 0.15f))
             .padding(horizontal = 8.dp, vertical = 4.dp),
         text = text,
@@ -1516,23 +1691,6 @@ private fun investedDurationText(investedTimeMs: Long): String {
         days > 0 -> stringResource(id = R.string.stat_duration_dh, days.toInt(), hours.toInt())
         hours > 0 -> stringResource(id = R.string.stat_duration_hm, hours.toInt(), minutes.toInt())
         else -> stringResource(id = R.string.stat_duration_m, minutes.toInt())
-    }
-}
-
-@Composable
-private fun EmptyHint(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 64.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = stringResource(id = R.string.stat_empty),
-            style = AppTypography.bodyMedium.copy(
-                color = AppColor.onSurface.copy(alpha = 0.5f),
-            ),
-        )
     }
 }
 

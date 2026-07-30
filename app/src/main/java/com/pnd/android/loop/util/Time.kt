@@ -239,20 +239,70 @@ fun LocalTime.toMs() = TimeUnit.NANOSECONDS.toMillis(toNanoOfDay())
 fun LocalDate.toLocalTime(zoneId: ZoneId = ZoneId.systemDefault()) =
     atStartOfDay(zoneId).toInstant().toEpochMilli()
 
-fun LoopBase.isPast(localDateTime: LocalDateTime = LocalDateTime.now()): Boolean {
-    val localTime = localDateTime.toLocalTime()
-    val timeInMs = TimeUnit.MILLISECONDS.convert(localTime.toNanoOfDay(), TimeUnit.NANOSECONDS)
+/**
+ * 종료 시각이 시작 시각보다 앞서면(=하루 안에서 되돌아가면) 이 루프는 자정을 넘겨 다음 날로 이어진다.
+ * 예) 23:00 ~ 02:00. (시간이 없는 AnyTime 루프는 해당 없음)
+ */
+val LoopBase.isOvernight: Boolean
+    get() = !isAnyTime && endInDay < startInDay
 
-    val end = if (startInDay > endInDay) endInDay + MS_1DAY else endInDay
-    return timeInMs >= end
+/** 하루 기준 지속 시간(ms). 자정을 넘기면 하루를 더해 항상 양수가 되게 한다. 예) 23:00~02:00 → 3시간. */
+val LoopBase.durationInDay: Long
+    get() = if (isOvernight) endInDay - startInDay + MS_1DAY else endInDay - startInDay
+
+/**
+ * 하루 기준 시각 [nowMsInDay](0 ~ 24h ms)가 이 루프의 진행 구간 안에 있는지 판정한다.
+ * - 일반 루프(start ≤ end): [start, end)
+ * - 자정을 넘기는 루프(end < start): [start, 24h) ∪ [0, end)  ← 자정을 사이에 둔 두 조각
+ */
+fun LoopBase.isTimeInLoop(nowMsInDay: Long): Boolean =
+    if (isOvernight) nowMsInDay >= startInDay || nowMsInDay < endInDay
+    else nowMsInDay in startInDay until endInDay
+
+/**
+ * 두 루프가 원형(24시간) 시간축에서 겹치는지 판정한다. 자정을 넘겨 00:00 을 가로질러 감기는 구간까지 고려한다.
+ *
+ * 한쪽의 시작점이 다른 호의 길이 구간 안에 들어오면 겹친 것으로 본다(둘 중 하나라도 하루를 꽉 채우면 항상 겹침).
+ * 끝 시각만 선형으로 비교하면 자정을 넘긴 감긴 부분을 놓치므로, 시작점 사이 거리를 원 둘레(mod 24h)로 재서 판정한다.
+ */
+fun LoopBase.overlapsInTime(other: LoopBase): Boolean {
+    val day = MS_1DAY
+    val startA = ((startInDay % day) + day) % day
+    val startB = ((other.startInDay % day) + day) % day
+    val lenA = durationInDay
+    val lenB = other.durationInDay
+    if (lenA >= day || lenB >= day) return true
+    val bFromA = ((startB - startA) % day + day) % day
+    val aFromB = ((startA - startB) % day + day) % day
+    return bFromA < lenA || aFromB < lenB
+}
+
+/**
+ * 지금([now]) 판정 대상이 되는 occurrence가 "시작한 날".
+ * 자정을 넘겨 아직 이어지는 아침 구간([0, end))이라면 그 루프는 어제 시작한 것이므로 어제를 돌려준다.
+ * 나머지는 오늘. 활성 요일(activeDays) 판정을 올바른 날짜에 대해 하기 위한 기준이다.
+ */
+fun LoopBase.occurrenceStartDate(now: LocalDateTime = LocalDateTime.now()): LocalDate {
+    val nowMs = now.toLocalTime().toMs()
+    return if (isOvernight && nowMs < endInDay) now.toLocalDate().minusDays(1) else now.toLocalDate()
+}
+
+fun LoopBase.isPast(localDateTime: LocalDateTime = LocalDateTime.now()): Boolean {
+    val nowMs = localDateTime.toLocalTime().toMs()
+    // 자정을 넘기는 루프는 종료(end)와 다음 시작(start) 사이 구간에서만 "지난" 상태다.
+    // 그 밖(진행 중이거나 다시 시작 예정)은 지난 것이 아니다.
+    return if (isOvernight) nowMs in endInDay until startInDay
+    else nowMs >= endInDay
 }
 
 fun LoopBase.isActive(localDateTime: LocalDateTime = LocalDateTime.now()): Boolean {
     if (!enabled) return false
     if (isMock) return false
+    if (isAnyTime) return doneState == LoopDoneVo.DoneState.IN_PROGRESS
 
-    return isActiveDay(localDate = localDateTime.toLocalDate()) &&
-            isActiveTime(localDateTime = localDateTime)
+    // 시각 창 안에 있고(자정 넘김 포함), 그 occurrence가 시작한 날이 활성 요일이어야 한다.
+    if (!isTimeInLoop(localDateTime.toLocalTime().toMs())) return false
+    return isActiveDay(occurrenceStartDate(localDateTime))
 }
 
 fun LoopBase.isActiveDay(localDate: LocalDate = LocalDate.now()): Boolean {
@@ -263,14 +313,7 @@ fun LoopBase.isActiveTime(localDateTime: LocalDateTime = LocalDateTime.now()): B
     if (isAnyTime) {
         return doneState == LoopDoneVo.DoneState.IN_PROGRESS
     }
-
-    val start = startInDay
-    val end = if (startInDay > endInDay) endInDay + MS_1DAY else endInDay
-
-    val localTime = localDateTime.toLocalTime()
-    val now = TimeUnit.MILLISECONDS.convert(localTime.toNanoOfDay(), TimeUnit.NANOSECONDS)
-
-    return now in start..end
+    return isTimeInLoop(localDateTime.toLocalTime().toMs())
 }
 
 @Composable

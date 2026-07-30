@@ -21,22 +21,22 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.rounded.ExpandMore
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
@@ -49,8 +49,9 @@ import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.error
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
-import com.pnd.android.loop.ui.theme.surface
 import com.pnd.android.loop.ui.theme.surfaceContainer
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 import com.pnd.android.loop.util.annotatedString
 import java.time.LocalDate
 
@@ -59,12 +60,46 @@ fun LoopYesterdayCard(
     modifier: Modifier = Modifier,
     loopViewModel: LoopViewModel,
     loops: List<LoopBase>,
+    snackBarHostState: SnackbarHostState,
     isExpanded: Boolean,
     onExpandChanged: (isExpanded: Boolean) -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
-    // The loop awaiting a done/skip confirmation, or null when no dialog is shown.
-    var pendingAction by remember { mutableStateOf<YesterdayAction?>(null) }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val yesterday = LocalDate.now().minusDays(1)
+
+    // 다이얼로그로 확인받는 대신, 요청 즉시 상태를 바꾸고 스낵바로 알린다.
+    // 스낵바의 "실행취소"를 누르면 어제 상태를 미응답(NO_RESPONSE)으로 되돌린다.
+    val onAction: (LoopBase, Int) -> Unit = { loop, doneState ->
+        loopViewModel.changeLoopState(
+            loop = loop,
+            localDate = yesterday,
+            doneState = doneState
+        )
+
+        val messageRes = if (doneState == LoopDoneVo.DoneState.DONE) {
+            R.string.done_snack_message
+        } else {
+            R.string.skip_snack_message
+        }
+        scope.launch {
+            // 새 동작이 오면 이전 스낵바는 대체되도록 먼저 정리한다.
+            snackBarHostState.currentSnackbarData?.dismiss()
+            val result = snackBarHostState.showSnackbar(
+                message = context.getString(messageRes, loop.title),
+                actionLabel = context.getString(R.string.action_undo),
+                duration = SnackbarDuration.Short,
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                loopViewModel.changeLoopState(
+                    loop = loop,
+                    localDate = yesterday,
+                    doneState = LoopDoneVo.DoneState.NO_RESPONSE
+                )
+            }
+        }
+    }
 
     Box(
         modifier = modifier
@@ -94,8 +129,8 @@ fun LoopYesterdayCard(
                     YesterdayDivider()
                     LoopYesterdayItem(
                         loop = loop,
-                        onRequestDone = { pendingAction = YesterdayAction(loop, LoopDoneVo.DoneState.DONE) },
-                        onRequestSkip = { pendingAction = YesterdayAction(loop, LoopDoneVo.DoneState.SKIP) },
+                        onRequestDone = { onAction(loop, LoopDoneVo.DoneState.DONE) },
+                        onRequestSkip = { onAction(loop, LoopDoneVo.DoneState.SKIP) },
                         onNavigateToDetailPage = onNavigateToDetailPage,
                     )
                 }
@@ -103,30 +138,7 @@ fun LoopYesterdayCard(
             }
         }
     }
-
-    pendingAction?.let { action ->
-        LoopYesterdayConfirmDialog(
-            action = action,
-            onConfirm = {
-                loopViewModel.changeLoopState(
-                    loop = action.loop,
-                    localDate = LocalDate.now().minusDays(1),
-                    doneState = action.doneState
-                )
-            },
-            onDismiss = { pendingAction = null }
-        )
-    }
 }
-
-/**
- * A loop together with the [LoopDoneVo.DoneState] the user is about to apply to it,
- * held while the confirmation dialog is visible.
- */
-private data class YesterdayAction(
-    val loop: LoopBase,
-    @LoopDoneVo.DoneState val doneState: Int,
-)
 
 @Composable
 private fun YesterdayDivider() {
@@ -258,50 +270,5 @@ private fun LoopTitle(
         style = AppTypography.bodyMedium.copy(
             color = AppColor.onSurface.copy(alpha = 0.8f)
         )
-    )
-}
-
-@Composable
-private fun LoopYesterdayConfirmDialog(
-    action: YesterdayAction,
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val messageRes = when (action.doneState) {
-        LoopDoneVo.DoneState.DONE -> R.string.done_confirm_message
-        else -> R.string.skip_confirm_message
-    }
-
-    AlertDialog(
-        modifier = Modifier.padding(horizontal = 32.dp),
-        shape = RoundShapes.medium,
-        onDismissRequest = onDismiss,
-        text = {
-            Text(
-                text = stringResource(id = messageRes, action.loop.title),
-                style = AppTypography.titleMedium.copy(color = AppColor.onSurface)
-            )
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(
-                    text = stringResource(id = R.string.cancel),
-                    style = AppTypography.titleMedium
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = {
-                onConfirm()
-                onDismiss()
-            }) {
-                Text(
-                    text = stringResource(id = R.string.ok),
-                    style = AppTypography.titleMedium
-                )
-            }
-        },
-        containerColor = AppColor.surface,
-        tonalElevation = 0.dp,
     )
 }

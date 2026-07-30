@@ -95,8 +95,7 @@ class NotificationHelper @Inject constructor(
      * 이 알림을 소유하므로 사용자가 스와이프로 지울 수 없고, 앱을 실행하지 않아도
      * 루프가 진행되는 동안 알림창에 계속 남는다.
      *
-     * - 루프 1개: 제목 + "11:20까지 · 32분 남음" + 진행률 바
-     * - 루프 여러 개: "진행 중인 루프 N개" + 각 루프를 나열(InboxStyle)
+     * - 루프 1개/여러 개: 동일한 커스텀 룩(루프별 색상 바 + 진행률)으로 표시
      * - 빈 목록(placeholder): 앱 이름만 표시(서비스가 곧 스스로 내림)
      */
     fun buildOngoingNotification(loops: List<LoopBase>): Notification {
@@ -118,30 +117,19 @@ class NotificationHelper @Inject constructor(
                 builder.setContentTitle(context.getString(R.string.app_name))
             }
 
-            loops.size == 1 -> {
-                val loop = loops.first()
-                builder.setContentTitle(loop.title)
-                    .setContentText(lineText(loop))
-                LoopTimeWindow.of(loop)?.let { window ->
-                    builder.setProgress(window.totalMinutes, window.elapsedMinutes, false)
-                }
-                addLoopActions(builder, loop)
-            }
-
             else -> {
-                // 여러 개일 때는 커스텀 뷰로 루프별 색상·진행률을 보여준다. 커스텀 뷰를
-                // 지원하지 않는 환경(웨어러블 등)을 위해 제목/본문도 함께 채워 둔다.
-                builder.setContentTitle(
-                    context.resources.getQuantityString(
-                        R.plurals.notification_loops_in_progress,
-                        loops.size,
-                        loops.size,
-                    )
-                )
-                    .setContentText(loops.joinToString(", ") { it.title })
+                // 단일/다중 모두 동일한 커스텀 룩(루프별 색상 바 + 진행률)을 쓴다. 커스텀
+                // 뷰를 지원하지 않는 환경(웨어러블 등)을 위해 제목/본문 폴백도 채워 둔다.
+                val single = loops.singleOrNull()
+                builder
+                    .setContentTitle(single?.title ?: loopsInProgressTitle(loops))
+                    .setContentText(single?.let { lineText(it) } ?: loops.joinToString(", ") { it.title })
                     .setStyle(NotificationCompat.DecoratedCustomViewStyle())
                     .setCustomContentView(buildLoopsCollapsedView(loops))
                     .setCustomBigContentView(buildLoopsExpandedView(loops))
+
+                // 단일 루프에는 앱을 열지 않고 응답할 수 있는 액션 버튼을 붙인다.
+                if (single != null) addLoopActions(builder, single)
             }
         }
 
@@ -154,17 +142,47 @@ class NotificationHelper @Inject constructor(
     }
 
     /**
-     * 방금 시작된 루프를 화면 상단에 잠깐 알린다(heads-up). 상시 알림과 별개의
-     * 1회성 안내로, 잠시 뒤 스스로 사라진다. 화면이 꺼진 사이 여러 루프가 시작되어
-     * 모아서 알릴 때는 목록을 하나의 알림으로 묶어 보여준다.
+     * 방금 시작된 루프를 화면 상단에 친절하게 알린다(heads-up). 상시 알림과 별개의
+     * 1회성 안내로, 제목에 안내 문구를, 본문에 시간 정보를 담아 잠시 뒤 스스로 사라진다.
      *
-     * - 루프 1개: "○○ 시작"
-     * - 루프 여러 개: "루프 N개 시작" + 시작된 루프 제목 나열
+     * 예) "아침 운동 시작할 시간이에요" / "11:20까지 · 32분 남음"
      */
-    fun notifyLoopStarted(loops: List<LoopBase>) {
+    fun notifyLoopStarted(loop: LoopBase) {
+        val builder = newAnnouncementBuilder()
+            .setContentTitle(context.getString(R.string.notification_loop_started_title, loop.title))
+            .setContentText(lineText(loop))
+        nm.notify(LOOP_STARTED_NOTIFICATION_ID, builder.build())
+    }
+
+    /**
+     * 화면이 다시 켜졌을 때, 아직 진행 중인 루프들을 "진행 중" 안내 + 시간 정보로 알린다.
+     * (화면이 꺼진 사이 이미 종료된 루프는 호출 전에 걸러진다.)
+     *
+     * - 루프 1개: "○○ 진행 중이에요" / "11:20까지 · 32분 남음"
+     * - 루프 여러 개: "진행 중인 루프 N개" + 각 루프의 시간 정보 나열
+     */
+    fun notifyLoopsInProgress(loops: List<LoopBase>) {
         if (loops.isEmpty()) return
 
-        val builder = NotificationCompat.Builder(context, CHANNEL_ID_LOOP_STARTED)
+        val builder = newAnnouncementBuilder()
+        val single = loops.singleOrNull()
+        if (single != null) {
+            builder.setContentTitle(
+                context.getString(R.string.notification_loop_in_progress_title, single.title)
+            ).setContentText(lineText(single))
+        } else {
+            val inbox = NotificationCompat.InboxStyle()
+            loops.forEach { loop -> inbox.addLine("${loop.title} · ${lineText(loop)}") }
+            builder.setContentTitle(loopsInProgressTitle(loops))
+                .setContentText(loops.joinToString(", ") { it.title })
+                .setStyle(inbox)
+        }
+        nm.notify(LOOP_STARTED_NOTIFICATION_ID, builder.build())
+    }
+
+    /** 시작/진행 중 안내 알림에 공통으로 쓰는 heads-up 빌더(무음, 잠시 뒤 자동 소멸). */
+    private fun newAnnouncementBuilder(): NotificationCompat.Builder =
+        NotificationCompat.Builder(context, CHANNEL_ID_LOOP_STARTED)
             .setSmallIcon(R.drawable.app_icon)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
@@ -175,23 +193,6 @@ class NotificationHelper @Inject constructor(
             .setVibrate(null)
             .setSound(null)
             .setContentIntent(contentIntent())
-
-        if (loops.size == 1) {
-            builder.setContentTitle(
-                context.getString(R.string.notification_loop_started_title, loops.first().title)
-            )
-        } else {
-            builder.setContentTitle(
-                context.resources.getQuantityString(
-                    R.plurals.notification_loops_started,
-                    loops.size,
-                    loops.size,
-                )
-            ).setContentText(loops.joinToString(", ") { it.title })
-        }
-
-        nm.notify(LOOP_STARTED_NOTIFICATION_ID, builder.build())
-    }
 
     /**
      * 상시 알림에 앱을 열지 않고 응답할 수 있는 액션 버튼을 붙인다. 알림 액션은 라인별이
@@ -227,11 +228,20 @@ class NotificationHelper @Inject constructor(
      */
     private fun buildLoopsCollapsedView(loops: List<LoopBase>): RemoteViews {
         val view = RemoteViews(context.packageName, R.layout.notification_loops_collapsed)
-        view.setTextViewText(R.id.collapsed_title, loopsInProgressTitle(loops))
+        val single = loops.singleOrNull()
 
+        if (single != null) {
+            // 단일 루프: 제목 + 그 루프의 시간 요약("11:20까지 · 32분 남음") + 진행률.
+            view.setTextViewText(R.id.collapsed_title, single.title)
+            view.setTextViewText(R.id.collapsed_subtitle, lineText(single))
+            bindCollapsedProgress(view, single)
+            return view
+        }
+
+        // 다중 루프: "N개 진행 중" + 가장 임박한 루프 기준 요약/진행률.
+        view.setTextViewText(R.id.collapsed_title, loopsInProgressTitle(loops))
         val nearest = nearestEndingLoop(loops)
-        val window = nearest?.let { LoopTimeWindow.of(it) }
-        if (nearest != null && window != null) {
+        if (nearest != null) {
             view.setTextViewText(
                 R.id.collapsed_subtitle,
                 context.getString(
@@ -239,19 +249,25 @@ class NotificationHelper @Inject constructor(
                     nearest.endInDay.toLocalTime().formatText(),
                 ),
             )
-            view.setViewVisibility(R.id.collapsed_progress, View.VISIBLE)
-            view.setProgressBar(
-                R.id.collapsed_progress,
-                window.totalMinutes,
-                window.elapsedMinutes,
-                false,
-            )
-            view.setProgressColor(R.id.collapsed_progress, nearest.color.opaque())
+            bindCollapsedProgress(view, nearest)
         } else {
+            // 시간제 루프가 하나도 없으면(모두 anytime) 진행률을 감추고 제목만 나열한다.
             view.setTextViewText(R.id.collapsed_subtitle, loops.joinToString(", ") { it.title })
             view.setViewVisibility(R.id.collapsed_progress, View.GONE)
         }
         return view
+    }
+
+    /** 접힘 뷰의 진행률 바를 해당 루프에 맞춰 채운다. anytime(시간 창 없음)이면 감춘다. */
+    private fun bindCollapsedProgress(view: RemoteViews, loop: LoopBase) {
+        val window = LoopTimeWindow.of(loop)
+        if (window == null) {
+            view.setViewVisibility(R.id.collapsed_progress, View.GONE)
+            return
+        }
+        view.setViewVisibility(R.id.collapsed_progress, View.VISIBLE)
+        view.setProgressBar(R.id.collapsed_progress, window.totalMinutes, window.elapsedMinutes, false)
+        view.setProgressColor(R.id.collapsed_progress, loop.color.opaque())
     }
 
     /**

@@ -32,6 +32,7 @@ import com.pnd.android.loop.data.asLoopVo
 import com.pnd.android.loop.data.isInProgress
 import com.pnd.android.loop.data.isNotRespond
 import com.pnd.android.loop.data.putTo
+import com.pnd.android.loop.util.isActive
 import com.pnd.android.loop.util.isActiveDay
 import com.pnd.android.loop.util.toLocalTime
 import com.pnd.android.loop.util.toMs
@@ -154,7 +155,8 @@ class AppWidgetUpdateWorker @AssistedInject constructor(
         updateWidget(
             context = context,
             loops = loops.filter { loop ->
-                loop.isActiveDay() && (loop.isNotRespond || loop.isInProgress)
+                // 오늘 활성이거나, 자정을 넘겨 지금도 진행 중인(어제 시작한) 루프. 그중 미응답·진행 중만.
+                (loop.isActiveDay() || loop.isActive()) && (loop.isNotRespond || loop.isInProgress)
             }.sortedWith(TodayLoopOrder())
                 .map { loop -> loop.toWidgetLoop() }
         )

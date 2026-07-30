@@ -11,15 +11,20 @@ import com.pnd.android.loop.R
 import com.pnd.android.loop.common.Logger
 import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.data.LoopVo.Factory.ANY_TIME
+import com.pnd.android.loop.util.MS_1DAY
 import com.pnd.android.loop.util.MS_1MIN
 import com.pnd.android.loop.util.isActiveDay
+import com.pnd.android.loop.util.isTimeInLoop
+import com.pnd.android.loop.util.occurrenceStartDate
 import com.pnd.android.loop.util.toLocalTime
 import com.pnd.android.loop.util.toMs
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.isActive
+import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.temporal.ChronoUnit
 import kotlin.math.min
@@ -132,149 +137,112 @@ val LoopBase.currentTimeStat: TimeStat
 
 
 private val LoopBase.timeStatFlow
-    get() = flow {
-        val startTime = if (isAnyTime) LocalTime.MIN else startInDay.toLocalTime()
+    get(): Flow<TimeStat> {
+        val loop = this
+        return flow {
+            while (currentCoroutineContext().isActive) {
+                val now = LocalDateTime.now()
+                val nowMs = now.toLocalTime().toMs()
 
-        while (currentCoroutineContext().isActive) {
-            val delayInMs = when {
+                val delayInMs = when {
+                    // 지금 시점 기준으로 이 루프의 occurrence가 없는 날이면 표시할 상태가 없다.
+                    // (자정을 넘겨 이어지는 아침 구간이면 "어제" 기준으로 활성 요일을 판정한다.)
+                    !loop.isActiveDay(loop.occurrenceStartDate(now)) -> none(title = loop.title)
 
-                !isActiveDay() -> none(
-                    title = title
-                )
+                    // AnyTime 루프의 진행 상태는 시각이 아니라 시작/정지(done) 기록으로 판단한다.
+                    loop.isAnyTime -> anyTimeStat(loop = loop)
 
-                isBeforeStart() -> before(
-                    title = title,
-                    startTime = startTime,
-                    isAnyTime = isAnyTime
-                )
+                    // 진행 중: 시각 창 안(자정을 넘기는 창은 [start,24h)∪[0,end)).
+                    loop.isTimeInLoop(nowMs) -> inProgress(
+                        title = loop.title,
+                        remainMs = loop.msRemainingUntilEnd(nowMs),
+                    )
 
-                isFinished() -> finished(
-                    title = title,
-                    // actual 시각은 아직 기록되지 않았을 때 ANY_TIME(-1)일 수 있으므로,
-                    // toLocalTime() 이 음수로 크래시하지 않도록 MIN/MAX 로 가드한다.
-                    startTime = if (actualStartInDay < 0) LocalTime.MIN else actualStartInDay.toLocalTime(),
-                    endTime = if (actualEndInDay < 0) LocalTime.MAX else actualEndInDay.toLocalTime(),
-                    isAnyTime = isAnyTime
-                )
+                    // 아직 시작 전: 오늘(또는 오늘 밤) 시작 예정.
+                    nowMs < loop.startInDay -> before(
+                        title = loop.title,
+                        afterMs = loop.startInDay - nowMs,
+                    )
 
-                else -> inProgress(
-                    title = title,
-                    startTime = if (actualStartInDay < 0) LocalTime.MIN else actualStartInDay.toLocalTime(),
-                    endTime = if (actualEndInDay < 0) LocalTime.MAX else actualEndInDay.toLocalTime(),
-                    isAnyTime = isAnyTime,
-                )
+                    // 그 밖: 일반 루프가 종료 시각을 지나 끝난 상태.
+                    else -> finished(
+                        title = loop.title,
+                        // actual 시각은 아직 기록되지 않았을 때 ANY_TIME(-1)일 수 있으므로,
+                        // toLocalTime() 이 음수로 크래시하지 않도록 MIN/MAX 로 가드한다.
+                        startTime = if (loop.actualStartInDay < 0) LocalTime.MIN else loop.actualStartInDay.toLocalTime(),
+                        endTime = if (loop.actualEndInDay < 0) LocalTime.MAX else loop.actualEndInDay.toLocalTime(),
+                    )
+                }
+
+                delay(delayInMs.milliseconds)
             }
-
-            delay(delayInMs.milliseconds)
         }
     }
 
-private fun LoopBase.isBeforeStart(): Boolean {
-    // anytime 루프의 실제 상태는 base start/end(항상 ANY_TIME)가 아니라 done 기록에 있다.
-    // 아직 시작 전 = 진행 중도 아니고, 종료 기록(actualEnd)도 없는 상태.
-    if (isAnyTime) return doneState != DoneState.IN_PROGRESS && actualEndInDay == ANY_TIME
+/** 진행 중인 시각 창의 종료까지 남은 ms(자정 넘김 보정, 0 ~ 24h). */
+private fun LoopBase.msRemainingUntilEnd(nowMs: Long): Long =
+    ((endInDay - nowMs) % MS_1DAY + MS_1DAY) % MS_1DAY
 
-    val now = LocalTime.now()
-    val startTime = startInDay.toLocalTime()
-    return now.isBefore(startTime)
+/** AnyTime 루프의 표시 상태. 시각이 아니라 시작/정지(done) 기록으로 대기/진행/완료를 가른다. */
+private suspend fun FlowCollector<TimeStat>.anyTimeStat(loop: LoopBase): Long {
+    val startTime =
+        if (loop.actualStartInDay < 0) LocalTime.MIN else loop.actualStartInDay.toLocalTime()
+    return when {
+        // 아직 시작 전: 진행 중도 아니고 종료 기록(actualEnd)도 없는 상태.
+        loop.doneState != DoneState.IN_PROGRESS && loop.actualEndInDay == ANY_TIME -> {
+            emit(TimeStat.BeforeStart(time = LocalTime.MIN, isAnyTime = true))
+            MS_1MIN
+        }
+        // 정지(=종료 시각 기록)된 순간 완료로 본다.
+        loop.actualEndInDay != ANY_TIME -> {
+            emit(
+                TimeStat.Finished(
+                    startTime = startTime,
+                    endTime = if (loop.actualEndInDay < 0) LocalTime.MAX else loop.actualEndInDay.toLocalTime(),
+                    isAnyTime = true,
+                )
+            )
+            MS_1MIN
+        }
+        // 진행 중: 시작 이후 경과 시간을 보여준다.
+        else -> {
+            val elapsedMs = startTime.until(LocalTime.now(), ChronoUnit.MILLIS).coerceAtLeast(0L)
+            emit(TimeStat.InProgress(time = elapsedMs.toLocalTime(), isAnyTime = true))
+            (elapsedMs % MS_1MIN).coerceAtLeast(1000L)
+        }
+    }
 }
 
-private fun LoopBase.isFinished(): Boolean {
-    // anytime 루프는 정지(=종료 시각 기록)된 순간 완료로 본다. base end 는 항상 ANY_TIME 이라
-    // 참고할 수 없으므로, done 기록의 actualEnd 유무로 판단한다.
-    if (isAnyTime) return actualEndInDay != ANY_TIME
+private suspend fun FlowCollector<TimeStat>.before(title: String, afterMs: Long): Long {
+    emit(TimeStat.BeforeStart(time = afterMs.toLocalTime(), isAnyTime = false))
+    val delayInMs = (afterMs % MS_1MIN).coerceAtLeast(1000L)
+    logger.i { "[TimeStat] ($title) before updateAfter: $delayInMs" }
+    return delayInMs
+}
 
-    val now = LocalTime.now()
-    val endTime = endInDay.toLocalTime()
-    return now.isAfter(endTime)
+private suspend fun FlowCollector<TimeStat>.inProgress(title: String, remainMs: Long): Long {
+    emit(TimeStat.InProgress(time = remainMs.toLocalTime(), isAnyTime = false))
+    val delayInMs = (remainMs % MS_1MIN).coerceAtLeast(1000L)
+    logger.i { "[TimeStat] ($title) inProgress updateAfter: $delayInMs" }
+    return delayInMs
 }
 
 private suspend fun FlowCollector<TimeStat>.finished(
     title: String,
     startTime: LocalTime,
     endTime: LocalTime,
-    isAnyTime: Boolean
 ): Long {
+    emit(TimeStat.Finished(startTime = startTime, endTime = endTime, isAnyTime = false))
     val now = LocalTime.now()
-    emit(
-        TimeStat.Finished(
-            startTime = startTime,
-            endTime = endTime,
-            isAnyTime = isAnyTime,
-        )
-    )
-
     val delayInMs = min(MS_1MIN, now.until(LocalTime.MAX, ChronoUnit.MILLIS))
-    logger.i { "[TimeStat] ($title) after updateAfter : $delayInMs, start:$startTime, end:$endTime, isAnyTime:$isAnyTime" }
-
+    logger.i { "[TimeStat] ($title) finished updateAfter: $delayInMs" }
     return delayInMs
 }
 
-private suspend fun FlowCollector<TimeStat>.before(
-    title: String,
-    startTime: LocalTime,
-    isAnyTime: Boolean,
-): Long {
-    val now = LocalTime.now()
-    val afterMs = if (isAnyTime) {
-        LocalTime.MAX.toMs()
-    } else {
-        now.until(startTime, ChronoUnit.MILLIS)
-    }
-
-    val delayInMs: Long = if (afterMs > 0) {
-        emit(
-            TimeStat.BeforeStart(
-                time = afterMs.toLocalTime(),
-                isAnyTime = isAnyTime,
-            )
-        )
-        afterMs % MS_1MIN
-    } else {
-        1000L
-    }
-
-    logger.i { "[TimeStat] ($title) before updateAfter: $delayInMs, start:$startTime, isAnyTime:$isAnyTime" }
-    return delayInMs
-}
-
-private suspend fun FlowCollector<TimeStat>.inProgress(
-    title: String,
-    startTime: LocalTime,
-    endTime: LocalTime,
-    isAnyTime: Boolean,
-): Long {
-    val now = LocalTime.now()
-    val remainMs = if (isAnyTime) {
-        startTime.until(now, ChronoUnit.MILLIS)
-    } else {
-        now.until(endTime, ChronoUnit.MILLIS)
-    }
-
-    val delayInMs: Long = if (remainMs > 0) {
-        emit(
-            TimeStat.InProgress(
-                time = remainMs.toLocalTime(),
-                isAnyTime = isAnyTime,
-            )
-        )
-        remainMs % MS_1MIN
-    } else {
-        1000L
-    }
-
-    logger.i { "[TimeStat] ($title) inProgress updateAfter: $delayInMs, start:$startTime, end:$endTime, isAnyTime:$isAnyTime" }
-    return delayInMs
-}
-
-private suspend fun FlowCollector<TimeStat>.none(
-    title: String,
-): Long {
+private suspend fun FlowCollector<TimeStat>.none(title: String): Long {
     emit(TimeStat.NotToday)
-
     val now = LocalTime.now()
     val delayInMs = now.until(LocalTime.MAX, ChronoUnit.MILLIS)
-
     logger.i { "[TimeStat] ($title) none updateAfter: $delayInMs" }
     return delayInMs
 }

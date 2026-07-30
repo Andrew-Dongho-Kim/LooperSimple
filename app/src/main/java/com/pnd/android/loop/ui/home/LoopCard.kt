@@ -69,6 +69,7 @@ import com.pnd.android.loop.data.common.NO_REPEAT
 import com.pnd.android.loop.data.currentTimeStat
 import com.pnd.android.loop.data.doneState
 import com.pnd.android.loop.ui.theme.AppColor
+import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.compositeOver
 import com.pnd.android.loop.ui.theme.compositeOverOnSurface
@@ -698,7 +699,7 @@ private fun LoopCardPopupMenu(
 ) {
     // 둥근 모서리 + 헤어라인 테두리의 작은 시트로 띄워, 다크 모드(그림자가 안 보이는)에서도
     // 테두리가 경계를 잡아주고 라이트 모드에서는 부드러운 그림자로 떠 보인다.
-    val menuShape = RoundedCornerShape(12.dp)
+    val menuShape = RoundShapes.large
     // 옵션 버튼의 오른쪽 아래 모서리에 맞춰(TopEnd) 살짝 내려서 띄운다.
     val verticalOffset = with(LocalDensity.current) { 4.dp.roundToPx() }
     Popup(

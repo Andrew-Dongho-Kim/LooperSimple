@@ -24,6 +24,7 @@ import com.pnd.android.loop.ui.home.input.InputSelector
 import com.pnd.android.loop.ui.home.input.UserInputState
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.surfaceElevated
+import com.pnd.android.loop.util.durationInDay
 import com.pnd.android.loop.util.rememberImeOpenState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -101,9 +102,11 @@ private fun Selector(
             selectedInterval = loop.interval,
             // An any-time loop has no fixed start/end window, so any interval is
             // valid; otherwise the interval must be shorter than the duration.
-            maxInterval = if (loop.isAnyTime) Long.MAX_VALUE else loop.endInDay - loop.startInDay,
+            // durationInDay accounts for overnight loops (e.g. 23:00~02:00); a plain
+            // endInDay - startInDay would go negative there and reject every interval.
+            maxInterval = if (loop.isAnyTime) Long.MAX_VALUE else loop.durationInDay,
             onIntervalSelected = onIntervalChanged@{ interval ->
-                if (!loop.isAnyTime && loop.endInDay - loop.startInDay <= interval) {
+                if (!loop.isAnyTime && loop.durationInDay <= interval) {
                     coroutineScope.showWarning(
                         snackBarHostState,
                         context.getString(R.string.warning_interval_must_be_shorter_than_duration)
@@ -126,7 +129,10 @@ private fun Selector(
                 if (!loop.isAnyTime && isLoopDurationTooShort(loopStart, loop.endInDay)) {
                     coroutineScope.showWarning(
                         snackBarHostState,
-                        context.getString(R.string.warning_end_time_should_be_after_start_time)
+                        context.getString(
+                            R.string.warning_end_time_should_be_after_start_time,
+                            MIN_DIFF_MINUTES
+                        )
                     )
                 }
                 inputState.update(loopStart = if (loop.isAnyTime) ANY_TIME else loopStart)
@@ -136,7 +142,10 @@ private fun Selector(
                 if (!loop.isAnyTime && isLoopDurationTooShort(loop.startInDay, loopEnd)) {
                     coroutineScope.showWarning(
                         snackBarHostState,
-                        context.getString(R.string.warning_end_time_should_be_after_start_time)
+                        context.getString(
+                            R.string.warning_end_time_should_be_after_start_time,
+                            MIN_DIFF_MINUTES
+                        )
                     )
                 }
                 inputState.update(loopEnd = if (loop.isAnyTime) ANY_TIME else loopEnd)

@@ -95,7 +95,7 @@ fun LoopHeaderCard(
     val currentLoop by loopViewModel.currentLoop.collectAsState(initial = null)
     val recentDays by loopViewModel.recentDailyDone.collectAsState(initial = emptyList())
     val loopTrends by loopViewModel.loopTrends.collectAsState(initial = LoopTrends.Empty)
-    val loops by loopViewModel.allLoopsWithDoneStates.collectAsState(initial = emptyList())
+    val loops by loopViewModel.allLoopsWithDoneStates.collectAsState(initial = null)
 
     Card(
         modifier = modifier,
@@ -124,7 +124,7 @@ fun LoopHeaderCard(
                     trends = loopTrends,
                     // 추세의 loopId만 알고 있으므로, 현재 루프 목록에서 해당 루프를 찾아 상세로 넘긴다.
                     onCheckLoop = { loopId ->
-                        loops.firstOrNull { loop -> loop.loopId == loopId }
+                        loops?.firstOrNull { loop -> loop.loopId == loopId }
                             ?.let(onNavigateToDetailPage)
                     },
                 )
@@ -488,7 +488,7 @@ private fun TrendHero(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundShapes.large)
             .background(accent.compositeOverSurface(alpha = 0.12f))
             .padding(horizontal = 12.dp, vertical = 10.dp),
     ) {

@@ -21,13 +21,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Timeline
 import androidx.compose.material.icons.outlined.ViewAgenda
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.TaskAlt
 import androidx.compose.material3.Icon
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
@@ -45,6 +49,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
 import com.pnd.android.loop.BuildConfig
@@ -53,6 +58,7 @@ import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.asLoopVo
 import com.pnd.android.loop.data.isInProgress
 import com.pnd.android.loop.data.isNotRespond
+import com.pnd.android.loop.ui.common.AppEmptyState
 import com.pnd.android.loop.ui.common.ExpandableNativeAd
 import com.pnd.android.loop.ui.home.timeline.LoopCircularDial
 import com.pnd.android.loop.ui.home.timeline.LoopTimeline
@@ -79,6 +85,7 @@ fun LazyListScope.section(
     section: Section,
     blurState: BlurState,
     loopViewModel: LoopViewModel,
+    snackBarHostState: SnackbarHostState,
     @HomeTab.Type selectedTab: Int,
     // 하단 패널에서 편집 중인 루프 id. 목록에서 해당 카드를 스포트라이트하고 나머지를 흐리게 하는 데 쓴다.
     editingLoopId: Int?,
@@ -112,6 +119,7 @@ fun LazyListScope.section(
         is Section.Yesterday -> sectionYesterday(
             section = section,
             loopViewModel = loopViewModel,
+            snackBarHostState = snackBarHostState,
             onNavigateToDetailPage = onNavigateToDetailPage
         )
 
@@ -182,6 +190,7 @@ private fun LazyListScope.sectionHeader(
 private fun LazyListScope.sectionYesterday(
     section: Section.Yesterday,
     loopViewModel: LoopViewModel,
+    snackBarHostState: SnackbarHostState,
     onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
     val loops by section.items
@@ -195,6 +204,7 @@ private fun LazyListScope.sectionYesterday(
         LoopYesterdayCard(
             loopViewModel = loopViewModel,
             loops = loops,
+            snackBarHostState = snackBarHostState,
             isExpanded = isExpanded,
             onExpandChanged = { isExpanded = it },
             onNavigateToDetailPage = onNavigateToDetailPage,
@@ -215,15 +225,196 @@ private fun LazyListScope.sectionToday(
 ) {
     val loops by section.items
 
+    // 오늘 예정된 루프 자체가 없으면 전환할 뷰가 없으므로 토글 없이 안내만 보여준다.
+    // "예정 없음"을 "모두 완료"로 오인하지 않도록 축하 화면과 톤을 분리한다.
     if (loops.isEmpty()) {
-        sectionTodayEmpty()
-    } else {
-        sectionTodayBody(
-            section = section,
+        sectionTodayNoSchedule()
+        return
+    }
+
+    // 예정이 있으면 완료 여부와 무관하게 뷰 토글을 항상 유지한다. 다 끝낸 뒤에도
+    // 타임라인/다이얼로 하루를 돌아볼 수 있어야 하기 때문이다.
+    sectionTodayViewModeToggle(section = section)
+    sectionTodayContent(
+        section = section,
+        blurState = blurState,
+        loopViewModel = loopViewModel,
+        loops = loops,
+        editingLoopId = editingLoopId,
+        onEdit = onEdit,
+        onDelete = onDelete,
+        onStateChanged = onStateChanged,
+        onNavigateToGroupPicker = onNavigateToGroupPicker,
+        onNavigateToDetailPage = onNavigateToDetailPage,
+    )
+}
+
+/** 뷰 모드(목록/타임라인/다이얼) 토글. 오늘 섹션 최상단에 항상 고정으로 노출한다. */
+private fun LazyListScope.sectionTodayViewModeToggle(
+    section: Section.Today,
+) {
+    item(
+        contentType = ContentTypes.TIMELINE_TOGGLE_BUTTON,
+        key = section.key,
+    ) {
+        val context = LocalContext.current
+        val viewMode by section.viewMode
+        ViewModeToggle(
+            modifier = Modifier.padding(bottom = HomeCardSpacing),
+            viewMode = viewMode,
+            onSelected = { selected -> section.save(context = context, mode = selected) },
+        )
+    }
+}
+
+/**
+ * 선택된 뷰 모드에 맞는 오늘 콘텐츠를 그린다.
+ * - 목록·다이얼: 진행 중이거나 응답 대기 중인 루프가 하나도 없으면(= 오늘 걸 모두 완료/스킵)
+ *   축하 화면으로 대체한다.
+ * - 타임라인: 완료 루프도 시간 블록으로 함께 보여주므로 그대로 유지해 하루를 돌아볼 수 있게 한다.
+ */
+private fun LazyListScope.sectionTodayContent(
+    section: Section.Today,
+    blurState: BlurState,
+    loopViewModel: LoopViewModel,
+    loops: List<LoopBase>,
+    editingLoopId: Int?,
+    onEdit: (LoopBase) -> Unit,
+    onDelete: (LoopBase) -> Unit,
+    onStateChanged: (LoopBase, Int) -> Unit,
+    onNavigateToGroupPicker: (LoopBase) -> Unit,
+    onNavigateToDetailPage: (LoopBase) -> Unit,
+) {
+    // 진행 중(IN_PROGRESS)이거나 아직 응답하지 않은(NO_RESPONSE) 루프. anytime 루프를 "시작"하면
+    // IN_PROGRESS 가 되는데, 이때도 목록에서 사라지지 않고 정지 버튼과 함께 남아야 한다.
+    // 완료/스킵(isRespond)만 Done/Skip 카드로 이동한다.
+    val pendingLoops = loops.filter { loop -> loop.isNotRespond || loop.isInProgress }
+    val isFinished = pendingLoops.isEmpty()
+
+    when (section.viewMode.value) {
+        TodayViewMode.TIMELINE -> sectionTodayTimeline(
+            blurState = blurState,
+            loops = loops,
+            onEdit = onEdit,
+            onDelete = onDelete,
+            onNavigateToDetailPage = onNavigateToDetailPage,
+        )
+
+        TodayViewMode.DIAL -> if (isFinished) {
+            sectionTodayFinished()
+        } else {
+            sectionTodayDial(
+                blurState = blurState,
+                loops = loops,
+                onStateChanged = onStateChanged,
+                onEdit = onEdit,
+                onDelete = onDelete,
+                onNavigateToDetailPage = onNavigateToDetailPage,
+            )
+        }
+
+        TodayViewMode.LIST -> if (isFinished) {
+            sectionTodayFinished()
+        } else {
+            sectionTodayList(
+                blurState = blurState,
+                loopViewModel = loopViewModel,
+                pendingLoops = pendingLoops,
+                editingLoopId = editingLoopId,
+                onEdit = onEdit,
+                onDelete = onDelete,
+                onStateChanged = onStateChanged,
+                onNavigateToGroupPicker = onNavigateToGroupPicker,
+                onNavigateToDetailPage = onNavigateToDetailPage,
+            )
+        }
+    }
+}
+
+private fun LazyListScope.sectionTodayTimeline(
+    blurState: BlurState,
+    loops: List<LoopBase>,
+    onEdit: (LoopBase) -> Unit,
+    onDelete: (LoopBase) -> Unit,
+    onNavigateToDetailPage: (LoopBase) -> Unit,
+) {
+    item(
+        contentType = ContentTypes.LOOP_TIMELINE,
+        key = "LoopTimeline",
+    ) {
+        LoopTimeline(
+            modifier = Modifier.padding(top = HomeCardSpacing),
+            blurState = blurState,
+            loops = loops.filter { loop -> loop.enabled },
+            onNavigateToDetailPage = onNavigateToDetailPage,
+            onEdit = onEdit,
+            onDelete = onDelete,
+        )
+    }
+}
+
+private fun LazyListScope.sectionTodayDial(
+    blurState: BlurState,
+    loops: List<LoopBase>,
+    onStateChanged: (LoopBase, Int) -> Unit,
+    onEdit: (LoopBase) -> Unit,
+    onDelete: (LoopBase) -> Unit,
+    onNavigateToDetailPage: (LoopBase) -> Unit,
+) {
+    item(
+        contentType = ContentTypes.LOOP_DIAL,
+        key = "LoopDial",
+    ) {
+        LoopCircularDial(
+            modifier = Modifier.padding(
+                horizontal = Dimens.screenHorizontalPadding,
+                vertical = HomeCardSpacing,
+            ),
+            blurState = blurState,
+            loops = loops,
+            onStateChanged = onStateChanged,
+            onEdit = onEdit,
+            onDelete = onDelete,
+            onNavigateToDetailPage = onNavigateToDetailPage,
+        )
+    }
+}
+
+private fun LazyListScope.sectionTodayList(
+    blurState: BlurState,
+    loopViewModel: LoopViewModel,
+    pendingLoops: List<LoopBase>,
+    editingLoopId: Int?,
+    onEdit: (LoopBase) -> Unit,
+    onDelete: (LoopBase) -> Unit,
+    onStateChanged: (LoopBase, Int) -> Unit,
+    onNavigateToGroupPicker: (LoopBase) -> Unit,
+    onNavigateToDetailPage: (LoopBase) -> Unit,
+) {
+    items(
+        items = pendingLoops,
+        contentType = { ContentTypes.LOOP_CARD },
+        key = { loop -> loop.loopId },
+    ) { loop ->
+        val highlightId by loopViewModel.highlightId.collectAsState()
+        val isEditing = editingLoopId != null && loop.loopId == editingLoopId
+
+        LoopCardWithOption(
+            modifier = Modifier
+                .animateItem()
+                .padding(
+                    horizontal = Dimens.screenHorizontalPadding,
+                    vertical = HomeCardSpacing,
+                ),
             blurState = blurState,
             loopViewModel = loopViewModel,
-            loops = loops,
-            editingLoopId = editingLoopId,
+            loop = loop,
+            cardValues = LoopCardValues(
+                syncWithTime = true,
+                isHighlighted = highlightId == loop.loopId,
+                isEditing = isEditing,
+                isEditDimmed = editingLoopId != null && !isEditing,
+            ),
             onEdit = onEdit,
             onDelete = onDelete,
             onStateChanged = onStateChanged,
@@ -233,26 +424,35 @@ private fun LazyListScope.sectionToday(
     }
 }
 
-private fun LazyListScope.sectionTodayEmpty(
-    modifier: Modifier = Modifier
-) {
+/** 오늘 예정된 루프를 전부 완료/스킵했을 때 목록·다이얼 자리에 대신 그리는 축하 화면. */
+private fun LazyListScope.sectionTodayFinished() {
     item(
         contentType = ContentTypes.LOOP_EMPTY,
-        key = "LoopEmpty"
+        key = "TodayFinished",
     ) {
-        TodayFinishedState(modifier = modifier)
+        TodayFinishedState()
+    }
+}
+
+/** 오늘 예정된 루프 자체가 없을 때 그리는 중립 안내. */
+private fun LazyListScope.sectionTodayNoSchedule() {
+    item(
+        contentType = ContentTypes.LOOP_EMPTY,
+        key = "TodayNoSchedule",
+    ) {
+        TodayNoScheduleState()
     }
 }
 
 /**
- * 오늘 예정된 루프를 전부 완료/스킵했을 때의 축하 화면. 공용 [HomeEmptyState]를 그대로
+ * 오늘 예정된 루프를 전부 완료/스킵했을 때의 축하 화면. 공용 [AppEmptyState]를 그대로
  * 써서 "루프 없음" 상태와 같은 문법으로 읽히되, 문구와 아이콘으로 보상의 느낌을 준다.
  */
 @Composable
 private fun TodayFinishedState(
     modifier: Modifier = Modifier,
 ) {
-    HomeEmptyState(
+    AppEmptyState(
         modifier = modifier
             .fillMaxWidth()
             .padding(
@@ -265,103 +465,25 @@ private fun TodayFinishedState(
     )
 }
 
-private fun LazyListScope.sectionTodayBody(
-    section: Section.Today,
-    blurState: BlurState,
-    loopViewModel: LoopViewModel,
-    loops: List<LoopBase>,
-    editingLoopId: Int?,
-    onEdit: (LoopBase) -> Unit,
-    onDelete: (LoopBase) -> Unit,
-    onStateChanged: (LoopBase, Int) -> Unit,
-    onNavigateToGroupPicker: (LoopBase) -> Unit,
-    onNavigateToDetailPage: (LoopBase) -> Unit,
+/**
+ * 오늘 예정된 루프가 하나도 없을 때의 안내. [TodayFinishedState]와 같은 레이아웃을 쓰되
+ * 달력 아이콘과 중립적인 문구로 "완료"가 아니라 "예정 없음"임을 분명히 한다.
+ */
+@Composable
+private fun TodayNoScheduleState(
+    modifier: Modifier = Modifier,
 ) {
-
-    val viewMode by section.viewMode
-
-    // View-mode toggle sits above the content so switching list / timeline / dial is discoverable.
-    item(
-        contentType = ContentTypes.TIMELINE_TOGGLE_BUTTON,
-        key = section.key
-    ) {
-        val context = LocalContext.current
-        ViewModeToggle(
-            modifier = Modifier.padding(bottom = HomeCardSpacing),
-            viewMode = viewMode,
-            onSelected = { selected ->
-                section.save(context = context, mode = selected)
-            }
-        )
-    }
-    when (viewMode) {
-        TodayViewMode.TIMELINE -> item(
-            contentType = ContentTypes.LOOP_TIMELINE,
-            key = "LoopTimeline",
-        ) {
-            LoopTimeline(
-                modifier = Modifier.padding(top = HomeCardSpacing),
-                blurState = blurState,
-                loops = loops.filter { loop -> loop.enabled },
-                onNavigateToDetailPage = onNavigateToDetailPage,
-                onEdit = onEdit,
-                onDelete = onDelete,
-            )
-        }
-
-        TodayViewMode.DIAL -> item(
-            contentType = ContentTypes.LOOP_DIAL,
-            key = "LoopDial",
-        ) {
-            LoopCircularDial(
-                modifier = Modifier.padding(
-                    horizontal = Dimens.screenHorizontalPadding,
-                    vertical = HomeCardSpacing,
-                ),
-                blurState = blurState,
-                loops = loops,
-                onStateChanged = onStateChanged,
-                onEdit = onEdit,
-                onDelete = onDelete,
-                onNavigateToDetailPage = onNavigateToDetailPage,
-            )
-        }
-
-        // 미응답(NO_RESPONSE)뿐 아니라 진행 중(IN_PROGRESS)인 루프도 오늘 목록에 남긴다.
-        // anytime 루프를 "시작"하면 상태가 IN_PROGRESS 로 바뀌는데, 이때 목록에서 사라지지
-        // 않고 정지 버튼과 함께 그대로 보여야 한다. 완료/스킵(isRespond)만 Done/Skip 으로 이동한다.
-        TodayViewMode.LIST -> items(
-            items = loops.filter { loop -> loop.isNotRespond || loop.isInProgress },
-            contentType = { ContentTypes.LOOP_CARD },
-            key = { loop -> loop.loopId },
-        ) { loop ->
-            val highlightId by loopViewModel.highlightId.collectAsState()
-            val isEditing = editingLoopId != null && loop.loopId == editingLoopId
-
-            LoopCardWithOption(
-                modifier = Modifier
-                    .animateItem()
-                    .padding(
-                        horizontal = Dimens.screenHorizontalPadding,
-                        vertical = HomeCardSpacing,
-                    ),
-                blurState = blurState,
-                loopViewModel = loopViewModel,
-                loop = loop,
-                cardValues = LoopCardValues(
-                    syncWithTime = true,
-                    isHighlighted = highlightId == loop.loopId,
-                    isEditing = isEditing,
-                    isEditDimmed = editingLoopId != null && !isEditing,
-                ),
-                onEdit = onEdit,
-                onDelete = onDelete,
-                onStateChanged = onStateChanged,
-                onNavigateToGroupPicker = onNavigateToGroupPicker,
-                onNavigateToDetailPage = onNavigateToDetailPage,
-            )
-        }
-    }
+    AppEmptyState(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(
+                horizontal = Dimens.screenHorizontalPadding,
+                vertical = 56.dp,
+            ),
+        icon = Icons.Outlined.CalendarToday,
+        title = stringResource(id = R.string.today_no_scheduled_loops),
+        hint = stringResource(id = R.string.today_no_scheduled_loops_hint),
+    )
 }
 
 /**
@@ -385,6 +507,7 @@ private fun ViewModeToggle(
             modifier = Modifier
                 .clip(RoundShapes.medium)
                 .background(color = AppColor.surfaceContainer)
+                .selectableGroup()
                 .padding(3.dp),
             horizontalArrangement = Arrangement.spacedBy(3.dp),
         ) {
@@ -422,7 +545,12 @@ private fun ViewModeButton(
         modifier = modifier
             .clip(RoundShapes.small)
             .background(color = if (selected) AppColor.primary else Color.Transparent)
-            .clickable(onClick = onClick)
+            // selectable(role = RadioButton) 로 스크린리더가 "라디오 버튼 · 선택됨"으로 읽게 한다.
+            .selectable(
+                selected = selected,
+                role = Role.RadioButton,
+                onClick = onClick,
+            )
             .padding(horizontal = 14.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center,
     ) {

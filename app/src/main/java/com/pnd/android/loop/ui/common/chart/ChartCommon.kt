@@ -58,9 +58,11 @@ internal fun rememberMarker(
         padding = dimensionsOf(8.dp, 4.dp),
         typeface = Typeface.MONOSPACE,
     )
+    // center/outer는 렌더 시 onApplyEntryColor에서 데이터 색으로 덮어써지지만,
+    // 그 전 fallback도 라이트/다크에서 보이도록 흰색 고정 대신 테마 색을 쓴다.
     val indicatorInnerComponent = rememberShapeComponent(Shapes.pillShape, AppColor.surface)
-    val indicatorCenterComponent = rememberShapeComponent(Shapes.pillShape, Color.White)
-    val indicatorOuterComponent = rememberShapeComponent(Shapes.pillShape, Color.White)
+    val indicatorCenterComponent = rememberShapeComponent(Shapes.pillShape, AppColor.onSurface)
+    val indicatorOuterComponent = rememberShapeComponent(Shapes.pillShape, AppColor.onSurface)
     val indicator = overlayingComponent(
         outer = indicatorOuterComponent,
         inner = overlayingComponent(

@@ -3,7 +3,6 @@ package com.pnd.android.loop.ui.common.chart
 import android.graphics.PorterDuff
 import android.graphics.Typeface
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -57,6 +56,7 @@ import com.patrykandpatrick.vico.core.marker.Marker
 import com.patrykandpatrick.vico.core.model.CartesianChartModelProducer
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.onBackground
+import com.pnd.android.loop.ui.theme.outlineVariant
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.surface
 
@@ -121,7 +121,7 @@ private fun rememberChartStartAxis(axisTitle: String) = rememberStartAxis(
         background = rememberShapeComponent(
             shape = Shapes.pillShape,
             color = Color.Transparent,
-            strokeColor = MaterialTheme.colorScheme.outlineVariant,
+            strokeColor = AppColor.outlineVariant,
             strokeWidth = 1.dp,
         ),
         padding = remember { dimensionsOf(horizontal = 6.dp, vertical = 2.dp) },
@@ -131,7 +131,7 @@ private fun rememberChartStartAxis(axisTitle: String) = rememberStartAxis(
     tick = null,
     guideline = rememberLineComponent(
         thickness = 1.dp,
-        color = MaterialTheme.colorScheme.outlineVariant,
+        color = AppColor.outlineVariant,
         shape = remember {
             Shapes.dashedShape(
                 shape = Shapes.pillShape,

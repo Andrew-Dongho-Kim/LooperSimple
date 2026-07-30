@@ -145,6 +145,14 @@ val AppColor.error
     @Composable get() = MaterialTheme.colorScheme.error
 val AppColor.onError
     @Composable get() = MaterialTheme.colorScheme.onError
+
+/**
+ * 경고/주의 상태용 앰버 강조색. [error](위험)보다 한 단계 낮은 심각도에 사용한다.
+ * 팔레트 상수([Yellow800])를 화면에서 직접 참조하면 다크모드에서 그대로 어두운 앰버가 남으므로,
+ * 여기서 라이트/다크 명도를 나눠 하나의 시맨틱 토큰으로 제공한다.
+ */
+val AppColor.warning
+    @Composable get() = if (isSystemInDarkTheme()) Yellow80 else Yellow800
 val AppColor.background
     @Composable get() = MaterialTheme.colorScheme.background //onSurface.copy(alpha = 0.02f)
 val AppColor.surface

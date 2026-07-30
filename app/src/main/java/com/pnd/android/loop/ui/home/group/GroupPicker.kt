@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -19,9 +20,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,8 +30,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopGroupVo
-import com.pnd.android.loop.ui.common.AppBarIcon
-import com.pnd.android.loop.ui.common.SimpleAppBar
+import com.pnd.android.loop.ui.common.AppEmptyState
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.Dimens
@@ -58,7 +55,7 @@ fun GroupPicker(
             .fillMaxHeight()
             .background(color = AppColor.background),
         topBar = {
-            GroupPickerAppBar(
+            GroupTopAppBar(
                 modifier = modifier.statusBarsPadding(),
                 onCreateGroup = { groupTitle -> loopGroupViewModel.addGroup(groupTitle.toString()) },
                 onNavigateUp = onNavigateUp,
@@ -88,6 +85,22 @@ private fun GroupPickerContent(
         .collectAsStateWithLifecycle(initialValue = emptyList())
 
     val lazyListState = rememberLazyListState()
+
+    if (groups.isEmpty()) {
+        // 담을 그룹이 하나도 없을 때: 공용 빈 상태로 먼저 그룹을 만들도록 안내한다(상단 + 버튼).
+        Box(
+            modifier = modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
+        ) {
+            AppEmptyState(
+                modifier = Modifier.padding(horizontal = Dimens.screenHorizontalPadding),
+                icon = Icons.Outlined.Add,
+                title = stringResource(id = R.string.group_empty_title),
+                hint = stringResource(id = R.string.group_empty_hint),
+            )
+        }
+        return
+    }
 
     LazyColumn(
         modifier = modifier,
@@ -163,35 +176,5 @@ private fun GroupItem(
                 )
             )
         }
-    }
-}
-
-@Composable
-private fun GroupPickerAppBar(
-    modifier: Modifier = Modifier,
-    onCreateGroup: (CharSequence) -> Unit,
-    onNavigateUp: () -> Unit,
-) {
-    var showCreateGroupDialog by remember { mutableStateOf(false) }
-
-    SimpleAppBar(
-        modifier = modifier,
-        title = stringResource(id = R.string.group),
-        onNavigateUp = onNavigateUp,
-        actions = {
-            AppBarIcon(
-                imageVector = Icons.Outlined.Add,
-                color = AppColor.onSurface.copy(alpha = 0.8f),
-                descriptionResId = R.string.add_group,
-                onClick = { showCreateGroupDialog = true }
-            )
-        }
-    )
-
-    if (showCreateGroupDialog) {
-        CreateGroupDialog(
-            onCreate = onCreateGroup,
-            onDismiss = { showCreateGroupDialog = false }
-        )
     }
 }

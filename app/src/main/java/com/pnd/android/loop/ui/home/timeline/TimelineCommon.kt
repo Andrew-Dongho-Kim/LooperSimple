@@ -1,6 +1,5 @@
 package com.pnd.android.loop.ui.home.timeline
 
-import androidx.compose.material.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
@@ -15,6 +14,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
+import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.util.toLocalTime
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -43,8 +43,9 @@ fun measureTextWidth(text: String, style: TextStyle): Dp {
     return with(LocalDensity.current) { widthInPixels.toDp() }
 }
 
+// 앱 전체가 Material3 타입 스케일(AppTypography)을 쓰므로 여기서도 M2 caption 대신 bodySmall(12sp)을 사용한다.
 val timeBarFontStyle
-    @Composable get() = MaterialTheme.typography.caption.copy(fontWeight = FontWeight.Bold)
+    @Composable get() = AppTypography.bodySmall.copy(fontWeight = FontWeight.Bold)
 
 val timeBarFontSizePx
     @Composable get() = with(LocalDensity.current) { timeBarFontStyle.fontSize.toPx() }

@@ -97,7 +97,12 @@ fun AppNavHost(
                 navDeepLink {
                     uriPattern = NavigatePage.Home.deepLinkPattern()
                 }
-            )
+            ),
+            // 나머지 화면과 동일한 전환을 적용해, 홈으로 돌아올 때만 애니메이션이 없던 비대칭을 없앤다.
+            enterTransition = { enterTransition() },
+            exitTransition = { exitTransition() },
+            popEnterTransition = { enterTransition() },
+            popExitTransition = { exitTransition() },
         ) { backStackEntry ->
 
             backStackEntry.arguments?.let { args ->
@@ -195,20 +200,15 @@ private fun NavGraphBuilder.page(
 }
 
 
+/** 화면 전환 시간(ms). 1000ms는 지나치게 느려 앱이 굼떠 보였기에 표준값에 가깝게 줄인다. */
+private const val ScreenTransitionMillis = 300
+
 private fun enterTransition(): EnterTransition {
-//    return
-//    scaleIn(
-//        animationSpec = tween(700),
-//        initialScale = initialScale
-//    ) +
-    return fadeIn(tween(1000)) + slideInVertically(tween(1000))
+    return fadeIn(tween(ScreenTransitionMillis)) +
+            slideInVertically(tween(ScreenTransitionMillis))
 }
 
 private fun exitTransition(): ExitTransition {
-//    return scaleOut(
-//        animationSpec = tween(
-//            durationMillis = 700,
-//        ), targetScale = targetScale
-//    ) +
-    return fadeOut(tween(1000)) + slideOutVertically(tween(1000))
+    return fadeOut(tween(ScreenTransitionMillis)) +
+            slideOutVertically(tween(ScreenTransitionMillis))
 }

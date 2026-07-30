@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.runtime.Immutable
 import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.util.intervalString
+import com.pnd.android.loop.util.overlapsInTime
 import com.pnd.android.loop.util.toLocalTime
 
 @Immutable
@@ -35,8 +36,8 @@ interface LoopBase {
 }
 
 
-fun LoopBase.isTogether(loop: LoopBase) =
-    (loop.startInDay in startInDay..<endInDay) || (loop.endInDay in (startInDay + 1)..<endInDay)
+// 두 루프의 시간대가 겹치는지(자정을 넘겨 감기는 구간까지 고려). 원형 24시간 겹침 판정을 재사용한다.
+fun LoopBase.isTogether(loop: LoopBase) = overlapsInTime(loop)
 
 fun LoopBase.description(context: Context) =
     """ -->
