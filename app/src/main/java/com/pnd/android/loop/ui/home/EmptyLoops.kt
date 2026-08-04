@@ -113,7 +113,7 @@ fun EmptyLoops(
         }
 
         // 화면 하단에 떠 있는 입력 바에 콘텐츠가 가리지 않도록 여백을 둔다.
-        Spacer(modifier = Modifier.height(140.dp))
+        Spacer(modifier = Modifier.height(Dimens.bottomContentClearance))
     }
 }
 

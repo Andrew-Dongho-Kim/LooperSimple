@@ -24,4 +24,20 @@ object Dimens {
 
     /** Small gap between tightly related elements (icon + label, value + caption). */
     val itemSpacing = 6.dp
+
+    /**
+     * Size (diameter) of the floating add-loop button that hovers over the scrolling content.
+     * Shared so the button, the snackbar that must clear it, and the list's bottom spacer all
+     * derive from one value instead of repeating the magic number per file.
+     */
+    val floatingInputButtonSize = 56.dp
+
+    /** Margin from the screen edges to the floating add-loop button. */
+    val floatingInputButtonMargin = 32.dp
+
+    /**
+     * Bottom clearance reserved below scrolling content so the last item isn't hidden behind the
+     * floating add-loop button. Used by both the loop list and the empty-state screen.
+     */
+    val bottomContentClearance = 150.dp
 }

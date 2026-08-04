@@ -11,6 +11,7 @@ import com.pnd.android.loop.data.LoopVo
 import com.pnd.android.loop.data.LoopWithDone
 import com.pnd.android.loop.data.isDisabled
 import com.pnd.android.loop.data.isNotRespond
+import com.pnd.android.loop.data.isRespond
 import com.pnd.android.loop.util.isActive
 import com.pnd.android.loop.util.isActiveDay
 import com.pnd.android.loop.util.toLocalDate
@@ -246,6 +247,10 @@ class LoopRepository @Inject constructor(
         // 서비스가 DB를 다시 읽어 진행 중인 루프가 없으면 스스로 알림을 내리므로,
         // 어떤 상태 변경이든 refresh 한 번으로 등록/삭제가 항상 동기화된다.
         loopScheduler.refreshOngoingNotification()
+
+        // 앱에서 답했다면 "완료했나요?" 확인 알림은 이미 할 일을 다 했다. 상시 알림과 달리
+        // 이 알림은 스스로 사라지지 않으므로 여기서 명시적으로 내린다.
+        if (doneState.isRespond()) loopScheduler.cancelEndPrompt(loop.loopId)
     }
 
     suspend fun getMemo(

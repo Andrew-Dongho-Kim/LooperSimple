@@ -27,6 +27,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
@@ -80,6 +81,7 @@ import com.pnd.android.loop.ui.home.input.rememberUserInputState
 import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
+import com.pnd.android.loop.ui.theme.Dimens
 import com.pnd.android.loop.ui.theme.background
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
@@ -87,6 +89,7 @@ import com.pnd.android.loop.ui.theme.surfaceElevated
 import com.pnd.android.loop.util.isActive
 import com.pnd.android.loop.util.isActiveDay
 import com.pnd.android.loop.util.toMs
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -144,7 +147,11 @@ fun Home(
                 modifier = Modifier
                     .navigationBarsPadding()
                     .imePadding()
-                    .padding(bottom = 48.dp + 56.dp)
+                    // 스낵바가 떠 있는 추가 버튼 위에 걸리도록, 버튼 크기/여백에서 파생한 여유를 둔다.
+                    .padding(
+                        bottom = Dimens.floatingInputButtonMargin +
+                            Dimens.floatingInputButtonSize + 16.dp
+                    )
                     .padding(
                         bottom = if (inputState.isSelectorOpened) {
                             dimensionResource(id = R.dimen.user_input_selector_content_height)
@@ -162,7 +169,7 @@ fun Home(
         contentWindowInsets = contentWindowInsets,
     )
     { contentPadding ->
-        HomeContent(
+        HomeScaffoldContent(
             modifier = Modifier.padding(contentPadding),
             blurState = blurState,
             inputState = inputState,
@@ -181,7 +188,7 @@ fun Home(
 
 
 @Composable
-private fun HomeContent(
+private fun HomeScaffoldContent(
     modifier: Modifier,
     blurState: BlurState,
     inputState: UserInputState,
@@ -202,7 +209,7 @@ private fun HomeContent(
         val backdrop = rememberBackdropState()
         val headerBackdrop = if (supportsBackdropBlur) backdrop else null
 
-        HomeContent(
+        HomeBody(
             // 내비게이션 바 영역까지 콘텐츠가 그려지도록 navigationBarsPadding을 두지 않는다.
             modifier = Modifier
                 .fillMaxHeight()
@@ -259,6 +266,7 @@ private fun HomeContent(
         )
 
         val context = LocalContext.current
+        val scope = rememberCoroutineScope()
         UserInput(
             modifier = Modifier
                 .align(Alignment.BottomStart)
@@ -277,15 +285,27 @@ private fun HomeContent(
                 )
             },
             onLoopSubmitted = { newLoop ->
-                loopViewModel.addOrUpdateLoop(
-                    newLoop.asLoopVo(
-                        created = if (newLoop.created == 0L) {
-                            LocalDateTime.now().toMs()
-                        } else {
-                            newLoop.created
+                // created == 0L 은 아직 저장된 적 없는 새 루프. 이 경우에만 추가 확인 + 실행취소를
+                // 제공해, 빠른 시작(템플릿) 추가와 동일한 피드백으로 통일한다. 기존 루프 편집은
+                // 되돌릴 값이 다르므로 그대로 갱신만 한다.
+                val isNewLoop = newLoop.created == 0L
+                if (isNewLoop) {
+                    scope.launch {
+                        val added = loopViewModel.addLoopReturning(
+                            newLoop.asLoopVo(created = LocalDateTime.now().toMs())
+                        )
+                        val result = snackBarHostState.showSnackbar(
+                            message = context.getString(R.string.oobe_loop_added, added.title),
+                            actionLabel = context.getString(R.string.action_undo),
+                            duration = SnackbarDuration.Long,
+                        )
+                        if (result == SnackbarResult.ActionPerformed) {
+                            loopViewModel.deleteLoop(added)
                         }
-                    )
-                )
+                    }
+                } else {
+                    loopViewModel.addOrUpdateLoop(newLoop.asLoopVo(created = newLoop.created))
+                }
             }
         )
 
@@ -328,7 +348,7 @@ private fun NavigationBarInputScrim(
 }
 
 @Composable
-private fun HomeContent(
+private fun HomeBody(
     modifier: Modifier = Modifier,
     blurState: BlurState,
     inputState: UserInputState,
@@ -403,7 +423,13 @@ private fun HomeContent(
     ) {
         val currentSections = sections
         if (currentSections == null) {
-            // 아직 DB 로딩 전 — 빈 상태(EmptyLoops)를 그리면 깜빡이므로 배경만 두고 기다린다.
+            // 아직 DB 로딩 전 — 빈 상태(EmptyLoops)를 그리면 깜빡이므로 그리지 않는다.
+            // 다만 로딩이 길어질 때는 멈춘 화면처럼 보이지 않도록 잠깐 뒤 스피너를 띄운다.
+            LoadingLoops(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = headerHeight)
+            )
         } else if (currentSections.isEmpty()) {
             EmptyLoops(
                 modifier = Modifier
@@ -422,7 +448,7 @@ private fun HomeContent(
                         val result = snackBarHostState.showSnackbar(
                             message = context.getString(R.string.oobe_loop_added, added.title),
                             actionLabel = context.getString(R.string.action_undo),
-                            duration = SnackbarDuration.Short,
+                            duration = SnackbarDuration.Long,
                         )
                         if (result == SnackbarResult.ActionPerformed) {
                             loopViewModel.deleteLoop(added)
@@ -455,12 +481,37 @@ private fun HomeContent(
                     )
                 }
                 item {
-                    Spacer(modifier = Modifier.height(150.dp))
+                    Spacer(modifier = Modifier.height(Dimens.bottomContentClearance))
                 }
             }
         }
     }
 }
+
+/**
+ * DB 로딩 중 표시하는 지연 인디케이터. 대부분의 로딩은 한 프레임 안에 끝나므로, 바로 스피너를
+ * 그리면 깜빡임만 남긴다. 그래서 [DELAY_MS]만큼 지난 뒤에도 여전히 로딩 중일 때만 스피너를 띄워,
+ * 짧은 로딩은 조용히 지나가고 길어질 때만 "동작 중" 신호를 준다.
+ */
+@Composable
+private fun LoadingLoops(modifier: Modifier = Modifier) {
+    var showSpinner by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(LOADING_SPINNER_DELAY_MS)
+        showSpinner = true
+    }
+    if (showSpinner) {
+        Box(modifier = modifier, contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(28.dp),
+                color = AppColor.primary,
+                strokeWidth = 2.dp,
+            )
+        }
+    }
+}
+
+private const val LOADING_SPINNER_DELAY_MS = 300L
 
 @Composable
 private fun LoopViewModel.observeSectionsAsState(

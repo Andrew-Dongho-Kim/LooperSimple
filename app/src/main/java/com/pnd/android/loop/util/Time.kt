@@ -24,6 +24,7 @@ import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.actualEndInDay
 import com.pnd.android.loop.data.actualStartInDay
 import com.pnd.android.loop.data.doneState
+import com.pnd.android.loop.data.isInProgress
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.BlueGreen
 import com.pnd.android.loop.ui.theme.Red300
@@ -307,6 +308,45 @@ fun LoopBase.isActive(localDateTime: LocalDateTime = LocalDateTime.now()): Boole
 
 fun LoopBase.isActiveDay(localDate: LocalDate = LocalDate.now()): Boolean {
     return activeDays.isOn(dayForLoop(localDate))
+}
+
+/**
+ * 지금 진행 중인 occurrence 의 done 기록이 담긴 행을 고른다.
+ *
+ * done 기록은 "루프가 시작한 날"에 저장되는데, 자정을 넘겨 이어지는 루프는 그 날이 어제다.
+ * 오늘 행만 보면 이미 완료한 루프를 계속 미응답으로 판정해(오늘 행은 자정 동기화가 넣은
+ * NO_RESPONSE) 알림·위젯에서 사라지지 않으므로, 판정에 쓸 행을 여기서 바꿔 준다.
+ *
+ * - 시간제 루프: 자정을 넘겨 이어지는 구간이면([occurrenceStartDate] 가 어제) 어제 행
+ * - anytime 루프: 어제 시작(IN_PROGRESS)해 아직 정지하지 않았으면 어제 행
+ *
+ * [today]/[yesterday] 는 같은 loopId 의 같은 루프를 각각 오늘·어제 날짜로 조인한 결과여야 한다.
+ */
+fun currentOccurrence(
+    today: LoopBase,
+    yesterday: LoopBase?,
+    now: LocalDateTime = LocalDateTime.now(),
+): LoopBase {
+    if (yesterday == null) return today
+
+    return if (today.isAnyTime) {
+        // 오늘 다시 시작했다면 오늘 것이 우선이다(어제 기록은 이미 지난 occurrence).
+        if (!today.isInProgress && yesterday.isInProgress) yesterday else today
+    } else {
+        if (today.occurrenceStartDate(now) == now.toLocalDate().minusDays(1)) yesterday else today
+    }
+}
+
+/**
+ * anytime 루프가 시작된 뒤 지난 분. 시작 시각은 하루 안의 ms 라 자정을 넘기면 지금보다
+ * "큰" 값이 되므로, 하루 둘레(mod 24h)로 계산해 음수가 나오지 않게 한다.
+ * 시작 기록이 없으면(ANY_TIME=-1) null.
+ */
+fun LoopBase.elapsedMinutesSinceStart(now: LocalTime = LocalTime.now()): Int? {
+    val start = actualStartInDay
+    if (start < 0) return null
+    val elapsed = ((now.toMs() - start) % MS_1DAY + MS_1DAY) % MS_1DAY
+    return (elapsed / MS_1MIN).toInt()
 }
 
 fun LoopBase.isActiveTime(localDateTime: LocalDateTime = LocalDateTime.now()): Boolean {

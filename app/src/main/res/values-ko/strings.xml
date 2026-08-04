@@ -335,12 +335,28 @@
         <item quantity="other">외 %d개</item>
     </plurals>
 
+    <!-- anytime 루프의 경과 시간. 통계 화면용 time_stat_* 과 달리 "#" 접두사를 붙이지 않는다. -->
+    <plurals name="notification_time_passed_hours">
+        <item quantity="other">%d시간 경과</item>
+    </plurals>
+    <plurals name="notification_time_passed_mins">
+        <item quantity="other">%d분 경과</item>
+    </plurals>
+
     <!-- 루프 시작/진행 중 안내(heads-up) 알림 -->
     <string name="notification_loop_started_channel">루프 알림</string>
     <!-- 루프가 막 시작됐을 때의 친절한 안내 제목 -->
     <string name="notification_loop_started_title">%s 시작할 시간이에요</string>
+    <!-- 여러 루프가 같은 시각에 시작했을 때의 통합 안내 제목 -->
+    <plurals name="notification_loops_started_title">
+        <item quantity="other">루프 %d개 시작할 시간이에요</item>
+    </plurals>
     <!-- 화면이 다시 켜졌을 때 아직 진행 중인 루프 안내 제목 -->
     <string name="notification_loop_in_progress_title">%s 진행 중이에요</string>
+
+    <!-- 시간창이 끝났는데 아직 응답이 없는 루프에 완료 여부를 묻는 알림 -->
+    <string name="notification_loop_ended_title">%s 완료했나요?</string>
+    <string name="notification_loop_ended_text">%s에 종료됐어요</string>
 
     <string name="desc_native_ad">광고</string>
     <string name="ad_expand">자세히 보기</string>

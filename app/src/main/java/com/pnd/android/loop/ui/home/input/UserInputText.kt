@@ -23,6 +23,7 @@ import com.pnd.android.loop.R
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.Dimens
+import com.pnd.android.loop.ui.theme.error
 import com.pnd.android.loop.ui.theme.onSurface
 
 
@@ -32,6 +33,7 @@ fun UserInputText(
     textField: TextFieldValue,
     keyboardType: KeyboardType = KeyboardType.Text,
     hasFocus: Boolean,
+    isError: Boolean = false,
     onTextChanged: (TextFieldValue) -> Unit,
     onTextFieldFocused: (Boolean) -> Unit
 ) {
@@ -57,8 +59,14 @@ fun UserInputText(
             onTextFieldFocused = onTextFieldFocused
         )
 
-        if (textField.text.isEmpty() && !hasFocus) {
-            EmptyTextField(modifier = Modifier.align(Alignment.CenterStart))
+        if (textField.text.isEmpty()) {
+            // 제출을 시도했는데 제목이 비어 있으면(오류) 포커스 여부와 무관하게 오류 안내를 띄운다.
+            // 그 외에는 포커스가 없을 때만 기본 플레이스홀더를 보여 준다.
+            if (isError) {
+                ErrorTextField(modifier = Modifier.align(Alignment.CenterStart))
+            } else if (!hasFocus) {
+                EmptyTextField(modifier = Modifier.align(Alignment.CenterStart))
+            }
         }
     }
 
@@ -98,6 +106,23 @@ private fun EmptyTextField(
         text = stringResource(R.string.desc_enter_loop_title),
         style = AppTypography.titleMedium.copy(
             color = AppColor.onSurface.copy(alpha = 0.4f)
+        )
+    )
+}
+
+/**
+ * 빈 제목으로 제출을 시도했을 때 필드 자리에 보여 주는 인라인 오류 안내. 하단 스낵바 대신
+ * 입력 지점에서 바로 알려, 시선 이동 없이 무엇을 고쳐야 하는지 즉시 전달한다.
+ */
+@Composable
+private fun ErrorTextField(
+    modifier: Modifier = Modifier,
+) {
+    Text(
+        modifier = modifier.padding(start = Dimens.contentPadding),
+        text = stringResource(R.string.warning_enter_characters_other_than_spaces),
+        style = AppTypography.titleMedium.copy(
+            color = AppColor.error
         )
     )
 }

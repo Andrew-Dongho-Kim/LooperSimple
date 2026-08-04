@@ -7,8 +7,10 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.SystemClock
+import com.pnd.android.loop.alarm.notification.LoopEndPrompter
 import com.pnd.android.loop.alarm.notification.LoopForegroundService
 import com.pnd.android.loop.alarm.notification.LoopStartAnnouncer
+import com.pnd.android.loop.alarm.notification.cancelLoopEndedNotification
 import com.pnd.android.loop.appwidget.AppWidgetUpdateWorker
 import com.pnd.android.loop.common.log
 import com.pnd.android.loop.data.AppDatabase
@@ -158,23 +160,37 @@ class LoopScheduler @Inject constructor(
         LoopForegroundService.refresh(context)
     }
 
+    /**
+     * 앱에서 완료/건너뛰기로 답했다면, 그 루프의 "완료했나요?" 확인 알림도 함께 내린다.
+     * 확인 알림은 사용자가 어디서 답했는지 알 수 없으므로 응답을 기록하는 쪽에서 내려 줘야 한다.
+     */
+    fun cancelEndPrompt(loopId: Int) {
+        cancelLoopEndedNotification(context = context, loopId = loopId)
+    }
+
     fun cancelAlarm(loop: LoopBase) {
         if (loop.enabled) {
             coroutineScope.launch { loopDao.addOrUpdate(loop.asLoopVo(enabled = false)) }
         }
         logger.i { " - cancel id:${loop.loopId}, title:${loop.title}" }
 
-        val alarmIntent = Intent(context, AlarmReceiver::class.java).apply {
-            action = ACTION_LOOP_START
+        // PendingIntent 동등성은 action 을 포함하므로 시작/종료/반복이 각각 별개로 예약돼
+        // 있다. START 만 취소하면 남은 종료·반복 알람이 나중에 유령처럼 도착해 서비스를
+        // 깨우고 반복 체인을 계속 재예약한다. 세 액션을 모두 취소한다.
+        listOf(ACTION_LOOP_START, ACTION_LOOP_END, ACTION_LOOP_REPEAT).forEach { alarmAction ->
+            val alarmIntent = Intent(context, AlarmReceiver::class.java).apply {
+                action = alarmAction
+            }
+            val pendingIntent =
+                PendingIntent.getBroadcast(
+                    context,
+                    loop.loopId,
+                    alarmIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+                )
+            alarmManager.cancel(pendingIntent)
+            pendingIntent.cancel()
         }
-        val pendingIntent =
-            PendingIntent.getBroadcast(
-                context,
-                loop.loopId,
-                alarmIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
-            )
-        alarmManager.cancel(pendingIntent)
     }
 
     @AndroidEntryPoint
@@ -188,11 +204,14 @@ class LoopScheduler @Inject constructor(
         @Inject
         lateinit var loopStartAnnouncer: LoopStartAnnouncer
 
+        @Inject
+        lateinit var loopEndPrompter: LoopEndPrompter
+
         override fun onReceive(context: Context, intent: Intent) {
             when (intent.action) {
                 ACTION_LOOP_START -> handleActionLoopStart(context, intent)
                 ACTION_LOOP_END -> handleActionLoopEnd(context, intent)
-                ACTION_LOOP_REPEAT -> handleActionLoopRepeat(context, intent)
+                ACTION_LOOP_REPEAT -> handleActionLoopRepeat(intent)
                 ACTION_LOOP_SYNC -> handleActionLoopSync(context, intent)
 
                 ACTION_LOOP_DONE -> handleActionLoopDone(context)
@@ -251,17 +270,23 @@ class LoopScheduler @Inject constructor(
         }
 
         private fun handleActionLoopEnd(context: Context, intent: Intent) {
-            // 종료 시각: 통합 알림을 다시 계산해 끝난 루프를 목록에서 뺀다.
+            // 종료 시각: 통합 알림을 다시 계산해 끝난 루프를 목록에서 뺀다. 서비스의 1분 틱도
+            // 같은 일을 하지만, Doze 등으로 틱을 놓친 경우를 위한 확실한 트리거로 남겨 둔다.
             LoopForegroundService.refresh(context)
             AppWidgetUpdateWorker.updateWidget(context)
+
+            // 목록에서 빼기만 하면 미응답 루프가 조용히 사라진다. 아직 답하지 않았다면
+            // "완료했나요?" 로 한 번 물어, 그 자리에서 기록할 수 있게 한다.
+            loopEndPrompter.prompt(intent.asLoop().loopId)
         }
 
-        private fun handleActionLoopRepeat(context: Context, intent: Intent) {
+        private fun handleActionLoopRepeat(intent: Intent) {
             val loop = intent.asLoop()
 
+            // 알림은 건드리지 않는다. 포그라운드 서비스가 이미 1분마다 DB를 다시 읽어
+            // 갱신하므로, 반복 틱마다 refresh 를 부르면 서비스만 불필요하게 재기동된다.
+            // 이 알람의 역할은 종료 알람까지 이어지는 반복 체인을 유지하는 것뿐이다.
             reserveRepeat(loop)
-            // 반복 간격마다 알림 내용을 조용히 갱신한다.
-            notifyActiveLoop(context, loop)
         }
 
         private fun reserveRepeat(loop: LoopBase) {

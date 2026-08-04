@@ -19,6 +19,7 @@ import com.pnd.android.loop.appwidget.AppWidgetUpdateWorker.Companion.Action.Com
 import com.pnd.android.loop.appwidget.AppWidgetUpdateWorker.Companion.Action.Companion.START_LOOP
 import com.pnd.android.loop.appwidget.AppWidgetUpdateWorker.Companion.Action.Companion.STOP_LOOP
 import com.pnd.android.loop.alarm.notification.LoopForegroundService
+import com.pnd.android.loop.alarm.notification.cancelLoopEndedNotification
 import com.pnd.android.loop.common.Logger
 import com.pnd.android.loop.data.AppDatabase
 import com.pnd.android.loop.data.LoopBase
@@ -29,11 +30,14 @@ import com.pnd.android.loop.data.TodayLoopOrder
 import com.pnd.android.loop.data.actualEndInDay
 import com.pnd.android.loop.data.actualStartInDay
 import com.pnd.android.loop.data.asLoopVo
-import com.pnd.android.loop.data.isInProgress
-import com.pnd.android.loop.data.isNotRespond
+import com.pnd.android.loop.data.isDisabled
+import com.pnd.android.loop.data.isRespond
 import com.pnd.android.loop.data.putTo
+import com.pnd.android.loop.util.currentOccurrence
 import com.pnd.android.loop.util.isActive
 import com.pnd.android.loop.util.isActiveDay
+import com.pnd.android.loop.util.occurrenceStartDate
+import com.pnd.android.loop.util.toLocalDate
 import com.pnd.android.loop.util.toLocalTime
 import com.pnd.android.loop.util.toMs
 import dagger.assisted.Assisted
@@ -76,42 +80,77 @@ class AppWidgetUpdateWorker @AssistedInject constructor(
         // 위젯에서 루프를 시작/정지(완료/스킵)했을 때도 상시 알림을 즉시 동기화한다.
         //  - 시작(IN_PROGRESS)하면 곧바로 알림에 등록되고,
         //  - 정지/완료/스킵하면 진행 중인 루프가 없어질 경우 서비스가 스스로 알림을 내린다.
-        if (loopStateChanged) LoopForegroundService.refresh(context)
+        if (loopStateChanged) {
+            LoopForegroundService.refresh(context)
+            // 이미 답한 루프에 "완료했나요?" 확인 알림이 남지 않게 한다. 위젯에서 답한
+            // 경우까지 여기서 함께 처리된다(알림 액션도 이 워커를 거친다).
+            cancelLoopEndedNotification(context = context, loopId = loopId())
+        }
         return Result.success()
     }
 
     private fun has(@Action action: String) = params.inputData.getString(PARAMS_ACTION) == action
     private fun loopId() = params.inputData.getInt(PARAMS_LOOP_ID, -1)
 
+    /** 호출자가 지정한 기록 날짜([PARAMS_DATE]). 지정하지 않았으면 null(=지금 기준으로 정한다). */
+    private fun requestedDate(): LocalDate? =
+        params.inputData.getLong(PARAMS_DATE, 0L).takeIf { it > 0L }?.toLocalDate()
+
     private suspend fun done() {
         val loopId = loopId()
         val loop = loopDao.getLoop(loopId) ?: return
+        val date = requestedDate() ?: responseDate(loop)
         loopDoneDao.addOrUpdate(
             LoopDoneVo(
                 loopId = loopId,
-                date = LocalDate.now().toMs(),
+                date = date.toMs(),
                 startInDay = loop.startInDay,
                 endInDay = loop.endInDay,
                 done = DoneState.DONE
             )
         )
-        logger.i { "done: $loopId" }
+        logger.i { "done: $loopId on $date" }
     }
 
     private suspend fun skip() {
         val loopId = loopId()
         val loop = loopDao.getLoop(loopId) ?: return
+        val date = requestedDate() ?: responseDate(loop)
         loopDoneDao.addOrUpdate(
             LoopDoneVo(
                 loopId = loopId,
-                date = LocalDate.now().toMs(),
+                date = date.toMs(),
                 startInDay = loop.startInDay,
                 endInDay = loop.endInDay,
                 done = DoneState.SKIP
             )
         )
-        logger.i { "skip: $loopId" }
+        logger.i { "skip: $loopId on $date" }
     }
+
+    /**
+     * 응답(완료/건너뛰기/정지)을 기록할 occurrence 의 날짜.
+     *
+     * done 기록은 루프가 "시작한 날"에 저장된다. 자정을 넘겨 이어지는 루프를 그냥 오늘로
+     * 기록하면 어제 시작한 occurrence 는 영원히 미응답으로 남고(알림·위젯에서 사라지지 않고
+     * 통계도 어긋난다) 오늘 몫이 잘못 완료 처리된다.
+     *  - 시간제: 자정을 넘긴 구간이면 어제([occurrenceStartDate])
+     *  - anytime: 진행 중(IN_PROGRESS) 기록이 있는 날. 오늘 → 어제 순으로 찾는다.
+     *
+     * 어느 쪽이든 "지금이 그 occurrence 안"이라는 전제가 깔려 있다. 이미 끝난 루프에 답하는
+     * 경우(종료 확인 알림)에는 이 판정이 맞지 않으므로, 호출자가 [PARAMS_DATE] 로 날짜를 지정한다.
+     */
+    private suspend fun responseDate(loop: LoopBase): LocalDate {
+        val today = LocalDate.now()
+        if (!loop.isAnyTime) return loop.occurrenceStartDate()
+
+        if (isInProgressAt(loop.loopId, today)) return today
+        val yesterday = today.minusDays(1)
+        return if (isInProgressAt(loop.loopId, yesterday)) yesterday else today
+    }
+
+    private suspend fun isInProgressAt(loopId: Int, date: LocalDate) =
+        loopDoneDao.getDoneState(loopId = loopId, date = date.toMs())?.done == DoneState.IN_PROGRESS
 
     private suspend fun start() {
         val loopId = loopId()
@@ -129,19 +168,22 @@ class AppWidgetUpdateWorker @AssistedInject constructor(
 
     private suspend fun stop() {
         val loopId = loopId()
+        val loop = loopDao.getLoop(loopId) ?: return
         val endAt = LocalTime.now().toMs()
-        val today = LocalDate.now().toMs()
+        // 어제 시작해 자정을 넘긴 anytime 루프는 어제 행에 IN_PROGRESS 로 남아 있다.
+        // 오늘 행에 기록하면 어제 행이 계속 진행 중으로 남아 알림이 사라지지 않는다.
+        val date = responseDate(loop).toMs()
 
         val doneVo = loopDoneDao.getDoneState(
             loopId = loopId,
-            date = today
+            date = date
         )
 
         val startAt = doneVo?.startInDay ?: 0
         loopDoneDao.addOrUpdate(
             LoopDoneVo(
                 loopId = loopId,
-                date = today,
+                date = date,
                 startInDay = startAt,
                 endInDay = endAt,
                 done = DoneState.DONE
@@ -151,12 +193,18 @@ class AppWidgetUpdateWorker @AssistedInject constructor(
     }
 
     private suspend fun refresh() {
-        val loops = fullLoopDao.getAllEnabledLoops(date = LocalDate.now().toMs())
+        val today = LocalDate.now()
+        // 자정을 넘겨 이어지는 루프의 done 기록은 어제 행에 있다. 오늘 행만 보면 이미 완료한
+        // 루프가 계속 미응답으로 남아 위젯에서 사라지지 않는다.
+        val yesterdayLoops = fullLoopDao.getAllEnabledLoops(date = today.minusDays(1).toMs())
+            .associateBy { it.loopId }
+        val loops = fullLoopDao.getAllEnabledLoops(date = today.toMs())
+            .map { loop -> currentOccurrence(today = loop, yesterday = yesterdayLoops[loop.loopId]) }
         updateWidget(
             context = context,
             loops = loops.filter { loop ->
                 // 오늘 활성이거나, 자정을 넘겨 지금도 진행 중인(어제 시작한) 루프. 그중 미응답·진행 중만.
-                (loop.isActiveDay() || loop.isActive()) && (loop.isNotRespond || loop.isInProgress)
+                (loop.isActiveDay() || loop.isActive()) && !loop.isRespond && !loop.isDisabled
             }.sortedWith(TodayLoopOrder())
                 .map { loop -> loop.toWidgetLoop() }
         )
@@ -222,16 +270,21 @@ class AppWidgetUpdateWorker @AssistedInject constructor(
             )
         }
 
+        /**
+         * @param date 응답을 기록할 occurrence 의 날짜(에폭 ms). 0 이면 지금 기준으로 정한다([PARAMS_DATE]).
+         */
         fun actionLoop(
             context: Context,
             @Action action: String,
-            loopId: Int
+            loopId: Int,
+            date: Long = 0L,
         ) = enqueueWork(
             context = context,
             inputData = Data.Builder()
                 .putBoolean(PARAMS_UPDATE_LOOPS, true)
                 .putString(PARAMS_ACTION, action)
                 .putInt(PARAMS_LOOP_ID, loopId)
+                .putLong(PARAMS_DATE, date)
                 .build()
         )
 

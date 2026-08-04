@@ -34,8 +34,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -58,6 +60,7 @@ import com.pnd.android.loop.ui.home.input.SharedElementsOfUserInput.TRANSITION_D
 import com.pnd.android.loop.ui.home.input.selector.Selectors
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
+import com.pnd.android.loop.ui.theme.Dimens
 import com.pnd.android.loop.ui.theme.compositeOverOnSurface
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.outline
@@ -125,6 +128,11 @@ fun UserInput(
     val focusRequester = remember { FocusRequester() }
 
     val coroutineScope = rememberCoroutineScope()
+
+    // 제목이 빈 채로 제출을 시도했을 때만 켜지는 인라인 오류 플래그. 하단 스낵바 대신 입력 필드
+    // 자리(플레이스홀더)에서 바로 알려 준다. 사용자가 글자를 입력하면 즉시 해제한다.
+    var titleError by remember { mutableStateOf(false) }
+
     SideEffect {
         // 셀렉터(색/시간/간격)가 열려 있을 때만 포커스를 셀렉터 타깃으로 옮겨 키보드를 내린다.
         // 과거 조건(`!keyboardShown`)은 키보드가 아직 뜨지 않은 프레임(텍스트 필드를 막 탭해
@@ -159,7 +167,12 @@ fun UserInput(
         UserInputText(
             textField = inputState.textFieldValue,
             hasFocus = keyboardShown,
-            onTextChanged = { textFiledValue -> inputState.update(title = textFiledValue) },
+            isError = titleError,
+            onTextChanged = { textFiledValue ->
+                inputState.update(title = textFiledValue)
+                // 글자가 들어오면 오류 상태를 즉시 해제한다.
+                if (titleError && textFiledValue.text.isNotBlank()) titleError = false
+            },
             onTextFieldFocused = { focused ->
                 inputState.setTextFieldFocused(focused)
                 if (focused) {
@@ -176,6 +189,12 @@ fun UserInput(
             onSubmitted = {
                 coroutineScope.launch {
                     val loop = inputState.value
+                    // 빈 제목은 필드 자리에서 인라인으로 알리고, 하단 스낵바까지 띄우지는 않는다.
+                    // (시간/동시 개수 등 필드 밖 검증은 계속 onEnsureLoop의 스낵바로 안내한다.)
+                    if (loop.title.trim().isEmpty()) {
+                        titleError = true
+                        return@launch
+                    }
                     if (onEnsureLoop(loop)) {
                         onLoopSubmitted(loop)
                         inputState.reset()
@@ -210,8 +229,8 @@ private fun UserInputExpandButton(
                 .fillMaxWidth()
                 .wrapContentHeight()
                 .padding(
-                    bottom = 32.dp,
-                    end = 32.dp
+                    bottom = Dimens.floatingInputButtonMargin,
+                    end = Dimens.floatingInputButtonMargin
                 )
         ) {
 
@@ -220,7 +239,7 @@ private fun UserInputExpandButton(
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .size(56.dp)
+                    .size(Dimens.floatingInputButtonSize)
                     .shadow(2.dp, shape = CircleShape)
                     .clip(CircleShape)
                     .border(

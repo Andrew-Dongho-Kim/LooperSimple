@@ -64,4 +64,16 @@
             android:textAppearance="@style/TextAppearance.Compat.Notification.Info"
             android:textSize="11sp" />
     </LinearLayout>
+
+    <!-- 라인별 응답 버튼(완료 / anytime 은 정지). 알림 액션 버튼은 알림 전체에 하나씩만
+         달 수 있어, 루프가 여러 개일 때는 이 버튼으로 대상을 명확히 한다.
+         루프가 하나일 때는 아래쪽 알림 액션 버튼이 더 풍부하므로 코드에서 감춘다. -->
+    <ImageView
+        android:id="@+id/loop_row_action"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_gravity="center_vertical"
+        android:layout_marginStart="8dp"
+        android:padding="9dp"
+        android:scaleType="fitCenter" />
 </LinearLayout>
