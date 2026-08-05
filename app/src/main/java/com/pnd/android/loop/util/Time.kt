@@ -229,6 +229,18 @@ fun Long.toLocalTime(): LocalTime = LocalTime.ofNanoOfDay(
     TimeUnit.NANOSECONDS.convert(this, TimeUnit.MILLISECONDS)
 )
 
+/**
+ * 로그에 찍을 시각 표기. 하루 안의 시각이 아닌 값도 안전하게 문자열로 만든다.
+ *
+ * anytime 루프의 시작·종료는 ANY_TIME(-1)이고, done 기록이 없는 행도 음수를 갖는다. 이 값을
+ * [toLocalTime] 에 넣으면 DateTimeException 이 난다. 로거는 인라인 함수라 람다가 항상 평가되므로
+ * (릴리스 빌드에서도) 진단용 문자열 하나가 앱을 죽일 수 있다. 로그에는 반드시 이 함수를 쓴다.
+ *
+ * 시각이 없다는 것도 알아야 할 정보이므로 0시로 뭉개지 않고 그대로 드러낸다.
+ */
+fun Long.toTimeTextForLog(): String =
+    if (this in 0 until MS_1DAY) toLocalTime().toString() else "invalid($this)"
+
 fun LocalDateTime.toMs(zoneId: ZoneId = ZoneId.systemDefault()) =
     atZone(zoneId).toInstant().toEpochMilli()
 

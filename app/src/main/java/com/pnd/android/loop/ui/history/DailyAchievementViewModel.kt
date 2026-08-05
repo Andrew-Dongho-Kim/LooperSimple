@@ -1,20 +1,21 @@
 package com.pnd.android.loop.ui.history
 
-import android.app.Application
-import android.content.Context
-import androidx.core.content.edit
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import com.pnd.android.loop.data.AppDatabase
 import com.pnd.android.loop.data.LoopByDate
-import com.pnd.android.loop.ui.statisctics.StreakStat
+import com.pnd.android.loop.data.LoopDoneVo
+import com.pnd.android.loop.data.MonthlyCompletionCount
+import com.pnd.android.loop.data.isDone
+import com.pnd.android.loop.data.isSkip
+import com.pnd.android.loop.ui.statisctics.computePerfectDays
 import com.pnd.android.loop.ui.statisctics.computeStreak
+import com.pnd.android.loop.ui.statisctics.investedTimeMs
 import com.pnd.android.loop.util.toLocalDate
 import com.pnd.android.loop.util.toMs
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import java.time.LocalDate
@@ -22,14 +23,11 @@ import java.time.YearMonth
 import javax.inject.Inject
 
 private const val PAGE_SIZE = 30
-private const val PREF_NAME = "daily_achievement"
-private const val KEY_VIEW_MODE = "key_view_mode"
 
 @HiltViewModel
 class DailyAchievementViewModel @Inject constructor(
-    app: Application,
     appDb: AppDatabase,
-) : AndroidViewModel(app) {
+) : ViewModel() {
 
     private val loopDao = appDb.loopDao()
     private val loopWithDoneDao = appDb.fullLoopDao()
@@ -47,24 +45,6 @@ class DailyAchievementViewModel @Inject constructor(
         }
     ).flow
 
-    private val pref = app.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
-    private val _flowViewMode = MutableStateFlow(
-        DailyAchievementPageViewMode.valueOf(
-            pref.getString(KEY_VIEW_MODE, null) ?: "${DailyAchievementPageViewMode.COLOR_DOT}"
-        )
-    )
-    val flowViewMode: Flow<DailyAchievementPageViewMode> = _flowViewMode
-    fun toggleViewMode() {
-        _flowViewMode.value = if (_flowViewMode.value == DailyAchievementPageViewMode.COLOR_DOT) {
-            DailyAchievementPageViewMode.DESCRIPTION_TEXT
-        } else {
-            DailyAchievementPageViewMode.COLOR_DOT
-        }
-        pref.edit {
-            putString(KEY_VIEW_MODE, "${_flowViewMode.value}")
-        }
-    }
-
     // inclusive all
     fun flowsDoneLoopsByDate(from: LocalDate, to: LocalDate) = loopWithDoneDao.getDoneLoopsByDateFlow(
         from = from.toMs(),
@@ -80,35 +60,51 @@ class DailyAchievementViewModel @Inject constructor(
         doneLoops.groupBy { it.date }
     }
 
-    // 연속 달성 스트릭(전체 기록 기준). 통계 화면·홈 헤더와 동일한 computeStreak 규칙을 재사용해
-    // 어디서 보든 스트릭 값이 일치하게 한다.
-    fun flowStreak(): Flow<StreakStat> = loopWithDoneDao.getDoneDatesFlow()
-        .map { millis -> computeStreak(doneDates = millis.map { it.toLocalDate() }) }
-
     /**
-     * 특정 달([yearMonth])의 달성 요약. 완료/미완료 기록과 투자 시간 스트림을 하나로 합쳐,
-     * 달력 상단 배너가 한 번의 방출로 그려질 수 있게 한다.
+     * 특정 달([yearMonth])의 달성 요약.
+     *
+     * 그 달의 응답 기록 한 벌([FullLoopDao.getResponsesFlow])만 있으면 완료율·투자 시간·완벽한 날·
+     * 월내 최장 연속·건너뜀/무응답까지 모두 계산할 수 있어, 지표를 늘려도 쿼리는 늘지 않는다.
+     * 계산은 통계 화면과 같은 순수 함수(`computePerfectDays`, `computeStreak`, `investedTimeMs`)를
+     * 재사용해, 같은 값이 두 화면에서 다르게 보이지 않게 한다.
+     *
+     * 여기에 전체 기간의 월별 집계를 곁들여 지난달 완료율을 함께 넘긴다(전월 대비 증감용).
      * 달성률 분모(totalCount)는 완료 + 미완료(건너뜀·무응답)이며, 비활성(DISABLED)은 제외된다.
      */
     fun flowMonthSummary(yearMonth: YearMonth): Flow<MonthAchievementSummary> {
         val from = yearMonth.atDay(1).toMs()
         val to = yearMonth.atEndOfMonth().toMs()
-        val doneFlow = loopWithDoneDao.getDoneLoopsByDateFlow(from = from, to = to)
-        val missedFlow = loopWithDoneDao.getNoDoneLoopsByDateFlow(from = from, to = to)
-        val investedFlow = loopWithDoneDao.getInvestedTimeFlow(from = from, to = to)
+        val responsesFlow = loopWithDoneDao.getResponsesFlow(from = from, to = to)
+        val monthlyFlow = loopWithDoneDao.getMonthlyCompletionCountFlow()
 
-        return combine(doneFlow, missedFlow, investedFlow) { done, missed, investedTimeMs ->
-            val total = done.size + missed.size
+        return combine(responsesFlow, monthlyFlow) { records, monthlyCounts ->
+            val doneRecords = records.filter { it.done.isDone() }
+            val total = records.size
+
             MonthAchievementSummary(
-                doneCount = done.size,
+                doneCount = doneRecords.size,
                 totalCount = total,
-                completionRate = if (total == 0) 0f else done.size.toFloat() / total,
-                activeDays = done.map { it.date }.distinct().size,
-                retrospectCount = (done + missed).count { !it.retrospect.isNullOrBlank() },
-                investedTimeMs = investedTimeMs,
+                completionRate = if (total == 0) 0f else doneRecords.size.toFloat() / total,
+                activeDays = doneRecords.map { it.date }.distinct().size,
+                retrospectCount = records.count { !it.retrospect.isNullOrBlank() },
+                investedTimeMs = doneRecords.sumOf { it.investedTimeMs() },
+                perfectDays = computePerfectDays(records = records),
+                // 그 달 안에서만 이어진 최장 연속. 전체 기록 기준 스트릭과 달리 달마다 값이 바뀐다.
+                longestStreak = computeStreak(
+                    doneDates = doneRecords.map { it.date.toLocalDate() },
+                ).longest,
+                skippedCount = records.count { it.done.isSkip() },
+                noResponseCount = records.count { it.done == LoopDoneVo.DoneState.NO_RESPONSE },
+                prevMonthCompletionRate = monthlyCounts.completionRateOf(yearMonth.minusMonths(1)),
             )
         }
     }
+
+    /** 월별 집계 목록에서 [yearMonth]의 완료율(0f..1f)을 찾는다. 기록이 없으면 null. */
+    private fun List<MonthlyCompletionCount>.completionRateOf(yearMonth: YearMonth): Float? =
+        firstOrNull { it.year == yearMonth.year && it.month == yearMonth.monthValue }
+            ?.takeIf { it.respondedCount > 0 }
+            ?.let { it.doneCount.toFloat() / it.respondedCount }
 
     /**
      * 특정 달([yearMonth])에 남긴 회고 모음(최신 날짜 우선). 완료·미완료 기록 중 회고가 있는 것만 모은다.
@@ -126,8 +122,4 @@ class DailyAchievementViewModel @Inject constructor(
                 .sortedByDescending { it.date }
         }
     }
-}
-
-enum class DailyAchievementPageViewMode {
-    COLOR_DOT, DESCRIPTION_TEXT
 }

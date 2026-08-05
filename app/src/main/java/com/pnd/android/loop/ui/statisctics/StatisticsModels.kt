@@ -389,8 +389,10 @@ fun computeWeekdayStats(doneDates: List<LocalDate>): List<DayOfWeekStat> {
 /**
  * 한 번의 완료 기록에 투자한 시간(ms). 자정을 넘겨 끝난 경우 하루를 더해 보정한다.
  * (DAO의 getInvestedTimeFlow와 동일한 규칙을 Kotlin에서 재현한다.)
+ *
+ * 기록 화면의 월 요약도 응답 기록 한 벌에서 투자 시간을 함께 계산하므로 공개한다.
  */
-private fun LoopResponseRecord.investedTimeMs(): Long {
+fun LoopResponseRecord.investedTimeMs(): Long {
     val raw = endInDay - startInDay
     return if (raw >= 0) raw else raw + MS_1DAY
 }

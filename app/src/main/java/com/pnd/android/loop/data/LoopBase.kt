@@ -5,7 +5,7 @@ import androidx.compose.runtime.Immutable
 import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.util.intervalString
 import com.pnd.android.loop.util.overlapsInTime
-import com.pnd.android.loop.util.toLocalTime
+import com.pnd.android.loop.util.toTimeTextForLog
 
 @Immutable
 interface LoopBase {
@@ -41,10 +41,10 @@ fun LoopBase.isTogether(loop: LoopBase) = overlapsInTime(loop)
 
 fun LoopBase.description(context: Context) =
     """ -->
-    |*Loop  
+    |*Loop
     | title : $title
-    | loopStart : ${startInDay.toLocalTime()}
-    | loopEnd : ${endInDay.toLocalTime()}
+    | loopStart : ${startInDay.toTimeTextForLog()}
+    | loopEnd : ${endInDay.toTimeTextForLog()}
     | activeDays : ${LoopDay.description(activeDays)}
     | interval : ${intervalString(context, interval)}
     | enabled : $enabled

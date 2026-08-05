@@ -33,9 +33,8 @@ import com.pnd.android.loop.common.NavigatePage
 import com.pnd.android.loop.ui.detail.DetailPage
 import com.pnd.android.loop.ui.history.DailyAchievementPage
 import com.pnd.android.loop.ui.home.Home
-import com.pnd.android.loop.ui.home.group.GroupPage
-import com.pnd.android.loop.ui.home.group.GroupPicker
 import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
+import com.pnd.android.loop.ui.settings.SettingsPage
 import com.pnd.android.loop.ui.statisctics.StatisticsPage
 
 fun Context.findActivity(): ComponentActivity? {
@@ -114,15 +113,6 @@ fun AppNavHost(
 
             Home(
                 loopViewModel = loopViewModel,
-                onNavigateToGroupPicker = { loop ->
-                    NavigatePage.GroupPicker.navigate(
-                        navController = navController,
-                        loop = loop,
-                    )
-                },
-                onNavigateToGroupPage = {
-                    NavigatePage.GroupPage.navigate(navController)
-                },
                 onNavigateToDetailPage = { loop ->
                     NavigatePage.DetailPage.navigate(
                         navController = navController,
@@ -134,21 +124,10 @@ fun AppNavHost(
                 },
                 onNavigateToStatisticsPage = {
                     NavigatePage.StatisticsPage.navigate(navController)
+                },
+                onNavigateToSettingsPage = {
+                    NavigatePage.SettingsPage.navigate(navController)
                 }
-            )
-        }
-
-        page(page = NavigatePage.GroupPicker) { backStackEntry ->
-            GroupPicker(
-                loopId = backStackEntry.arguments?.getInt(NavigatePage.ARGS_ID) ?: -1,
-                onNavigateUp = onNavigateUp
-            )
-        }
-
-        page(page = NavigatePage.GroupPage) {
-            GroupPage(
-                loopViewModel = loopViewModel,
-                onNavigateUp = onNavigateUp
             )
         }
 
@@ -178,6 +157,10 @@ fun AppNavHost(
                 },
                 onNavigateUp = onNavigateUp
             )
+        }
+
+        page(page = NavigatePage.SettingsPage) {
+            SettingsPage(onNavigateUp = onNavigateUp)
         }
     }
 }

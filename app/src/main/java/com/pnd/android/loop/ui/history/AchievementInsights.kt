@@ -9,7 +9,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -17,7 +19,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.LocalFireDepartment
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,6 +41,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopByDate
+import com.pnd.android.loop.ui.statisctics.investedDurationText
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.Dimens
@@ -49,7 +51,9 @@ import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.ui.theme.surfaceContainer
 import com.pnd.android.loop.ui.theme.surfaceElevated
+import com.pnd.android.loop.ui.theme.warning
 import com.pnd.android.loop.util.formatMonthDateDay
+import kotlin.math.roundToInt
 
 /**
  * 선택한 달의 달성 요약 지표. 달력 상단 배너와 회고 모음에서 함께 사용한다.
@@ -60,6 +64,11 @@ import com.pnd.android.loop.util.formatMonthDateDay
  * @param activeDays 완료한 기록이 하루라도 있는 날의 수.
  * @param retrospectCount 그 달에 남긴 회고(메모) 개수.
  * @param investedTimeMs 그 달에 완료한 루프에 투자한 시간(ms) 총합.
+ * @param perfectDays 그날 응답한 루프를 하나도 빠뜨리지 않고 모두 완료한 날의 수.
+ * @param longestStreak 그 달 안에서 완료가 연속으로 이어진 최대 일수(전체 기록 기준 스트릭이 아니다).
+ * @param skippedCount 건너뜀(SKIP)으로 응답한 기록 수.
+ * @param noResponseCount 응답하지 않고 지나간 기록 수.
+ * @param prevMonthCompletionRate 지난달 완료율(0f..1f). 비교할 기록이 없으면 null.
  */
 data class MonthAchievementSummary(
     val doneCount: Int,
@@ -68,7 +77,25 @@ data class MonthAchievementSummary(
     val activeDays: Int,
     val retrospectCount: Int,
     val investedTimeMs: Long,
+    val perfectDays: Int,
+    val longestStreak: Int,
+    val skippedCount: Int,
+    val noResponseCount: Int,
+    val prevMonthCompletionRate: Float?,
 ) {
+    /** 완료 기록 중 회고를 남긴 비율(0~100). 완료가 없으면 0. */
+    val retrospectPercent: Int
+        get() = if (doneCount == 0) 0 else (retrospectCount * 100) / doneCount
+
+    /**
+     * 지난달 완료율과의 차이(%p, 반올림). 비교할 지난달 기록이 없으면 null.
+     * 예: 이번 달 65%, 지난달 58% → `7`.
+     */
+    val completionRateDeltaPoints: Int?
+        get() = prevMonthCompletionRate?.let { prev ->
+            ((completionRate - prev) * 100).roundToInt()
+        }
+
     companion object {
         val Empty = MonthAchievementSummary(
             doneCount = 0,
@@ -77,6 +104,11 @@ data class MonthAchievementSummary(
             activeDays = 0,
             retrospectCount = 0,
             investedTimeMs = 0L,
+            perfectDays = 0,
+            longestStreak = 0,
+            skippedCount = 0,
+            noResponseCount = 0,
+            prevMonthCompletionRate = null,
         )
     }
 }
@@ -84,6 +116,23 @@ data class MonthAchievementSummary(
 /** 진행 링의 기본 지름/굵기. 하루 요약 헤더와 월 요약 배너가 같은 링을 공유한다. */
 private val DefaultRingDiameter = 34.dp
 private val DefaultRingStroke = 3.dp
+
+/** 월 요약 배너의 링 크기와 위아래 여백. 배너 높이([SelectedMonthSummaryBarHeight])의 근거가 된다. */
+private val SummaryBarRingDiameter = 40.dp
+private val SummaryBarRingStroke = 4.dp
+private val SummaryBarVerticalPadding = 10.dp
+
+/** 지표 타일 한 칸의 높이와, 위쪽 요약 줄과의 간격. */
+private val SummaryTileHeight = 40.dp
+private val SummaryTileRowGap = 8.dp
+
+/**
+ * 월 요약 배너가 차지하는 세로 높이. 위 요약 줄(가장 큰 요소가 링)과 아래 지표 타일 줄, 그리고
+ * 위아래 여백으로 결정된다. 아래 달력 패널의 펼침 높이를 역산할 때 쓰이므로, 배너 구성이 바뀌면
+ * 위 상수도 함께 맞춰야 한다.
+ */
+val SelectedMonthSummaryBarHeight = SummaryBarVerticalPadding * 2 +
+        SummaryBarRingDiameter + SummaryTileRowGap + SummaryTileHeight
 
 /**
  * 달성 정도를 나타내는 얇은 원형 진행 링. 12시 방향에서 시작해 시계 방향으로 [fraction]만큼 채운다.
@@ -135,9 +184,13 @@ fun AchievementRing(
 /**
  * 달력 상단에 얹는 "선택한 달" 요약 배너.
  *
- * 왼쪽 원형 링은 그 달의 달성률(가운데에 퍼센트 숫자)을, 가운데 텍스트는 완료/전체와 활동일 수를
- * 보여준다. 오른쪽에는 (전체 기록 기준) 연속 달성 스트릭 칩과 그 달의 회고 개수 칩을 둔다.
- * 회고 칩을 누르면 [onClickRetrospects]로 그 달의 회고 모음이 열린다(값이 있을 때만 노출).
+ * 위 줄은 그 달의 성적표다. 왼쪽 원형 링이 달성률(가운데에 퍼센트 숫자), 가운데 텍스트가 완료/전체와
+ * 활동일 수 그리고 완료하지 못한 기록의 종류(건너뜀/무응답)를, 오른쪽 칩이 회고 수와 비율을 보여준다.
+ * 회고 칩을 누르면 [onClickRetrospects]로 그 달의 회고 모음이 열린다(회고가 있을 때만 노출).
+ *
+ * 아래 줄은 라벨을 가진 지표 타일 네 칸이다. 링·완료율만으로는 알 수 없는 "얼마나 오래(투자 시간),
+ * 얼마나 완전하게(완벽한 날), 얼마나 이어서(최장 연속), 지난달보다 나아졌는지(전월 대비)"를 담는다.
+ * 네 값 모두 그 달만의 값이라, 달을 넘기면 함께 바뀐다.
  *
  * 모든 색은 [AppColor] 토큰과 primary 기반 반투명이라 라이트/다크 모두에서 대비가 유지된다.
  */
@@ -145,76 +198,189 @@ fun AchievementRing(
 fun SelectedMonthSummaryBar(
     modifier: Modifier = Modifier,
     summary: MonthAchievementSummary,
-    currentStreak: Int,
     onClickRetrospects: () -> Unit,
 ) {
-    Row(
+    Column(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundShapes.medium)
             .background(AppColor.onSurface.copy(alpha = if (isSystemInDarkTheme()) 0.06f else 0.035f))
-            .padding(horizontal = Dimens.contentPadding, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .padding(
+                horizontal = Dimens.contentPadding,
+                vertical = SummaryBarVerticalPadding,
+            ),
     ) {
-        // 달성률 링 + 가운데 퍼센트 숫자.
-        Box(contentAlignment = Alignment.Center) {
-            AchievementRing(
-                fraction = summary.completionRate,
-                color = AppColor.primary,
-                diameter = 44.dp,
-                stroke = 4.dp,
-            )
-            Text(
-                text = "${(summary.completionRate * 100).toInt()}",
-                style = AppTypography.labelMedium.copy(
-                    color = AppColor.onSurface.copy(alpha = 0.8f),
-                ),
-            )
-        }
-
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(start = Dimens.contentPadding),
+        Row(
+            modifier = Modifier.height(SummaryBarRingDiameter),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = stringResource(
-                    id = R.string.achievement_done_ratio,
-                    summary.doneCount,
-                    summary.totalCount,
-                ),
-                style = AppTypography.titleSmall.copy(
-                    color = AppColor.onSurface,
-                    fontWeight = FontWeight.SemiBold,
-                ),
-            )
-            Text(
-                modifier = Modifier.padding(top = 2.dp),
-                text = stringResource(id = R.string.achievement_active_days, summary.activeDays),
-                style = AppTypography.labelMedium.copy(
-                    color = AppColor.onSurface.copy(alpha = 0.55f),
-                ),
-            )
+            // 달성률 링 + 가운데 퍼센트 숫자.
+            Box(contentAlignment = Alignment.Center) {
+                AchievementRing(
+                    fraction = summary.completionRate,
+                    color = AppColor.primary,
+                    diameter = SummaryBarRingDiameter,
+                    stroke = SummaryBarRingStroke,
+                )
+                Text(
+                    text = "${(summary.completionRate * 100).toInt()}",
+                    style = AppTypography.labelMedium.copy(
+                        color = AppColor.onSurface.copy(alpha = 0.8f),
+                    ),
+                )
+            }
+
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = Dimens.contentPadding),
+            ) {
+                Text(
+                    text = stringResource(
+                        id = R.string.achievement_done_ratio,
+                        summary.doneCount,
+                        summary.totalCount,
+                    ),
+                    style = AppTypography.titleSmall.copy(
+                        color = AppColor.onSurface,
+                        fontWeight = FontWeight.SemiBold,
+                    ),
+                )
+                Text(
+                    modifier = Modifier.padding(top = 2.dp),
+                    text = missedBreakdownText(summary),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = AppTypography.labelMedium.copy(
+                        color = AppColor.onSurface.copy(alpha = 0.55f),
+                    ),
+                )
+            }
+
+            // 그 달에 남긴 회고가 있으면, 눌러서 모아 볼 수 있는 칩을 보여준다(개수 + 완료 대비 비율).
+            if (summary.retrospectCount > 0) {
+                SummaryChip(
+                    modifier = Modifier.padding(start = Dimens.itemSpacing),
+                    icon = Icons.Outlined.Edit,
+                    text = stringResource(
+                        id = R.string.achievement_retrospect_chip,
+                        summary.retrospectCount,
+                        summary.retrospectPercent,
+                    ),
+                    tint = AppColor.onSurface.copy(alpha = 0.7f),
+                    onClick = onClickRetrospects,
+                )
+            }
         }
 
-        // 연속 달성 스트릭(전체 기록 기준). 살아있는 스트릭이 있을 때만 강조 칩으로 노출한다.
-        if (currentStreak > 0) {
-            SummaryChip(
-                icon = Icons.Outlined.LocalFireDepartment,
-                text = stringResource(id = R.string.stat_streak_days, currentStreak),
-                tint = AppColor.primary,
-            )
-        }
-        // 그 달에 남긴 회고가 있으면, 눌러서 모아 볼 수 있는 칩을 함께 보여준다.
-        if (summary.retrospectCount > 0) {
-            SummaryChip(
-                modifier = Modifier.padding(start = Dimens.itemSpacing),
-                icon = Icons.Outlined.Edit,
-                text = "${summary.retrospectCount}",
-                tint = AppColor.onSurface.copy(alpha = 0.7f),
-                onClick = onClickRetrospects,
-            )
-        }
+        MonthStatTileRow(
+            modifier = Modifier.padding(top = SummaryTileRowGap),
+            summary = summary,
+        )
+    }
+}
+
+/**
+ * 완료하지 못한 기록의 종류를 알려 주는 부제. "활동 21일 · 건너뜀 12 · 무응답 5"처럼 이어 붙인다.
+ *
+ * 완료율만 보면 낮은 이유를 알 수 없는데, 건너뜀(스스로 넘긴 것)과 무응답(그냥 지나간 것)을 나눠
+ * 보여 주면 그 달을 어떻게 개선할지가 달라진다. 없는 항목은 아예 빼서 문장이 길어지지 않게 한다.
+ */
+@Composable
+private fun missedBreakdownText(summary: MonthAchievementSummary): String {
+    val parts = listOfNotNull(
+        stringResource(id = R.string.achievement_active_days, summary.activeDays),
+        stringResource(id = R.string.achievement_skipped_count, summary.skippedCount)
+            .takeIf { summary.skippedCount > 0 },
+        stringResource(id = R.string.achievement_no_response_count, summary.noResponseCount)
+            .takeIf { summary.noResponseCount > 0 },
+    )
+    return parts.joinToString(separator = " · ")
+}
+
+/**
+ * 요약 배너 아래 줄의 지표 타일 네 칸. 라벨과 값을 위아래로 쌓아, 숫자만 보고 무슨 값인지 헷갈릴
+ * 일이 없게 한다. 네 칸이 같은 너비를 나눠 가지므로 값이 길어져도 배치가 흔들리지 않는다.
+ */
+@Composable
+private fun MonthStatTileRow(
+    modifier: Modifier = Modifier,
+    summary: MonthAchievementSummary,
+) {
+    val deltaPoints = summary.completionRateDeltaPoints
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(SummaryTileHeight),
+        horizontalArrangement = Arrangement.spacedBy(Dimens.itemSpacing),
+    ) {
+        MonthStatTile(
+            modifier = Modifier.weight(1f),
+            label = stringResource(id = R.string.stat_summary_invested),
+            value = investedDurationText(investedTimeMs = summary.investedTimeMs),
+        )
+        MonthStatTile(
+            modifier = Modifier.weight(1f),
+            label = stringResource(id = R.string.stat_summary_perfect_days),
+            value = "${summary.perfectDays}",
+        )
+        MonthStatTile(
+            modifier = Modifier.weight(1f),
+            label = stringResource(id = R.string.stat_streak_longest),
+            value = "${summary.longestStreak}",
+        )
+        MonthStatTile(
+            modifier = Modifier.weight(1f),
+            label = stringResource(id = R.string.achievement_prev_month),
+            // 비교할 지난달 기록이 없으면 0%p처럼 오해되지 않도록 빈 값 기호를 쓴다.
+            value = deltaPoints?.let {
+                stringResource(id = R.string.achievement_delta_points, it)
+            } ?: stringResource(id = R.string.achievement_no_value),
+            // 개선은 앱 강조색, 하락은 경고색(앰버). 변화 없음·비교 불가는 담담한 기본색.
+            valueColor = when {
+                deltaPoints == null || deltaPoints == 0 -> null
+                deltaPoints > 0 -> AppColor.primary
+                else -> AppColor.warning
+            },
+        )
+    }
+}
+
+/** 지표 타일 한 칸. 위에 작은 라벨, 아래에 값. 배경은 패널과 같은 [surfaceContainer]. */
+@Composable
+private fun MonthStatTile(
+    modifier: Modifier = Modifier,
+    label: String,
+    value: String,
+    valueColor: Color? = null,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxHeight()
+            .clip(RoundShapes.small)
+            .background(AppColor.surfaceContainer)
+            .padding(horizontal = 8.dp),
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Text(
+            text = label,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            style = AppTypography.labelSmall.copy(
+                color = AppColor.onSurface.copy(alpha = 0.55f),
+                letterSpacing = 0.sp,
+            ),
+        )
+        Text(
+            modifier = Modifier.padding(top = 1.dp),
+            text = value,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            style = AppTypography.titleSmall.copy(
+                color = valueColor ?: AppColor.onSurface,
+                letterSpacing = 0.sp,
+            ),
+        )
     }
 }
 

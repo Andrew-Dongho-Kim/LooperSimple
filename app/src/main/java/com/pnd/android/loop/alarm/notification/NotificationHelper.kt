@@ -14,6 +14,8 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.pnd.android.loop.HomeActivity
 import com.pnd.android.loop.R
+import com.pnd.android.loop.alarm.HabitualStart
+import com.pnd.android.loop.alarm.HabitualStartBasis
 import com.pnd.android.loop.appwidget.AppWidgetUpdateWorker.Companion.Action
 import com.pnd.android.loop.appwidget.PARAMS_ACTION
 import com.pnd.android.loop.appwidget.PARAMS_DATE
@@ -42,6 +44,17 @@ const val CHANNEL_ID_ONGOING = "com.pnd.android.loop.LooperSimple.ongoing"
 const val CHANNEL_ID_LOOP_STARTED = "com.pnd.android.loop.LooperSimple.loop_started"
 
 /**
+ * 사용자에게 답을 구하는 알림("완료했나요?", "시작할까요?") 전용 채널.
+ *
+ * 시작 안내와 성격이 다르다. 시작 안내는 "알려주는" 것이고 이쪽은 "물어보는" 것이라, 어느 한쪽만
+ * 끄고 싶은 사용자가 있다. 채널을 나눠 두면 앱에 설정 화면을 만들지 않고도 안드로이드 알림 설정
+ * 에서 각각 끄고, 소리·진동·중요도·방해금지 예외까지 사용자가 직접 조정할 수 있다.
+ *
+ * 기존 채널 ID 는 그대로 둔다. 바꾸면 이미 설치된 사용자가 조정해 둔 설정이 날아간다.
+ */
+const val CHANNEL_ID_LOOP_PROMPT = "com.pnd.android.loop.LooperSimple.loop_prompt"
+
+/**
  * 포그라운드 서비스가 소유하는 "진행 중 루프" 통합 알림의 고정 ID.
  * 루프 ID(양수 DB 자동 증가값)와 겹치지 않도록 별도의 상수를 사용한다.
  */
@@ -61,6 +74,12 @@ const val LOOP_STARTED_NOTIFICATION_ID = 0x10F1
  */
 private const val LOOP_ENDED_NOTIFICATION_ID_BASE = 0x2000_0000
 
+/**
+ * "시작할까요?" anytime 루프 안내 알림 ID의 기준값. 종료 확인 알림과 같은 이유로 루프마다
+ * 따로 띄우므로([LOOP_ENDED_NOTIFICATION_ID_BASE] 참고) 겹치지 않는 기준값을 따로 쓴다.
+ */
+private const val ANYTIME_DUE_NOTIFICATION_ID_BASE = 0x3000_0000
+
 /** 시작 안내 알림이 알림창에 남는 시간(ms). 이후 스스로 사라져 상시 알림만 남는다. */
 private const val LOOP_STARTED_TIMEOUT_MS = 60_000L
 
@@ -71,14 +90,30 @@ private const val LOOP_STARTED_TIMEOUT_MS = 60_000L
 private const val LOOP_ENDED_TIMEOUT_MS = 30 * 60_000L
 
 /**
- * 해당 루프의 "완료했나요?" 종료 확인 알림을 내린다.
+ * anytime 루프 시작 안내가 알림창에 남는 시간(ms). anytime 루프에는 마감이 없어 "지금 당장"이
+ * 아니어도 되므로 종료 확인보다 길게 두지만, 하루 종일 남겨 두지는 않는다.
+ */
+private const val ANYTIME_DUE_TIMEOUT_MS = 60 * 60_000L
+
+/**
+ * 습관 시각 안내에 근거 한 줄("보통 09:30쯤 하셨어요")을 붙일 최소 표본 수. 표본이 두세 개면
+ * 근거라기엔 약해서, 그럴 때는 조용히 제목만 보여준다.
+ */
+private const val MIN_SAMPLES_TO_SHOW_BASIS = 5
+
+/**
+ * 해당 루프에 대해 사용자의 응답을 기다리는 알림들을 모두 내린다.
+ * ("완료했나요?" 종료 확인, "시작할까요?" anytime 시작 안내)
  *
  * 알림 액션 버튼을 눌러도 알림이 스스로 닫히지는 않고, 앱이나 위젯에서 답한 경우에는 알림이
- * 그 사실조차 모른다. 응답(완료/건너뛰기/정지)을 기록하는 모든 경로에서 이 함수를 불러,
- * 이미 답한 루프에 확인 알림이 남아 다시 묻는 일이 없게 한다.
+ * 그 사실조차 모른다. 응답(시작/완료/건너뛰기/정지)을 기록하는 모든 경로에서 이 함수를 불러,
+ * 이미 답한 루프에 질문이 남아 다시 묻는 일이 없게 한다.
  */
-fun cancelLoopEndedNotification(context: Context, loopId: Int) {
-    NotificationManagerCompat.from(context).cancel(LOOP_ENDED_NOTIFICATION_ID_BASE + loopId)
+fun cancelLoopPrompts(context: Context, loopId: Int) {
+    NotificationManagerCompat.from(context).apply {
+        cancel(LOOP_ENDED_NOTIFICATION_ID_BASE + loopId)
+        cancel(ANYTIME_DUE_NOTIFICATION_ID_BASE + loopId)
+    }
 }
 
 /** 펼친 알림에 한 번에 나열할 최대 루프 수. 초과분은 "외 N개"로 요약한다. */
@@ -104,17 +139,31 @@ class NotificationHelper @Inject constructor(
         nm.createNotificationChannel(channel)
 
         // IMPORTANCE_HIGH: 화면 상단에 잠깐 peek 되지만, 소리·진동은 끈다.
-        val startedChannel = NotificationChannel(
-            CHANNEL_ID_LOOP_STARTED,
-            context.getString(R.string.notification_loop_started_channel),
-            NotificationManager.IMPORTANCE_HIGH
-        ).apply {
-            setSound(null, null)
-            enableVibration(false)
-            enableLights(false)
-            setShowBadge(false)
-        }
-        nm.createNotificationChannel(startedChannel)
+        nm.createNotificationChannel(
+            newAnnouncementChannel(
+                channelId = CHANNEL_ID_LOOP_STARTED,
+                nameResId = R.string.notification_loop_started_channel,
+            )
+        )
+        // 답을 구하는 알림은 성격이 달라 따로 끌 수 있도록 채널을 나눈다.
+        nm.createNotificationChannel(
+            newAnnouncementChannel(
+                channelId = CHANNEL_ID_LOOP_PROMPT,
+                nameResId = R.string.notification_loop_prompt_channel,
+            )
+        )
+    }
+
+    /** heads-up 안내용 채널. 중요도만 HIGH 로 두고 소리·진동은 앱 톤에 맞춰 끈다. */
+    private fun newAnnouncementChannel(channelId: String, nameResId: Int) = NotificationChannel(
+        channelId,
+        context.getString(nameResId),
+        NotificationManager.IMPORTANCE_HIGH,
+    ).apply {
+        setSound(null, null)
+        enableVibration(false)
+        enableLights(false)
+        setShowBadge(false)
     }
 
     /**
@@ -246,7 +295,10 @@ class NotificationHelper @Inject constructor(
      * 하나로 묶으면 액션 버튼이 어느 루프를 가리키는지 알 수 없기 때문이다.
      */
     fun notifyLoopEnded(loop: LoopBase, occurrenceDate: LocalDate) {
-        val builder = newAnnouncementBuilder(timeoutMs = LOOP_ENDED_TIMEOUT_MS)
+        val builder = newAnnouncementBuilder(
+            channelId = CHANNEL_ID_LOOP_PROMPT,
+            timeoutMs = LOOP_ENDED_TIMEOUT_MS,
+        )
             .setContentTitle(context.getString(R.string.notification_loop_ended_title, loop.title))
             .setContentText(
                 context.getString(
@@ -258,6 +310,42 @@ class NotificationHelper @Inject constructor(
         nm.notify(LOOP_ENDED_NOTIFICATION_ID_BASE + loop.loopId, builder.build())
     }
 
+    /**
+     * 평소 하던 시각이 됐는데 아직 시작하지 않은 anytime 루프에 "시작할까요?" 를 묻는다.
+     * anytime 루프는 시작하기 전까지 어떤 알림에도 나오지 않으므로, 이 알림이 유일한 접점이다.
+     *
+     * 예) "물 마시기, 시작할까요?" / "평일엔 보통 09:30쯤 하셨어요" + [시작] · [건너뛰기]
+     *
+     * @param habitualStart 추정 근거. 알림에 "왜 지금 알리는지" 한 줄을 붙일지 정하는 데 쓴다.
+     */
+    fun notifyAnyTimeLoopDue(loop: LoopBase, habitualStart: HabitualStart?) {
+        val builder = newAnnouncementBuilder(
+            channelId = CHANNEL_ID_LOOP_PROMPT,
+            timeoutMs = ANYTIME_DUE_TIMEOUT_MS,
+        ).setContentTitle(context.getString(R.string.notification_anytime_due_title, loop.title))
+        usualStartText(habitualStart)?.let { text -> builder.setContentText(text) }
+        addStartSkipActions(builder, loop)
+        nm.notify(ANYTIME_DUE_NOTIFICATION_ID_BASE + loop.loopId, builder.build())
+    }
+
+    /**
+     * "평일엔 보통 09:30쯤 하셨어요" 같은 근거 한 줄. 왜 지금 알리는지 보여주면 임의로 튀어나온
+     * 알림처럼 느껴지지 않는다. 근거로 삼을 표본이 적으면(또는 없으면) 붙이지 않는다.
+     */
+    private fun usualStartText(habitualStart: HabitualStart?): String? {
+        if (habitualStart == null) return null
+        if (habitualStart.sampleCount < MIN_SAMPLES_TO_SHOW_BASIS) return null
+
+        val textResId = when (habitualStart.basis) {
+            HabitualStartBasis.WEEKDAY -> R.string.notification_anytime_due_usual_weekday
+            HabitualStartBasis.HOLIDAY -> R.string.notification_anytime_due_usual_holiday
+            // 요일을 가리지 않고 추정했거나 표본이 하나뿐이라면 평일/휴일을 단정하지 않는다.
+            HabitualStartBasis.ALL_DAYS,
+            HabitualStartBasis.LAST_START -> R.string.notification_anytime_due_usual
+        }
+        return context.getString(textResId, habitualStart.startInDay.toLocalTime().formatText())
+    }
+
     /** 여러 루프를 "제목 · 시간 정보" 한 줄씩 펼쳐 보여준다(접힘 상태에서는 제목만 나열). */
     private fun NotificationCompat.Builder.withLoopLines(
         loops: List<LoopBase>
@@ -267,11 +355,17 @@ class NotificationHelper @Inject constructor(
         return setContentText(loops.joinToString(", ") { it.title }).setStyle(inbox)
     }
 
-    /** 시작/진행 중/종료 확인 안내 알림에 공통으로 쓰는 heads-up 빌더(무음, 잠시 뒤 자동 소멸). */
+    /**
+     * heads-up 안내 알림에 공통으로 쓰는 빌더(무음, 잠시 뒤 자동 소멸).
+     *
+     * @param channelId 알려주는 알림은 [CHANNEL_ID_LOOP_STARTED], 답을 구하는 알림은
+     *   [CHANNEL_ID_LOOP_PROMPT]. 사용자가 한쪽만 끌 수 있도록 채널을 가른다.
+     */
     private fun newAnnouncementBuilder(
+        channelId: String = CHANNEL_ID_LOOP_STARTED,
         timeoutMs: Long = LOOP_STARTED_TIMEOUT_MS,
     ): NotificationCompat.Builder =
-        NotificationCompat.Builder(context, CHANNEL_ID_LOOP_STARTED)
+        NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.app_icon)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
@@ -322,6 +416,23 @@ class NotificationHelper @Inject constructor(
             R.drawable.skip,
             context.getString(R.string.notification_action_skip),
             loopActionIntent(loop.loopId, Action.SKIP_LOOP, occurrenceDate),
+        )
+    }
+
+    /**
+     * [시작] · [건너뛰기] 한 쌍. 아직 시작하지 않은 anytime 루프 안내에 쓴다.
+     * 건너뛰기가 있어야 "오늘은 안 해"를 표현할 수 있고, 그러면 다시 묻지 않는다.
+     */
+    private fun addStartSkipActions(builder: NotificationCompat.Builder, loop: LoopBase) {
+        builder.addAction(
+            R.drawable.start,
+            context.getString(R.string.notification_action_start),
+            loopActionIntent(loop.loopId, Action.START_LOOP),
+        )
+        builder.addAction(
+            R.drawable.skip,
+            context.getString(R.string.notification_action_skip),
+            loopActionIntent(loop.loopId, Action.SKIP_LOOP),
         )
     }
 

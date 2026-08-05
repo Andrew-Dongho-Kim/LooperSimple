@@ -41,11 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -102,11 +98,15 @@ private object LoopCardDefaults {
     val ContentHorizontalPadding = 16.dp
     val ContentVerticalPadding = 14.dp
 
-    /** Leading loop-color dot; its footprint stays fixed so the pulsing halo never shifts layout. */
+    /**
+     * Leading loop-color dot; its footprint stays fixed so the pulsing halo never shifts layout.
+     * 헤일로는 도트(10dp)의 3배까지 커져 footprint(20dp) 밖으로 살짝 번지지만, 스케일은
+     * graphicsLayer 에서만 일어나므로 제목까지의 여백(12dp)을 침범할 뿐 레이아웃은 밀지 않는다.
+     */
     val ColorDotSize = 10.dp
     val ColorDotFootprint = 20.dp
     const val ColorDotPulseAlpha = 0.25f
-    const val ColorDotPulseMaxScale = 2f
+    const val ColorDotPulseMaxScale = 3f
 
     const val EnabledAlpha = 1f
     const val DisabledAlpha = 0.3f
@@ -121,13 +121,11 @@ private object LoopCardDefaults {
     const val HighlightTintAlpha = 0.12f
 
     /**
-     * 진행 중(now) 카드를 도드라지게 하는 표시들. 루프 색을 표면에 은은히 깔고(ActiveTintAlpha)
-     * 왼쪽 가장자리에 세로 강조 바를 세워 "지금 살아있는" 카드로 읽히게 한다. 라이트/다크 모두
-     * 배경 위에서 같은 강도로 떠 보이도록 낮은 알파/얇은 폭으로 유지한다.
+     * 진행 중(now) 카드를 도드라지게 하는 표시. 루프 색을 표면에 은은히 깔아(ActiveTintAlpha)
+     * "지금 살아있는" 카드로 떠 보이게 하고, 움직임은 색 도트 뒤에서 숨 쉬는 헤일로 하나로 모은다.
+     * 라이트/다크 모두 배경 위에서 같은 강도로 읽히도록 틴트는 낮은 알파로 유지한다.
      */
     const val ActiveTintAlpha = 0.08f
-    val ActiveBarWidth = 3.dp
-    val ActiveBarInset = 10.dp
 
 
     /** Circular start / stop button trailing an "any time" card. */
@@ -166,7 +164,7 @@ internal val LoopCardShape = RoundedCornerShape(LoopCardDefaults.CardCorner)
 
 /**
  * Loop card row. In its normal state it reads as a single quiet line — color dot + title/meta
- * + time chip, with management actions (edit, on/off, group, delete) tucked into the trailing
+ * + time chip, with management actions (edit, on/off, delete) tucked into the trailing
  * popup menu. Once today's window has closed it switches to the finished state: the surface is
  * dimmed to read as a past item and the done / skip actions appear as two tap buttons grouped
  * on the left, so a response is one tap away without any swipe gesture.
@@ -181,7 +179,6 @@ fun LoopCard(
     onEdit: (LoopBase) -> Unit,
     onEnabled: (Boolean) -> Unit,
     onDelete: () -> Unit,
-    onNavigateToGroupPicker: (LoopBase) -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
     // 편집 중인 카드는 깜빡임(mock 펄스) 대신 안정적으로 강조한다. 그 외 mock(신규 작성) 카드만
@@ -201,8 +198,8 @@ fun LoopCard(
     // 항목"으로 읽히게 하고, 완료/건너뜀은 왼쪽에 모은 탭 버튼으로 처리한다.
     val awaitsResponse = syncWithTime && loop.enabled && timeStat.isPast()
 
-    // 진행 중: 지금 이 루프의 시간창 안에 있는 상태. 표면을 루프 색으로 물들이고 왼쪽 강조 바를
-    // 세워 목록에서 "지금 이거"가 한눈에 튀도록 한다.
+    // 진행 중: 지금 이 루프의 시간창 안에 있는 상태. 표면을 루프 색으로 물들이고 색 도트 뒤로
+    // 헤일로를 숨 쉬게 해 목록에서 "지금 이거"가 한눈에 튀도록 한다.
     val isInProgress = syncWithTime && loop.enabled && cardValues.isActive
     // 시작 전: 오늘 예정돼 있지만 아직 시작 시각 전인 상태. 색 도트만 옅게 낮춰 진행 중과 구분한다.
 
@@ -217,33 +214,12 @@ fun LoopCard(
         )
     }
 
-    // 좌측 강조 바 색은 도트와 같은(표면 위에 얹은) 루프 색을 써 카드 안에서 색을 통일한다.
-    val activeBarColor = loop.color.compositeOverOnSurface()
-
     Row(
         modifier = modifier
             .graphicsLayer { alpha = mockAlpha * editDimAlpha }
             .fillMaxWidth()
             .clip(LoopCardShape)
             .background(background)
-            // 진행 중 카드에만 왼쪽 가장자리에 세로 강조 바를 그린다. drawBehind 라 레이아웃을
-            // 밀지 않고, 위의 clip 으로 카드 모서리 안쪽에 깔끔히 잘려 보인다.
-            .then(
-                if (isInProgress) {
-                    Modifier.drawBehind {
-                        val barWidth = LoopCardDefaults.ActiveBarWidth.toPx()
-                        val inset = LoopCardDefaults.ActiveBarInset.toPx()
-                        drawRoundRect(
-                            color = activeBarColor,
-                            topLeft = Offset(x = 0f, y = inset),
-                            size = Size(width = barWidth, height = size.height - inset * 2),
-                            cornerRadius = CornerRadius(barWidth / 2f, barWidth / 2f),
-                        )
-                    }
-                } else {
-                    Modifier
-                }
-            )
             // 편집 중이면 primary 색 테두리로 스포트라이트하고, 평소에는 배경과 카드를
             // 분리해주는 은은한 헤어라인 테두리를 쓴다(다크/라이트 공통).
             .border(
@@ -284,7 +260,6 @@ fun LoopCard(
                 onEdit = onEdit,
                 onEnabled = onEnabled,
                 onDelete = onDelete,
-                onNavigateToGroupPicker = onNavigateToGroupPicker,
             )
         }
     }
@@ -307,12 +282,11 @@ private fun RowScope.ActiveCardContent(
     onEdit: (LoopBase) -> Unit,
     onEnabled: (Boolean) -> Unit,
     onDelete: () -> Unit,
-    onNavigateToGroupPicker: (LoopBase) -> Unit,
 ) {
     LoopColorDot(
         modifier = Modifier.alpha(contentAlpha),
         color = loop.color,
-        // 진행 중이면 도트 뒤로 헤일로가 숨 쉬고, 시작 전이면 도트를 옅게 낮춰 대비시킨다.
+        // 진행 중이면 도트 뒤로 헤일로가 숨 쉰다.
         isPulsing = isInProgress,
         // 편집 중이면 도트 색은 그대로 두고 오른쪽 아래에 연필 코너 배지를 얹는다.
         isEditing = cardValues.isEditing,
@@ -350,14 +324,12 @@ private fun RowScope.ActiveCardContent(
         LoopCardMenu(
             modifier = Modifier.padding(start = 4.dp),
             loop = loop,
-            showAddToGroup = cardValues.showAddToGroup,
             showRecordActions = cardValues.showRecordActions,
             onStateChanged = onStateChanged,
             onRecordDone = onRecordDone,
             onEdit = onEdit,
             onEnabled = onEnabled,
             onDelete = onDelete,
-            onNavigateToGroupPicker = onNavigateToGroupPicker,
         )
     }
 }
@@ -606,21 +578,19 @@ private fun FinishedTimeLabel(
 
 /**
  * Trailing overflow menu. With done / skip moved onto the swipe gesture, every management
- * action (edit, on/off, add-to-group, delete) is gathered here so the card surface itself
+ * action (edit, on/off, delete) is gathered here so the card surface itself
  * carries nothing but identity and status.
  */
 @Composable
 private fun LoopCardMenu(
     modifier: Modifier = Modifier,
     loop: LoopBase,
-    showAddToGroup: Boolean,
     showRecordActions: Boolean,
     onStateChanged: (loop: LoopBase, doneState: Int) -> Unit,
     onRecordDone: (LoopBase) -> Unit,
     onEdit: (LoopBase) -> Unit,
     onEnabled: (Boolean) -> Unit,
     onDelete: () -> Unit,
-    onNavigateToGroupPicker: (LoopBase) -> Unit,
 ) {
     var isPopupMenuOpen by rememberSaveable { mutableStateOf(false) }
 
@@ -674,12 +644,6 @@ private fun LoopCardMenu(
             ),
             onClick = { closeAfter { onEnabled(!loop.enabled) } },
         )
-        if (showAddToGroup) {
-            LoopCardPopupMenuItem(
-                text = stringResource(id = R.string.add_to_group),
-                onClick = { closeAfter { onNavigateToGroupPicker(loop) } },
-            )
-        }
         HorizontalDivider(
             modifier = Modifier.padding(vertical = 4.dp),
             color = AppColor.onSurface.copy(alpha = 0.08f),

@@ -99,11 +99,10 @@ import java.time.LocalDateTime
 fun Home(
     modifier: Modifier = Modifier,
     loopViewModel: LoopViewModel,
-    onNavigateToGroupPicker: (LoopBase) -> Unit,
-    onNavigateToGroupPage: () -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
     onNavigateToHistoryPage: () -> Unit,
     onNavigateToStatisticsPage: () -> Unit,
+    onNavigateToSettingsPage: () -> Unit,
 ) {
     val context = LocalContext.current
     val inputState = rememberUserInputState(context = context)
@@ -177,11 +176,10 @@ fun Home(
             loopViewModel = loopViewModel,
             selectedTab = selectedTab,
             onTabSelected = onTabSelected,
-            onNavigateToGroupPicker = onNavigateToGroupPicker,
             onNavigateToDetailPage = onNavigateToDetailPage,
-            onNavigateToGroupPage = onNavigateToGroupPage,
             onNavigateToStatisticsPage = onNavigateToStatisticsPage,
             onNavigateToHistoryPage = onNavigateToHistoryPage,
+            onNavigateToSettingsPage = onNavigateToSettingsPage,
         )
     }
 }
@@ -196,11 +194,10 @@ private fun HomeScaffoldContent(
     loopViewModel: LoopViewModel,
     @HomeTab.Type selectedTab: Int,
     onTabSelected: (Int) -> Unit,
-    onNavigateToGroupPicker: (LoopBase) -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
-    onNavigateToGroupPage: () -> Unit,
     onNavigateToStatisticsPage: () -> Unit,
     onNavigateToHistoryPage: () -> Unit,
+    onNavigateToSettingsPage: () -> Unit,
 ) {
     Box(modifier = modifier) {
         val lazyListState = rememberLazyListState()
@@ -222,7 +219,6 @@ private fun HomeScaffoldContent(
             loopViewModel = loopViewModel,
             selectedTab = selectedTab,
             onTabSelected = onTabSelected,
-            onNavigateToGroupPicker = onNavigateToGroupPicker,
             onNavigateToDetailPage = onNavigateToDetailPage,
             onNavigateToHistoryPage = onNavigateToHistoryPage,
         )
@@ -259,9 +255,9 @@ private fun HomeScaffoldContent(
             selectedTab = selectedTab,
             onTabSelected = onTabSelected,
             showTabs = showTabs,
-            onNavigateToGroupPage = onNavigateToGroupPage,
             onNavigateToStatisticsPage = onNavigateToStatisticsPage,
             onNavigateToHistoryPage = onNavigateToHistoryPage,
+            onNavigateToSettingsPage = onNavigateToSettingsPage,
             backdrop = headerBackdrop,
         )
 
@@ -358,7 +354,6 @@ private fun HomeBody(
     loopViewModel: LoopViewModel,
     @HomeTab.Type selectedTab: Int,
     onTabSelected: (Int) -> Unit,
-    onNavigateToGroupPicker: (LoopBase) -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
     onNavigateToHistoryPage: () -> Unit,
 ) {
@@ -464,6 +459,16 @@ private fun HomeBody(
                 state = lazyListState,
                 contentPadding = PaddingValues(top = headerHeight),
             ) {
+                // 알림이 막혀 있으면 목록 맨 위에서 알린다. 문제가 없으면 아무것도 그리지 않아
+                // 평소에는 존재하지 않는 것과 같다.
+                item(key = "notification-status") {
+                    NotificationStatusCard(
+                        modifier = Modifier.padding(
+                            horizontal = Dimens.screenHorizontalPadding,
+                            vertical = Dimens.cardSpacing,
+                        )
+                    )
+                }
                 currentSections.forEach { section ->
                     section(
                         section = section,
@@ -475,7 +480,6 @@ private fun HomeBody(
                         onEdit = onEdit,
                         onDelete = onDelete,
                         onStateChanged = onStateChanged,
-                        onNavigateToGroupPicker = onNavigateToGroupPicker,
                         onNavigateToDetailPage = onNavigateToDetailPage,
                         onNavigateToHistoryPage = onNavigateToHistoryPage,
                     )

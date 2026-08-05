@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.outlined.Today
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,7 +32,6 @@ import com.pnd.android.loop.ui.common.surfaceReveal
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.onSurface
-import com.pnd.android.loop.ui.theme.primary
 
 // --- 헤더 치수 -------------------------------------------------------------------------------
 
@@ -63,9 +61,7 @@ val TitleTranslationX = (-24).dp
 fun CollapsingAchievementHeader(
     progress: Float,
     title: String,
-    isDescriptionMode: Boolean,
     onNavigateUp: () -> Unit,
-    onToggleViewMode: () -> Unit,
     onMoveToToday: () -> Unit,
     backdrop: BackdropState?,
     modifier: Modifier = Modifier,
@@ -135,19 +131,7 @@ fun CollapsingAchievementHeader(
                         .height(FloatingPillHeight),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    // 홈 액션 아이콘과 동일한 룩: onSurface 70% 색 + 좌우 8dp 여백의 심플한 아웃라인 아이콘.
-                    // 뷰 모드 토글은 설명 모드일 때만 primary로 강조해 현재 상태를 나타낸다.
-                    AppBarIcon(
-                        imageVector = Icons.Outlined.Checklist,
-                        color = if (isDescriptionMode) {
-                            AppColor.primary
-                        } else {
-                            AppColor.onSurface.copy(alpha = 0.7f)
-                        },
-                        descriptionResId = R.string.daily_record,
-                        onClick = onToggleViewMode,
-                    )
-                    // 오늘로 이동: 기존 날짜 숫자 배지 대신 홈과 같은 심플한 아웃라인 아이콘으로 통일한다.
+                    // 오늘로 이동: 홈 액션 아이콘과 동일한 룩(onSurface 70% 색 + 좌우 8dp 여백)으로 통일한다.
                     AppBarIcon(
                         imageVector = Icons.Outlined.Today,
                         color = AppColor.onSurface.copy(alpha = 0.7f),

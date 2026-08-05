@@ -11,7 +11,6 @@ import com.pnd.android.loop.data.LoopVo
 import com.pnd.android.loop.data.LoopWithDone
 import com.pnd.android.loop.data.isDisabled
 import com.pnd.android.loop.data.isNotRespond
-import com.pnd.android.loop.data.isRespond
 import com.pnd.android.loop.util.isActive
 import com.pnd.android.loop.util.isActiveDay
 import com.pnd.android.loop.util.toLocalDate
@@ -248,9 +247,10 @@ class LoopRepository @Inject constructor(
         // 어떤 상태 변경이든 refresh 한 번으로 등록/삭제가 항상 동기화된다.
         loopScheduler.refreshOngoingNotification()
 
-        // 앱에서 답했다면 "완료했나요?" 확인 알림은 이미 할 일을 다 했다. 상시 알림과 달리
-        // 이 알림은 스스로 사라지지 않으므로 여기서 명시적으로 내린다.
-        if (doneState.isRespond()) loopScheduler.cancelEndPrompt(loop.loopId)
+        // 앱에서 답했다면 그 루프에 답을 기다리던 알림들("완료했나요?", "시작할까요?")은 이미
+        // 할 일을 다 했다. 상시 알림과 달리 스스로 사라지지 않으므로 여기서 명시적으로 내린다.
+        // 어떤 상태로 바뀌었든 사용자가 그 루프에 손을 댄 것이므로 상태를 따로 가리지 않는다.
+        loopScheduler.cancelLoopPrompts(loop.loopId)
     }
 
     suspend fun getMemo(

@@ -12,6 +12,7 @@ import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -33,6 +34,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -40,6 +42,7 @@ import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Text
@@ -70,6 +73,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.FullLoopVo
@@ -99,9 +103,11 @@ import com.pnd.android.loop.util.formatMonthDateDay
 import com.pnd.android.loop.util.formatStartEndTime
 import com.pnd.android.loop.util.formatYearMonth
 import com.pnd.android.loop.util.toLocalDate
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
+import kotlin.math.abs
 
 @Composable
 fun DailyAchievementPage(
@@ -143,10 +149,6 @@ fun DailyAchievementPage(
         }
     }
 
-    val viewMode by achievementViewModel.flowViewMode.collectAsState(
-        initial = DailyAchievementPageViewMode.COLOR_DOT
-    )
-
     // 상태바 높이. 접히는 헤더 뒤로 리스트가 스크롤되도록 리스트 상단 여백을 계산하는 데 쓴다.
     val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
 
@@ -185,7 +187,6 @@ fun DailyAchievementPage(
                 pagerState = pagerState,
                 lazyListState = lazyListState,
                 achievementViewModel = achievementViewModel,
-                viewMode = viewMode,
                 minDate = minDate,
                 selectedDate = selectedDate,
                 onDateSelected = onDateSelected,
@@ -204,9 +205,7 @@ fun DailyAchievementPage(
                 modifier = Modifier.align(Alignment.TopCenter),
                 progress = collapseProgress,
                 title = selectedDate.formatYearMonth(),
-                isDescriptionMode = viewMode == DailyAchievementPageViewMode.DESCRIPTION_TEXT,
                 onNavigateUp = onNavigateUp,
-                onToggleViewMode = { achievementViewModel.toggleViewMode() },
                 onMoveToToday = { onDateSelected(LocalDate.now()) },
                 backdrop = headerBackdrop,
             )
@@ -217,11 +216,24 @@ fun DailyAchievementPage(
 /** 아래쪽 달력 패널의 위 모서리 모양. 리스트와의 경계를 명확히 하기 위해 위쪽만 둥글린다. */
 private val CalendarPanelShape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
 
-/** 달력 패널이 펼쳐졌을 때 화면에서 차지하는 세로 비율. 상단 월 요약 배너 높이만큼 여유를 둔다. */
-private const val CalendarExpandedHeightFraction = 0.52f
+/**
+ * 달력 패널 펼침 높이의 상한(화면 세로 비율).
+ *
+ * 펼침 높이는 화면 비율이 아니라 달력이 6주 그리드를 온전히 담는 높이([DailyAchievementCalendarHeight])로
+ * 정한다. 예전에는 비율로만 정해서, 6주인 달에서는 같은 높이를 한 줄 더 나눠 갖느라 셀이 좁아져
+ * 날짜 아래 색 도트가 잘렸다. 다만 작은 화면에서 패널이 화면을 다 차지하지 않도록 이 비율로 상한을 둔다.
+ * 상한에 걸려 셀이 좁아지면 달력이 도트를 감춰 잘림 없이 대응한다.
+ *
+ * 값은 흔한 화면에서는 상한이 걸리지 않을 만큼(= 계산된 높이가 이기도록) 넉넉히 둔다. 펼침 상태가
+ * 커 보여도 헤더 접힘·접힘 단계가 있어 되돌릴 수 있고, 상한이 이기면 도트가 사라지는 손실이 더 크다.
+ */
+private const val CalendarExpandedHeightMaxFraction = 0.68f
 
 /** 그래버(손잡이) 영역 높이. 접히면 이 높이(+내비게이션 바)만 남는다. */
 private val CalendarGrabHandleHeight = 28.dp
+
+/** 그래버와 달력 사이 여백. 펼침 높이 계산에도 그대로 반영된다. */
+private val CalendarTopSpacing = Dimens.itemSpacing
 
 /** 그래버 손잡이 알약(pill)의 크기. */
 private val CalendarGrabHandleBarWidth = 36.dp
@@ -236,7 +248,6 @@ private fun DailyAchievementPageContent(
     pagerState: PagerState,
     lazyListState: LazyListState,
     achievementViewModel: DailyAchievementViewModel,
-    viewMode: DailyAchievementPageViewMode,
     minDate: LocalDate,
     selectedDate: LocalDate,
     onDateSelected: (LocalDate) -> Unit,
@@ -259,14 +270,23 @@ private fun DailyAchievementPageContent(
             .background(color = AppColor.background),
     ) {
         val density = LocalDensity.current
-        // 펼침: 화면의 일정 비율. 접힘: 그래버 + 내비게이션 바만 남긴다.
-        val expandedHeight = this.maxHeight * CalendarExpandedHeightFraction
+        // 펼침: 달력이 6주 그리드를 잘림 없이 담는 높이(+ 그래버·내비게이션 바·달력 위 여백)를 확보하고,
+        // 화면 대비 지나치게 커지지 않도록 비율로 상한만 둔다. 접힘: 그래버 + 내비게이션 바만 남긴다.
+        val expandedHeight = minOf(
+            DailyAchievementCalendarHeight + CalendarTopSpacing +
+                    CalendarGrabHandleHeight + navigationBarHeight,
+            this.maxHeight * CalendarExpandedHeightMaxFraction,
+        )
         val collapsedHeight = CalendarGrabHandleHeight + navigationBarHeight
-        // 화면(펼침/접힘 높이)이 바뀌면 접힘 상태를 새 값으로 다시 만든다.
-        val collapseState = remember(density, expandedHeight, collapsedHeight) {
+        // 중간 단계: 6주 그리드는 그대로 두고 그 위 헤더(월 요약 + 요일)만 접은 높이.
+        val compactHeight = (expandedHeight - DailyAchievementCollapsibleHeaderHeight)
+            .coerceAtLeast(collapsedHeight)
+        // 화면(각 단계 높이)이 바뀌면 접힘 상태를 새 값으로 다시 만든다.
+        val collapseState = remember(density, expandedHeight, compactHeight, collapsedHeight) {
             with(density) {
                 CalendarCollapseState(
                     collapsedPx = collapsedHeight.toPx(),
+                    compactPx = compactHeight.toPx(),
                     expandedPx = expandedHeight.toPx(),
                 )
             }
@@ -321,12 +341,13 @@ private fun DailyAchievementPageContent(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
-                        .padding(top = Dimens.itemSpacing),
-                    viewMode = viewMode,
+                        .padding(top = CalendarTopSpacing),
                     pagerState = pagerState,
                     achievementViewModel = achievementViewModel,
                     minDate = minDate,
                     selectedDate = selectedDate,
+                    // 패널을 접는 만큼 그리드 위 헤더가 먼저 접힌다.
+                    headerCollapseProgress = collapseState.headerCollapseProgress,
                     onDateSelected = onDateSelected
                 )
             }
@@ -337,13 +358,22 @@ private fun DailyAchievementPageContent(
 /**
  * 아래쪽 달력 패널의 접힘 상태.
  *
- * 그래버를 위로 드래그하면 펼쳐지고([expandedPx]) 아래로 드래그하면 접힌다([collapsedPx]).
- * 드래그 중에는 높이가 손가락을 그대로 따라오고(snapTo), 손을 떼면 가까운 쪽으로 부드럽게
- * 스냅한다(animateTo). 높이는 픽셀 단위로 다루며, 화면 크기가 바뀌면 새로 만들어진다.
+ * 그래버를 위·아래로 드래그하면 높이가 손가락을 그대로 따라오고(snapTo), 손을 떼면 세 단계 중 한 곳으로
+ * 부드럽게 스냅한다(animateTo).
+ *
+ * - [expandedPx] — 펼침. 월 요약 배너 + 요일 헤더 + 6주 그리드가 모두 보인다.
+ * - [compactPx] — 헤더 접힘. 그리드는 그대로 두고 그 위 헤더만 접어, 위쪽 기록 리스트를 넓힌다.
+ * - [collapsedPx] — 접힘. 그래버(+내비게이션 바)만 남는다.
+ *
+ * 중간 단계를 둔 이유: 날짜를 고르는 데 필요한 건 그리드이므로, 공간을 되찾을 때 그리드보다 헤더를 먼저
+ * 내놓는 편이 낫다. 헤더를 얼마나 접을지는 [headerCollapseProgress]로 달력에 넘긴다.
+ *
+ * 높이는 픽셀 단위로 다루며, 화면 크기가 바뀌면 새로 만들어진다.
  */
 @Stable
 private class CalendarCollapseState(
     private val collapsedPx: Float,
+    private val compactPx: Float,
     private val expandedPx: Float,
 ) {
     private val heightAnim = Animatable(expandedPx)
@@ -351,34 +381,56 @@ private class CalendarCollapseState(
     /** 현재 패널 높이(px). 드래그·애니메이션에 따라 매 프레임 갱신된다. */
     val heightPx: Float get() = heightAnim.value
 
-    private val midPx get() = (collapsedPx + expandedPx) / 2f
+    /** 스냅 단계(낮은 → 높은 순). 세 값이 겹칠 수 있는 아주 작은 화면도 있어 중복은 걸러 낸다. */
+    private val snapPoints = listOf(collapsedPx, compactPx, expandedPx).distinct().sorted()
+
+    /**
+     * 헤더가 접힌 정도(`0f` 펼침 ~ `1f` 헤더 완전히 접힘). 펼침↔헤더 접힘 구간의 진행률이며,
+     * 달력이 이 값을 받아 월 요약 배너 → 요일 헤더 순서로 접는다.
+     */
+    val headerCollapseProgress: Float
+        get() {
+            val range = expandedPx - compactPx
+            if (range <= 0f) return 0f
+            return ((expandedPx - heightAnim.value) / range).coerceIn(0f, 1f)
+        }
 
     /** 드래그 델타(px)만큼 높이를 조절한다. 아래로 끌면(delta>0) 접히는 방향이라 높이가 줄어든다. */
     suspend fun dragBy(deltaPx: Float) {
         heightAnim.snapTo((heightAnim.value - deltaPx).coerceIn(collapsedPx, expandedPx))
     }
 
-    /** 손을 뗐을 때 속도와 위치를 함께 보고 펼침/접힘 중 가까운 쪽으로 스냅한다. */
+    /**
+     * 손을 뗐을 때 스냅한다. 빠르게 튕겼으면 위치와 상관없이 그 방향의 **다음 한 단계**로 가고,
+     * 천천히 놓았으면 가장 가까운 단계로 붙는다(세 단계이므로 중간 단계를 건너뛰지 않는다).
+     */
     suspend fun settle(velocityPx: Float) {
+        val current = heightAnim.value
         val target = when {
-            velocityPx > CalendarSettleVelocityThreshold -> collapsedPx
-            velocityPx < -CalendarSettleVelocityThreshold -> expandedPx
-            heightAnim.value < midPx -> collapsedPx
-            else -> expandedPx
+            velocityPx > CalendarSettleVelocityThreshold -> nextBelow(current) ?: snapPoints.first()
+            velocityPx < -CalendarSettleVelocityThreshold -> nextAbove(current) ?: snapPoints.last()
+            else -> snapPoints.minByOrNull { abs(it - current) } ?: expandedPx
         }
         heightAnim.animateTo(target, animationSpec = spring(stiffness = Spring.StiffnessMediumLow))
     }
 
-    /** 탭으로 접힘/펼침을 토글한다. 절반보다 펼쳐져 있으면 접고, 아니면 편다. */
+    /** 탭하면 한 단계씩 접고(펼침 → 헤더 접힘 → 접힘), 맨 아래에서 한 번 더 탭하면 다시 펼친다. */
     suspend fun toggle() {
-        val target = if (heightAnim.value > midPx) collapsedPx else expandedPx
+        val target = nextBelow(heightAnim.value) ?: snapPoints.last()
         heightAnim.animateTo(target, animationSpec = spring(stiffness = Spring.StiffnessMediumLow))
     }
+
+    private fun nextBelow(heightPx: Float) = snapPoints.lastOrNull { it < heightPx - SnapEpsilonPx }
+
+    private fun nextAbove(heightPx: Float) = snapPoints.firstOrNull { it > heightPx + SnapEpsilonPx }
 }
+
+/** 스냅 단계 비교용 여유. 현재 높이가 어떤 단계와 사실상 같은지 판단할 때 쓴다. */
+private const val SnapEpsilonPx = 1f
 
 /**
  * 달력을 감싸는, 살짝 떠 있는 하단 패널. 맨 위 그래버(손잡이)를 위·아래로 드래그하면
- * [onDrag]/[onDragStopped]로 패널이 접히거나 펼쳐지고, 손잡이를 탭하면 [onToggle]로 반전된다.
+ * [onDrag]/[onDragStopped]로 패널이 접히거나 펼쳐지고, 손잡이를 탭하면 [onToggle]로 한 단계 접힌다.
  *
  * 배경·테두리·그림자는 [AppColor] 토큰만 사용해 라이트/다크 모두에서 경계가 뚜렷하다.
  * 패널을 [CalendarPanelShape]로 클립해, 접히는 동안 내부 달력이 밖으로 삐져나오지 않게 한다.
@@ -416,7 +468,7 @@ private fun CalendarPanel(
 
 /**
  * 패널 상단의 그래버(손잡이). 얇은 알약 모양 바 하나로, 위·아래 드래그로 패널을 접고 편다.
- * 탭으로도 토글되어 드래그를 모르는 사용자도 접거나 펼 수 있다.
+ * 탭하면 한 단계씩 접혀, 드래그를 모르는 사용자도 접거나 펼 수 있다.
  * 색은 onSurface 기반 반투명이라 라이트/다크 어디서나 자연스럽게 얹힌다.
  */
 @Composable
@@ -436,7 +488,7 @@ private fun CalendarGrabHandle(
                 orientation = Orientation.Vertical,
                 onDragStopped = { velocity -> onDragStopped(velocity) },
             )
-            // 손잡이 영역을 탭하면 접힘/펼침 토글. 리플 없이 조용히 동작하게 indication은 끈다.
+            // 손잡이 영역을 탭하면 한 단계 접힌다. 리플 없이 조용히 동작하게 indication은 끈다.
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -586,27 +638,61 @@ private fun DailyAchievementsRecords(
 ) {
     val items = achievementViewModel.achievementPager.collectAsLazyPagingItems()
 
-    LazyColumn(
-        modifier = modifier,
-        state = lazyListState,
-        reverseLayout = true,
-        // 리스트가 상단의 떠 있는 앱바 뒤로 스크롤되도록 상단에 콘텐츠 패딩을 준다.
-        contentPadding = PaddingValues(top = contentTopPadding),
-    ) {
-        items(
-            count = items.itemCount,
-            key = { index -> items[index]!![0].date }
-        ) { index ->
-            val item = items[index]!!
+    // 첫 페이지는 하루·루프마다 DB를 조회해 만들기 때문에 최초 진입 시 시간이 걸린다.
+    // 그동안 빈 화면만 보이지 않도록, 아직 보여줄 기록이 없는 로딩 구간에 인디케이터를 얹는다.
+    val isInitialLoading = items.itemCount == 0 && items.loadState.refresh is LoadState.Loading
 
-            AchievementItem(
-                modifier = Modifier.padding(vertical = Dimens.contentPadding),
-                loops = item,
-                onNavigateToLoopDetail = onNavigateToLoopDetail,
-            )
+    Box(modifier = modifier) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            state = lazyListState,
+            reverseLayout = true,
+            // 리스트가 상단의 떠 있는 앱바 뒤로 스크롤되도록 상단에 콘텐츠 패딩을 준다.
+            contentPadding = PaddingValues(top = contentTopPadding),
+        ) {
+            items(
+                count = items.itemCount,
+                key = { index -> items[index]!![0].date }
+            ) { index ->
+                val item = items[index]!!
+
+                AchievementItem(
+                    modifier = Modifier.padding(vertical = Dimens.contentPadding),
+                    loops = item,
+                    onNavigateToLoopDetail = onNavigateToLoopDetail,
+                )
+            }
+        }
+
+        if (isInitialLoading) {
+            InitialLoadingIndicator(modifier = Modifier.align(Alignment.Center))
         }
     }
 }
+
+/**
+ * 최초 로딩 중 화면 가운데에 띄우는 지연 인디케이터. 기록이 적으면 로딩이 한 프레임에 끝나므로
+ * 바로 스피너를 그리면 깜빡임만 남는다. 그래서 [InitialLoadingSpinnerDelayMs]만큼 지난 뒤에도
+ * 여전히 로딩 중일 때만 스피너를 띄워, 짧은 로딩은 조용히 지나가고 길어질 때만 "동작 중"을 알린다.
+ */
+@Composable
+private fun InitialLoadingIndicator(modifier: Modifier = Modifier) {
+    var showSpinner by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(InitialLoadingSpinnerDelayMs)
+        showSpinner = true
+    }
+
+    if (showSpinner) {
+        CircularProgressIndicator(
+            modifier = modifier.size(32.dp),
+            color = AppColor.primary,
+            strokeWidth = 2.dp,
+        )
+    }
+}
+
+private const val InitialLoadingSpinnerDelayMs = 200L
 
 @Composable
 private fun AchievementItem(
@@ -674,10 +760,10 @@ private fun DayCard(
 }
 
 /**
- * 하루 요약 헤더. 왼쪽에 달성 정도를 나타내는 얇은 원형 진행 링을 두고, 오른쪽에 날짜와
- * "완료/전체" 부제를 세로로 쌓는다. 링 색은 달성 단계([progressColorOf])에 따라
+ * 하루 요약 헤더. 왼쪽에 달성률을 큰 퍼센트 숫자로 두고, 오른쪽에 날짜와 "완료/전체" 부제를
+ * 세로로 쌓는다. 숫자 색은 달성 단계([progressColorOf])에 따라
  * 회색(저조)→앰버(중간)→파랑(높음)→초록(완료)으로 바뀌어, 강렬한 진행바 대신 색으로 성취 정도를 전한다.
- * 오늘이면 날짜를 primary 색으로 강조하고, 기록이 없는 날은 링·부제 없이 날짜만 보여준다.
+ * 오늘이면 날짜를 primary 색으로 강조하고, 기록이 없는 날은 퍼센트·부제 없이 날짜만 보여준다.
  */
 @Composable
 private fun DaySummaryHeader(
@@ -698,10 +784,10 @@ private fun DaySummaryHeader(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (hasRecords) {
-            AchievementRing(
+            DayAchievementPercent(
+                modifier = Modifier.padding(end = Dimens.contentPadding),
                 fraction = fraction,
                 color = progressColorOf(fraction),
-                modifier = Modifier.padding(end = Dimens.contentPadding),
             )
         }
 
@@ -728,6 +814,46 @@ private fun DaySummaryHeader(
                 )
             }
         }
+    }
+}
+
+/** 퍼센트 영역의 최소 너비. 자릿수(0~100%)가 달라도 오른쪽 날짜 열이 하루마다 어긋나지 않게 한다. */
+private val DayPercentMinWidth = 52.dp
+
+/**
+ * 하루 달성률을 큰 퍼센트 숫자로 보여준다. 진행 링 없이 숫자만 두어, 채워진 정도를 눈대중하지 않고
+ * 달성률을 바로 읽을 수 있게 한다. 숫자는 크게, 단위(%)는 작게 그리고 둘의 아래쪽을 맞춰
+ * 한 덩어리로 보이게 한다.
+ */
+@Composable
+private fun DayAchievementPercent(
+    modifier: Modifier = Modifier,
+    fraction: Float,
+    color: Color,
+) {
+    // 다 채우지 못했는데 반올림 때문에 100%로 보이지 않도록 버림한다(예: 0.999 → 99).
+    val percent = (fraction.coerceIn(0f, 1f) * 100).toInt()
+
+    Row(
+        modifier = modifier.widthIn(min = DayPercentMinWidth),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.Bottom,
+    ) {
+        Text(
+            text = "$percent",
+            style = AppTypography.headlineMedium.copy(
+                color = color,
+                letterSpacing = 0.sp,
+            ),
+        )
+        Text(
+            modifier = Modifier.padding(bottom = 2.dp),
+            text = "%",
+            style = AppTypography.labelMedium.copy(
+                color = color,
+                letterSpacing = 0.sp,
+            ),
+        )
     }
 }
 

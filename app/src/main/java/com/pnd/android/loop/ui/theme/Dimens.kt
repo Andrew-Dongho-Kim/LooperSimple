@@ -6,7 +6,7 @@ import androidx.compose.ui.unit.dp
  * Centralized spacing tokens shared across every screen.
  *
  * Using one source of truth keeps the horizontal alignment line and the vertical
- * rhythm consistent between Home, Detail, Statistics, History and Group screens,
+ * rhythm consistent between Home, Detail, Statistics and History screens,
  * instead of scattering magic numbers (24 / 12 / 8 dp) per file.
  */
 object Dimens {

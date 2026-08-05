@@ -1,18 +1,6 @@
 <resources>
     <string name="app_name" translatable="false">LooperSimple</string>
 
-    <string name="group">Group</string>
-    <string name="add_group">Add a group</string>
-    <string name="delete_group">Delete the group</string>
-    <string name="add_to_group">Add to group</string>
-    <string name="already_added">Added</string>
-    <string name="remove_from_group">Remove from group</string>
-    <string name="enter_group_title">Enter group title</string>
-    <string name="remove_from_group_message">Do you want to remove \"%s\" loop from \"%s\" group</string>
-    <string name="delete_group_message">Do you want to delete \"%s\" group?</string>
-    <string name="group_empty_title">No groups yet</string>
-    <string name="group_empty_hint">Tap + above to create your first group.</string>
-
     <string name="loop">loop</string>
     <string name="loops">%d loops</string>
     <string name="all_loops">All loops</string>
@@ -69,6 +57,15 @@
     <string name="achievement_active_days">%d active days</string>
     <string name="achievement_month_notes_title">Notes · %s</string>
     <string name="achievement_no_notes">No notes this month yet.</string>
+    <!-- 월 요약 배너: 완료하지 못한 기록의 종류(건너뜀/무응답) 부제. -->
+    <string name="achievement_skipped_count">%d skipped</string>
+    <string name="achievement_no_response_count">%d no response</string>
+    <!-- 월 요약 배너 회고 칩: 개수 + 완료 대비 비율. -->
+    <string name="achievement_retrospect_chip">%1$d · %2$d%%</string>
+    <!-- 월 요약 배너 지표 타일: 지난달 완료율 대비 증감(%p). 비교할 기록이 없으면 빈 값 기호. -->
+    <string name="achievement_prev_month">vs last month</string>
+    <string name="achievement_delta_points">%+d%%p</string>
+    <string name="achievement_no_value">—</string>
 
     <string name="total">Total</string>
 
@@ -319,13 +316,16 @@
         <item quantity="other">%d mins left</item>
     </plurals>
 
-    <!-- 상시 알림의 액션 버튼 라벨 (완료/건너뛰기/정지) -->
+    <!-- 알림의 액션 버튼 라벨 (완료/건너뛰기/정지/시작) -->
     <string name="notification_action_done">Done</string>
     <string name="notification_action_skip">Skip</string>
     <string name="notification_action_stop">Stop</string>
+    <string name="notification_action_start">Start</string>
 
     <!-- 진행 중 루프 상시 알림 채널 이름 -->
     <string name="notification_ongoing_channel">In-progress loops</string>
+    <!-- 답을 구하는 알림 채널 이름. 시작 안내와 따로 끌 수 있도록 분리했다. -->
+    <string name="notification_loop_prompt_channel">Loop check-ins</string>
     <!-- 진행 중인 루프가 여러 개일 때 통합 알림 제목 -->
     <plurals name="notification_loops_in_progress">
         <item quantity="one">%d loop in progress</item>
@@ -364,6 +364,51 @@
     <!-- 시간창이 끝났는데 아직 응답이 없는 루프에 완료 여부를 묻는 알림 -->
     <string name="notification_loop_ended_title">Did you finish %s?</string>
     <string name="notification_loop_ended_text">Ended at %s</string>
+
+    <!-- 평소 하던 시각이 됐는데 아직 시작하지 않은 anytime 루프에 시작을 권하는 알림 -->
+    <string name="notification_anytime_due_title">Start %s?</string>
+    <!-- 왜 지금 알리는지 알려주는 근거 한 줄. 표본이 충분할 때만 표시된다. -->
+    <string name="notification_anytime_due_usual_weekday">You usually start around %s on weekdays</string>
+    <string name="notification_anytime_due_usual_holiday">You usually start around %s on weekends</string>
+    <string name="notification_anytime_due_usual">You usually start around %s</string>
+
+    <!-- 알림이 막혀 있을 때 홈 목록 맨 위에 띄우는 배너 -->
+    <string name="notification_issue_action">Fix</string>
+    <string name="notification_issue_disabled_title">Notifications are off</string>
+    <string name="notification_issue_disabled_desc">Loop reminders can\'t reach you</string>
+    <string name="notification_issue_channel_title">Loop reminders are off</string>
+    <string name="notification_issue_channel_desc">The ongoing notification still shows, but reminders don\'t</string>
+    <string name="notification_issue_exact_alarm_title">Reminders may arrive late</string>
+    <string name="notification_issue_exact_alarm_desc">Exact alarms are turned off, so timing can drift by a few minutes</string>
+
+    <!-- 설정 화면 -->
+    <string name="settings">Settings</string>
+    <string name="settings_section_habit">Habit reminders</string>
+    <string name="settings_anytime_due_title">Remind me at my usual time</string>
+    <string name="settings_anytime_due_desc">For loops with no set time, based on when you usually start them</string>
+    <string name="settings_habitual_shift_title">Reminder timing</string>
+    <string name="settings_habitual_shift_desc">Shifted against the times you usually start</string>
+    <string name="settings_habitual_shift_earlier">Earlier</string>
+    <string name="settings_habitual_shift_usual">Usual</string>
+    <string name="settings_habitual_shift_later">Later</string>
+
+    <string name="settings_section_quiet">Quiet hours</string>
+    <string name="settings_quiet_hours_title">Use quiet hours</string>
+    <string name="settings_quiet_hours_desc">No habit reminders during these hours. Loop start and end reminders still arrive.</string>
+    <string name="settings_quiet_hours_start">From</string>
+    <string name="settings_quiet_hours_end">Until</string>
+    <string name="settings_quiet_hours_decrease">One hour earlier</string>
+    <string name="settings_quiet_hours_increase">One hour later</string>
+
+    <string name="settings_section_in_progress">In-progress loops</string>
+    <string name="settings_in_progress_remind_title">Remind me again</string>
+    <string name="settings_in_progress_remind_desc">How often to nudge a loop with no set time that\'s been running a while</string>
+    <string name="settings_in_progress_remind_off">Off</string>
+    <string name="settings_in_progress_remind_hours">%dh</string>
+
+    <string name="settings_section_system">System</string>
+    <string name="settings_open_system_notification">Android notification settings</string>
+    <string name="settings_open_system_notification_desc">Turn each kind on or off, sound, vibration</string>
 
     <string name="ad_attribution" translatable="false">AD</string>
     <string name="desc_native_ad">Advertisement</string>

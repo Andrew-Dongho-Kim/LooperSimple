@@ -1,17 +1,5 @@
 <resources>
 
-    <string name="group">그룹</string>
-    <string name="add_group">그룹 추가</string>
-    <string name="delete_group">그룹 삭제</string>
-    <string name="add_to_group">그룹에 추가</string>
-    <string name="already_added">추가됨</string>
-    <string name="remove_from_group">그룹에서 제거</string>
-    <string name="enter_group_title">그룹 이름을 입력하세요</string>
-    <string name="remove_from_group_message">\"%s\" 루프를 \"%s\" 그룹에서 제거하시겠습니까?</string>
-    <string name="delete_group_message">\"%s\" 그룹을 삭제하시겠습니까?</string>
-    <string name="group_empty_title">아직 그룹이 없어요</string>
-    <string name="group_empty_hint">상단의 + 를 눌러 첫 그룹을 만들어보세요.</string>
-
     <string name="loop">루프</string>
     <string name="loops">%d 루프</string>
     <string name="all_loops">모든 루프</string>
@@ -68,6 +56,15 @@
     <string name="achievement_active_days">활동 %d일</string>
     <string name="achievement_month_notes_title">메모 · %s</string>
     <string name="achievement_no_notes">이번 달 메모가 아직 없어요.</string>
+    <!-- 월 요약 배너: 완료하지 못한 기록의 종류(건너뜀/무응답) 부제. -->
+    <string name="achievement_skipped_count">건너뜀 %d</string>
+    <string name="achievement_no_response_count">무응답 %d</string>
+    <!-- 월 요약 배너 회고 칩: 개수 + 완료 대비 비율. -->
+    <string name="achievement_retrospect_chip">%1$d · %2$d%%</string>
+    <!-- 월 요약 배너 지표 타일: 지난달 완료율 대비 증감(%p). 비교할 기록이 없으면 빈 값 기호. -->
+    <string name="achievement_prev_month">지난달 대비</string>
+    <string name="achievement_delta_points">%+d%%p</string>
+    <string name="achievement_no_value">—</string>
 
     <string name="total">전체</string>
 
@@ -317,13 +314,16 @@
         <item quantity="other">%d분 남음</item>
     </plurals>
 
-    <!-- 상시 알림의 액션 버튼 라벨 (완료/건너뛰기/정지) -->
+    <!-- 알림의 액션 버튼 라벨 (완료/건너뛰기/정지/시작) -->
     <string name="notification_action_done">완료</string>
     <string name="notification_action_skip">건너뛰기</string>
     <string name="notification_action_stop">정지</string>
+    <string name="notification_action_start">시작</string>
 
     <!-- 진행 중 루프 상시 알림 채널 이름 -->
     <string name="notification_ongoing_channel">진행 중 루프</string>
+    <!-- 답을 구하는 알림 채널 이름. 시작 안내와 따로 끌 수 있도록 분리했다. -->
+    <string name="notification_loop_prompt_channel">루프 확인 요청</string>
     <!-- 진행 중인 루프가 여러 개일 때 통합 알림 제목 -->
     <plurals name="notification_loops_in_progress">
         <item quantity="other">진행 중인 루프 %d개</item>
@@ -357,6 +357,51 @@
     <!-- 시간창이 끝났는데 아직 응답이 없는 루프에 완료 여부를 묻는 알림 -->
     <string name="notification_loop_ended_title">%s 완료했나요?</string>
     <string name="notification_loop_ended_text">%s에 종료됐어요</string>
+
+    <!-- 평소 하던 시각이 됐는데 아직 시작하지 않은 anytime 루프에 시작을 권하는 알림 -->
+    <string name="notification_anytime_due_title">%s, 시작할까요?</string>
+    <!-- 왜 지금 알리는지 알려주는 근거 한 줄. 표본이 충분할 때만 표시된다. -->
+    <string name="notification_anytime_due_usual_weekday">평일엔 보통 %s쯤 하셨어요</string>
+    <string name="notification_anytime_due_usual_holiday">주말엔 보통 %s쯤 하셨어요</string>
+    <string name="notification_anytime_due_usual">보통 %s쯤 하셨어요</string>
+
+    <!-- 알림이 막혀 있을 때 홈 목록 맨 위에 띄우는 배너 -->
+    <string name="notification_issue_action">켜기</string>
+    <string name="notification_issue_disabled_title">알림이 꺼져 있어요</string>
+    <string name="notification_issue_disabled_desc">루프를 알려드릴 수 없어요</string>
+    <string name="notification_issue_channel_title">루프 알림이 꺼져 있어요</string>
+    <string name="notification_issue_channel_desc">상시 알림은 보이지만 시작·확인 알림은 오지 않아요</string>
+    <string name="notification_issue_exact_alarm_title">알림이 늦게 올 수 있어요</string>
+    <string name="notification_issue_exact_alarm_desc">정확한 알람이 꺼져 있어 몇 분 늦을 수 있어요</string>
+
+    <!-- 설정 화면 -->
+    <string name="settings">설정</string>
+    <string name="settings_section_habit">습관 알림</string>
+    <string name="settings_anytime_due_title">평소 하던 시각에 알리기</string>
+    <string name="settings_anytime_due_desc">시간을 정하지 않은 루프를, 그동안 시작해 온 시각에 알려드려요</string>
+    <string name="settings_habitual_shift_title">알림 시각</string>
+    <string name="settings_habitual_shift_desc">평소 시작하던 시각대를 기준으로 당기거나 미뤄요</string>
+    <string name="settings_habitual_shift_earlier">조금 일찍</string>
+    <string name="settings_habitual_shift_usual">보통</string>
+    <string name="settings_habitual_shift_later">조금 늦게</string>
+
+    <string name="settings_section_quiet">방해 금지 시간대</string>
+    <string name="settings_quiet_hours_title">방해 금지 시간대 사용</string>
+    <string name="settings_quiet_hours_desc">이 시간에는 습관 알림을 보내지 않아요. 루프 시작·종료 알림은 그대로 옵니다.</string>
+    <string name="settings_quiet_hours_start">시작</string>
+    <string name="settings_quiet_hours_end">종료</string>
+    <string name="settings_quiet_hours_decrease">한 시간 앞으로</string>
+    <string name="settings_quiet_hours_increase">한 시간 뒤로</string>
+
+    <string name="settings_section_in_progress">진행 중 루프</string>
+    <string name="settings_in_progress_remind_title">다시 알리기</string>
+    <string name="settings_in_progress_remind_desc">시간을 정하지 않은 루프가 오래 진행 중일 때 알리는 간격이에요</string>
+    <string name="settings_in_progress_remind_off">끔</string>
+    <string name="settings_in_progress_remind_hours">%d시간</string>
+
+    <string name="settings_section_system">시스템</string>
+    <string name="settings_open_system_notification">안드로이드 알림 설정</string>
+    <string name="settings_open_system_notification_desc">알림 종류별 켜기·끄기, 소리, 진동</string>
 
     <string name="desc_native_ad">광고</string>
     <string name="ad_expand">자세히 보기</string>

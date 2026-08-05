@@ -1680,9 +1680,12 @@ private fun SectionHeader(
 /**
  * 투자 시간(ms)을 사람이 읽기 좋은 문자열로 변환한다.
  * 하루 이상이면 "N일 N시간", 한 시간 이상이면 "N시간 N분", 그 미만이면 "N분"으로 표기한다.
+ *
+ * 기록 화면의 월 요약 배너도 같은 표기를 쓰도록 이 함수를 공유한다(같은 값이 두 화면에서 다르게
+ * 보이지 않게 한다).
  */
 @Composable
-private fun investedDurationText(investedTimeMs: Long): String {
+fun investedDurationText(investedTimeMs: Long): String {
     val totalMinutes = investedTimeMs / MS_1MIN
     val days = totalMinutes / (60 * 24)
     val hours = (totalMinutes / 60) % 24

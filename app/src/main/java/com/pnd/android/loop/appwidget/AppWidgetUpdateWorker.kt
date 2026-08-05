@@ -19,7 +19,7 @@ import com.pnd.android.loop.appwidget.AppWidgetUpdateWorker.Companion.Action.Com
 import com.pnd.android.loop.appwidget.AppWidgetUpdateWorker.Companion.Action.Companion.START_LOOP
 import com.pnd.android.loop.appwidget.AppWidgetUpdateWorker.Companion.Action.Companion.STOP_LOOP
 import com.pnd.android.loop.alarm.notification.LoopForegroundService
-import com.pnd.android.loop.alarm.notification.cancelLoopEndedNotification
+import com.pnd.android.loop.alarm.notification.cancelLoopPrompts
 import com.pnd.android.loop.common.Logger
 import com.pnd.android.loop.data.AppDatabase
 import com.pnd.android.loop.data.LoopBase
@@ -38,7 +38,7 @@ import com.pnd.android.loop.util.isActive
 import com.pnd.android.loop.util.isActiveDay
 import com.pnd.android.loop.util.occurrenceStartDate
 import com.pnd.android.loop.util.toLocalDate
-import com.pnd.android.loop.util.toLocalTime
+import com.pnd.android.loop.util.toTimeTextForLog
 import com.pnd.android.loop.util.toMs
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
@@ -82,9 +82,9 @@ class AppWidgetUpdateWorker @AssistedInject constructor(
         //  - 정지/완료/스킵하면 진행 중인 루프가 없어질 경우 서비스가 스스로 알림을 내린다.
         if (loopStateChanged) {
             LoopForegroundService.refresh(context)
-            // 이미 답한 루프에 "완료했나요?" 확인 알림이 남지 않게 한다. 위젯에서 답한
-            // 경우까지 여기서 함께 처리된다(알림 액션도 이 워커를 거친다).
-            cancelLoopEndedNotification(context = context, loopId = loopId())
+            // 이미 답한 루프에 질문("완료했나요?", "시작할까요?")이 남지 않게 한다. 위젯에서
+            // 답한 경우까지 여기서 함께 처리된다(알림 액션도 이 워커를 거친다).
+            cancelLoopPrompts(context = context, loopId = loopId())
         }
         return Result.success()
     }
@@ -189,7 +189,11 @@ class AppWidgetUpdateWorker @AssistedInject constructor(
                 done = DoneState.DONE
             )
         )
-        logger.i { "stop: $loopId, statAt: ${startAt.toLocalTime()}, endAt:${endAt.toLocalTime()}" }
+        // done 기록이 없으면 startAt 이 음수일 수 있다. 로그에는 시각 변환이 안전한 쪽을 쓴다.
+        logger.i {
+            "stop: $loopId, startAt: ${startAt.toTimeTextForLog()}, " +
+                    "endAt: ${endAt.toTimeTextForLog()}"
+        }
     }
 
     private suspend fun refresh() {

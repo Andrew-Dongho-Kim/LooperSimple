@@ -94,9 +94,9 @@ fun CollapsingHomeHeader(
     loopViewModel: LoopViewModel,
     @HomeTab.Type selectedTab: Int,
     onTabSelected: (Int) -> Unit,
-    onNavigateToGroupPage: () -> Unit,
     onNavigateToStatisticsPage: () -> Unit,
     onNavigateToHistoryPage: () -> Unit,
+    onNavigateToSettingsPage: () -> Unit,
     backdrop: BackdropState?,
     modifier: Modifier = Modifier,
     showTabs: Boolean = true,
@@ -147,9 +147,9 @@ fun CollapsingHomeHeader(
                     modifier = Modifier
                         .height(FloatingPillHeight)
                         .padding(horizontal = 8.dp),
-                    onNavigateToGroupPage = onNavigateToGroupPage,
                     onNavigateToStatisticsPage = onNavigateToStatisticsPage,
                     onNavigateToHistoryPage = onNavigateToHistoryPage,
+                    onNavigateToSettingsPage = onNavigateToSettingsPage,
                 )
             }
         }

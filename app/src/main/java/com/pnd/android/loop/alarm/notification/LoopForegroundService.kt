@@ -34,9 +34,6 @@ import kotlin.time.Duration.Companion.milliseconds
 
 private val logger = log("LoopForegroundService")
 
-/** anytime 루프가 방치되지 않도록 "진행 중" 안내를 다시 띄우는 간격(시간). */
-private const val ANYTIME_REMIND_INTERVAL_HOURS = 1
-
 /**
  * 진행 중인 루프를 알림창에 상시 표시하는 포그라운드 서비스.
  *
@@ -53,6 +50,9 @@ class LoopForegroundService : Service() {
 
     @Inject
     lateinit var notificationHelper: NotificationHelper
+
+    @Inject
+    lateinit var notificationSettings: NotificationSettings
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var tickJob: Job? = null
@@ -155,15 +155,20 @@ class LoopForegroundService : Service() {
 
     /**
      * anytime 루프는 종료 시각이 없어 사용자가 정지하지 않으면 며칠이고 진행 중으로 남는다.
-     * 무음 상시 알림만으로는 눈에 띄지 않으므로, 시작 후 1시간마다 heads-up 으로 다시 알린다.
+     * 무음 상시 알림만으로는 눈에 띄지 않으므로, 설정한 간격마다 heads-up 으로 다시 알린다.
      */
     private fun remindLongRunningAnyTimeLoops(loops: List<LoopBase>) {
         remindedHours.keys.retainAll(loops.map { it.loopId }.toSet())
 
+        val intervalHours = notificationSettings.current.inProgressRemindIntervalHours
+        if (intervalHours == IN_PROGRESS_REMIND_OFF) return
+
         val due = loops.filter { loop ->
             if (!loop.isAnyTime) return@filter false
             val hours = (loop.elapsedMinutesSinceStart() ?: return@filter false) / 60
-            hours >= ANYTIME_REMIND_INTERVAL_HOURS && remindedHours[loop.loopId] != hours
+            // 간격의 배수가 되는 시점에만 알린다. 예) 2시간 간격이면 2·4·6시간째.
+            if (hours < intervalHours || hours % intervalHours != 0) return@filter false
+            remindedHours[loop.loopId] != hours
         }
         if (due.isEmpty()) return
 

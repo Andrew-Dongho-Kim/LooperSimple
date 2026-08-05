@@ -7,10 +7,12 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.SystemClock
+import com.pnd.android.loop.alarm.notification.AnyTimeStartPrompter
 import com.pnd.android.loop.alarm.notification.LoopEndPrompter
 import com.pnd.android.loop.alarm.notification.LoopForegroundService
 import com.pnd.android.loop.alarm.notification.LoopStartAnnouncer
-import com.pnd.android.loop.alarm.notification.cancelLoopEndedNotification
+import com.pnd.android.loop.alarm.notification.NotificationSettings
+import com.pnd.android.loop.alarm.notification.cancelLoopPrompts
 import com.pnd.android.loop.appwidget.AppWidgetUpdateWorker
 import com.pnd.android.loop.common.log
 import com.pnd.android.loop.data.AppDatabase
@@ -26,6 +28,7 @@ import com.pnd.android.loop.data.common.NO_REPEAT
 import com.pnd.android.loop.data.description
 import com.pnd.android.loop.data.putTo
 import com.pnd.android.loop.util.MS_1DAY
+import com.pnd.android.loop.util.MS_1HOUR
 import com.pnd.android.loop.util.dayForLoop
 import com.pnd.android.loop.util.dh2m2
 import com.pnd.android.loop.util.isActive
@@ -33,6 +36,7 @@ import com.pnd.android.loop.util.isActiveDay
 import com.pnd.android.loop.util.isActiveTime
 import com.pnd.android.loop.util.toLocalDate
 import com.pnd.android.loop.util.toMs
+import com.pnd.android.loop.util.toTimeTextForLog
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
@@ -46,6 +50,8 @@ import javax.inject.Inject
 class LoopScheduler @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val alarmManager: AlarmManager,
+    private val habitualStartEstimator: HabitualStartEstimator,
+    private val notificationSettings: NotificationSettings,
     appDb: AppDatabase
 ) {
     private val logger = log("LoopScheduler")
@@ -94,8 +100,17 @@ class LoopScheduler @Inject constructor(
             }
 
         } else {
-
-            logger.e { "can't schedule exact alarm" }
+            // 정확 알람이 막혔다고 아무것도 예약하지 않으면 시작 알림·종료 확인·습관 알림이 전부
+            // 오지 않아 앱이 사실상 멈춘다. 몇 분 늦더라도 도착하는 편이 훨씬 낫다.
+            // setAndAllowWhileIdle 은 정확 알람 권한 없이도 Doze 를 넘어 전달된다(오차 최대 수 분).
+            alarmManager.setAndAllowWhileIdle(
+                AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                reservedTime,
+                pendingIntent
+            )
+            logger.i {
+                " - inexact(after:${dh2m2(after)}) ${loop.description(context)}"
+            }
         }
     }
 
@@ -107,6 +122,9 @@ class LoopScheduler @Inject constructor(
                 fillNoResponse(loop)
                 if (loop.enabled) {
                     reserveAlarm(scheduleStart(loop))
+                    // anytime 루프는 시작 시각이 없어 위 예약이 그냥 건너뛰어진다(after <= 0).
+                    // 대신 과거 기록에서 추정한 습관 시각에 "시작할까요?" 알람을 건다.
+                    if (loop.isAnyTime) reserveAnyTimeDueAlarm(loop)
                     hasActiveLoop = hasActiveLoop or loop.isActive()
                 } else {
                     cancelAlarm(loop)
@@ -119,6 +137,53 @@ class LoopScheduler @Inject constructor(
             if (hasActiveLoop) LoopForegroundService.refresh(context)
             logger.i { "Start syncLoops hasActiveLoop:$hasActiveLoop" }
         }
+    }
+
+    /**
+     * anytime 루프에 "보통 이 시각에 시작하셨어요" 알람을 오늘 한 번 예약한다.
+     *
+     * 이 함수는 [syncLoops] 를 타므로 자정, 부팅, 그리고 앱을 열 때마다 다시 불린다. 같은
+     * PendingIntent 를 다시 setExact 하는 것이므로 중복 예약은 되지 않고 시각만 갱신된다.
+     *
+     * 추정 시각이 이미 지났으면 [reserveAlarm] 이 스스로 건너뛴다(after <= 0). 즉 하루에 한 번,
+     * 그 시각을 놓쳤으면 그날은 조용히 넘어간다.
+     */
+    private suspend fun reserveAnyTimeDueAlarm(loop: LoopBase) {
+        val preferences = notificationSettings.current
+        if (!preferences.anyTimeDueEnabled) {
+            // 설정에서 껐다면 이미 걸려 있는 알람까지 걷어낸다. 그냥 두면 오늘 몫이 그대로 도착한다.
+            cancelAlarm(loop = loop, alarmAction = ACTION_LOOP_ANYTIME_DUE)
+            return
+        }
+
+        // 오늘이 그 루프의 요일이 아니면 애초에 할 일이 없다.
+        if (!loop.isActiveDay()) return
+
+        val habitualStart = habitualStartEstimator.estimate(loop.loopId)
+        if (habitualStart == null) {
+            // 실제로 시작한 기록이 아직 없다. 근거 없이 시각을 발명하지 않는다.
+            logger.i { " - no habitual start yet: ${loop.title}" }
+            return
+        }
+
+        val dueInDay = habitualStart.startInDay
+        // 사용자가 직접 정하지 않고 앱이 추정한 시각이라, 방해 금지 구간이면 물러난다.
+        if (preferences.isInQuietHours(dueInDay)) {
+            logger.i { " - habitual start is in quiet hours: ${loop.title}" }
+            return
+        }
+
+        logger.i {
+            " - anytime due at ${dueInDay.toTimeTextForLog()} " +
+                    "(${habitualStart.basis}, ${habitualStart.sampleCount} samples) ${loop.title}"
+        }
+        reserveAlarm(
+            LoopSchedule(
+                action = ACTION_LOOP_ANYTIME_DUE,
+                after = dueInDay - msNow,
+                loop = loop,
+            )
+        )
     }
 
     private suspend fun fillNoResponse(loop: LoopBase) {
@@ -161,11 +226,11 @@ class LoopScheduler @Inject constructor(
     }
 
     /**
-     * 앱에서 완료/건너뛰기로 답했다면, 그 루프의 "완료했나요?" 확인 알림도 함께 내린다.
-     * 확인 알림은 사용자가 어디서 답했는지 알 수 없으므로 응답을 기록하는 쪽에서 내려 줘야 한다.
+     * 앱에서 루프 상태를 바꿨다면, 그 루프에 대해 답을 기다리던 알림들도 함께 내린다.
+     * 그 알림들은 사용자가 어디서 답했는지 알 수 없으므로 기록하는 쪽에서 내려 줘야 한다.
      */
-    fun cancelEndPrompt(loopId: Int) {
-        cancelLoopEndedNotification(context = context, loopId = loopId)
+    fun cancelLoopPrompts(loopId: Int) {
+        cancelLoopPrompts(context = context, loopId = loopId)
     }
 
     fun cancelAlarm(loop: LoopBase) {
@@ -174,23 +239,32 @@ class LoopScheduler @Inject constructor(
         }
         logger.i { " - cancel id:${loop.loopId}, title:${loop.title}" }
 
-        // PendingIntent 동등성은 action 을 포함하므로 시작/종료/반복이 각각 별개로 예약돼
-        // 있다. START 만 취소하면 남은 종료·반복 알람이 나중에 유령처럼 도착해 서비스를
-        // 깨우고 반복 체인을 계속 재예약한다. 세 액션을 모두 취소한다.
-        listOf(ACTION_LOOP_START, ACTION_LOOP_END, ACTION_LOOP_REPEAT).forEach { alarmAction ->
-            val alarmIntent = Intent(context, AlarmReceiver::class.java).apply {
-                action = alarmAction
-            }
-            val pendingIntent =
-                PendingIntent.getBroadcast(
-                    context,
-                    loop.loopId,
-                    alarmIntent,
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
-                )
-            alarmManager.cancel(pendingIntent)
-            pendingIntent.cancel()
+        // PendingIntent 동등성은 action 을 포함하므로 시작/종료/반복/습관시각이 각각 별개로
+        // 예약돼 있다. START 만 취소하면 남은 알람이 나중에 유령처럼 도착해 서비스를 깨우고
+        // 반복 체인을 계속 재예약한다. 예약하는 모든 액션을 빠짐없이 취소한다.
+        listOf(
+            ACTION_LOOP_START,
+            ACTION_LOOP_END,
+            ACTION_LOOP_REPEAT,
+            ACTION_LOOP_ANYTIME_DUE,
+        ).forEach { alarmAction ->
+            cancelAlarm(loop = loop, alarmAction = alarmAction)
         }
+    }
+
+    /** 특정 루프의 특정 액션 알람 하나만 취소한다. */
+    private fun cancelAlarm(loop: LoopBase, @LoopScheduleAction alarmAction: String) {
+        val alarmIntent = Intent(context, AlarmReceiver::class.java).apply {
+            action = alarmAction
+        }
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            loop.loopId,
+            alarmIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+        )
+        alarmManager.cancel(pendingIntent)
+        pendingIntent.cancel()
     }
 
     @AndroidEntryPoint
@@ -207,12 +281,16 @@ class LoopScheduler @Inject constructor(
         @Inject
         lateinit var loopEndPrompter: LoopEndPrompter
 
+        @Inject
+        lateinit var anyTimeStartPrompter: AnyTimeStartPrompter
+
         override fun onReceive(context: Context, intent: Intent) {
             when (intent.action) {
                 ACTION_LOOP_START -> handleActionLoopStart(context, intent)
                 ACTION_LOOP_END -> handleActionLoopEnd(context, intent)
                 ACTION_LOOP_REPEAT -> handleActionLoopRepeat(intent)
                 ACTION_LOOP_SYNC -> handleActionLoopSync(context, intent)
+                ACTION_LOOP_ANYTIME_DUE -> handleActionAnyTimeDue(intent)
 
                 ACTION_LOOP_DONE -> handleActionLoopDone(context)
                 ACTION_LOOP_CANCEL -> handleActionLoopCancel(context)
@@ -229,6 +307,14 @@ class LoopScheduler @Inject constructor(
             LoopForegroundService.refresh(context)
         }
 
+
+        /**
+         * 습관 시각 도달: 오늘 아직 시작하지 않은 anytime 루프라면 "시작할까요?" 를 묻는다.
+         * 알림만 띄우면 되므로 상시 알림·위젯은 건드리지 않는다(아직 상태가 바뀐 게 없다).
+         */
+        private fun handleActionAnyTimeDue(intent: Intent) {
+            anyTimeStartPrompter.prompt(intent.asLoop().loopId)
+        }
 
         private fun handleActionLoopSync(context: Context, intent: Intent) {
             val loop = intent.asLoop()

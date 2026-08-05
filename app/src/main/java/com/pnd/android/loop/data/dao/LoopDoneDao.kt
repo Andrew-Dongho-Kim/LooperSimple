@@ -49,6 +49,27 @@ interface LoopDoneDao {
         date: Long
     ): LoopDoneVo?
 
+    /**
+     * anytime 루프가 실제로 시작된 날의 기록을 최신순으로. 습관 시작 시각 추정의 표본이 된다.
+     *
+     * startInDay 에 실제 시계 시각이 들어가는 것은 사용자가 "시작"을 누른 날뿐이다(진행 중이거나
+     * 그 뒤 완료된 날). 미응답·건너뛰기·비활성 행은 ANY_TIME(-1) 이므로 startInDay >= 0 조건
+     * 하나로 "안 한 날"이 자연히 걸러진다.
+     *
+     * 오늘 기록은 제외한다([today] 미만) — 오늘 알릴 시각을 오늘의 시작으로 추정할 수는 없다.
+     */
+    @Query(
+        "SELECT * FROM loop_done " +
+                "WHERE loopId=:loopId AND startInDay >= 0 AND :since <= date AND date < :today " +
+                "ORDER BY date DESC LIMIT :limit"
+    )
+    suspend fun getRecentStarts(
+        loopId: Int,
+        since: Long,
+        today: Long,
+        limit: Int,
+    ): List<LoopDoneVo>
+
     @Query("SELECT COUNT(*) FROM loop_done WHERE done != ${LoopDoneVo.DoneState.DISABLED}")
     fun getAllEnabledCountFlow(): Flow<Int>
 

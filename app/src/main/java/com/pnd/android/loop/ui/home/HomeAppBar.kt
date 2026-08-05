@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.GroupWork
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -60,27 +60,22 @@ fun HomeTitle(
 }
 
 /**
- * The group / statistics / history navigation actions shown on the right of the action bar.
+ * The statistics / history / settings navigation actions shown on the right of the action bar.
  * They keep their spot as the user scrolls and simply gain a floating background there, so
  * they are laid out on their own without the greeting/date.
  */
 @Composable
 fun HomeActionIcons(
     modifier: Modifier = Modifier,
-    onNavigateToGroupPage: () -> Unit,
     onNavigateToStatisticsPage: () -> Unit,
     onNavigateToHistoryPage: () -> Unit,
+    onNavigateToSettingsPage: () -> Unit,
 ) {
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.End,
     ) {
-        HomeAppBarAction(
-            imageVector = Icons.Outlined.GroupWork,
-            descriptionResId = R.string.group,
-            onClick = onNavigateToGroupPage,
-        )
         HomeAppBarAction(
             imageVector = Icons.Outlined.BarChart,
             descriptionResId = R.string.statistics,
@@ -90,6 +85,11 @@ fun HomeActionIcons(
             imageVector = Icons.Outlined.CalendarMonth,
             descriptionResId = R.string.daily_record,
             onClick = onNavigateToHistoryPage,
+        )
+        HomeAppBarAction(
+            imageVector = Icons.Outlined.Settings,
+            descriptionResId = R.string.settings,
+            onClick = onNavigateToSettingsPage,
         )
     }
 }

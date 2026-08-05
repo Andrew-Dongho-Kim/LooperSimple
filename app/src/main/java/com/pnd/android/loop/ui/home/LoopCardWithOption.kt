@@ -20,7 +20,6 @@ data class LoopCardValues(
     val syncWithTime: Boolean = true,
     val isActive: Boolean = false,
     val isHighlighted: Boolean = false,
-    val showAddToGroup: Boolean = true,
     // 옵션 메뉴에 "완료로 기록 / 건너뜀으로 기록"을 노출할지. 전체 탭처럼 응답이 목적이 아닌
     // 화면에서는 false 로 두어 숨긴다.
     val showRecordActions: Boolean = true,
@@ -40,7 +39,6 @@ fun LoopCardWithOption(
     onEdit: (LoopBase) -> Unit,
     onDelete: (LoopBase) -> Unit,
     onStateChanged: (LoopBase, Int) -> Unit,
-    onNavigateToGroupPicker: (LoopBase) -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
     var isActive by remember { mutableStateOf(false) }
@@ -100,7 +98,6 @@ fun LoopCardWithOption(
             showDeleteDialog = true
             blurState.on()
         },
-        onNavigateToGroupPicker = onNavigateToGroupPicker,
         onNavigateToDetailPage = onNavigateToDetailPage
     )
 }

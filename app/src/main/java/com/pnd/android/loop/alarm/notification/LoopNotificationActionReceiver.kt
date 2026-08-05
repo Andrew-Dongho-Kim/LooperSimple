@@ -32,9 +32,9 @@ class LoopNotificationActionReceiver : BroadcastReceiver() {
         val date = intent.getLongExtra(PARAMS_DATE, 0L)
         logger.i { "notification action:$action loopId:$loopId date:$date" }
 
-        // 응답 기록은 WorkManager 를 거치므로 몇 백 ms 뒤에 반영된다. "완료했나요?" 확인
-        // 알림은 방금 사용자가 누른 그 알림이므로, 기다리지 않고 즉시 내려 눌린 티를 낸다.
-        cancelLoopEndedNotification(context = context, loopId = loopId)
+        // 응답 기록은 WorkManager 를 거치므로 몇 백 ms 뒤에 반영된다. 방금 사용자가 누른 그
+        // 알림이므로, 기다리지 않고 즉시 내려 눌린 티를 낸다.
+        cancelLoopPrompts(context = context, loopId = loopId)
 
         AppWidgetUpdateWorker.actionLoop(
             context = context,
