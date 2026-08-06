@@ -26,15 +26,22 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.pnd.android.loop.R
+import com.pnd.android.loop.appwidget.WidgetLoop
+import com.pnd.android.loop.appwidget.awaitsResponse
+import com.pnd.android.loop.appwidget.canRespond
+import com.pnd.android.loop.appwidget.isRunning
+import com.pnd.android.loop.appwidget.needsStartStop
 import com.pnd.android.loop.common.NavigatePage
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDay
 import com.pnd.android.loop.data.LoopDay.Companion.isOn
 import com.pnd.android.loop.data.TimeStat
 import com.pnd.android.loop.data.common.NO_REPEAT
+import com.pnd.android.loop.ui.home.TodayGroup
 import com.pnd.android.loop.ui.theme.compositeOverOnSurface
 import com.pnd.android.loop.util.ABB_DAYS
 import com.pnd.android.loop.util.DAY_STRING_MAP
+import com.pnd.android.loop.util.MS_1DAY
 import com.pnd.android.loop.util.intervalString
 import com.pnd.android.loop.util.toLocalTime
 import com.pnd.android.loop.util.toMs
@@ -48,6 +55,15 @@ private val WIDGET_ROW_PADDING_HORIZONTAL = 6.dp
 /** 카드 사이 세로 간격(투명 Spacer 로 만든다). */
 private val WIDGET_ROW_GAP = 8.dp
 
+/** 그룹 헤더 위 간격. 카드 사이 간격보다 넉넉히 둬 그룹 경계가 보이게 한다. */
+private val WIDGET_GROUP_GAP = 14.dp
+
+/** 헤더 텍스트를 카드 안쪽 내용과 같은 선에 맞추기 위한 들여쓰기. */
+private val WIDGET_GROUP_HEADER_INDENT = WIDGET_ROW_PADDING_HORIZONTAL + 12.dp
+
+/** 목록 맨 아래 여백 항목의 id. 루프 항목은 0 이상을 쓰므로([WidgetLoop.itemId]) 음수 영역을 쓴다. */
+private const val ITEM_ID_BOTTOM_SPACER = -1L
+
 // ---------------------------------------------------------------------------
 // Medium 위젯 — "진행 히어로 + 리스트" 구성
 //  · 지금 할 일 하나를 히어로 카드로 크게 띄워 상태/시간/요일·반복 정보와
@@ -59,7 +75,7 @@ private val WIDGET_ROW_GAP = 8.dp
 @Composable
 fun LoopWidgetMedium(
     modifier: GlanceModifier = GlanceModifier,
-    loops: List<LoopBase>,
+    loops: List<WidgetLoop>,
     todayTotal: Int,
 ) {
     Column(
@@ -94,55 +110,139 @@ fun LoopWidgetMedium(
 }
 
 /**
- * 히어로 카드 하나 + 나머지 컴팩트 행 목록. 전체를 하나의 LazyColumn 에 담아 위젯 높이가
+ * 히어로 카드 하나 + 그룹별 컴팩트 행 목록. 전체를 하나의 LazyColumn 에 담아 위젯 높이가
  * 낮아도 함께 스크롤되게 한다.
+ *
+ * 히어로는 "지금(또는 가장 먼저) 할 일" 하나를 세우는 자리라 헤더 밖에 둔다. 나머지는 홈
+ * "오늘" 탭과 같은 그룹(다음 예정 / 응답 대기) 헤더 아래로 모아, 좁은 위젯에서도 아직 남은
+ * 일과 답을 기다리는 일의 경계가 보이게 한다.
  */
 @Composable
 private fun LoopWidgetBody(
     modifier: GlanceModifier = GlanceModifier,
-    loops: List<LoopBase>,
+    loops: List<WidgetLoop>,
 ) {
     val hero = pickHeroLoop(loops)
-    val others = loops.filter { it.loopId != hero.loopId }
+    // 같은 루프가 두 몫으로 올 수 있으므로 loopId 가 아니라 항목 자체로 제외한다.
+    val groups = buildWidgetGroups(loops.filter { it != hero })
 
     LazyColumn(modifier = modifier) {
-        item(itemId = hero.loopId.toLong()) {
+        item(itemId = hero.itemId()) {
             LoopWidgetHero(
                 modifier = GlanceModifier.padding(horizontal = WIDGET_ROW_PADDING_HORIZONTAL),
-                loop = hero,
+                widgetLoop = hero,
             )
         }
-        items(
-            items = others,
-            itemId = { loop -> loop.loopId.toLong() },
-        ) { loop ->
-            // 카드 사이 간격 만들기(Glance 주의점 2가지):
-            //  1) item 람다가 자식을 여러 개 emit 하면 세로로 쌓지 않고 Box 로 겹친다.
-            //  2) background 는 modifier 순서와 무관하게 패딩 영역까지 칠하므로 top 패딩으로는
-            //     마진이 생기지 않는다.
-            // 그래서 명시적 Column 으로 세로로 쌓고, 배경 없는 Spacer 로 투명 간격을 만든다.
-            Column {
-                Spacer(modifier = GlanceModifier.height(WIDGET_ROW_GAP))
-                LoopWidgetMiniRow(
-                    modifier = GlanceModifier.padding(horizontal = WIDGET_ROW_PADDING_HORIZONTAL),
-                    loop = loop,
-                )
+
+        groups.forEach { group ->
+            item(itemId = group.group.headerItemId()) {
+                // 헤더도 카드와 같은 이유로 Column + Spacer 로 위 간격을 만든다(아래 주의점 참고).
+                Column {
+                    Spacer(modifier = GlanceModifier.height(WIDGET_GROUP_GAP))
+                    LoopGroupHeader(
+                        modifier = GlanceModifier.padding(
+                            start = WIDGET_GROUP_HEADER_INDENT,
+                            bottom = 2.dp,
+                        ),
+                        group = group.group,
+                        count = group.loops.size,
+                    )
+                }
+            }
+            items(
+                items = group.loops,
+                itemId = { widgetLoop -> widgetLoop.itemId() },
+            ) { widgetLoop ->
+                // 카드 사이 간격 만들기(Glance 주의점 2가지):
+                //  1) item 람다가 자식을 여러 개 emit 하면 세로로 쌓지 않고 Box 로 겹친다.
+                //  2) background 는 modifier 순서와 무관하게 패딩 영역까지 칠하므로 top 패딩으로는
+                //     마진이 생기지 않는다.
+                // 그래서 명시적 Column 으로 세로로 쌓고, 배경 없는 Spacer 로 투명 간격을 만든다.
+                Column {
+                    Spacer(modifier = GlanceModifier.height(WIDGET_ROW_GAP))
+                    LoopWidgetMiniRow(
+                        modifier = GlanceModifier.padding(
+                            horizontal = WIDGET_ROW_PADDING_HORIZONTAL,
+                        ),
+                        widgetLoop = widgetLoop,
+                    )
+                }
             }
         }
-        item(itemId = -1L) {
+
+        item(itemId = ITEM_ID_BOTTOM_SPACER) {
             Spacer(modifier = GlanceModifier.height(8.dp))
         }
     }
 }
 
 /**
- * 히어로로 띄울 루프: 지금 진행 중인 루프를 최우선으로, 없으면 가장 이른(곧 시작/응답할)
- * 루프를 고른다. loops 는 비어있지 않다(호출부에서 보장).
+ * 히어로로 띄울 항목: 지금 진행 중인 몫을 최우선으로, 없으면 가장 이른(곧 시작할) 몫을 고른다.
+ * loops 는 비어있지 않다(호출부에서 보장).
+ *
+ * 어젯밤에서 넘어온 몫은 히어로 후보에서 뺀다. 히어로는 그룹 목록 밖에 따로 서므로
+ * ([LoopWidgetBody] 가 히어로를 제외하고 그룹을 만든다), 올려 버리면 "응답 대기" 헤더 아래에서
+ * 사라져 답을 기다리는 몫이 없는 것처럼 읽힌다. 다른 후보가 하나도 없을 때만 히어로로 세운다.
  */
-private fun pickHeroLoop(loops: List<LoopBase>): LoopBase =
+private fun pickHeroLoop(loops: List<WidgetLoop>): WidgetLoop =
     loops.firstOrNull { it.isRunning() }
-        ?: loops.minByOrNull { it.startInDay }
+        ?: loops.filterNot { it.isCarriedOver }.minByOrNull { it.loop.startInDay }
         ?: loops.first()
+
+// ---------------------------------------------------------------------------
+// 그룹 나누기 — 홈 "오늘" 탭과 같은 분류를 위젯 데이터로 다시 판정한다.
+// ---------------------------------------------------------------------------
+
+/** 헤더 한 줄과 그 아래에 쌓일 몫들. 빈 그룹은 [buildWidgetGroups] 가 미리 걸러낸다. */
+private data class WidgetLoopGroup(
+    val group: TodayGroup,
+    val loops: List<WidgetLoop>,
+)
+
+/**
+ * 몫들을 [TodayGroup] 으로 나눈다. 그룹 순서는 enum 선언 순서(진행 중 → 다음 예정 → 응답 대기)를
+ * 그대로 따르고, 그룹 안은 시작 시각이 이른 순으로 세운다.
+ */
+private fun buildWidgetGroups(loops: List<WidgetLoop>): List<WidgetLoopGroup> {
+    val byGroup = loops.groupBy { widgetLoop -> widgetLoop.widgetGroup() }
+
+    return TodayGroup.entries.mapNotNull { group ->
+        val groupLoops = byGroup[group] ?: return@mapNotNull null
+        WidgetLoopGroup(
+            group = group,
+            loops = groupLoops.sortedWith(
+                compareBy<WidgetLoop>(
+                    // 아직 시작하지 않은 시간 미지정 루프는 시작 시각이 없다(-1). 시각으로 줄을
+                    // 세울 수 없으니 시각이 있는 몫들 뒤로 보낸다.
+                    { it.loop.startInDay < 0 },
+                    { it.loop.startInDay },
+                )
+            ),
+        )
+    }
+}
+
+/**
+ * 이 몫이 어느 그룹에 속하는지. 분기 순서와 기준은 홈 오늘 탭의 그룹 판정과 맞춰, 같은 루프가
+ * 앱과 위젯에서 다른 그룹으로 읽히지 않게 한다.
+ */
+private fun WidgetLoop.widgetGroup(): TodayGroup {
+    // 어젯밤 몫은 이미 끝난 occurrence 다. 시계는 다음 시작 전을 가리키지만 답을 기다리는 상태다.
+    if (isCarriedOver) return TodayGroup.AWAITING
+
+    return when {
+        isRunning() -> TodayGroup.NOW
+        // 시간 미지정 루프는 시작 시각이 없어 시각으로 비교할 수 없다. 시작 전이면 예정으로 둔다.
+        loop.isAnyTime -> TodayGroup.UPCOMING
+        // 오늘의 시작 시각이 아직 오지 않았다. 자정을 넘기는 루프도 여기서 "오늘 밤 시작"으로 잡힌다.
+        LocalTime.now().toMs() < loop.startInDay -> TodayGroup.UPCOMING
+        // 시간창이 끝났는데 완료/건너뜀 응답이 아직 없다.
+        else -> TodayGroup.AWAITING
+    }
+}
+
+/** 헤더 항목의 LazyColumn id. 루프 항목(0 이상)과 겹치지 않게 음수 영역에서 그룹마다 하나씩 쓴다. */
+private fun TodayGroup.headerItemId(): Long = ITEM_ID_BOTTOM_SPACER - 1 - ordinal
 
 /**
  * 히어로 카드 — 상태 배지 + 색/제목 + 시간·남은시간 + 요일·반복 + 핵심 액션까지
@@ -151,10 +251,11 @@ private fun pickHeroLoop(loops: List<LoopBase>): LoopBase =
 @Composable
 private fun LoopWidgetHero(
     modifier: GlanceModifier = GlanceModifier,
-    loop: LoopBase,
+    widgetLoop: WidgetLoop,
 ) {
     val context = LocalContext.current
-    val isRunning = loop.isRunning()
+    val loop = widgetLoop.loop
+    val isRunning = widgetLoop.isRunning()
 
     Column(
         modifier = modifier
@@ -182,7 +283,7 @@ private fun LoopWidgetHero(
             ) {
                 HeroTitle(title = loop.title)
                 Spacer(modifier = GlanceModifier.height(5.dp))
-                HeroTimeLine(loop = loop, emphasize = isRunning)
+                HeroTimeLine(widgetLoop = widgetLoop, emphasize = isRunning)
             }
         }
 
@@ -195,7 +296,7 @@ private fun LoopWidgetHero(
             )
         }
 
-        HeroActions(loop = loop)
+        HeroActions(widgetLoop = widgetLoop)
     }
 }
 
@@ -206,10 +307,11 @@ private fun LoopWidgetHero(
 @Composable
 private fun LoopWidgetMiniRow(
     modifier: GlanceModifier = GlanceModifier,
-    loop: LoopBase,
+    widgetLoop: WidgetLoop,
 ) {
     val context = LocalContext.current
-    val isRunning = loop.isRunning()
+    val loop = widgetLoop.loop
+    val isRunning = widgetLoop.isRunning()
 
     Row(
         modifier = modifier
@@ -230,7 +332,7 @@ private fun LoopWidgetMiniRow(
                 .padding(horizontal = 12.dp),
         ) {
             LoopTitle(title = loop.title, isActive = isRunning)
-            val progress = loop.progressText()
+            val progress = widgetLoop.progressText()
             if (progress.isNotEmpty()) {
                 Spacer(modifier = GlanceModifier.height(3.dp))
                 Text(
@@ -239,7 +341,7 @@ private fun LoopWidgetMiniRow(
                 )
             }
         }
-        MiniRowAction(loop = loop, isRunning = isRunning)
+        MiniRowAction(widgetLoop = widgetLoop, isRunning = isRunning)
     }
 }
 
@@ -251,27 +353,34 @@ private fun LoopWidgetMiniRow(
 // ---------------------------------------------------------------------------
 
 @Composable
-private fun HeroActions(loop: LoopBase) {
+private fun HeroActions(widgetLoop: WidgetLoop) {
     when {
-        loop.needsStartStop() -> {
+        widgetLoop.needsStartStop() -> {
             Spacer(modifier = GlanceModifier.height(14.dp))
-            AnyTimeLoopStartOrStop(loop = loop)
+            AnyTimeLoopStartOrStop(loop = widgetLoop.loop)
         }
 
-        loop.canRespond() -> {
+        widgetLoop.canRespond() -> {
             Spacer(modifier = GlanceModifier.height(14.dp))
-            LoopDoneOrSkipMedium(loopId = loop.loopId)
+            LoopDoneOrSkipMedium(
+                loopId = widgetLoop.loop.loopId,
+                dateMs = widgetLoop.dateMs,
+            )
         }
         // 시작 전 시간제 루프: 정보만 보여주고 액션은 두지 않는다.
     }
 }
 
 @Composable
-private fun MiniRowAction(loop: LoopBase, isRunning: Boolean) {
+private fun MiniRowAction(widgetLoop: WidgetLoop, isRunning: Boolean) {
     when {
-        loop.needsStartStop() -> AnyTimeLoopStartOrStop(loop = loop)
-        loop.canRespond() -> LoopDoneOrSkipCompact(loopId = loop.loopId)
-        else -> LoopStartEndTime(loop = loop, emphasize = isRunning)
+        widgetLoop.needsStartStop() -> AnyTimeLoopStartOrStop(loop = widgetLoop.loop)
+        widgetLoop.canRespond() -> LoopDoneOrSkipCompact(
+            loopId = widgetLoop.loop.loopId,
+            dateMs = widgetLoop.dateMs,
+        )
+
+        else -> LoopStartEndTime(loop = widgetLoop.loop, emphasize = isRunning)
     }
 }
 
@@ -310,9 +419,9 @@ private fun HeroTitle(title: String) {
 
 /** "종료 08:00 · 32분 남음"처럼 시간창과 남은/경과 시간을 한 줄로 합쳐 보여준다. */
 @Composable
-private fun HeroTimeLine(loop: LoopBase, emphasize: Boolean) {
-    val time = loop.toStartOrEndTime()
-    val progress = loop.progressText()
+private fun HeroTimeLine(widgetLoop: WidgetLoop, emphasize: Boolean) {
+    val time = widgetLoop.loop.toStartOrEndTime()
+    val progress = widgetLoop.progressText()
     val text = listOf(time, progress).filter { it.isNotEmpty() }.joinToString(separator = " · ")
     if (text.isEmpty()) return
 
@@ -326,53 +435,51 @@ private fun HeroTimeLine(loop: LoopBase, emphasize: Boolean) {
     )
 }
 
-// ---------------------------------------------------------------------------
-// 위젯 데이터 기준 상태 판별 헬퍼
-//  위젯으로 전달되는 루프는 done 상태가 유실되고, anytime 은 실제 시작/종료 시각이
-//  start/end 로 옮겨져 온다(AppWidgetUpdateWorker 참고). 그래서 진행/응답 가능 여부는
-//  doneState 가 아니라 start/end 시각으로 판단해야 정확하다.
-// ---------------------------------------------------------------------------
-
-/** 지금 진행 중인가. anytime 은 "시작됐고 아직 정지 안 됨", 시간제는 "시간창 안". */
-private fun LoopBase.isRunning(): Boolean {
-    if (isAnyTime) return startInDay >= 0 && endInDay < 0
-    val now = LocalTime.now().toMs()
-    return now in startInDay until endInDay
-}
-
-/** anytime 루프의 시작/정지 버튼이 필요한 상태(아직 시작 전이거나 진행 중). */
-private fun LoopBase.needsStartStop(): Boolean =
-    isAnyTime && (startInDay < 0 || endInDay < 0)
-
-/** 완료/건너뛰기로 응답할 수 있는 상태(이미 시작한 시간제 루프). */
-private fun LoopBase.canRespond(): Boolean =
-    !isAnyTime && LocalTime.now().toMs() >= startInDay
-
 /**
  * 남은/경과 시간 문구(예: "32분 남음", "2시간 후 시작"). 기존 TimeStat 문자열을 그대로
  * 재사용하되, 위젯 Text 가 강조 마커('#')를 렌더링하지 못하므로 제거한다.
+ *
+ * 시각 차이는 모두 하루 둘레(mod 24h)로 계산한다. 자정을 넘기는 루프는 단순 뺄셈이 음수가 되거나
+ * (새벽 구간의 남은 시간) 엉뚱하게 커져(낮 시간대의 시작까지) 문구가 틀어지기 때문이다.
  */
 @Composable
-private fun LoopBase.progressText(): String {
+private fun WidgetLoop.progressText(): String {
+    val context = LocalContext.current
+    // 어젯밤 몫은 오늘 밤 몫과 시간대가 같아 남은 시간으로는 구분되지 않는다. 어느 날 몫인지를 밝힌다.
+    if (isCarriedOver) {
+        return context.getString(
+            R.string.loop_time_yesterday,
+            context.getString(R.string.finished),
+        )
+    }
+
     val nowMs = LocalTime.now().toMs()
     val stat: TimeStat? = when {
-        isAnyTime ->
-            if (isRunning() && startInDay in 0..nowMs) {
-                TimeStat.InProgress((nowMs - startInDay).toLocalTime(), isAnyTime = true)
+        loop.isAnyTime ->
+            if (isRunning() && loop.startInDay in 0..nowMs) {
+                TimeStat.InProgress((nowMs - loop.startInDay).toLocalTime(), isAnyTime = true)
             } else {
                 null
             }
 
-        nowMs < startInDay ->
-            TimeStat.BeforeStart((startInDay - nowMs).toLocalTime(), isAnyTime = false)
+        isRunning() -> TimeStat.InProgress(
+            msUntil(from = nowMs, to = loop.endInDay).toLocalTime(),
+            isAnyTime = false,
+        )
 
-        nowMs < endInDay ->
-            TimeStat.InProgress((endInDay - nowMs).toLocalTime(), isAnyTime = false)
+        // 이미 끝나 답만 남은 몫에는 남은 시간 문구가 없다(응답 버튼이 대신 붙는다).
+        awaitsResponse() -> null
 
-        else -> null
+        else -> TimeStat.BeforeStart(
+            msUntil(from = nowMs, to = loop.startInDay).toLocalTime(),
+            isAnyTime = false,
+        )
     }
-    return stat?.asString(LocalContext.current, isAbb = true)?.replace("#", "").orEmpty()
+    return stat?.asString(context, isAbb = true)?.replace("#", "").orEmpty()
 }
+
+/** [from] 에서 [to] 까지 남은 시간(ms). 하루 둘레로 감아 항상 0 이상 24h 미만이 되게 한다. */
+private fun msUntil(from: Long, to: Long): Long = ((to - from) % MS_1DAY + MS_1DAY) % MS_1DAY
 
 /** "매일 · 2시간마다"처럼 활성 요일과 반복 주기를 합친 메타 문구. */
 private fun LoopBase.metaText(context: Context): String {

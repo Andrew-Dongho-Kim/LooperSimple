@@ -10,6 +10,7 @@ import com.pnd.android.loop.common.log
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.LoopVo
+import com.pnd.android.loop.data.LoopWithDone
 import com.pnd.android.loop.data.TodayLoopOrder
 import com.pnd.android.loop.ui.statisctics.DayOfWeekStat
 import com.pnd.android.loop.ui.statisctics.StreakStat
@@ -24,7 +25,7 @@ import com.pnd.android.loop.util.toMs
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
@@ -32,11 +33,13 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
@@ -91,11 +94,24 @@ class LoopViewModel @Inject constructor(
 
     val loopsNoResponseYesterday = loopRepository.loopsNoResponseYesterday
 
+    /** 어제 날짜 행과 조인한 루프. 오늘 목록이 자정을 넘기는 루프의 어젯밤 몫을 만들 때 쓴다. */
+    val yesterdayLoops = loopRepository.yesterdayLoops
+
     // null = 아직 DB 로딩 전. UI는 이 값이 null인 동안 빈 화면(EmptyLoops)을 그리지 않는다.
-    @OptIn(ExperimentalCoroutinesApi::class)
-    val allLoopsWithDoneStates = loopRepository.allLoopsWithDoneStates.mapLatest { loops ->
-        loops?.sortedWith(TodayLoopOrder())
-    }
+    //
+    // StateFlow로 노출하는 것이 중요하다. 콜드 플로우로 두면 홈으로 복귀할 때마다 collectAsState가
+    // null부터 다시 시작해, 저장소에 이미 값이 있는데도 첫 프레임이 "로딩 중"으로 그려지고 오늘/전체
+    // 탭이 한 박자 늦게 등장한다. StateFlow면 첫 컴포지션에서 캐시된 값을 그대로 읽는다.
+    // 정렬은 메인 스레드를 피해 기본 디스패처에서 수행한다.
+    val allLoopsWithDoneStates: StateFlow<List<LoopWithDone>?> =
+        loopRepository.allLoopsWithDoneStates
+            .map { loops -> loops?.sortedWith(TodayLoopOrder()) }
+            .flowOn(Dispatchers.Default)
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000L),
+                initialValue = null,
+            )
 
     private val allCount = loopRepository.allEnabledCount
     private val allResponseCount = loopRepository.allRespondCount

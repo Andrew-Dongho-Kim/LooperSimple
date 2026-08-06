@@ -62,7 +62,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
+import com.pnd.android.loop.data.TodayOccurrence
 import com.pnd.android.loop.data.asLoopVo
+import com.pnd.android.loop.data.buildTodayOccurrences
 import com.pnd.android.loop.data.common.MAX_LOOPS_TOGETHER
 import com.pnd.android.loop.data.isRespond
 import com.pnd.android.loop.ui.common.BackdropState
@@ -86,14 +88,16 @@ import com.pnd.android.loop.ui.theme.background
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.ui.theme.surfaceElevated
-import com.pnd.android.loop.util.isActive
 import com.pnd.android.loop.util.isActiveDay
 import com.pnd.android.loop.util.toMs
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
+import java.time.temporal.ChronoUnit
 
 @Composable
 fun Home(
@@ -206,6 +210,15 @@ private fun HomeScaffoldContent(
         val backdrop = rememberBackdropState()
         val headerBackdrop = if (supportsBackdropBlur) backdrop else null
 
+        // 루프가 하나도 없고 입력도 닫혀 있으면(= OOBE 빈 화면) 오늘/전체 탭은 의미가 없으므로
+        // 숨긴다. 첫 루프가 추가되거나 입력이 열리면 다시 나타난다.
+        //
+        // 이 값은 헤더(탭 노출)와 본문(리스트가 비워 둘 상단 여백)이 함께 쓴다. 예전에는 본문이
+        // sections로 따로 판단했는데, 두 조건이 서로 다른 프레임에 바뀌면서 탭이 나타날 때
+        // 콘텐츠가 한 번 더 밀렸다. 그래서 한 곳에서 정해 양쪽에 내려 준다.
+        val allLoops by loopViewModel.allLoopsWithDoneStates.collectAsState()
+        val showTabs = !allLoops.isNullOrEmpty() || !inputState.isModeNone
+
         HomeBody(
             // 내비게이션 바 영역까지 콘텐츠가 그려지도록 navigationBarsPadding을 두지 않는다.
             modifier = Modifier
@@ -217,6 +230,7 @@ private fun HomeScaffoldContent(
             lazyListState = lazyListState,
             backdrop = headerBackdrop,
             loopViewModel = loopViewModel,
+            showTabs = showTabs,
             selectedTab = selectedTab,
             onTabSelected = onTabSelected,
             onNavigateToDetailPage = onNavigateToDetailPage,
@@ -239,11 +253,6 @@ private fun HomeScaffoldContent(
         } else {
             NavigationBarFadingEdge(modifier = Modifier.align(Alignment.BottomCenter))
         }
-
-        // 루프가 하나도 없고 입력도 닫혀 있으면(= OOBE 빈 화면) 오늘/전체 탭은 의미가 없으므로
-        // 숨긴다. 첫 루프가 추가되거나 입력이 열리면 다시 나타난다.
-        val allLoops by loopViewModel.allLoopsWithDoneStates.collectAsState(initial = null)
-        val showTabs = !allLoops.isNullOrEmpty() || !inputState.isModeNone
 
         // The collapsing action bar: a plain app bar at rest that, as the list scrolls, fades out
         // the title and floats the icons (in place) and the 오늘/전체 tabs (slid up to the left).
@@ -352,6 +361,7 @@ private fun HomeBody(
     lazyListState: LazyListState,
     backdrop: BackdropState?,
     loopViewModel: LoopViewModel,
+    showTabs: Boolean,
     @HomeTab.Type selectedTab: Int,
     onTabSelected: (Int) -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
@@ -374,8 +384,9 @@ private fun HomeBody(
     // the source the floating surfaces sample for their backdrop blur (API 31+ only).
     val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     // 루프가 없는 빈 상태에서는 헤더에 탭 행이 없으므로 그만큼 높이를 줄여, 콘텐츠가
-    // 불필요한 공백 없이 위로 올라오게 한다. (탭 노출 조건은 헤더의 showTabs와 동일)
-    val headerHeight = homeHeaderExpandedHeight(topInset, includeTabs = !sections.isNullOrEmpty())
+    // 불필요한 공백 없이 위로 올라오게 한다. 헤더가 실제로 쓰는 것과 똑같은 값을 받아,
+    // 탭 노출과 상단 여백이 어긋나는 프레임이 생기지 않게 한다.
+    val headerHeight = homeHeaderExpandedHeight(topInset, includeTabs = showTabs)
     val backdropModifier = backdrop?.let { Modifier.backdropSource(it) } ?: Modifier
 
     val context = LocalContext.current
@@ -523,8 +534,12 @@ private fun LoopViewModel.observeSectionsAsState(
     @HomeTab.Type selectedTab: Int,
 ): State<List<Section>?> {
     // null = 아직 DB 로딩 전. 이 동안에는 빈 상태(EmptyLoops)를 그리지 않고 sections도 null로 둔다.
-    val loops by allLoopsWithDoneStates.collectAsState(initial = null)
-    val yesterdayLoops by loopsNoResponseYesterday.collectAsState(initial = emptyList())
+    // StateFlow이므로 initial을 주지 않는다. 그래야 이미 로딩된 값이 첫 컴포지션에서 그대로 읽혀,
+    // 홈으로 복귀할 때 로딩 상태를 한 번 거치지 않는다.
+    val loops by allLoopsWithDoneStates.collectAsState()
+    val noResponseYesterdayLoops by loopsNoResponseYesterday.collectAsState(initial = emptyList())
+    // 어제 날짜 행. 자정을 넘기는 루프의 어젯밤 몫을 오늘 화면에 올리는 데 쓴다.
+    val yesterdayRows by yesterdayLoops.collectAsState(initial = emptyList())
 
     val loadedLoops = loops
     return if (loadedLoops == null) {
@@ -532,9 +547,26 @@ private fun LoopViewModel.observeSectionsAsState(
     } else if (loadedLoops.isEmpty() && inputState.mode == UserInputState.Mode.None) {
         remember { mutableStateOf(emptyList()) }
     } else {
+        // 오늘 탭의 occurrence·그룹 판정에 쓸 현재 시각. 탭에 따라 호출이 갈리지 않도록 여기서 한 번 읽는다.
+        val now = rememberNowInMinutes()
+
+        // 오늘 탭은 루프가 아니라 occurrence 단위로 구성한다. 자정을 넘기는 루프는 어젯밤 몫과
+        // 오늘 밤 몫이 오늘 화면에 함께 걸치기 때문이다([TodayOccurrence] 참고).
+        val todayOccurrences = rememberTodayOccurrences(
+            todayLoops = loadedLoops,
+            yesterdayLoops = yesterdayRows,
+            now = now,
+        )
+
         val resultLoops = ArrayList<LoopBase>(
-            // TODAY 탭: 오늘 활성인 루프에 더해, 자정을 넘겨 지금도 진행 중인(어제 시작한) 루프도 포함한다.
-            if (selectedTab == HomeTab.TODAY) loadedLoops.filter { loop -> loop.enabled && (loop.isActiveDay() || loop.isActive()) } else loadedLoops)
+            if (selectedTab == HomeTab.TODAY) {
+                // 시간축 뷰(다이얼)와 요약 카드는 루프당 한 줄이어야 하므로 "지금 몫"만 쓴다.
+                // 어젯밤 몫은 목록 뷰의 응답 대기 그룹에서만 별도 항목으로 다룬다.
+                todayOccurrences.filterNot { it.isCarriedOver }.map { it.loop }
+            } else {
+                loadedLoops
+            }
+        )
         if (inputState.mode == UserInputState.Mode.Edit) {
             val edited = inputState.value
             val index = resultLoops.indexOfFirst { it.loopId == edited.loopId }
@@ -543,27 +575,26 @@ private fun LoopViewModel.observeSectionsAsState(
             if (index != -1) resultLoops[index] = edited
         }
 
-
         val isAllTab = selectedTab == HomeTab.ALL
         val todayOrAllSection = if (isAllTab) {
             rememberAllSection(resultLoops, inputState)
         } else {
-            rememberTodaySection(resultLoops)
+            rememberTodaySection(
+                loops = resultLoops,
+                occurrences = todayOccurrences,
+                now = now,
+            )
         }
         val sections = buildList {
             add(rememberHeaderSection(resultLoops))
             add(todayOrAllSection)
             // 전체 탭에서는 어제 미응답 루프 카드를 노출하지 않는다.
-            if (!isAllTab) add(rememberYesterdaySection(yesterdayLoops))
+            if (!isAllTab) add(rememberYesterdaySection(noResponseYesterdayLoops))
             add(rememberAdSection())
             // 전체 탭에서는 오늘 Done/Skip한 루프 정보를 노출하지 않는다.
-            // 타임라인 뷰는 자체적으로 완료/스킵 상태를 표시하므로 카드를 생략하고,
-            // 리스트·다이얼 뷰에서는 완료/스킵 루프를 별도 Done/Skip 카드로 모아 보여준다.
+            // 오늘 탭의 두 뷰(리스트·다이얼)에서는 완료/스킵 루프를 별도 Done/Skip 카드로 모아 보여준다.
             // (다이얼은 완료/스킵 루프를 다이얼에서 제외하고 이 카드로만 표시한다.)
-            val todayViewMode = (todayOrAllSection as? Section.Today)?.viewMode?.value
-            val showDoneSkipCard =
-                todayViewMode == TodayViewMode.LIST || todayViewMode == TodayViewMode.DIAL
-            if (!isAllTab && showDoneSkipCard) add(rememberDoneSection(resultLoops))
+            if (!isAllTab) add(rememberDoneSection(resultLoops))
             // 전체 탭 하단에는 전체 루프의 done/skip 이력을 매트릭스 그리드로 덧붙인다.
             if (isAllTab) add(rememberAllHistoryGridSection(resultLoops))
         }.filter { it.size > 0 }
@@ -594,15 +625,62 @@ private fun rememberYesterdaySection(
     }
 }
 
+/**
+ * 오늘 목록의 그룹 판정에 쓰는 현재 시각.
+ *
+ * localDateTime 은 매초 갱신되지만 그룹(지금 진행 중 / 다음 예정 / 응답 대기)은 분 단위면
+ * 충분하다. 분으로 잘라 [distinctUntilChanged] 로 걸러, 초마다 목록 전체가 다시 구성되는 것을 막는다.
+ */
+@Composable
+private fun LoopViewModel.rememberNowInMinutes(): LocalDateTime {
+    val nowInMinutes = remember(this) {
+        localDateTime
+            .map { time -> time.truncatedTo(ChronoUnit.MINUTES) }
+            .distinctUntilChanged()
+    }
+    val now by nowInMinutes.collectAsState(
+        initial = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES)
+    )
+    return now
+}
+
+/**
+ * 오늘 화면에 걸치는 occurrence 목록. 자정을 넘기는 루프는 어젯밤 몫과 오늘 밤 몫이 함께 들어와
+ * 같은 루프가 두 항목이 될 수 있다([buildTodayOccurrences] 참고).
+ */
+@Composable
+private fun rememberTodayOccurrences(
+    todayLoops: List<LoopBase>,
+    yesterdayLoops: List<LoopBase>,
+    now: LocalDateTime,
+): List<TodayOccurrence> = remember(todayLoops, yesterdayLoops, now) {
+    buildTodayOccurrences(
+        todayLoops = todayLoops,
+        yesterdayLoops = yesterdayLoops.associateBy { loop -> loop.loopId },
+        now = now,
+    )
+}
+
+/**
+ * @param loops       시간축 뷰(다이얼)가 쓰는 "지금 몫" 목록. 루프당 하나다.
+ * @param occurrences 목록 뷰가 쓰는 occurrence 전체. 어젯밤에서 넘어온 몫이 함께 들어 있다.
+ */
 @Composable
 private fun rememberTodaySection(
     loops: List<LoopBase>,
+    occurrences: List<TodayOccurrence>,
+    now: LocalDateTime,
 ): Section {
     val context = LocalContext.current
+    // 그룹 판정에는 현재 시각이 필요해 섹션 안에서 유도할 수 없으므로 여기서 계산해 넣어 준다.
+    val todayGroups = remember(occurrences, now) {
+        buildTodayGroups(occurrences = occurrences, now = now)
+    }
     return rememberSaveable(saver = Section.Today.Saver) {
         Section.Today().apply { load(context) }
     }.apply {
         items.value = loops
+        groups.value = todayGroups
     }
 }
 

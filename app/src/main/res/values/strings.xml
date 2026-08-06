@@ -34,6 +34,11 @@
     <string name="today_loops_finished_hint">Completed and skipped loops are listed below.</string>
     <string name="today_no_scheduled_loops">Nothing scheduled for today</string>
     <string name="today_no_scheduled_loops_hint">Add or manage loops in the All tab.</string>
+    <string name="today_group_now">In progress</string>
+    <string name="today_group_upcoming">Up next</string>
+    <string name="today_group_awaiting">Awaiting response</string>
+    <string name="today_group_caption">%1$s · %2$d</string>
+    <string name="loop_time_yesterday">Yesterday %1$s</string>
     <string name="unchecked_loops">Yesterday, there were *%d* unchecked loops.</string>
     <string name="response_rate">Response</string>
     <string name="done_rate">Done</string>
@@ -260,6 +265,13 @@
     <string name="detail_schedule">Schedule</string>
     <string name="detail_repeat">Repeat</string>
 
+    <string name="detail_loop_name">Loop name</string>
+    <string name="detail_edit_name">Edit name</string>
+    <string name="detail_loop_state_active">Active</string>
+    <string name="detail_loop_state_inactive">Inactive</string>
+    <string name="detail_loop_active_off">Inactive, nothing is recorded</string>
+    <string name="detail_edit_schedule">Edit schedule</string>
+
     <string name="delete_loop_title">Delete loop</string>
     <string name="delete_confirm_message">Do you want to delete this loop?</string>
     <string name="done_confirm_message">Mark \"%s\" as done?</string>
@@ -267,7 +279,6 @@
     <string name="done_snack_message">\"%s\" marked as done.</string>
     <string name="skip_snack_message">\"%s\" skipped.</string>
 
-    <string name="timeline">Timeline</string>
     <string name="dial_view">Dial</string>
     <string name="dial_in_progress_count">In progress %1$d</string>
     <string name="dial_remaining_minutes">%1$d min left</string>
@@ -415,32 +426,42 @@
     <string name="ad_expand">View details</string>
     <string name="ad_collapse">Show less</string>
 
-    <!-- 상세 페이지 · 코치형(A) 성취 요약 -->
-    <string name="detail_streak_current_days">%1$d day streak</string>
+    <!-- 상세 페이지 · 요약 헤더의 핵심 지표 세 칸 -->
+    <string name="detail_kpi_done_rate">Done rate</string>
+    <string name="detail_kpi_streak">Streak</string>
+    <string name="detail_kpi_streak_days">%1$d days</string>
+    <string name="detail_kpi_this_week">This week</string>
+    <string name="detail_kpi_week_ratio">%1$d/%2$d</string>
     <string name="detail_streak_best">Best %1$d days</string>
-    <string name="detail_week_progress">%1$d of %2$d done</string>
     <string name="detail_week_trend_up">Better than last week</string>
     <string name="detail_week_trend_same">On pace with last week</string>
     <string name="detail_week_trend_down">Slower than last week</string>
-    <string name="detail_best_weekday">Best on %1$s</string>
 
-    <!-- 상세 페이지 · 저널형(C) 달력·회고 -->
-    <string name="detail_journal_hint">Tap a day to look back and jot a note</string>
+    <!-- 상세 페이지 · 접이식 섹션 목록 -->
+    <string name="detail_section_stats">Stats</string>
+    <string name="detail_days_per_week">%1$d days a week</string>
+    <string name="detail_memo_count">%1$d notes</string>
+    <string name="detail_expand_section">Expand</string>
+    <string name="detail_collapse_section">Collapse</string>
+
+    <!-- 상세 페이지 · 기록·회고 -->
     <string name="detail_day_no_record">No record</string>
 
-    <!-- 상세 페이지 · 응답 요약(구성 비율 막대) -->
+    <!-- 상세 페이지 · 통계 타일 -->
+    <string name="detail_tile_trend">Completion trend</string>
+    <string name="detail_tile_weekday">By weekday</string>
+    <string name="detail_tile_monthly">By month</string>
+    <string name="detail_tile_best_day">%1$s · %2$d%%</string>
+    <string name="detail_tile_month_rate">%1$s · %2$d%%</string>
+    <string name="detail_tile_no_data">—</string>
     <string name="detail_response_summary">Response summary</string>
     <string name="detail_rate_done">Done</string>
     <string name="detail_rate_skip">Skip</string>
     <string name="detail_rate_no_response">No response</string>
 
-    <!-- 상세 페이지 · 추세 카드(인사이트 요약형) 한 줄 결론 -->
+    <!-- 상세 페이지 · 통계 섹션 맨 위의 한 줄 결론 -->
     <string name="detail_trend_daily_up">Completion is trending up</string>
     <string name="detail_trend_daily_down">Completion is slipping</string>
     <string name="detail_trend_daily_steady">Completion is holding steady</string>
-    <string name="detail_trend_this_month">%1$d%% this month</string>
-    <string name="detail_trend_monthly_up">%1$d%% this month, up from last month</string>
-    <string name="detail_trend_monthly_down">%1$d%% this month, down from last month</string>
-    <string name="detail_trend_monthly_steady">%1$d%% this month, same as last month</string>
 
 </resources>

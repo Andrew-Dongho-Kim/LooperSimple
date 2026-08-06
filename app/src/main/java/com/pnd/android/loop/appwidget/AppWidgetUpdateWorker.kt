@@ -27,15 +27,13 @@ import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.data.LoopVo.Factory.ANY_TIME
 import com.pnd.android.loop.data.TodayLoopOrder
+import com.pnd.android.loop.data.TodayOccurrence
 import com.pnd.android.loop.data.actualEndInDay
 import com.pnd.android.loop.data.actualStartInDay
 import com.pnd.android.loop.data.asLoopVo
+import com.pnd.android.loop.data.buildTodayOccurrences
 import com.pnd.android.loop.data.isDisabled
 import com.pnd.android.loop.data.isRespond
-import com.pnd.android.loop.data.putTo
-import com.pnd.android.loop.util.currentOccurrence
-import com.pnd.android.loop.util.isActive
-import com.pnd.android.loop.util.isActiveDay
 import com.pnd.android.loop.util.occurrenceStartDate
 import com.pnd.android.loop.util.toLocalDate
 import com.pnd.android.loop.util.toTimeTextForLog
@@ -198,19 +196,26 @@ class AppWidgetUpdateWorker @AssistedInject constructor(
 
     private suspend fun refresh() {
         val today = LocalDate.now()
-        // 자정을 넘겨 이어지는 루프의 done 기록은 어제 행에 있다. 오늘 행만 보면 이미 완료한
-        // 루프가 계속 미응답으로 남아 위젯에서 사라지지 않는다.
+        // 자정을 넘기는 루프의 done 기록은 시작한 날인 어제 행에 있다. 오늘 행만 보면 이미 완료한
+        // 루프가 계속 미응답으로 남고, 오늘 아침에 끝난 몫도 놓친다.
         val yesterdayLoops = fullLoopDao.getAllEnabledLoops(date = today.minusDays(1).toMs())
-            .associateBy { it.loopId }
-        val loops = fullLoopDao.getAllEnabledLoops(date = today.toMs())
-            .map { loop -> currentOccurrence(today = loop, yesterday = yesterdayLoops[loop.loopId]) }
+        val todayLoops = fullLoopDao.getAllEnabledLoops(date = today.toMs())
+
+        // 홈 오늘 탭과 같은 규칙으로 occurrence 를 만든다. 자정을 넘기는 루프는 어젯밤 몫과
+        // 오늘 밤 몫이 각각 한 줄씩 올라온다.
+        val occurrences = buildTodayOccurrences(
+            todayLoops = todayLoops,
+            yesterdayLoops = yesterdayLoops.associateBy { it.loopId },
+        )
         updateWidget(
             context = context,
-            loops = loops.filter { loop ->
-                // 오늘 활성이거나, 자정을 넘겨 지금도 진행 중인(어제 시작한) 루프. 그중 미응답·진행 중만.
-                (loop.isActiveDay() || loop.isActive()) && !loop.isRespond && !loop.isDisabled
-            }.sortedWith(TodayLoopOrder())
-                .map { loop -> loop.toWidgetLoop() }
+            loops = occurrences
+                .filter { occurrence ->
+                    // 이미 답했거나 비활성 처리된 몫은 위젯에 남기지 않는다.
+                    !occurrence.loop.isRespond && !occurrence.loop.isDisabled
+                }
+                .sortedWith(compareBy(TodayLoopOrder()) { occurrence -> occurrence.loop })
+                .map { occurrence -> occurrence.toWidgetLoop() }
         )
     }
 
@@ -220,18 +225,27 @@ class AppWidgetUpdateWorker @AssistedInject constructor(
      * 이대로면 위젯이 진행 여부를 알 수 없어 늘 "시작" 버튼만 노출된다.
      * 그래서 anytime 루프에 한해 실제 시작/종료 시각(done 기록)을 start/end 로 옮겨 실어,
      * 위젯이 시작/정지 버튼과 "started at" 라벨을 올바로 표시하게 한다.
+     *
+     * 어느 날 몫인지도 함께 실어야 위젯에서 누른 응답이 올바른 날짜 행에 기록된다([WidgetLoop]).
      */
-    private fun LoopBase.toWidgetLoop(): LoopBase =
-        if (isAnyTime) asLoopVo(startInDay = actualStartInDay, endInDay = actualEndInDay) else this
+    private fun TodayOccurrence.toWidgetLoop(): WidgetLoop = WidgetLoop(
+        loop = if (loop.isAnyTime) {
+            loop.asLoopVo(startInDay = loop.actualStartInDay, endInDay = loop.actualEndInDay)
+        } else {
+            loop
+        },
+        dateMs = date.toMs(),
+        isCarriedOver = isCarriedOver,
+    )
 
     private suspend fun updateWidget(
         context: Context,
-        loops: List<LoopBase>
+        loops: List<WidgetLoop>
     ) {
         val jsonArray = JSONArray()
-        loops.forEach { loop ->
+        loops.forEach { widgetLoop ->
             val map = mutableMapOf<String, Any?>()
-            loop.putTo(map)
+            widgetLoop.putTo(map)
 
             jsonArray.put(JSONObject(map))
         }

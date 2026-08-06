@@ -196,7 +196,10 @@ fun LoopCard(
 
     // 오늘 창이 끝나 완료/건너뜀 응답을 기다리는 상태. 카드를 한 단계 가라앉혀(디밍) "지나간
     // 항목"으로 읽히게 하고, 완료/건너뜀은 왼쪽에 모은 탭 버튼으로 처리한다.
-    val awaitsResponse = syncWithTime && loop.enabled && timeStat.isPast()
+    // 어젯밤에서 넘어온 몫(isCarriedOver)은 시계가 다음 시작 전을 가리켜 TimeStat 이 "시작 전"으로
+    // 보지만, 이미 끝난 occurrence 이므로 여기서 응답 대기로 고정한다.
+    val awaitsResponse = syncWithTime && loop.enabled &&
+            (timeStat.isPast() || cardValues.isCarriedOver)
 
     // 진행 중: 지금 이 루프의 시간창 안에 있는 상태. 표면을 루프 색으로 물들이고 색 도트 뒤로
     // 헤일로를 숨 쉬게 해 목록에서 "지금 이거"가 한눈에 튀도록 한다.
@@ -245,6 +248,7 @@ fun LoopCard(
         if (awaitsResponse) {
             FinishedCardContent(
                 loop = loop,
+                isCarriedOver = cardValues.isCarriedOver,
                 onStateChanged = onStateChanged,
             )
         } else {
@@ -342,6 +346,7 @@ private fun RowScope.ActiveCardContent(
 @Composable
 private fun RowScope.FinishedCardContent(
     loop: LoopBase,
+    isCarriedOver: Boolean,
     onStateChanged: (loop: LoopBase, doneState: Int) -> Unit,
 ) {
     LoopDoneOrSkip(
@@ -358,6 +363,7 @@ private fun RowScope.FinishedCardContent(
     FinishedTimeLabel(
         modifier = Modifier.padding(start = 8.dp),
         loop = loop,
+        isCarriedOver = isCarriedOver,
     )
 }
 
@@ -550,12 +556,20 @@ private fun LoopTimeChip(
 private fun FinishedTimeLabel(
     modifier: Modifier = Modifier,
     loop: LoopBase,
+    isCarriedOver: Boolean = false,
 ) {
-    val text = if (!loop.isAnyTime || (loop.startInDay >= 0 && loop.endInDay >= 0)) {
+    val window = if (!loop.isAnyTime || (loop.startInDay >= 0 && loop.endInDay >= 0)) {
         "${loop.startInDay.formatHourMinute(withAmPm = false)} – " +
                 loop.endInDay.formatHourMinute(withAmPm = false)
     } else {
         stringResource(id = R.string.anytime)
+    }
+    // 어젯밤에서 넘어온 몫은 오늘 밤 몫과 시간대가 같아 시각만으로는 구분되지 않는다.
+    // "어제"를 앞에 붙여 두 카드가 어느 날의 것인지 한눈에 갈리게 한다.
+    val text = if (isCarriedOver) {
+        stringResource(id = R.string.loop_time_yesterday, window)
+    } else {
+        window
     }
 
     Row(

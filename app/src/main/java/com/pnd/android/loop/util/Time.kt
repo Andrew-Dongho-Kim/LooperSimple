@@ -341,11 +341,34 @@ fun currentOccurrence(
 ): LoopBase {
     if (yesterday == null) return today
 
+    val isYesterdayRow = currentOccurrenceDate(
+        today = today,
+        yesterday = yesterday,
+        now = now,
+    ) == now.toLocalDate().minusDays(1)
+    return if (isYesterdayRow) yesterday else today
+}
+
+/**
+ * [currentOccurrence] 가 고른 행이 어느 날짜의 것인지. done 기록이 저장되는 날짜이자, 그
+ * occurrence 에 대한 응답(완료/건너뜀)을 기록해야 할 날짜다.
+ *
+ * 판정 기준은 [currentOccurrence] 와 같으므로 둘은 항상 짝이 맞는다. 행과 날짜가 함께 필요한
+ * 곳(오늘 목록·위젯의 occurrence 항목)은 두 함수를 나란히 쓴다.
+ */
+fun currentOccurrenceDate(
+    today: LoopBase,
+    yesterday: LoopBase?,
+    now: LocalDateTime = LocalDateTime.now(),
+): LocalDate {
+    val date = now.toLocalDate()
+    if (yesterday == null) return date
+
     return if (today.isAnyTime) {
         // 오늘 다시 시작했다면 오늘 것이 우선이다(어제 기록은 이미 지난 occurrence).
-        if (!today.isInProgress && yesterday.isInProgress) yesterday else today
+        if (!today.isInProgress && yesterday.isInProgress) date.minusDays(1) else date
     } else {
-        if (today.occurrenceStartDate(now) == now.toLocalDate().minusDays(1)) yesterday else today
+        today.occurrenceStartDate(now)
     }
 }
 

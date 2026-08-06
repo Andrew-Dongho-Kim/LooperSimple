@@ -84,6 +84,7 @@ import androidx.compose.ui.window.PopupProperties
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
+import com.pnd.android.loop.data.TodayOccurrence
 import com.pnd.android.loop.data.actualStartInDay
 import com.pnd.android.loop.data.doneState
 import com.pnd.android.loop.data.isInProgress
@@ -106,6 +107,7 @@ import com.pnd.android.loop.util.isTimeInLoop
 import com.pnd.android.loop.util.overlapsInTime
 import com.pnd.android.loop.util.toMs
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.hypot
@@ -131,8 +133,8 @@ import kotlin.math.sin
 fun LoopCircularDial(
     modifier: Modifier = Modifier,
     blurState: BlurState,
-    loops: List<LoopBase>,
-    onStateChanged: (LoopBase, Int) -> Unit,
+    occurrences: List<TodayOccurrence>,
+    onStateChanged: (loop: LoopBase, date: LocalDate, doneState: Int) -> Unit,
     onEdit: (LoopBase) -> Unit,
     onDelete: (LoopBase) -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
@@ -141,52 +143,58 @@ fun LoopCircularDial(
     val localTime by rememberLocalTime()
     val nowMs = localTime.toMs()
 
-    // 완료/스킵된 루프는 다이얼에 그리지 않는다. 이들은 다이얼 아래 Done/Skip 카드에서 따로 보여주고,
-    // 다이얼에는 아직 처리하지 않은(진행 중·예정·지남) 루프만 남겨 지금 할 일에 집중시킨다.
-    val dialLoops = remember(loops) { loops.filter { loop -> !loop.isRespond } }
+    // 완료/스킵된 몫은 다이얼에 그리지 않는다. 이들은 다이얼 아래 Done/Skip 카드에서 따로 보여주고,
+    // 다이얼에는 아직 처리하지 않은(진행 중·예정·지남) 몫만 남겨 지금 할 일에 집중시킨다.
+    val dialOccurrences = remember(occurrences) {
+        occurrences.filter { occurrence -> !occurrence.loop.isRespond }
+    }
 
-    // 루프를 "시간 레인에 그릴 것"과 "바깥 궤도 노드로 둘 것"으로 나눈다.
+    // 몫을 "시간 레인에 그릴 것"과 "바깥 궤도 노드로 둘 것"으로 나눈다.
     // - 시간이 정해진 루프: 그대로 레인에.
     // - 실행 중 AnyTime: 시작 시각~현재까지 "자라는 시간 루프"로 변환 → 다른 루프와 동일한 진행 이펙트.
     // - 대기 중 AnyTime: 바깥 궤도 노드로.
     // nowMs 를 키에 포함해 실행 중 호가 분 단위로 자라도록 한다.
-    val (idleAnyTimeLoops, timedLoops) = remember(dialLoops, nowMs) {
-        val idle = ArrayList<LoopBase>()
-        val timed = ArrayList<LoopBase>()
-        dialLoops.forEach { loop ->
+    val (idleAnyTime, timed) = remember(dialOccurrences, nowMs) {
+        val idle = ArrayList<TodayOccurrence>()
+        val timed = ArrayList<TodayOccurrence>()
+        dialOccurrences.forEach { occurrence ->
+            val loop = occurrence.loop
             when {
-                !loop.isAnyTime -> timed += loop
+                !loop.isAnyTime -> timed += occurrence
                 // isAnyTime=true 를 유지해, 그릴 때 "시작→안쪽 이동" 진입 애니메이션 대상인지 식별한다.
-                loop.isInProgress -> timed += loop.copyAs(
-                    startInDay = loop.actualStartInDay,
-                    // localTime 은 분 단위로만 갱신돼, 방금 시작한 루프의 실제 시작(actualStartInDay)보다
-                    // nowMs 가 살짝 뒤처질 수 있다. 그대로 두면 end<start 가 되어 endMsInDay() 가 하루를
-                    // 더해 호가 원 전체로 그려진다. 최소 시작 시각으로 clamp 해 이를 막는다.
-                    endInDay = maxOf(nowMs, loop.actualStartInDay),
-                    isAnyTime = true,
+                loop.isInProgress -> timed += occurrence.copy(
+                    loop = loop.copyAs(
+                        startInDay = loop.actualStartInDay,
+                        // localTime 은 분 단위로만 갱신돼, 방금 시작한 루프의 실제 시작(actualStartInDay)보다
+                        // nowMs 가 살짝 뒤처질 수 있다. 그대로 두면 end<start 가 되어 endMsInDay() 가 하루를
+                        // 더해 호가 원 전체로 그려진다. 최소 시작 시각으로 clamp 해 이를 막는다.
+                        endInDay = maxOf(nowMs, loop.actualStartInDay),
+                        isAnyTime = true,
+                    )
                 )
 
-                else -> idle += loop
+                else -> idle += occurrence
             }
         }
         idle to timed
     }
 
-    // 다이얼 호와 하단 범례 칩이 공유하는 선택 상태(loopId). 어느 쪽에서 눌러도 같은 루프가 선택된다.
-    var selectedLoopId by remember { mutableStateOf<Int?>(null) }
+    // 다이얼 호와 하단 범례 칩이 공유하는 선택 상태. 자정을 넘기는 루프는 어젯밤 몫과 오늘 밤 몫이
+    // 함께 그려지므로, loopId 가 아니라 몫 단위 키([TodayOccurrence.key])로 구분해야 한다.
+    var selectedKey by remember { mutableStateOf<String?>(null) }
 
     Column(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         DialFace(
-            timedLoops = timedLoops,
-            anyTimeLoops = idleAnyTimeLoops,
+            timedOccurrences = timed,
+            anyTimeOccurrences = idleAnyTime,
             nowMs = nowMs,
             currentTimeText = localTime.formatHourMinute(withAmPm = false),
             blurState = blurState,
-            selectedLoopId = selectedLoopId,
-            onSelectLoop = { selectedLoopId = it },
+            selectedKey = selectedKey,
+            onSelectLoop = { selectedKey = it },
             onLoopClick = onNavigateToDetailPage,
             onStateChanged = onStateChanged,
             onEdit = onEdit,
@@ -197,10 +205,10 @@ fun LoopCircularDial(
         // 다이얼에 그린 루프와 동일하게 완료/스킵을 제외한 목록만 대응시킨다.
         LoopColorLegend(
             modifier = Modifier.padding(top = 16.dp, start = 16.dp, end = 16.dp),
-            loops = dialLoops,
-            selectedLoopId = selectedLoopId,
+            occurrences = dialOccurrences,
+            selectedKey = selectedKey,
             // 이미 선택된 칩을 다시 누르면 선택 해제(토글).
-            onChipClick = { id -> selectedLoopId = if (selectedLoopId == id) null else id },
+            onChipClick = { key -> selectedKey = if (selectedKey == key) null else key },
         )
     }
 }
@@ -214,44 +222,50 @@ fun LoopCircularDial(
  * 칩은 좌→우로 흐르다 폭이 차면 다음 줄로 접힌다([FlowRow]).
  * 색 점·칩 배경·글자 모두 [AppColor] 토큰 기반이라 다크·라이트에서 동일한 강도로 읽힌다.
  *
- * - 칩을 누르면 [onChipClick] 으로 해당 루프가 다이얼에서도 선택된다([selectedLoopId] 로 강조).
+ * - 칩을 누르면 [onChipClick] 으로 해당 루프가 다이얼에서도 선택된다([selectedKey] 로 강조).
  * - 수정 중(임시 mock 루프 존재)에는 편집 대상 칩 하나만 노출해, 편집 중인 루프에 집중시킨다.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun LoopColorLegend(
     modifier: Modifier = Modifier,
-    loops: List<LoopBase>,
-    selectedLoopId: Int?,
-    onChipClick: (Int) -> Unit,
+    occurrences: List<TodayOccurrence>,
+    selectedKey: String?,
+    onChipClick: (String) -> Unit,
 ) {
-    val legendLoops = remember(loops) {
+    val legendItems = remember(occurrences) {
         // 수정 중이면(임시 mock 루프 존재) 편집 대상 칩 하나만 남긴다.
-        val editing = loops.firstOrNull { it.isMock }
+        val editing = occurrences.firstOrNull { it.loop.isMock }
         if (editing != null) {
             listOf(editing)
         } else {
-            // 같은 루프가 중복 표시되지 않도록 loopId 로 한 번만 남기고,
-            // 시각이 정해진 루프를 시작 시각 순으로 먼저, 시간 미지정(AnyTime) 루프를 뒤로 정렬한다.
-            loops.asSequence()
-                .distinctBy { it.loopId }
-                .sortedWith(compareBy({ it.isAnyTime }, { it.startInDay }))
+            // 색↔이름 대응이 목적이므로 루프당 칩 하나만 남긴다. 정렬 기준의 마지막에 isCarriedOver 를
+            // 두어, 같은 루프의 두 몫 중 오늘 밤 몫이 먼저 오고 그 칩이 남는다(어젯밤 몫만 있으면 그것이 남는다).
+            occurrences.asSequence()
+                .sortedWith(
+                    compareBy(
+                        { it.loop.isAnyTime },
+                        { it.loop.startInDay },
+                        { it.isCarriedOver },
+                    )
+                )
+                .distinctBy { it.loop.loopId }
                 .toList()
         }
     }
-    if (legendLoops.isEmpty()) return
+    if (legendItems.isEmpty()) return
 
     FlowRow(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        legendLoops.forEach { loop ->
+        legendItems.forEach { occurrence ->
             LegendChip(
-                color = Color(loop.color),
-                name = loop.title,
-                selected = loop.loopId == selectedLoopId,
-                onClick = { onChipClick(loop.loopId) },
+                color = Color(occurrence.loop.color),
+                name = occurrence.loop.title,
+                selected = occurrence.key == selectedKey,
+                onClick = { onChipClick(occurrence.key) },
             )
         }
     }
@@ -325,12 +339,25 @@ private fun LoopBase.dialStateAt(nowMs: Long): DialState = when {
     else -> DialState.UPCOMING
 }
 
+/**
+ * 어젯밤에서 넘어온 몫의 다이얼 상태.
+ *
+ * 시계만 보면 오늘 밤 몫과 구분되지 않아([LoopBase.dialStateAt] 는 자정 넘김 루프를 늘 예정으로 본다)
+ * 여기서 "지남(미응답)"으로 고정한다. 같은 시간대에 겹치는 두 호가 속 빈 호(응답 대기)와
+ * 채운 호(예정)로 갈려, 서로 다른 레인에 놓이는 것과 함께 한눈에 구분된다.
+ */
+private fun TodayOccurrence.dialStateAt(nowMs: Long): DialState =
+    if (isCarriedOver) DialState.PAST else loop.dialStateAt(nowMs)
+
 /** 다이얼에 그릴 하나의 호. 어느 레인(동심원)에 놓일지와 상태를 함께 담는다. */
 private data class DialArc(
-    val loop: LoopBase,
+    val occurrence: TodayOccurrence,
     val lane: Int,
     val state: DialState,
-)
+) {
+    /** 호가 대표하는 루프. 그리기·팝업에서 자주 쓰므로 짧게 꺼내 쓴다. */
+    val loop: LoopBase get() = occurrence.loop
+}
 
 /** 아주 짧은 루프도 최소한 보이도록 호에 강제하는 최소 스윕(도). 그리기와 레인 겹침 판정이 같은 값을 공유한다. */
 private const val MIN_ARC_SWEEP_DEG = 2.5f
@@ -376,11 +403,15 @@ private fun LoopBase.overlapsVisually(other: LoopBase): Boolean {
  * [overlapsVisually] 를 써서, 최소 스윕·둥근 캡으로 길게 그려진 호끼리 시각적으로 겹치면 레인을 나눈다.
  * @return (배치된 호 목록, 사용된 레인 수)
  */
-private fun layoutArcs(loops: List<LoopBase>, nowMs: Long): Pair<List<DialArc>, Int> {
+private fun layoutArcs(occurrences: List<TodayOccurrence>, nowMs: Long): Pair<List<DialArc>, Int> {
     val lanes = ArrayList<MutableList<LoopBase>>() // 레인별로 이미 배치된 루프들
-    val arcs = loops
-        .sortedBy { loop -> loop.startInDay }
-        .map { loop ->
+    val arcs = occurrences
+        // 정렬 기준의 마지막에 isCarriedOver 를 둔다. 자정을 넘기는 루프의 두 몫은 시간이 같아
+        // 서로 겹치므로 어차피 레인이 갈리는데, 이 순서 덕분에 오늘 밤 몫이 바깥 레인을 먼저
+        // 차지하고 이미 끝난 어젯밤 몫이 안쪽으로 물러난다.
+        .sortedWith(compareBy({ it.loop.startInDay }, { it.isCarriedOver }))
+        .map { occurrence ->
+            val loop = occurrence.loop
             var lane = lanes.indexOfFirst { placed -> placed.none { it.overlapsVisually(loop) } }
             if (lane == -1) {
                 lane = lanes.size
@@ -388,7 +419,11 @@ private fun layoutArcs(loops: List<LoopBase>, nowMs: Long): Pair<List<DialArc>, 
             } else {
                 lanes[lane].add(loop)
             }
-            DialArc(loop = loop, lane = lane, state = loop.dialStateAt(nowMs))
+            DialArc(
+                occurrence = occurrence,
+                lane = lane,
+                state = occurrence.dialStateAt(nowMs),
+            )
         }
     return arcs to maxOf(1, lanes.size)
 }
@@ -527,21 +562,23 @@ private fun DialGeometry.hitTest(
 }
 
 /** AnyTime 노드 탭 결과. [anchor]=노드 중심(팝업 꼬리가 노드를 가리키도록). */
-private data class AnyTimeHit(val loop: LoopBase, val anchor: Offset)
+private data class AnyTimeHit(val occurrence: TodayOccurrence, val anchor: Offset) {
+    val loop: LoopBase get() = occurrence.loop
+}
 
 /** 바깥 궤도의 AnyTime 노드 중 탭 지점과 겹치는 것을 찾는다. */
 private fun DialGeometry.hitTestAnyTime(
     tap: Offset,
-    loops: List<LoopBase>,
+    occurrences: List<TodayOccurrence>,
     nodeRadius: Float,
     slop: Float
 ): AnyTimeHit? {
-    loops.forEachIndexed { i, loop ->
-        val a = Math.toRadians(-90.0 + anyTimeNodeAngle(i, loops.size))
+    occurrences.forEachIndexed { i, occurrence ->
+        val a = Math.toRadians(-90.0 + anyTimeNodeAngle(i, occurrences.size))
         val center =
             Offset(cx + orbitRadius * cos(a).toFloat(), cy + orbitRadius * sin(a).toFloat())
         if (hypot(tap.x - center.x, tap.y - center.y) <= nodeRadius + slop) {
-            return AnyTimeHit(loop = loop, anchor = center)
+            return AnyTimeHit(occurrence = occurrence, anchor = center)
         }
     }
     return null
@@ -567,27 +604,29 @@ private fun DialGeometry.anyTimeAnchor(index: Int, count: Int): Offset {
 
 @Composable
 private fun DialFace(
-    timedLoops: List<LoopBase>,
-    anyTimeLoops: List<LoopBase>,
+    timedOccurrences: List<TodayOccurrence>,
+    anyTimeOccurrences: List<TodayOccurrence>,
     nowMs: Long,
     currentTimeText: String,
     blurState: BlurState,
-    selectedLoopId: Int?,
-    onSelectLoop: (Int?) -> Unit,
+    selectedKey: String?,
+    onSelectLoop: (String?) -> Unit,
     onLoopClick: (LoopBase) -> Unit,
-    onStateChanged: (loop: LoopBase, doneState: @LoopDoneVo.DoneState Int) -> Unit,
+    onStateChanged: (loop: LoopBase, date: LocalDate, doneState: @LoopDoneVo.DoneState Int) -> Unit,
     onEdit: (LoopBase) -> Unit,
     onDelete: (LoopBase) -> Unit,
 ) {
-    val (arcs, laneCount) = remember(timedLoops, nowMs) { layoutArcs(timedLoops, nowMs) }
+    val (arcs, laneCount) = remember(timedOccurrences, nowMs) {
+        layoutArcs(timedOccurrences, nowMs)
+    }
     val visibleLanes = min(laneCount, MAX_VISIBLE_LANES)
     // 3레인을 넘긴 호들은 그리지 않고 "+N" 배지로 접는다.
     val overflowBadges = remember(arcs, visibleLanes) { foldOverflow(arcs, visibleLanes) }
-    val hasAnyTime = anyTimeLoops.isNotEmpty()
+    val hasAnyTime = anyTimeOccurrences.isNotEmpty()
 
     // 편집 중(mock 루프 존재) 여부. 편집 중이면 나머지 호를 흐려(dim) 편집 대상만 또렷하게 남기고,
     // 편집 대상 호 위로 밝은 빛이 훑고 지나가게 한다(안 C 스포트라이트).
-    val isEditingMode = arcs.any { it.loop.isMock } || anyTimeLoops.any { it.isMock }
+    val isEditingMode = arcs.any { it.loop.isMock } || anyTimeOccurrences.any { it.loop.isMock }
 
     // "?" 도움말 팝업 표시 여부.
     var showHelp by remember { mutableStateOf(false) }
@@ -606,25 +645,28 @@ private fun DialFace(
         }
     }
 
-    // 선택된 호. 다이얼 탭이든 범례 칩 클릭이든 selectedLoopId 하나로 결정된다.
-    // 매 프레임 현재 arcs 에서 다시 찾아, 분 단위 갱신으로 목록이 바뀌어도 유지되고(루프가 사라지면 자동 해제),
+    // 선택된 호. 다이얼 탭이든 범례 칩 클릭이든 selectedKey 하나로 결정된다.
+    // 매 프레임 현재 arcs 에서 다시 찾아, 분 단위 갱신으로 목록이 바뀌어도 유지되고(몫이 사라지면 자동 해제),
     // 앵커는 해당 호의 가운데 지점으로 두어 팝업 꼬리가 그 호를 가리키게 한다.
-    val selectedHit: DialHit? = remember(selectedLoopId, arcs, visibleLanes, geometry) {
-        val id = selectedLoopId ?: return@remember null
+    val selectedHit: DialHit? = remember(selectedKey, arcs, visibleLanes, geometry) {
+        val key = selectedKey ?: return@remember null
         val geo = geometry ?: return@remember null
-        val arc = arcs.firstOrNull { it.loop.loopId == id && it.lane < visibleLanes }
+        val arc = arcs.firstOrNull { it.occurrence.key == key && it.lane < visibleLanes }
             ?: return@remember null
         DialHit(arc = arc, anchor = geo.arcAnchor(arc))
     }
-    val selectedId = selectedHit?.arc?.loop?.loopId
+    val selectedArcKey = selectedHit?.arc?.occurrence?.key
 
-    // 선택된 AnyTime 노드. 마찬가지로 selectedLoopId 로 현재 목록에서 다시 찾아 유지한다.
-    val selectedAnyTime: AnyTimeHit? = remember(selectedLoopId, anyTimeLoops, geometry) {
-        val id = selectedLoopId ?: return@remember null
+    // 선택된 AnyTime 노드. 마찬가지로 selectedKey 로 현재 목록에서 다시 찾아 유지한다.
+    val selectedAnyTime: AnyTimeHit? = remember(selectedKey, anyTimeOccurrences, geometry) {
+        val key = selectedKey ?: return@remember null
         val geo = geometry ?: return@remember null
-        val index = anyTimeLoops.indexOfFirst { it.loopId == id }
+        val index = anyTimeOccurrences.indexOfFirst { it.key == key }
         if (index < 0) return@remember null
-        AnyTimeHit(loop = anyTimeLoops[index], anchor = geo.anyTimeAnchor(index, anyTimeLoops.size))
+        AnyTimeHit(
+            occurrence = anyTimeOccurrences[index],
+            anchor = geo.anyTimeAnchor(index, anyTimeOccurrences.size),
+        )
     }
 
     // 진행 중 루프의 맥박 애니메이션(반지름·투명도). 하나의 트랜지션을 모든 진행 호가 공유한다.
@@ -726,9 +768,9 @@ private fun DialFace(
                 modifier = Modifier
                     .fillMaxSize()
                     .onSizeChanged { dialSizePx = it }
-                    .pointerInput(arcs, visibleLanes, anyTimeLoops, hasAnyTime) {
+                    .pointerInput(arcs, visibleLanes, anyTimeOccurrences, hasAnyTime) {
                         // 탭하면 히트 판정. 바깥 AnyTime 노드를 먼저 보고, 없으면 시간 호를 본다.
-                        // 둘 다 아니면(빈 곳) selectedLoopId 를 비워 팝업을 닫는다.
+                        // 둘 다 아니면(빈 곳) 선택을 비워 팝업을 닫는다.
                         detectTapGestures { tap ->
                             val geo = dialGeometry(
                                 size.width.toFloat(),
@@ -738,19 +780,19 @@ private fun DialFace(
                             val anyHit = if (hasAnyTime) {
                                 geo.hitTestAnyTime(
                                     tap = tap,
-                                    loops = anyTimeLoops,
+                                    occurrences = anyTimeOccurrences,
                                     nodeRadius = 6.dp.toPx(),
                                     slop = 8.dp.toPx(),
                                 )
                             } else null
-                            val hitId = anyHit?.loop?.loopId
+                            val hitKey = anyHit?.occurrence?.key
                                 ?: geo.hitTest(
                                     tap = tap,
                                     arcs = arcs,
                                     visibleLanes = visibleLanes,
                                     slop = 8.dp.toPx(),
-                                )?.arc?.loop?.loopId
-                            onSelectLoop(hitId)
+                                )?.arc?.occurrence?.key
+                            onSelectLoop(hitKey)
                         }
                     },
             ) {
@@ -820,7 +862,7 @@ private fun DialFace(
                     val arcSize = Size(radius * 2f, radius * 2f)
 
                     // 선택된 호는 뒤에 후광을 깔아 어떤 호를 눌렀는지 드러낸다.
-                    if (arc.loop.loopId == selectedId) {
+                    if (arc.occurrence.key == selectedArcKey) {
                         drawArc(
                             color = highlightColor,
                             startAngle = startAngle,
@@ -1083,8 +1125,10 @@ private fun DialFace(
                         ),
                     )
                     val nodeRadius = 6.dp.toPx()
-                    anyTimeLoops.forEachIndexed { i, loop ->
-                        val a = Math.toRadians(-90.0 + anyTimeNodeAngle(i, anyTimeLoops.size))
+                    anyTimeOccurrences.forEachIndexed { i, occurrence ->
+                        val loop = occurrence.loop
+                        val a =
+                            Math.toRadians(-90.0 + anyTimeNodeAngle(i, anyTimeOccurrences.size))
                         val center = Offset(
                             cx + geo.orbitRadius * cos(a).toFloat(),
                             cy + geo.orbitRadius * sin(a).toFloat(),
@@ -1144,7 +1188,8 @@ private fun DialFace(
                         onSelectLoop(null)
                     },
                     onStateChanged = { loop, doneState ->
-                        onStateChanged(loop, doneState)
+                        // 응답은 이 호가 대표하는 몫이 시작한 날짜 행에 기록한다(어젯밤 몫이면 어제).
+                        onStateChanged(loop, hit.arc.occurrence.date, doneState)
                         onSelectLoop(null) // 처리 후 팝업을 닫는다
                     },
                     onEdit = { loop ->
@@ -1171,7 +1216,7 @@ private fun DialFace(
                         onSelectLoop(null)
                     },
                     onStateChanged = { loop, doneState ->
-                        onStateChanged(loop, doneState)
+                        onStateChanged(loop, hit.occurrence.date, doneState)
                         onSelectLoop(null)
                     },
                     onEdit = { loop ->
@@ -1572,12 +1617,18 @@ private fun DialTooltipCard(
                 tint = AppColor.onSurface.copy(alpha = 0.6f),
                 contentDescription = null,
             )
+            val window = "${arc.loop.startInDay.formatHourMinute(withAmPm = false)} – " +
+                    arc.loop.endInDay.formatHourMinute(withAmPm = false)
             Text(
                 modifier = Modifier
                     .padding(start = 6.dp)
                     .weight(1f),
-                text = "${arc.loop.startInDay.formatHourMinute(withAmPm = false)} – " +
-                        arc.loop.endInDay.formatHourMinute(withAmPm = false),
+                // 어젯밤 몫은 오늘 밤 몫과 시간대가 같다. "어제"를 붙여 어느 날 것인지 밝힌다.
+                text = if (arc.occurrence.isCarriedOver) {
+                    stringResource(id = R.string.loop_time_yesterday, window)
+                } else {
+                    window
+                },
                 style = AppTypography.bodyMedium.copy(color = AppColor.onSurface),
             )
             TooltipIconButton(

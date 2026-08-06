@@ -38,9 +38,12 @@ import com.pnd.android.loop.appwidget.skipAction
 import com.pnd.android.loop.appwidget.startAction
 import com.pnd.android.loop.appwidget.stopAction
 import com.pnd.android.loop.data.LoopBase
+import com.pnd.android.loop.ui.home.TodayGroup
+import com.pnd.android.loop.ui.home.labelResId
 import com.pnd.android.loop.util.ABB_MONTHS
 import com.pnd.android.loop.util.DAYS_WITH_3CHARS
 import com.pnd.android.loop.util.formatHourMinute
+import com.pnd.android.loop.util.isTimeInLoop
 import com.pnd.android.loop.util.toMs
 import java.time.LocalDate
 import java.time.LocalTime
@@ -169,7 +172,10 @@ private fun LoopBase.startOrEndTimeForAnyLoop(): String {
 @Composable
 private fun LoopBase.startOrEndTimeForNormalLoop(): String {
     val now = LocalTime.now().toMs()
-    return if (now < startInDay) {
+    // 아직 시작 전이면 시작 시각을, 진행 중이거나 끝났으면 종료 시각을 보여준다.
+    // 자정을 넘기는 루프(예: 22:00~06:00)는 새벽에도 now < start 라, 시각 비교만으로는 진행 중인
+    // 구간을 "시작 전"으로 잘못 읽는다. 시간창 안인지를 함께 봐서 그 구간을 걸러낸다.
+    return if (now < startInDay && !isTimeInLoop(now)) {
         stringResourceGlance(
             id = R.string.start_at,
             startInDay.formatHourMinute(context = LocalContext.current)
@@ -216,14 +222,15 @@ private fun WidgetIconButton(
 @Composable
 fun LoopDoneOrSkip(
     modifier: GlanceModifier = GlanceModifier,
-    loopId: Int
+    loopId: Int,
+    dateMs: Long = 0L,
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.Vertical.CenterVertically
     ) {
         WidgetIconButton(
-            onClick = doneAction(loopId = loopId),
+            onClick = doneAction(loopId = loopId, dateMs = dateMs),
             resId = R.drawable.done,
             contentDescription = stringResourceGlance(id = R.string.done),
             tint = accentColor(),
@@ -231,7 +238,7 @@ fun LoopDoneOrSkip(
         )
         Spacer(modifier = GlanceModifier.defaultWeight())
         WidgetIconButton(
-            onClick = skipAction(loopId = loopId),
+            onClick = skipAction(loopId = loopId, dateMs = dateMs),
             resId = R.drawable.skip,
             contentDescription = stringResourceGlance(id = R.string.skip),
             tint = onSurfaceColor().copy(alpha = 0.55f),
@@ -244,14 +251,15 @@ fun LoopDoneOrSkip(
 @Composable
 fun LoopDoneOrSkipMedium(
     modifier: GlanceModifier = GlanceModifier,
-    loopId: Int
+    loopId: Int,
+    dateMs: Long = 0L,
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.Vertical.CenterVertically
     ) {
         WidgetIconButton(
-            onClick = doneAction(loopId = loopId),
+            onClick = doneAction(loopId = loopId, dateMs = dateMs),
             resId = R.drawable.done,
             contentDescription = stringResourceGlance(id = R.string.done),
             tint = accentColor(),
@@ -259,7 +267,7 @@ fun LoopDoneOrSkipMedium(
         )
         Spacer(modifier = GlanceModifier.width(12.dp))
         WidgetIconButton(
-            onClick = skipAction(loopId = loopId),
+            onClick = skipAction(loopId = loopId, dateMs = dateMs),
             resId = R.drawable.skip,
             contentDescription = stringResourceGlance(id = R.string.skip),
             tint = onSurfaceColor().copy(alpha = 0.55f),
@@ -276,14 +284,15 @@ fun LoopDoneOrSkipMedium(
 @Composable
 fun LoopDoneOrSkipCompact(
     modifier: GlanceModifier = GlanceModifier,
-    loopId: Int
+    loopId: Int,
+    dateMs: Long = 0L,
 ) {
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.Vertical.CenterVertically
     ) {
         WidgetIconButton(
-            onClick = doneAction(loopId = loopId),
+            onClick = doneAction(loopId = loopId, dateMs = dateMs),
             resId = R.drawable.done,
             contentDescription = stringResourceGlance(id = R.string.done),
             tint = accentColor(),
@@ -292,7 +301,7 @@ fun LoopDoneOrSkipCompact(
         )
         Spacer(modifier = GlanceModifier.width(8.dp))
         WidgetIconButton(
-            onClick = skipAction(loopId = loopId),
+            onClick = skipAction(loopId = loopId, dateMs = dateMs),
             resId = R.drawable.skip,
             contentDescription = stringResourceGlance(id = R.string.skip),
             tint = onSurfaceColor().copy(alpha = 0.55f),
@@ -346,6 +355,33 @@ fun LocalDateHeader(
                 .background(ColorProvider(accentColor()))
         ) {}
     }
+}
+
+/**
+ * 위젯 목록의 그룹 헤더. 홈 "오늘" 탭의 그룹 캡션과 같은 라벨·같은 문법("다음 예정 · 2")으로
+ * 적어, 앱과 위젯이 같은 분류를 같은 말로 읽게 한다. "지금 진행 중"만 강조색으로 세워
+ * 목록을 훑을 때 시선이 먼저 닿게 하는 것도 앱과 같다.
+ */
+@Composable
+fun LoopGroupHeader(
+    modifier: GlanceModifier = GlanceModifier,
+    group: TodayGroup,
+    count: Int,
+) {
+    val isNow = group == TodayGroup.NOW
+    Text(
+        modifier = modifier,
+        text = stringResourceGlance(
+            id = R.string.today_group_caption,
+            stringResourceGlance(id = group.labelResId),
+            count,
+        ),
+        style = TextStyle(
+            fontSize = 12.sp,
+            fontWeight = if (isNow) FontWeight.Bold else FontWeight.Medium,
+            color = if (isNow) ColorProvider(accentColor()) else textSecondary(),
+        )
+    )
 }
 
 @Composable

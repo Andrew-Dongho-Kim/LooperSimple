@@ -13,6 +13,7 @@ import com.pnd.android.loop.data.isDisabled
 import com.pnd.android.loop.data.isNotRespond
 import com.pnd.android.loop.util.isActive
 import com.pnd.android.loop.util.isActiveDay
+import com.pnd.android.loop.util.isOvernight
 import com.pnd.android.loop.util.toLocalDate
 import com.pnd.android.loop.util.toLocalTime
 import com.pnd.android.loop.util.toMs
@@ -95,13 +96,32 @@ class LoopRepository @Inject constructor(
     // 추가 DB 쿼리는 발생하지 않고, 로딩 전(null)에는 아무 값도 흘려보내지 않는다.
     val loadedLoops: Flow<List<LoopWithDone>> = allLoopsWithDoneStates.filterNotNull()
 
-    // @formatter:off
-    val loopsNoResponseYesterday = localDate.transform { currDate ->
+    /**
+     * 어제 날짜 행과 조인한 루프 전체.
+     *
+     * 자정을 넘기는 루프는 done 기록이 "시작한 날"인 어제 행에 있으므로, 오늘 화면에서 그 몫을
+     * 다루려면 오늘 행만으로는 부족하다([com.pnd.android.loop.data.TodayOccurrence] 참고).
+     */
+    val yesterdayLoops: Flow<List<LoopWithDone>> = localDate.transform { currDate ->
         emitAll(fullLoopDao.getAllLoopsFlow(currDate.minusDays(1).toLocalTime()))
-    }.map { loops ->
+    }.stateIn(
+        scope = coroutineScope,
+        started = SharingStarted.WhileSubscribed(5_000L),
+        initialValue = emptyList()
+    )
+
+    // @formatter:off
+    /**
+     * 어제 미응답 카드에 올릴 루프.
+     *
+     * 자정을 넘기는 루프는 제외한다. 그 어젯밤 몫은 오늘 아침에 끝나 오늘 화면에 그대로 걸치므로,
+     * 오늘 목록의 "응답 대기" 항목이 대신 맡는다. 여기까지 넣으면 같은 화면에 두 번 나온다.
+     */
+    val loopsNoResponseYesterday = yesterdayLoops.map { loops ->
         loops.filter { loop ->
             !loop.isDisabled &&
             !loop.isAnyTime &&
+            !loop.isOvernight &&
             loop.isNotRespond &&
             loop.created.toLocalDate().isBefore(LocalDate.now()) &&
             loop.isActiveDay(LocalDate.now().minusDays(1))

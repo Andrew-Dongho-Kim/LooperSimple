@@ -27,6 +27,10 @@ data class LoopCardValues(
     val isEditing: Boolean = false,
     // 편집 중인 다른 카드가 있어 이 카드는 배경으로 물러나야 하는지(디밍 대상).
     val isEditDimmed: Boolean = false,
+    // 자정을 넘겨 어젯밤에 시작해 오늘 아침에 끝난 몫인지(TodayOccurrence.isCarriedOver).
+    // 시계상으로는 다음 시작 전이라 TimeStat 은 "시작 전"으로 보지만, 실제로는 이미 끝난
+    // occurrence 이므로 카드를 응답 대기 모습으로 고정하고 시각 앞에 "어제"를 붙인다.
+    val isCarriedOver: Boolean = false,
 )
 
 @Composable

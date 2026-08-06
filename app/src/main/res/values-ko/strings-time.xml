@@ -49,10 +49,6 @@
     <string name="am">오전</string>
     <string name="pm">오후</string>
 
-    <string name="timeline_hour">%d시</string>
-    <string name="timeline_am_hour">오전 %d시</string>
-    <string name="timeline_pm_hour">오후 %d시</string>
-
 
     <string name="every">%s 마다</string>
     <string name="everyday">매일</string>

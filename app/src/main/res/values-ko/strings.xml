@@ -33,6 +33,11 @@
     <string name="today_loops_finished_hint">완료하거나 건너뛴 루프는 아래에서 확인할 수 있어요.</string>
     <string name="today_no_scheduled_loops">오늘은 예정된 루프가 없어요</string>
     <string name="today_no_scheduled_loops_hint">전체 탭에서 루프를 추가하거나 관리할 수 있어요.</string>
+    <string name="today_group_now">지금 진행 중</string>
+    <string name="today_group_upcoming">다음 예정</string>
+    <string name="today_group_awaiting">응답 대기</string>
+    <string name="today_group_caption">%1$s · %2$d</string>
+    <string name="loop_time_yesterday">어제 %1$s</string>
     <string name="unchecked_loops">어제, 확인하지 않은 루프가 *%d*개 있습니다.</string>
     <string name="response_rate">응답률</string>
     <string name="done_rate">완료율</string>
@@ -259,6 +264,13 @@
     <string name="detail_schedule">시간 설정</string>
     <string name="detail_repeat">반복</string>
 
+    <string name="detail_loop_name">루프 이름</string>
+    <string name="detail_edit_name">이름 수정</string>
+    <string name="detail_loop_state_active">활성</string>
+    <string name="detail_loop_state_inactive">비활성</string>
+    <string name="detail_loop_active_off">비활성 상태, 기록하지 않음</string>
+    <string name="detail_edit_schedule">시간 수정</string>
+
     <string name="delete_loop_title">루프 삭제</string>
     <string name="delete_confirm_message">이 루프를 삭제하시겠습니까?</string>
     <string name="done_confirm_message">\"%s\"을(를) 완료로 표시할까요?</string>
@@ -266,7 +278,6 @@
     <string name="done_snack_message">\"%s\"을(를) 완료로 표시했습니다.</string>
     <string name="skip_snack_message">\"%s\"을(를) 건너뛰었습니다.</string>
 
-    <string name="timeline">타임라인</string>
     <string name="dial_view">다이얼</string>
     <string name="dial_in_progress_count">진행 중 %1$d</string>
     <string name="dial_remaining_minutes">%1$d분 남음</string>
@@ -407,31 +418,41 @@
     <string name="ad_expand">자세히 보기</string>
     <string name="ad_collapse">접기</string>
 
-    <!-- 상세 페이지 · 코치형(A) 성취 요약 -->
-    <string name="detail_streak_current_days">%1$d일 연속</string>
+    <!-- 상세 페이지 · 요약 헤더의 핵심 지표 세 칸 -->
+    <string name="detail_kpi_done_rate">완료율</string>
+    <string name="detail_kpi_streak">연속</string>
+    <string name="detail_kpi_streak_days">%1$d일</string>
+    <string name="detail_kpi_this_week">이번 주</string>
+    <string name="detail_kpi_week_ratio">%1$d/%2$d</string>
     <string name="detail_streak_best">최고 %1$d일</string>
-    <string name="detail_week_progress">%2$d일 중 %1$d일 완료</string>
     <string name="detail_week_trend_up">지난주보다 나아지고 있어요</string>
     <string name="detail_week_trend_same">지난주와 비슷해요</string>
     <string name="detail_week_trend_down">지난주보다 주춤해요</string>
-    <string name="detail_best_weekday">%1$s에 가장 잘 지켜요</string>
 
-    <!-- 상세 페이지 · 저널형(C) 달력·회고 -->
-    <string name="detail_journal_hint">날짜를 눌러 그날을 돌아보고 메모를 남겨보세요</string>
+    <!-- 상세 페이지 · 접이식 섹션 목록 -->
+    <string name="detail_section_stats">통계</string>
+    <string name="detail_days_per_week">주 %1$d일</string>
+    <string name="detail_memo_count">메모 %1$d개</string>
+    <string name="detail_expand_section">펼치기</string>
+    <string name="detail_collapse_section">접기</string>
+
+    <!-- 상세 페이지 · 기록·회고 -->
     <string name="detail_day_no_record">기록 없음</string>
 
-    <!-- 상세 페이지 · 응답 요약(구성 비율 막대) -->
+    <!-- 상세 페이지 · 통계 타일 -->
+    <string name="detail_tile_trend">완료율 추세</string>
+    <string name="detail_tile_weekday">요일별</string>
+    <string name="detail_tile_monthly">월별</string>
+    <string name="detail_tile_best_day">%1$s · %2$d%%</string>
+    <string name="detail_tile_month_rate">%1$s · %2$d%%</string>
+    <string name="detail_tile_no_data">—</string>
     <string name="detail_response_summary">응답 요약</string>
     <string name="detail_rate_done">완료</string>
     <string name="detail_rate_skip">건너뜀</string>
     <string name="detail_rate_no_response">미응답</string>
 
-    <!-- 상세 페이지 · 추세 카드(인사이트 요약형) 한 줄 결론 -->
+    <!-- 상세 페이지 · 통계 섹션 맨 위의 한 줄 결론 -->
     <string name="detail_trend_daily_up">완료율이 오르고 있어요</string>
     <string name="detail_trend_daily_down">완료율이 주춤하고 있어요</string>
     <string name="detail_trend_daily_steady">완료율을 꾸준히 유지하고 있어요</string>
-    <string name="detail_trend_this_month">이번 달 %1$d%%</string>
-    <string name="detail_trend_monthly_up">이번 달 %1$d%%, 지난달보다 좋아요</string>
-    <string name="detail_trend_monthly_down">이번 달 %1$d%%, 지난달보다 낮아요</string>
-    <string name="detail_trend_monthly_steady">이번 달 %1$d%%, 지난달과 비슷해요</string>
 </resources>

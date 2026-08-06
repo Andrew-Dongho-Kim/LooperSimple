@@ -95,7 +95,9 @@ fun LoopHeaderCard(
     val currentLoop by loopViewModel.currentLoop.collectAsState(initial = null)
     val recentDays by loopViewModel.recentDailyDone.collectAsState(initial = emptyList())
     val loopTrends by loopViewModel.loopTrends.collectAsState(initial = LoopTrends.Empty)
-    val loops by loopViewModel.allLoopsWithDoneStates.collectAsState(initial = null)
+    // StateFlow이므로 initial을 주지 않는다. 홈으로 복귀할 때 이미 로딩된 값을 첫 컴포지션에서
+    // 읽어, 요약 카드가 한 프레임 동안 빈 상태로 그려지는 것을 막는다.
+    val loops by loopViewModel.allLoopsWithDoneStates.collectAsState()
 
     Card(
         modifier = modifier,

@@ -17,7 +17,6 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.pnd.android.loop.appwidget.ui.LoopWidgetMedium
 import com.pnd.android.loop.appwidget.ui.LoopWidgetSmall
 import com.pnd.android.loop.common.Logger
-import com.pnd.android.loop.data.asLoop
 import com.pnd.android.loop.ui.theme.AppWidgetColorProviders
 
 private val logger = Logger("AppWidget")
@@ -58,7 +57,9 @@ class AppWidget : GlanceAppWidget() {
         logger.i { "AppWidget updated revision:$revision, widgetSize:$size" }
 
         if (!jsonLoops.isNullOrEmpty()) {
-            val loops = appWidgetData.loops.map { it.asLoop() }
+            // 한 줄의 단위는 루프가 아니라 occurrence 다. 자정을 넘기는 루프는 어젯밤 몫과
+            // 오늘 밤 몫이 나란히 올 수 있다([WidgetLoop] 참고).
+            val loops = appWidgetData.loops.map { it.asWidgetLoop() }
 
             when (size) {
                 SIZE_SMALL -> LoopWidgetSmall(

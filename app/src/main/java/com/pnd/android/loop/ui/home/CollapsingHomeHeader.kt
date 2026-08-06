@@ -1,6 +1,7 @@
 package com.pnd.android.loop.ui.home
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -18,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -166,8 +168,15 @@ fun CollapsingHomeHeader(
         val tabRim = lerp(0.dp, TabFloatingRim, progress)
 
         // 루프가 없는 OOBE 상태에서는 탭을 숨기고, 첫 루프가 생기면 아래에서 부드럽게 나타난다.
+        //
+        // visible 파라미터를 쓰는 형태는 첫 프레임이 false면 언제나 등장 애니메이션을 재생하므로,
+        // 이미 탭이 있어야 하는 상태로 화면에 들어올 때(= 홈 복귀)도 탭이 뒤늦게 슬라이드해 올라왔다.
+        // initialState를 현재 값으로 둔 전이 상태를 직접 넘겨, 처음부터 보여야 하면 애니메이션 없이
+        // 곧바로 그리고 OOBE→첫 루프처럼 실제로 값이 바뀔 때만 애니메이션이 돌게 한다.
+        val tabsVisibility = remember { MutableTransitionState(showTabs) }
+        tabsVisibility.targetState = showTabs
         AnimatedVisibility(
-            visible = showTabs,
+            visibleState = tabsVisibility,
             modifier = Modifier.align(Alignment.TopStart),
             enter = fadeIn() + slideInVertically(initialOffsetY = { it / 3 }),
             exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 3 }),

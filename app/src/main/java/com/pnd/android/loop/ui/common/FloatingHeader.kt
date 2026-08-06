@@ -1,5 +1,6 @@
 package com.pnd.android.loop.ui.common
 
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -41,6 +42,26 @@ fun Modifier.floatingHeaderPadding() = padding(
     horizontal = if (LocalConfiguration.current.isPortrait()) 8.dp else 0.dp
 )
 
+
+/**
+ * [rememberListCollapseProgress]의 `verticalScroll` 판. 리스트가 아닌 단일 스크롤 컨테이너
+ * (예: 상세 화면 본문)는 항목 인덱스가 없으므로, 최상단에서 스크롤된 픽셀만으로 진행도를 낸다.
+ *
+ * 스크롤이 불가능한(콘텐츠가 화면보다 짧은) 경우 [ScrollState.maxValue]가 0 이므로 진행도도 0f 이다.
+ */
+@Composable
+fun rememberScrollCollapseProgress(
+    scrollState: ScrollState,
+    collapseDistance: Dp,
+): State<Float> {
+    val collapseDistancePx = with(LocalDensity.current) { collapseDistance.toPx() }
+    return remember(scrollState, collapseDistancePx) {
+        derivedStateOf {
+            if (collapseDistancePx <= 0f) return@derivedStateOf 0f
+            (scrollState.value / collapseDistancePx).coerceIn(0f, 1f)
+        }
+    }
+}
 
 /**
  * 리스트 스크롤 정도로부터 헤더 접힘 진행도(0f..1f)를 만든다.

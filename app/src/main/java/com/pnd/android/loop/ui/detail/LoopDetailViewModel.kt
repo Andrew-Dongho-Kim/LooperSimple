@@ -17,6 +17,7 @@ import com.pnd.android.loop.util.toMs
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
@@ -39,7 +40,9 @@ class LoopDetailViewModel @Inject constructor(
     private val loopDoneDao = appDb.loopDoneDao()
     private val loopRetrospectDao = appDb.loopRetrospectDao()
 
-    val loop = loopDao.getLoopFlow(loopId)
+    // 루프를 삭제하면 Room 이 이 자리에 null 을 흘려보낸다. 화면이 닫히는 몇 프레임 동안
+    // 마지막으로 유효했던 값을 그대로 쓰도록 걸러 내, 삭제 직후 NPE 가 나지 않게 한다.
+    val loop = loopDao.getLoopFlow(loopId).mapNotNull { it }
 
     // 이 루프에 남긴 회고 메모 전체. 달력에서 "메모가 있는 날"에 마커를 찍는 데 사용한다.
     val retrospects = loopRetrospectDao.getRetrospectsFlow(loopId)
@@ -102,6 +105,25 @@ class LoopDetailViewModel @Inject constructor(
     ) {
         coroutineScope.launch {
             loopRepository.addOrUpdateLoop(loop.copyAs(enabled = enabled).asLoopVo())
+            AppWidgetUpdateWorker.updateWidget(app)
+        }
+    }
+
+    /** 상세 화면에서 인라인으로 고친 이름·시간 등을 저장한다. */
+    fun updateLoop(loop: LoopBase) {
+        coroutineScope.launch {
+            loopRepository.addOrUpdateLoop(loop.asLoopVo())
+            AppWidgetUpdateWorker.updateWidget(app)
+        }
+    }
+
+    /** 시간대를 바꿔 저장하기 전, 같은 시간에 겹치는 루프가 몇 개인지 확인한다. */
+    suspend fun numberOfLoopsAtTheSameTime(loop: LoopBase) =
+        loopRepository.numberOfLoopsAtTheSameTime(loop = loop)
+
+    fun deleteLoop(loop: LoopBase) {
+        coroutineScope.launch {
+            loopRepository.deleteLoop(loop)
             AppWidgetUpdateWorker.updateWidget(app)
         }
     }
