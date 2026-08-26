@@ -24,7 +24,6 @@ import com.pnd.android.loop.ui.home.input.InputSelector
 import com.pnd.android.loop.ui.home.input.UserInputState
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.surfaceElevated
-import com.pnd.android.loop.util.durationInDay
 import com.pnd.android.loop.util.rememberImeOpenState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -95,27 +94,6 @@ private fun Selector(
             modifier = modifier,
             selectedColor = loop.color,
             onColorSelected = { inputState.update(color = it) },
-        )
-
-        InputSelector.ALARM_INTERVAL -> IntervalSelector(
-            modifier = modifier,
-            selectedInterval = loop.interval,
-            // An any-time loop has no fixed start/end window, so any interval is
-            // valid; otherwise the interval must be shorter than the duration.
-            // durationInDay accounts for overnight loops (e.g. 23:00~02:00); a plain
-            // endInDay - startInDay would go negative there and reject every interval.
-            maxInterval = if (loop.isAnyTime) Long.MAX_VALUE else loop.durationInDay,
-            onIntervalSelected = onIntervalChanged@{ interval ->
-                if (!loop.isAnyTime && loop.durationInDay <= interval) {
-                    coroutineScope.showWarning(
-                        snackBarHostState,
-                        context.getString(R.string.warning_interval_must_be_shorter_than_duration)
-                    )
-                    return@onIntervalChanged
-                }
-
-                inputState.update(interval = interval)
-            }
         )
 
         InputSelector.START_END_TIME -> StartEndTimeSelector(

@@ -2,7 +2,6 @@ package com.pnd.android.loop.ui.home
 
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -25,6 +24,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,13 +38,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -76,12 +75,14 @@ import kotlinx.coroutines.delay
 import java.time.LocalDate
 
 // 그리드 치수. 셀·행·헤더 높이를 상수로 묶어 왼쪽 이름 열과 날짜 열의 높이가 항상 정확히 맞도록 한다.
-private val CellSize = 28.dp          // 실제 ✓/✕가 그려지는 정사각 셀
+private val CellSize = 28.dp          // 실제 상태가 그려지는 정사각 셀
 private val CellGap = 2.dp            // 셀 사이 여백
+private const val MarkSizeRatio = 0.56f // 셀 대비 기호(체크·대시) 크기 비율. 28dp 셀이면 약 16dp.
 private val ColumnWidth = CellSize + CellGap * 2   // 날짜 한 열의 폭
 private val RowHeight = CellSize + CellGap * 2     // 루프 한 행의 높이
+private val InactiveDotSize = 4.dp    // 비활성 요일 칸 가운데에 찍는 점의 지름
 private val NameColumnWidth = 96.dp   // 왼쪽 고정 루프 이름 열 폭
-private val NameColumnCollapsedWidth = 14.dp // 완전히 접혔을 때 남겨 두는 폭(루프 색상 점은 항상 보이도록)
+private val NameColumnCollapsedWidth = 18.dp // 완전히 접혔을 때 남겨 두는 폭(루프 색상 점은 항상 보이도록)
 private val CollapseScrollDistance = 120.dp  // 이만큼 스크롤하면 이름 열이 완전히 접힌다(스크롤 양에 비례해 접힘)
 
 private val YearBandHeight = 15.dp    // 헤더: 연도 표시 줄
@@ -95,10 +96,21 @@ private val HeaderHeight = YearBandHeight + WeekdayBandHeight + DayBandHeight
 private fun doneFillColor(): Color =
     if (isSystemInDarkTheme()) Color(0xFF808EF5) else Color(0xFF5567D6)
 
-// 건너뜀(SKIP) 채움색(중립 슬레이트). 완료의 따뜻한 앰버와 뚜렷이 구분되는 무채색 계열.
+// 건너뜀(SKIP) 채움색(중립 슬레이트). 완료의 인디고와 뚜렷이 구분되는 무채색 계열.
 @Composable
 private fun skipFillColor(): Color =
     if (isSystemInDarkTheme()) Color(0xFF565049) else Color(0xFFCFC7B6)
+
+// 채움 위에 겹쳐 그리는 기호(체크·대시)의 색.
+// 각 채움색 위에서 대비가 충분하도록 채움과 명도를 반대로 둔다:
+// 라이트는 밝은 채움 위 어두운 기호, 다크는 어두운 채움 위 밝은 기호.
+@Composable
+private fun doneMarkColor(): Color =
+    if (isSystemInDarkTheme()) Color(0xFF1E2352) else Color.White
+
+@Composable
+private fun skipMarkColor(): Color =
+    if (isSystemInDarkTheme()) Color(0xFFE4DDD0) else Color(0xFF4A4438)
 
 // 비활성(DISABLED) 셀의 바탕색. 그 위에 빗금([diagonalHatch])을 덧그린다.
 @Composable
@@ -108,9 +120,13 @@ private fun disabledBgColor(): Color = AppColor.onSurface.copy(alpha = 0.04f)
 @Composable
 private fun hatchColor(): Color = AppColor.onSurface.copy(alpha = 0.22f)
 
-// 텍스트·강조·생성일 마커용 accent(블루). 완료 채움과 같은 파랑 계열이되,
-// 완료 셀(인디고 채움) 위에 겹치는 생성일 마커까지 잘 보이도록 명도를 반대로 둔다:
-// 라이트는 진한 블루(밝은 배경/채움 위에서 도드라짐), 다크는 옅은 블루(어두운 배경/채움 위에서 도드라짐).
+// 비활성 요일(그 루프가 실행되지 않는 요일) 칸에 찍는 점의 색.
+// 셀 아웃라인(alpha 0.15)보다는 진해서 눈에 걸리되, 실제 상태 채움보다는 확실히 옅게 둔다.
+@Composable
+private fun inactiveDotColor(): Color = AppColor.onSurface.copy(alpha = 0.3f)
+
+// 헤더 배지·오늘 강조·버튼 텍스트에 쓰는 accent(블루). 완료 채움과 같은 파랑 계열이되,
+// 라이트는 진한 블루, 다크는 옅은 블루로 두어 어느 배경에서도 도드라지게 한다.
 @Composable
 private fun accentColor(): Color =
     if (isSystemInDarkTheme()) Color(0xFFC6CDFF) else Color(0xFF123CC9)
@@ -119,9 +135,9 @@ private fun accentColor(): Color =
  * 전체 탭 하단 기록 그리드(색상 채움 방식의 매트릭스).
  *
  * - 행 = 루프, 열 = 가장 오래된 루프의 생성일부터 오늘까지 하루 단위.
- * - 각 셀은 그 날의 상태를 아이콘 없이 색/패턴으로 구분한다:
- *   완료=앰버 채움, 건너뜀=슬레이트 채움, 비활성=빗금, 미응답=빈 아웃라인,
- *   생성일=좌상단 앰버 삼각형 마커(그날 상태 위에 겹쳐 표시).
+ * - 각 셀은 그 날의 상태를 색 채움과 최소한의 기호로 구분한다(판단 규칙은 [CellLook] 참고):
+ *   완료=인디고 채움+체크, 건너뜀=슬레이트 채움+대시, 비활성화=빗금, 미응답=빈 아웃라인,
+ *   비활성 요일=가운데 점, 생성 이전=빈칸(행이 시작되는 칸이 곧 생성일).
  * - 왼쪽 루프 이름 열은 고정하고 날짜 열만 가로로 스크롤해, 기간이 길어도 UI가 잘리지 않는다.
  * - 색은 전부 테마([AppColor])에서 가져와 라이트/다크 모드에 함께 대응한다.
  *
@@ -430,10 +446,28 @@ private fun HistoryColumnHeader(column: HistoryColumn, isLeading: Boolean) {
 }
 
 /**
- * 상태 셀 하나. 색/패턴만으로 상태를 구분한다.
- * - 완료=앰버 채움, 건너뜀=슬레이트 채움, 비활성(DISABLED)=빗금, 미응답=빈 아웃라인.
- * - 생성일이면 그날 상태 위에 좌상단 삼각형 마커를 겹쳐 "시작 지점"을 표시한다.
- * - 생성일 이전이거나 비활성 요일이면서 아무 기록도 없으면 흐리게 처리해 "해당 없음"으로 둔다.
+ * 그리드 한 칸을 "무엇으로 그릴지" 정리한 타입.
+ *
+ * 칸의 모양은 done 상태만으로 정해지지 않는다. 같은 '기록 없음'이라도 그날이 그 루프에 해당하는
+ * 날이었는지에 따라 뜻이 달라지므로(내가 안 한 날 vs 애초에 대상이 아닌 날), 판단을 여기서 한 번
+ * 정리한 뒤 그리기([StateSwatch])로 넘긴다.
+ */
+private sealed interface CellLook {
+    /** 루프 생성 이전. 루프가 존재하지도 않던 기간이므로 자리만 두고 아무것도 그리지 않는다. */
+    data object BeforeCreated : CellLook
+
+    /** 이 루프가 실행되지 않는 요일. 판정 대상이 아니라는 뜻으로 가운데 점만 찍는다. */
+    data object InactiveDay : CellLook
+
+    /** 그날의 상태를 채움/패턴으로 그린다. [doneState]가 null이면 미응답(빈 아웃라인). */
+    data class Status(val doneState: Int?) : CellLook
+}
+
+/**
+ * 상태 셀 하나. 어떤 모양으로 그릴지는 [CellLook]으로 판단하고, 그리기는 [StateSwatch]에 맡긴다.
+ *
+ * 생성일에는 따로 마커를 두지 않는다. 생성 이전이 빈칸이므로 한 행에서 처음으로 무언가 그려지는
+ * 칸이 곧 생성일이고, 별도 표시는 중복이기 때문이다.
  */
 @Composable
 private fun HistoryCell(
@@ -442,14 +476,17 @@ private fun HistoryCell(
     doneState: Int?,
 ) {
     val date = column.date
-    val isActiveDay = remember(loop.activeDays, date) { loop.activeDays.isOn(dayForLoop(date)) }
     val createdDate = remember(loop.created) { loop.created.toLocalDate() }
-    val isBeforeCreated = remember(createdDate, date) { date.isBefore(createdDate) }
-    val isCreatedDay = date == createdDate
+    val isActiveDay = remember(loop.activeDays, date) { loop.activeDays.isOn(dayForLoop(date)) }
 
-    // 기록이 없는 칸 중, 생성일 이전이거나 비활성 요일인 날은 "해당 없음"으로 흐리게 둔다.
-    // (생성일 당일은 마커를 보여야 하므로 흐리게 처리하지 않는다.)
-    val isDimmed = doneState == null && !isCreatedDay && (isBeforeCreated || !isActiveDay)
+    // 위에서부터 우선순위대로 판단한다. 기록이 있으면 요일 설정보다 기록을 우선하는데,
+    // 나중에 활성 요일을 바꿔도 그전에 쌓인 기록은 그대로 보여야 하기 때문이다.
+    val look = when {
+        date.isBefore(createdDate) -> CellLook.BeforeCreated
+        doneState != null -> CellLook.Status(doneState)
+        isActiveDay -> CellLook.Status(doneState = null)
+        else -> CellLook.InactiveDay
+    }
 
     Box(
         modifier = Modifier
@@ -459,26 +496,54 @@ private fun HistoryCell(
     ) {
         StateSwatch(
             size = CellSize,
-            state = doneState,
-            isCreatedDay = isCreatedDay,
-            dimmed = isDimmed,
+            look = look,
         )
     }
 }
 
 /**
- * 상태 하나를 색/패턴으로 그린 정사각 셀. 그리드 셀과 범례가 동일한 모양을 공유하도록 분리했다.
+ * 칸 하나를 실제로 그린 정사각 셀. 그리드 셀과 도움말 범례가 동일한 모양을 공유하도록 분리했다.
  *
- * @param state DONE/SKIP/DISABLED 또는 null(미응답).
- * @param isCreatedDay 생성일이면 좌상단에 삼각형 마커를 덧그린다.
- * @param dimmed "해당 없음" 칸을 흐리게 처리할지 여부.
+ * @param look 그릴 모양. [CellLook.BeforeCreated]면 자리만 차지한다.
  */
 @Composable
 private fun StateSwatch(
     size: Dp,
+    look: CellLook,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .size(size)
+            .clip(RoundShapes.small),
+        contentAlignment = Alignment.Center,
+    ) {
+        when (look) {
+            // 아무것도 그리지 않아 날짜 열의 정렬만 유지한다.
+            CellLook.BeforeCreated -> Unit
+
+            CellLook.InactiveDay -> InactiveDayDot()
+
+            is CellLook.Status -> StatusFill(
+                modifier = Modifier.matchParentSize(),
+                state = look.doneState,
+                markSize = size * MarkSizeRatio,
+            )
+        }
+    }
+}
+
+/**
+ * 완료/건너뜀/비활성화/미응답을 채움색과 빗금으로 그리고, 그 위에 기호([StatusMark])를 겹친다.
+ * 미응답은 채움이 없어 아웃라인만 남는다.
+ *
+ * @param state DONE/SKIP/DISABLED 또는 null(미응답).
+ * @param markSize 채움 위에 겹칠 기호의 크기.
+ */
+@Composable
+private fun StatusFill(
     state: Int?,
-    isCreatedDay: Boolean = false,
-    dimmed: Boolean = false,
+    markSize: Dp,
     modifier: Modifier = Modifier,
 ) {
     val fillColor = when (state) {
@@ -491,32 +556,57 @@ private fun StateSwatch(
 
     Box(
         modifier = modifier
-            .size(size)
-            .clip(RoundShapes.small)
             .background(color = fillColor)
             .then(if (state == DoneState.DISABLED) Modifier.diagonalHatch(hatch) else Modifier)
             .border(
                 width = 0.5.dp,
                 color = AppColor.onSurface.copy(alpha = 0.15f),
                 shape = RoundShapes.small,
-            )
-            .alpha(if (dimmed) 0.3f else 1f),
+            ),
+        contentAlignment = Alignment.Center,
     ) {
-        if (isCreatedDay) {
-            // 좌상단 삼각형 마커: 그날 상태 채움 위에 겹쳐 "시작 지점"임을 표시한다.
-            val marker = accentColor()
-            Canvas(modifier = Modifier.size(size * 0.4f)) {
-                val s = this.size.minDimension
-                val path = Path().apply {
-                    moveTo(0f, 0f)
-                    lineTo(s, 0f)
-                    lineTo(0f, s)
-                    close()
-                }
-                drawPath(path = path, color = marker)
-            }
-        }
+        StatusMark(state = state, size = markSize)
     }
+}
+
+/**
+ * 완료·건너뜀 채움 위에 겹치는 기호. 두 상태는 채움 색조만 다르기 때문에,
+ * 색을 구분하기 어려운 환경에서도 뜻이 남도록 형태를 함께 준다.
+ *
+ * 비활성화(빗금)와 미응답(빈 아웃라인)은 채움/패턴만으로 이미 형태가 구분되므로 기호를 두지 않는다.
+ * 화면 낭독은 셀 단위가 아니라 루프 단위로 하므로 [Icon]에는 설명을 달지 않는다.
+ */
+@Composable
+private fun StatusMark(state: Int?, size: Dp) {
+    when (state) {
+        DoneState.DONE -> Icon(
+            modifier = Modifier.size(size),
+            imageVector = Icons.Rounded.Check,
+            tint = doneMarkColor(),
+            contentDescription = null,
+        )
+
+        DoneState.SKIP -> Icon(
+            modifier = Modifier.size(size),
+            imageVector = Icons.Rounded.Remove,
+            tint = skipMarkColor(),
+            contentDescription = null,
+        )
+    }
+}
+
+/**
+ * 비활성 요일 표시. 아웃라인과 채움을 모두 비우고 가운데 점만 찍는다.
+ * 미응답(빈 아웃라인)과 형태 자체가 달라, 훑어볼 때 "내가 안 한 날"과 섞이지 않는다.
+ */
+@Composable
+private fun InactiveDayDot(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .size(InactiveDotSize)
+            .clip(CircleShape)
+            .background(color = inactiveDotColor()),
+    )
 }
 
 /** 셀 배경에 좌상→우하 대각선 빗금을 그린다(비활성 상태 표시). 앞선 clip 안에서 호출돼 모서리가 둥글게 잘린다. */
@@ -542,8 +632,10 @@ private fun Modifier.diagonalHatch(
 }
 
 /**
- * 도움말 팝업. 5개 상태(완료·건너뜀·응답없음·비활성화·생성일)를 그리드 셀과 똑같은 미니 셀 +
+ * 도움말 팝업. 5개 표시(완료·건너뜀·응답없음·예정 없음·비활성화)를 그리드 셀과 똑같은 미니 셀 +
  * 이름 + 한 줄 설명으로 안내한다. 색은 전부 테마에서 가져와 라이트/다크 모두 대응한다.
+ *
+ * 헷갈리기 쉬운 "응답없음"과 "예정 없음"을 나란히 두어 두 모양의 차이가 바로 보이도록 배치한다.
  */
 @Composable
 private fun HistoryHelpDialog(onDismiss: () -> Unit) {
@@ -573,30 +665,29 @@ private fun HistoryHelpDialog(onDismiss: () -> Unit) {
             )
 
             HistoryHelpRow(
-                state = DoneState.DONE,
+                look = CellLook.Status(DoneState.DONE),
                 name = stringResource(id = R.string.done),
                 desc = stringResource(id = R.string.all_history_help_done),
             )
             HistoryHelpRow(
-                state = DoneState.SKIP,
+                look = CellLook.Status(DoneState.SKIP),
                 name = stringResource(id = R.string.skip),
                 desc = stringResource(id = R.string.all_history_help_skip),
             )
             HistoryHelpRow(
-                state = null,
+                look = CellLook.Status(doneState = null),
                 name = stringResource(id = R.string.no_response),
                 desc = stringResource(id = R.string.all_history_help_no_response),
             )
             HistoryHelpRow(
-                state = DoneState.DISABLED,
-                name = stringResource(id = R.string.loop_disable),
-                desc = stringResource(id = R.string.all_history_help_disabled),
+                look = CellLook.InactiveDay,
+                name = stringResource(id = R.string.all_history_inactive_day),
+                desc = stringResource(id = R.string.all_history_help_inactive_day),
             )
             HistoryHelpRow(
-                state = null,
-                isCreatedDay = true,
-                name = stringResource(id = R.string.all_history_created),
-                desc = stringResource(id = R.string.all_history_help_created),
+                look = CellLook.Status(DoneState.DISABLED),
+                name = stringResource(id = R.string.loop_disable),
+                desc = stringResource(id = R.string.all_history_help_disabled),
             )
 
             // 확인 버튼: 바깥 영역 탭으로도 닫히지만, 명시적으로 닫을 수 있게 둔다.
@@ -613,16 +704,15 @@ private fun HistoryHelpDialog(onDismiss: () -> Unit) {
     }
 }
 
-/** 도움말 한 줄: 상태 미니 셀 + 이름 + 설명. 셀은 그리드와 동일한 [StateSwatch]를 재사용한다. */
+/** 도움말 한 줄: 미니 셀 + 이름 + 설명. 셀은 그리드와 동일한 [StateSwatch]를 재사용한다. */
 @Composable
 private fun HistoryHelpRow(
-    state: Int?,
+    look: CellLook,
     name: String,
     desc: String,
-    isCreatedDay: Boolean = false,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        StateSwatch(size = 22.dp, state = state, isCreatedDay = isCreatedDay)
+        StateSwatch(size = 22.dp, look = look)
         Column(modifier = Modifier.padding(start = 12.dp)) {
             Text(
                 text = name,

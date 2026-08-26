@@ -8,6 +8,7 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
+import com.pnd.android.loop.appwidget.AppWidgetRefresher
 import com.pnd.android.loop.common.log
 import com.pnd.android.loop.data.AppDatabase
 import com.pnd.android.loop.data.LoopBase
@@ -19,6 +20,7 @@ import com.pnd.android.loop.util.elapsedMinutesSinceStart
 import com.pnd.android.loop.util.isActive
 import com.pnd.android.loop.util.toMs
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -53,6 +55,9 @@ class LoopForegroundService : Service() {
 
     @Inject
     lateinit var notificationSettings: NotificationSettings
+
+    @Inject
+    lateinit var appWidgetRefresher: AppWidgetRefresher
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var tickJob: Job? = null
@@ -130,8 +135,27 @@ class LoopForegroundService : Service() {
                 }
                 notificationHelper.updateOngoing(loops)
                 remindLongRunningAnyTimeLoops(loops)
+                refreshAppWidget()
                 delay(delayToNextMinute().milliseconds)
             }
+        }
+    }
+
+    /**
+     * 위젯도 알림과 같은 시각 기준의 문구("32분 남음")를 쓴다. 알림만 갱신하면 위젯은 루프가 끝날
+     * 때까지 시작 시점의 문구로 멈춰 있으므로, 1분마다 깨어 있는 이 자리에서 함께 다시 그린다.
+     * 워커를 새로 띄우지 않고 바로 부르고, 위젯이 하나도 없으면 refresh 가 곧바로 빠져나온다.
+     *
+     * 실패하더라도 알림 틱은 계속 돌아야 하므로 예외는 여기서 삼킨다. 그대로 새어 나가면 이 잡이
+     * 끝나 알림이 다음 트리거까지 멈추고, 처리되지 않은 예외로 앱이 죽는다.
+     */
+    private suspend fun refreshAppWidget() {
+        try {
+            appWidgetRefresher.refresh()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            logger.e { "failed to refresh the app widget: ${e.message}" }
         }
     }
 
