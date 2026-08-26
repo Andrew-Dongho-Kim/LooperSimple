@@ -5,15 +5,23 @@ import com.pnd.android.loop.data.LoopDay
 import java.time.LocalTime
 import java.util.concurrent.TimeUnit
 
-const val NO_REPEAT = 0L
 const val DEFAULT_CREATED = 0L
 const val DEFAULT_TITLE = ""
 const val DEFAULT_COLOR = 0xFF9EBBEE.toInt() // 홈 톤과 어울리는 잔잔한 파스텔 블루
 const val DEFAULT_ACTIVE_DAYS = LoopDay.EVERYDAY
-const val DEFAULT_INTERVAL = NO_REPEAT
 const val DEFAULT_ENABLED = true
 const val DEFAULT_IS_ANY_TIME = false
 const val DEFAULT_IS_MOCK = false
+
+/**
+ * "주 몇 번 하면 성공인가". [NO_WEEKLY_GOAL] 이면 목표를 따로 두지 않고, 활동 요일 전부를
+ * 해야 하는 날로 본다(기존 동작). 1..7 이면 그 주에 그 횟수만 채우면 달성으로 센다.
+ *
+ * 주 3회면 충분한 습관도 활동 요일 수를 분모로 쓰면 매일 실패로 보이기 때문에 둔 값이다.
+ */
+const val NO_WEEKLY_GOAL = 0
+const val DEFAULT_WEEKLY_GOAL = NO_WEEKLY_GOAL
+const val MAX_WEEKLY_GOAL = 7
 
 val defaultStartInDay
     get() =

@@ -24,7 +24,6 @@ import com.pnd.android.loop.data.LoopVo
 import com.pnd.android.loop.data.LoopVo.Factory.MIDNIGHT_RESERVATION_ID
 import com.pnd.android.loop.data.asLoop
 import com.pnd.android.loop.data.asLoopVo
-import com.pnd.android.loop.data.common.NO_REPEAT
 import com.pnd.android.loop.data.description
 import com.pnd.android.loop.data.putTo
 import com.pnd.android.loop.util.MS_1DAY
@@ -96,7 +95,7 @@ class LoopScheduler @Inject constructor(
                 pendingIntent
             )
             logger.i {
-                " - repeat after:${dh2m2(after)} ${loop.description(context)}"
+                " - exact after:${dh2m2(after)} ${loop.description()}"
             }
 
         } else {
@@ -109,7 +108,7 @@ class LoopScheduler @Inject constructor(
                 pendingIntent
             )
             logger.i {
-                " - inexact(after:${dh2m2(after)}) ${loop.description(context)}"
+                " - inexact(after:${dh2m2(after)}) ${loop.description()}"
             }
         }
     }
@@ -239,13 +238,12 @@ class LoopScheduler @Inject constructor(
         }
         logger.i { " - cancel id:${loop.loopId}, title:${loop.title}" }
 
-        // PendingIntent 동등성은 action 을 포함하므로 시작/종료/반복/습관시각이 각각 별개로
-        // 예약돼 있다. START 만 취소하면 남은 알람이 나중에 유령처럼 도착해 서비스를 깨우고
-        // 반복 체인을 계속 재예약한다. 예약하는 모든 액션을 빠짐없이 취소한다.
+        // PendingIntent 동등성은 action 을 포함하므로 시작/종료/습관시각이 각각 별개로
+        // 예약돼 있다. START 만 취소하면 남은 알람이 나중에 유령처럼 도착해 서비스를 깨운다.
+        // 예약하는 모든 액션을 빠짐없이 취소한다.
         listOf(
             ACTION_LOOP_START,
             ACTION_LOOP_END,
-            ACTION_LOOP_REPEAT,
             ACTION_LOOP_ANYTIME_DUE,
         ).forEach { alarmAction ->
             cancelAlarm(loop = loop, alarmAction = alarmAction)
@@ -288,7 +286,6 @@ class LoopScheduler @Inject constructor(
             when (intent.action) {
                 ACTION_LOOP_START -> handleActionLoopStart(context, intent)
                 ACTION_LOOP_END -> handleActionLoopEnd(context, intent)
-                ACTION_LOOP_REPEAT -> handleActionLoopRepeat(intent)
                 ACTION_LOOP_SYNC -> handleActionLoopSync(context, intent)
                 ACTION_LOOP_ANYTIME_DUE -> handleActionAnyTimeDue(intent)
 
@@ -328,11 +325,7 @@ class LoopScheduler @Inject constructor(
         private fun handleActionLoopStart(context: Context, intent: Intent) {
             val loop = intent.asLoop()
 
-            if (loop.interval == NO_REPEAT) {
-                alarmController.reserveAlarm(scheduleEnd(loop))
-            } else {
-                reserveRepeat(loop = loop)
-            }
+            alarmController.reserveAlarm(scheduleEnd(loop))
 
             // 진행 중인 루프를 상시 알림 서비스로 넘긴다. 서비스가 알림을 소유하므로
             // 앱이 실행 중이 아니어도 유지되고, 사용자가 스와이프로 지울 수 없다.
@@ -366,27 +359,6 @@ class LoopScheduler @Inject constructor(
             loopEndPrompter.prompt(intent.asLoop().loopId)
         }
 
-        private fun handleActionLoopRepeat(intent: Intent) {
-            val loop = intent.asLoop()
-
-            // 알림은 건드리지 않는다. 포그라운드 서비스가 이미 1분마다 DB를 다시 읽어
-            // 갱신하므로, 반복 틱마다 refresh 를 부르면 서비스만 불필요하게 재기동된다.
-            // 이 알람의 역할은 종료 알람까지 이어지는 반복 체인을 유지하는 것뿐이다.
-            reserveRepeat(loop)
-        }
-
-        private fun reserveRepeat(loop: LoopBase) {
-            // 다음 반복 틱이 종료 시각을 넘기면(=종료가 먼저 오면) 종료 알람을, 아니면 다음 반복 알람을 건다.
-            // 두 값 모두 자정 넘김을 고려한 "지금부터 남은 ms" 로 계산해, 23:00~02:00 같은 루프도 정확히 처리한다.
-            val untilEnd = msUntilInDay(loop.endInDay)
-            val untilNextTick = loop.interval - (msSinceStart(loop) % loop.interval)
-            if (untilNextTick >= untilEnd) {
-                alarmController.reserveAlarm(scheduleEnd(loop))
-            } else {
-                alarmController.reserveAlarm(scheduleRepeat(loop))
-            }
-        }
-
         /**
          * 지금 진행 중인 루프를 상시 알림 서비스로 넘긴다. 서비스가 DB를 다시 읽어
          * 현재 진행 중인 모든 루프를 하나의 알림으로 묶어 보여주고 1분마다 갱신하므로,
@@ -408,10 +380,6 @@ class LoopScheduler @Inject constructor(
         fun msUntilInDay(targetInDay: Long): Long =
             ((targetInDay - msNow) % MS_1DAY + MS_1DAY) % MS_1DAY
 
-        /** msNow 기준으로 루프 시작 이후 하루 안에서의 경과 ms(자정 넘김 고려, 0 ~ 24h). */
-        fun msSinceStart(loop: LoopBase): Long =
-            ((msNow - loop.startInDay) % MS_1DAY + MS_1DAY) % MS_1DAY
-
         fun scheduleStart(loop: LoopBase) = LoopSchedule(
             action = ACTION_LOOP_START,
             // 시작은 오늘 안의 고정 시각. 이미 지났으면 after<=0 이 되어 예약을 건너뛴다(자정 동기화가 내일 것을 잡는다).
@@ -423,12 +391,6 @@ class LoopScheduler @Inject constructor(
             action = ACTION_LOOP_END,
             // 자정을 넘기는 루프는 종료가 다음 날이므로, 남은 시간을 하루 둘레로 계산한다.
             after = msUntilInDay(loop.endInDay),
-            loop = loop
-        )
-
-        fun scheduleRepeat(loop: LoopBase) = LoopSchedule(
-            action = ACTION_LOOP_REPEAT,
-            after = loop.interval - (msSinceStart(loop) % loop.interval),
             loop = loop
         )
 

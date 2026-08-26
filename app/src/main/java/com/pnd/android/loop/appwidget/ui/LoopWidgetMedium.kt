@@ -24,7 +24,6 @@ import androidx.glance.layout.padding
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
-import androidx.glance.unit.ColorProvider
 import com.pnd.android.loop.R
 import com.pnd.android.loop.appwidget.WidgetLoop
 import com.pnd.android.loop.appwidget.awaitsResponse
@@ -36,13 +35,10 @@ import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDay
 import com.pnd.android.loop.data.LoopDay.Companion.isOn
 import com.pnd.android.loop.data.TimeStat
-import com.pnd.android.loop.data.common.NO_REPEAT
 import com.pnd.android.loop.ui.home.TodayGroup
-import com.pnd.android.loop.ui.theme.compositeOverOnSurface
 import com.pnd.android.loop.util.ABB_DAYS
 import com.pnd.android.loop.util.DAY_STRING_MAP
 import com.pnd.android.loop.util.MS_1DAY
-import com.pnd.android.loop.util.intervalString
 import com.pnd.android.loop.util.toLocalTime
 import com.pnd.android.loop.util.toMs
 import java.time.LocalTime
@@ -66,7 +62,7 @@ private const val ITEM_ID_BOTTOM_SPACER = -1L
 
 // ---------------------------------------------------------------------------
 // Medium 위젯 — "진행 히어로 + 리스트" 구성
-//  · 지금 할 일 하나를 히어로 카드로 크게 띄워 상태/시간/요일·반복 정보와
+//  · 지금 할 일 하나를 히어로 카드로 크게 띄워 상태/시간/요일 정보와
 //    핵심 액션(완료·건너뛰기 또는 시작·정지)을 모두 노출한다.
 //  · 나머지 루프는 컴팩트 행으로 이어 붙여 한눈에 훑고, 상태에 맞는 액션을
 //    우측에 인라인으로 제공한다.
@@ -76,7 +72,7 @@ private const val ITEM_ID_BOTTOM_SPACER = -1L
 fun LoopWidgetMedium(
     modifier: GlanceModifier = GlanceModifier,
     loops: List<WidgetLoop>,
-    todayTotal: Int,
+    emptyReason: WidgetEmptyReason,
 ) {
     Column(
         modifier = modifier
@@ -101,7 +97,7 @@ fun LoopWidgetMedium(
         if (loops.isEmpty()) {
             LoopWidgetEmpty(
                 modifier = GlanceModifier,
-                loopsTotal = todayTotal,
+                reason = emptyReason,
             )
         } else {
             LoopWidgetBody(loops = loops)
@@ -273,7 +269,7 @@ private fun LoopWidgetHero(
 
         Row(verticalAlignment = Alignment.Vertical.CenterVertically) {
             LoopColor(
-                color = loop.color.compositeOverOnSurface(),
+                loopColor = loop.color,
                 active = isRunning,
             )
             Column(
@@ -323,7 +319,7 @@ private fun LoopWidgetMiniRow(
         verticalAlignment = Alignment.Vertical.CenterVertically,
     ) {
         LoopColor(
-            color = loop.color.compositeOverOnSurface(),
+            loopColor = loop.color,
             active = isRunning,
         )
         Column(
@@ -394,12 +390,12 @@ private fun HeroRunningBadge() {
         text = stringResourceGlance(id = R.string.dial_running),
         modifier = GlanceModifier
             .cornerRadius(8.dp)
-            .background(ColorProvider(accentColor().copy(alpha = 0.16f)))
+            .background(accent(alpha = 0.16f))
             .padding(horizontal = 8.dp, vertical = 3.dp),
         style = TextStyle(
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
-            color = ColorProvider(accentColor()),
+            color = accent(),
         ),
     )
 }
@@ -430,7 +426,7 @@ private fun HeroTimeLine(widgetLoop: WidgetLoop, emphasize: Boolean) {
         style = TextStyle(
             fontSize = 13.sp,
             fontWeight = if (emphasize) FontWeight.Bold else FontWeight.Medium,
-            color = if (emphasize) ColorProvider(accentColor()) else textSecondary(),
+            color = if (emphasize) accent() else textSecondary(),
         ),
     )
 }
@@ -481,13 +477,8 @@ private fun WidgetLoop.progressText(): String {
 /** [from] 에서 [to] 까지 남은 시간(ms). 하루 둘레로 감아 항상 0 이상 24h 미만이 되게 한다. */
 private fun msUntil(from: Long, to: Long): Long = ((to - from) % MS_1DAY + MS_1DAY) % MS_1DAY
 
-/** "매일 · 2시간마다"처럼 활성 요일과 반복 주기를 합친 메타 문구. */
-private fun LoopBase.metaText(context: Context): String {
-    val repeat = if (interval == NO_REPEAT) "" else intervalString(context, interval)
-    return listOf(daysText(context), repeat)
-        .filter { it.isNotEmpty() }
-        .joinToString(separator = " · ")
-}
+/** "매일"처럼 활성 요일을 요약한 메타 문구. */
+private fun LoopBase.metaText(context: Context): String = daysText(context)
 
 /** 매일/주중/주말 대명사가 있으면 그것을, 아니면 켜진 요일 약자를 이어 붙인다(예: "월 수 금"). */
 private fun LoopBase.daysText(context: Context): String {

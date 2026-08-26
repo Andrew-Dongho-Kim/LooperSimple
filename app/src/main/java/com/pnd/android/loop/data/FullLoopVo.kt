@@ -1,6 +1,7 @@
 package com.pnd.android.loop.data
 
 import androidx.room.Ignore
+import com.pnd.android.loop.data.common.DEFAULT_WEEKLY_GOAL
 
 data class FullLoopVo @JvmOverloads constructor(
     override val loopId: Int,
@@ -10,7 +11,6 @@ data class FullLoopVo @JvmOverloads constructor(
     override val startInDay: Long,
     override val endInDay: Long,
     override val activeDays: Int,
-    override val interval: Long,
     override val enabled: Boolean,
     val actualStartInDay: Long,
     val actualEndInDay: Long,
@@ -18,6 +18,7 @@ data class FullLoopVo @JvmOverloads constructor(
     val retrospect: String,
     @LoopDoneVo.DoneState val done: Int,
     override val isAnyTime: Boolean = false,
+    override val weeklyGoal: Int = DEFAULT_WEEKLY_GOAL,
     @Ignore override val isMock: Boolean = false,
 ) : LoopBase {
 
@@ -29,9 +30,9 @@ data class FullLoopVo @JvmOverloads constructor(
         startInDay: Long,
         endInDay: Long,
         activeDays: Int,
-        interval: Long,
         enabled: Boolean,
         isAnyTime: Boolean,
+        weeklyGoal: Int,
         isMock: Boolean,
     ): LoopBase = LoopWithDone(
         loopId = loopId,
@@ -41,13 +42,13 @@ data class FullLoopVo @JvmOverloads constructor(
         startInDay = startInDay,
         endInDay = endInDay,
         activeDays = activeDays,
-        interval = interval,
         enabled = enabled,
         actualStartInDay = this.actualStartInDay,
         actualEndInDay = this.actualEndInDay,
         date = this.date,
         done = this.done,
         isAnyTime = isAnyTime,
+        weeklyGoal = weeklyGoal,
         isMock = isMock,
     )
 }
@@ -70,7 +71,6 @@ fun LoopBase.toFullLoopVo(
         startInDay = effectiveStart,
         endInDay = effectiveEnd,
         activeDays = activeDays,
-        interval = interval,
         enabled = enabled,
         actualStartInDay = doneVo.startInDay,
         actualEndInDay = doneVo.endInDay,
@@ -79,6 +79,7 @@ fun LoopBase.toFullLoopVo(
         done = doneVo.done,
         // 시작/종료 중 하나라도 값이 없으면(ANY_TIME) 고정 시간이 없는 것으로 본다.
         isAnyTime = effectiveStart < 0 || effectiveEnd < 0,
+        weeklyGoal = weeklyGoal,
         isMock = isMock,
     )
 }

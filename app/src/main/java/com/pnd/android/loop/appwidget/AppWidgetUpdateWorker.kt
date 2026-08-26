@@ -2,17 +2,15 @@ package com.pnd.android.loop.appwidget
 
 import android.content.Context
 import androidx.annotation.StringDef
-import androidx.glance.appwidget.GlanceAppWidgetManager
-import androidx.glance.appwidget.state.updateAppWidgetState
-import androidx.glance.appwidget.updateAll
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.Data
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import com.pnd.android.loop.appwidget.AppWidget.Companion.KEY_LOOPS_JSON
-import com.pnd.android.loop.appwidget.AppWidget.Companion.KEY_REVISION
 import com.pnd.android.loop.appwidget.AppWidgetUpdateWorker.Companion.Action.Companion.DONE_LOOP
 import com.pnd.android.loop.appwidget.AppWidgetUpdateWorker.Companion.Action.Companion.DO_NOTHING
 import com.pnd.android.loop.appwidget.AppWidgetUpdateWorker.Companion.Action.Companion.SKIP_LOOP
@@ -26,30 +24,28 @@ import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.data.LoopVo.Factory.ANY_TIME
-import com.pnd.android.loop.data.TodayLoopOrder
-import com.pnd.android.loop.data.TodayOccurrence
-import com.pnd.android.loop.data.actualEndInDay
-import com.pnd.android.loop.data.actualStartInDay
-import com.pnd.android.loop.data.asLoopVo
-import com.pnd.android.loop.data.buildTodayOccurrences
-import com.pnd.android.loop.data.isDisabled
-import com.pnd.android.loop.data.isRespond
 import com.pnd.android.loop.util.occurrenceStartDate
 import com.pnd.android.loop.util.toLocalDate
 import com.pnd.android.loop.util.toTimeTextForLog
 import com.pnd.android.loop.util.toMs
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
-import org.json.JSONArray
-import org.json.JSONObject
 import java.time.LocalDate
 import java.time.LocalTime
+import java.util.concurrent.TimeUnit
 
+/**
+ * 루프의 상태를 바꾸고(완료·건너뛰기·시작·정지) 위젯을 다시 그리는 일을 백그라운드로 옮기는 워커.
+ *
+ * 위젯·알림의 버튼, 시작/종료 알람, 앱에서의 편집이 모두 이 워커를 거친다. 실제로 위젯을 그리는
+ * 일은 [AppWidgetRefresher] 가 맡는다(상시 알림 서비스도 같은 것을 쓴다).
+ */
 @HiltWorker
 class AppWidgetUpdateWorker @AssistedInject constructor(
     @Assisted private val context: Context,
     @Assisted private val params: WorkerParameters,
-    appDb: AppDatabase
+    appDb: AppDatabase,
+    private val appWidgetRefresher: AppWidgetRefresher,
 ) : CoroutineWorker(
     appContext = context,
     params = params
@@ -57,7 +53,6 @@ class AppWidgetUpdateWorker @AssistedInject constructor(
 
     private val logger = Logger("AppWidgetUpdateWorker")
 
-    private val fullLoopDao = appDb.fullLoopDao()
     private val loopDao = appDb.loopDao()
     private val loopDoneDao = appDb.loopDoneDao()
 
@@ -73,7 +68,7 @@ class AppWidgetUpdateWorker @AssistedInject constructor(
             }
         }
 
-        refresh()
+        appWidgetRefresher.refresh()
 
         // 위젯에서 루프를 시작/정지(완료/스킵)했을 때도 상시 알림을 즉시 동기화한다.
         //  - 시작(IN_PROGRESS)하면 곧바로 알림에 등록되고,
@@ -194,80 +189,21 @@ class AppWidgetUpdateWorker @AssistedInject constructor(
         }
     }
 
-    private suspend fun refresh() {
-        val today = LocalDate.now()
-        // 자정을 넘기는 루프의 done 기록은 시작한 날인 어제 행에 있다. 오늘 행만 보면 이미 완료한
-        // 루프가 계속 미응답으로 남고, 오늘 아침에 끝난 몫도 놓친다.
-        val yesterdayLoops = fullLoopDao.getAllEnabledLoops(date = today.minusDays(1).toMs())
-        val todayLoops = fullLoopDao.getAllEnabledLoops(date = today.toMs())
-
-        // 홈 오늘 탭과 같은 규칙으로 occurrence 를 만든다. 자정을 넘기는 루프는 어젯밤 몫과
-        // 오늘 밤 몫이 각각 한 줄씩 올라온다.
-        val occurrences = buildTodayOccurrences(
-            todayLoops = todayLoops,
-            yesterdayLoops = yesterdayLoops.associateBy { it.loopId },
-        )
-        updateWidget(
-            context = context,
-            loops = occurrences
-                .filter { occurrence ->
-                    // 이미 답했거나 비활성 처리된 몫은 위젯에 남기지 않는다.
-                    !occurrence.loop.isRespond && !occurrence.loop.isDisabled
-                }
-                .sortedWith(compareBy(TodayLoopOrder()) { occurrence -> occurrence.loop })
-                .map { occurrence -> occurrence.toWidgetLoop() }
-        )
-    }
-
-    /**
-     * 위젯으로 전달되는 루프는 putTo/asLoop 를 거치며 done 상태·실제 시작/종료 시각을 잃고
-     * 순수 LoopVo 로 재구성된다. anytime 루프는 base start/end 가 항상 ANY_TIME(-1)이라,
-     * 이대로면 위젯이 진행 여부를 알 수 없어 늘 "시작" 버튼만 노출된다.
-     * 그래서 anytime 루프에 한해 실제 시작/종료 시각(done 기록)을 start/end 로 옮겨 실어,
-     * 위젯이 시작/정지 버튼과 "started at" 라벨을 올바로 표시하게 한다.
-     *
-     * 어느 날 몫인지도 함께 실어야 위젯에서 누른 응답이 올바른 날짜 행에 기록된다([WidgetLoop]).
-     */
-    private fun TodayOccurrence.toWidgetLoop(): WidgetLoop = WidgetLoop(
-        loop = if (loop.isAnyTime) {
-            loop.asLoopVo(startInDay = loop.actualStartInDay, endInDay = loop.actualEndInDay)
-        } else {
-            loop
-        },
-        dateMs = date.toMs(),
-        isCarriedOver = isCarriedOver,
-    )
-
-    private suspend fun updateWidget(
-        context: Context,
-        loops: List<WidgetLoop>
-    ) {
-        val jsonArray = JSONArray()
-        loops.forEach { widgetLoop ->
-            val map = mutableMapOf<String, Any?>()
-            widgetLoop.putTo(map)
-
-            jsonArray.put(JSONObject(map))
-        }
-        logger.i { "updateWidget:$jsonArray" }
-
-        GlanceAppWidgetManager(context).getGlanceIds(AppWidget::class.java).forEach { glanceId ->
-            updateAppWidgetState(
-                context = context,
-                glanceId = glanceId
-            ) { prefs ->
-                // This is hack to force update widget
-                val revision = prefs[KEY_REVISION]?.let { it + 1 } ?: 0
-                prefs[KEY_REVISION] = revision
-                prefs[KEY_LOOPS_JSON] = "{\"loops\": $jsonArray, \"total\":${loops.size}}"
-
-                logger.i { "updateWidget[$glanceId] revision:$revision" }
-            }
-        }
-        AppWidget().updateAll(context)
-    }
-
     companion object {
+        /** 모든 위젯 갱신 요청을 한 줄로 세우는 이름([enqueueWork] 참고). */
+        private const val UNIQUE_WORK_NAME = "app_widget_update"
+
+        /** 시간이 흐른 것만으로 낡는 문구를 되살리는 정기 갱신의 이름([schedulePeriodicUpdate]). */
+        private const val PERIODIC_WORK_NAME = "app_widget_periodic_update"
+
+        /**
+         * 정기 갱신 주기. WorkManager 가 허용하는 최소 주기가 15분이라 그보다 촘촘하게는 둘 수 없다.
+         * 진행 중인 루프가 있는 동안에는 상시 알림 서비스가 1분마다 직접 다시 그리므로
+         * ([AppWidgetRefresher]), 이 주기가 실제로 맡는 몫은 "2시간 후 시작"처럼 진행 중이 아닐 때의
+         * 문구다.
+         */
+        private const val PERIODIC_UPDATE_INTERVAL_MINUTES = 15L
+
         @StringDef(DO_NOTHING, DONE_LOOP, SKIP_LOOP, START_LOOP, STOP_LOOP)
         annotation class Action {
             companion object {
@@ -286,6 +222,32 @@ class AppWidgetUpdateWorker @AssistedInject constructor(
                     .putBoolean(PARAMS_UPDATE_LOOPS, true)
                     .build()
             )
+        }
+
+        /**
+         * 시간이 흐르는 것만으로 위젯이 낡는 것을 막는 정기 갱신을 걸어 둔다.
+         *
+         * 위젯 문구의 상당수는 지금 시각으로 계산된다("32분 남음", "2시간 후 시작", 진행 중 여부).
+         * 갱신 트리거가 루프의 시작/종료 알람뿐이면 그 사이에는 처음 그린 문구가 그대로 남는다.
+         *
+         * 이미 걸려 있으면 그대로 둔다(KEEP). 위젯을 놓을 때마다 불려도 주기가 새로 시작되지 않는다.
+         */
+        fun schedulePeriodicUpdate(context: Context) {
+            val request = PeriodicWorkRequestBuilder<AppWidgetUpdateWorker>(
+                PERIODIC_UPDATE_INTERVAL_MINUTES,
+                TimeUnit.MINUTES,
+            ).build()
+
+            WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+                PERIODIC_WORK_NAME,
+                ExistingPeriodicWorkPolicy.KEEP,
+                request,
+            )
+        }
+
+        /** 마지막 위젯이 사라졌을 때 정기 갱신을 거둔다([AppWidgetReceiver]). */
+        fun cancelPeriodicUpdate(context: Context) {
+            WorkManager.getInstance(context).cancelUniqueWork(PERIODIC_WORK_NAME)
         }
 
         /**
@@ -311,7 +273,16 @@ class AppWidgetUpdateWorker @AssistedInject constructor(
                 .setInputData(inputData)
                 .build()
 
-            WorkManager.getInstance(context).enqueue(request)
+            // 갱신 요청은 여러 곳(위젯·알림 버튼, 시작/종료 알람, 앱에서의 편집)에서 거의 동시에
+            // 들어온다. 이름 하나로 묶어 들어온 순서대로 하나씩만 돌게 해, 두 워커가 나란히 돌며
+            // 서로의 기록을 앞지르지 않게 한다.
+            // (위젯을 그리는 구간 자체가 겹치는 것은 [AppWidgetRefresher] 가 따로 막는다.
+            //  정기 갱신은 다른 이름으로 들어와 이 줄에 서지 않기 때문이다.)
+            WorkManager.getInstance(context).enqueueUniqueWork(
+                UNIQUE_WORK_NAME,
+                ExistingWorkPolicy.APPEND_OR_REPLACE,
+                request,
+            )
         }
     }
 }

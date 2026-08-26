@@ -10,10 +10,10 @@ import com.pnd.android.loop.data.common.DEFAULT_ACTIVE_DAYS
 import com.pnd.android.loop.data.common.DEFAULT_COLOR
 import com.pnd.android.loop.data.common.DEFAULT_CREATED
 import com.pnd.android.loop.data.common.DEFAULT_ENABLED
-import com.pnd.android.loop.data.common.DEFAULT_INTERVAL
 import com.pnd.android.loop.data.common.DEFAULT_IS_ANY_TIME
 import com.pnd.android.loop.data.common.DEFAULT_IS_MOCK
 import com.pnd.android.loop.data.common.DEFAULT_TITLE
+import com.pnd.android.loop.data.common.DEFAULT_WEEKLY_GOAL
 import com.pnd.android.loop.data.common.defaultEndInDay
 import com.pnd.android.loop.data.common.defaultStartInDay
 import com.pnd.android.loop.util.toMs
@@ -31,10 +31,14 @@ data class LoopVo @JvmOverloads constructor(
     override val startInDay: Long,
     override val endInDay: Long,
     override val activeDays: Int,
-    override val interval: Long,
     override val enabled: Boolean,
     @ColumnInfo(defaultValue = "false")
     override val isAnyTime: Boolean,
+    // 기본값을 주면 @JvmOverloads 가 이 인자를 뺀 생성자도 만들고, Room 이 그 생성자를 골라
+    // val 필드에 값을 넣을 방법을 찾지 못한다("Cannot find setter for field"). 필수 인자로 두고
+    // 기본값은 팩토리([LoopVo.create])에서만 채운다.
+    @ColumnInfo(defaultValue = "0")
+    override val weeklyGoal: Int,
     @Ignore override val isMock: Boolean = false,
 ) : LoopBase {
 
@@ -46,9 +50,9 @@ data class LoopVo @JvmOverloads constructor(
         startInDay: Long,
         endInDay: Long,
         activeDays: Int,
-        interval: Long,
         enabled: Boolean,
         isAnyTime: Boolean,
+        weeklyGoal: Int,
         isMock: Boolean,
     ): LoopBase = LoopVo(
         loopId = loopId,
@@ -58,9 +62,9 @@ data class LoopVo @JvmOverloads constructor(
         startInDay = startInDay,
         endInDay = endInDay,
         activeDays = activeDays,
-        interval = interval,
         enabled = enabled,
         isAnyTime = isAnyTime,
+        weeklyGoal = weeklyGoal,
         isMock = isMock,
     )
 
@@ -75,9 +79,9 @@ data class LoopVo @JvmOverloads constructor(
             startInDay: Long = defaultStartInDay,
             endInDay: Long = defaultEndInDay,
             activeDays: Int = DEFAULT_ACTIVE_DAYS,
-            interval: Long = DEFAULT_INTERVAL,
             enabled: Boolean = DEFAULT_ENABLED,
             isAnyTime: Boolean = DEFAULT_IS_ANY_TIME,
+            weeklyGoal: Int = DEFAULT_WEEKLY_GOAL,
             isMock: Boolean = DEFAULT_IS_MOCK,
         ) = LoopVo(
             loopId = id,
@@ -87,9 +91,9 @@ data class LoopVo @JvmOverloads constructor(
             startInDay = startInDay,
             endInDay = endInDay,
             activeDays = activeDays,
-            interval = interval,
             enabled = enabled,
             isAnyTime = isAnyTime,
+            weeklyGoal = weeklyGoal,
             isMock = isMock
         )
 
@@ -99,8 +103,8 @@ data class LoopVo @JvmOverloads constructor(
             color: Int = DEFAULT_COLOR,
             created: Long = DEFAULT_CREATED,
             activeDays: Int = DEFAULT_ACTIVE_DAYS,
-            interval: Long = DEFAULT_INTERVAL,
             enabled: Boolean = DEFAULT_ENABLED,
+            weeklyGoal: Int = DEFAULT_WEEKLY_GOAL,
             isMock: Boolean = DEFAULT_IS_MOCK,
         ) = create(
             id = id,
@@ -110,11 +114,11 @@ data class LoopVo @JvmOverloads constructor(
             startInDay = ANY_TIME,
             endInDay = ANY_TIME,
             activeDays = activeDays,
-            interval = interval,
             enabled = enabled,
             // '언제든지' 루프는 시간이 없음(-1)을 뜻하므로 isAnyTime도 함께 세운다.
             // (누락 시 start/end가 -1인 채 isAnyTime=false가 되어 시간 포맷 시 크래시)
             isAnyTime = true,
+            weeklyGoal = weeklyGoal,
             isMock = isMock,
         )
 
@@ -137,9 +141,9 @@ fun LoopBase.asLoopVo(
     startInDay: Long = this.startInDay,
     endInDay: Long = this.endInDay,
     loopActiveDays: Int = this.activeDays,
-    interval: Long = this.interval,
     enabled: Boolean = this.enabled,
     isAnyTime: Boolean = this.isAnyTime,
+    weeklyGoal: Int = this.weeklyGoal,
     isMock: Boolean = this.isMock,
 ) = LoopVo.create(
     id = id,
@@ -149,9 +153,9 @@ fun LoopBase.asLoopVo(
     startInDay = startInDay,
     endInDay = endInDay,
     activeDays = loopActiveDays,
-    interval = interval,
     enabled = enabled,
     isAnyTime = isAnyTime,
+    weeklyGoal = weeklyGoal,
     isMock = isMock
 )
 
@@ -163,9 +167,9 @@ fun LoopBase.putTo(intent: Intent) {
     intent.putExtra(EXTRA_LOOP_START, startInDay)
     intent.putExtra(EXTRA_LOOP_END, endInDay)
     intent.putExtra(EXTRA_LOOP_ACTIVE_DAYS, activeDays)
-    intent.putExtra(EXTRA_LOOP_INTERVAL, interval)
     intent.putExtra(EXTRA_LOOP_IS_ANYTIME, isAnyTime)
     intent.putExtra(EXTRA_LOOP_ENABLED, enabled)
+    intent.putExtra(EXTRA_LOOP_WEEKLY_GOAL, weeklyGoal)
     intent.putExtra(EXTRA_LOOP_IS_MOCK, isMock)
 }
 
@@ -177,9 +181,9 @@ fun LoopBase.putTo(map: MutableMap<String, Any?>) {
     map[EXTRA_LOOP_START] = startInDay
     map[EXTRA_LOOP_END] = endInDay
     map[EXTRA_LOOP_ACTIVE_DAYS] = activeDays
-    map[EXTRA_LOOP_INTERVAL] = interval
     map[EXTRA_LOOP_IS_ANYTIME] = isAnyTime
     map[EXTRA_LOOP_ENABLED] = enabled
+    map[EXTRA_LOOP_WEEKLY_GOAL] = weeklyGoal
     map[EXTRA_LOOP_IS_MOCK] = isMock
 }
 
@@ -192,9 +196,9 @@ fun Intent.asLoop(): LoopBase {
         startInDay = getLongExtra(EXTRA_LOOP_START, defaultStartInDay),
         endInDay = getLongExtra(EXTRA_LOOP_END, defaultEndInDay),
         activeDays = getIntExtra(EXTRA_LOOP_ACTIVE_DAYS, DEFAULT_ACTIVE_DAYS),
-        interval = getLongExtra(EXTRA_LOOP_INTERVAL, DEFAULT_INTERVAL),
         enabled = getBooleanExtra(EXTRA_LOOP_ENABLED, DEFAULT_ENABLED),
         isAnyTime = getBooleanExtra(EXTRA_LOOP_IS_ANYTIME, DEFAULT_IS_ANY_TIME),
+        weeklyGoal = getIntExtra(EXTRA_LOOP_WEEKLY_GOAL, DEFAULT_WEEKLY_GOAL),
         isMock = getBooleanExtra(EXTRA_LOOP_IS_MOCK, DEFAULT_IS_MOCK),
     )
 }
@@ -204,16 +208,18 @@ fun Map<String, Any?>.asLoop(): LoopBase {
         loopId = getOrDefault(EXTRA_ID, 0) as Int,
         title = getOrDefault(EXTRA_TITLE, DEFAULT_TITLE) as String,
         color = getOrDefault(EXTRA_COLOR, DEFAULT_COLOR) as Int,
-        created = getOrDefault(EXTRA_LOOP_CREATED, DEFAULT_CREATED) as Long,
+        // JSON 을 거쳐 오면 작은 수는 Int, 큰 수는 Long 으로 읽힌다. 타입을 못 박으면 값에 따라
+        // 캐스팅이 터지므로(위젯 전체가 안 그려진다) 시각·기간 값은 모두 Number 로 받는다.
+        created = (getOrDefault(EXTRA_LOOP_CREATED, DEFAULT_CREATED) as Number).toLong(),
         startInDay = (getOrDefault(EXTRA_LOOP_START, defaultStartInDay) as Number).toLong(),
         endInDay = (getOrDefault(EXTRA_LOOP_END, defaultEndInDay) as Number).toLong(),
         activeDays = getOrDefault(
             EXTRA_LOOP_ACTIVE_DAYS,
             DEFAULT_ACTIVE_DAYS
         ) as Int,
-        interval = (getOrDefault(EXTRA_LOOP_INTERVAL, DEFAULT_INTERVAL) as Number).toLong(),
         enabled = getOrDefault(EXTRA_LOOP_ENABLED, DEFAULT_ENABLED) as Boolean,
         isAnyTime = getOrDefault(EXTRA_LOOP_IS_ANYTIME, DEFAULT_IS_ANY_TIME) as Boolean,
+        weeklyGoal = (getOrDefault(EXTRA_LOOP_WEEKLY_GOAL, DEFAULT_WEEKLY_GOAL) as Number).toInt(),
         isMock = getOrDefault(EXTRA_LOOP_IS_MOCK, DEFAULT_IS_MOCK) as Boolean,
     )
 }
@@ -225,7 +231,7 @@ private const val EXTRA_LOOP_CREATED = "extra_loop_created"
 private const val EXTRA_LOOP_START = "extra_loop_start"
 private const val EXTRA_LOOP_END = "extra_loop_end"
 private const val EXTRA_LOOP_ACTIVE_DAYS = "extra_loop_active_days"
-private const val EXTRA_LOOP_INTERVAL = "extra_loop_interval"
 private const val EXTRA_LOOP_ENABLED = "extra_loop_enabled"
+private const val EXTRA_LOOP_WEEKLY_GOAL = "extra_loop_weekly_goal"
 private const val EXTRA_LOOP_IS_ANYTIME = "extra_loop_is_any_time"
 private const val EXTRA_LOOP_IS_MOCK = "extra_loop_is_mock"

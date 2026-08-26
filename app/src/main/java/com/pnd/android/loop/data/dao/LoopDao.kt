@@ -22,6 +22,10 @@ interface LoopDao {
     @Query("SELECT * FROM loop ORDER BY startInDay ASC, endInDay ASC")
     fun getAllLoopsLiveData(): LiveData<List<LoopVo>>
 
+    /** 등록된 루프 수(꺼져 있는 루프도 포함). "루프가 아예 없다"를 가릴 때 쓴다. */
+    @Query("SELECT COUNT(*) FROM loop")
+    suspend fun countAllLoops(): Int
+
     // Nullable: the loop may have been deleted (e.g. a stale widget button or a
     // detail/paging screen observing a removed loop).
     @Query("SELECT * FROM loop WHERE loopId=:loopId")

@@ -12,13 +12,14 @@ data class LoopWithDone @JvmOverloads constructor(
     override val startInDay: Long,
     override val endInDay: Long,
     override val activeDays: Int,
-    override val interval: Long,
     override val enabled: Boolean,
     val actualStartInDay: Long,
     val actualEndInDay: Long,
     val date: Long,
     @DoneState val done: Int,
     override val isAnyTime: Boolean,
+    // LoopVo 와 같은 이유로 기본값을 두지 않는다(Room 이 생성자를 잘못 고른다).
+    override val weeklyGoal: Int,
     @Ignore override val isMock: Boolean = false,
 ) : LoopBase {
     override fun copyAs(
@@ -29,9 +30,9 @@ data class LoopWithDone @JvmOverloads constructor(
         startInDay: Long,
         endInDay: Long,
         activeDays: Int,
-        interval: Long,
         enabled: Boolean,
         isAnyTime: Boolean,
+        weeklyGoal: Int,
         isMock: Boolean,
     ): LoopBase = LoopWithDone(
         loopId = loopId,
@@ -41,13 +42,13 @@ data class LoopWithDone @JvmOverloads constructor(
         startInDay = startInDay,
         endInDay = endInDay,
         activeDays = activeDays,
-        interval = interval,
         enabled = enabled,
         actualStartInDay = this.actualStartInDay,
         actualEndInDay = this.actualEndInDay,
         date = this.date,
         done = this.done,
         isAnyTime = isAnyTime,
+        weeklyGoal = weeklyGoal,
         isMock = isMock,
     )
 }
@@ -62,13 +63,13 @@ fun LoopBase.toLoopWithDone(
     startInDay = startInDay,
     endInDay = endInDay,
     activeDays = activeDays,
-    interval = interval,
     enabled = enabled,
     actualStartInDay = doneVo.startInDay,
     actualEndInDay = doneVo.endInDay,
     date = doneVo.date,
     done = doneVo.done,
     isAnyTime = isAnyTime,
+    weeklyGoal = weeklyGoal,
     isMock = isMock
 )
 

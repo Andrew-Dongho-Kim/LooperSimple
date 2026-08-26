@@ -4,7 +4,6 @@ import androidx.annotation.StringDef
 
 
 const val ACTION_LOOP_START = "com.pnd.android.app.ACTION_LOOP_ALARM"
-const val ACTION_LOOP_REPEAT = "com.pnd.android.app.ACTION_LOOP_REPEAT"
 const val ACTION_LOOP_END = "com.pnd.android.app.ACTION_LOOP_ENDED"
 const val ACTION_LOOP_SYNC = "com.pnd.android.app.ACTION_LOOP_SYNC"
 
@@ -18,7 +17,6 @@ const val ACTION_LOOP_ANYTIME_DUE = "com.pnd.android.app.ACTION_LOOP_ANYTIME_DUE
 
 @StringDef(
     ACTION_LOOP_START,
-    ACTION_LOOP_REPEAT,
     ACTION_LOOP_END,
     ACTION_LOOP_SYNC,
     ACTION_LOOP_ANYTIME_DUE,

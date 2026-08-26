@@ -21,14 +21,13 @@ import com.pnd.android.loop.appwidget.WidgetLoop
 import com.pnd.android.loop.appwidget.awaitsResponse
 import com.pnd.android.loop.appwidget.isRunning
 import com.pnd.android.loop.common.NavigatePage
-import com.pnd.android.loop.ui.theme.compositeOverOnSurface
 
 
 @Composable
 fun LoopWidgetSmall(
     modifier: GlanceModifier = GlanceModifier,
     loops: List<WidgetLoop>,
-    todayTotal: Int,
+    emptyReason: WidgetEmptyReason,
 ) {
     val container = modifier
         .fillMaxSize()
@@ -38,7 +37,7 @@ fun LoopWidgetSmall(
     if (loops.isEmpty()) {
         LoopWidgetEmpty(
             modifier = container,
-            loopsTotal = todayTotal,
+            reason = emptyReason,
         )
     } else {
         val widgetLoop = pickOneLoop(loops)
@@ -82,7 +81,7 @@ private fun LoopWidgetItem(
     ) {
         Row(verticalAlignment = Alignment.Vertical.CenterVertically) {
             LoopColor(
-                color = loop.color.compositeOverOnSurface(),
+                loopColor = loop.color,
                 active = isRunning,
             )
             if (!awaitsResponse) {

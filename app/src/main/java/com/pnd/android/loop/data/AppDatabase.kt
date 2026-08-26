@@ -2,6 +2,7 @@ package com.pnd.android.loop.data
 
 import androidx.room.AutoMigration
 import androidx.room.Database
+import androidx.room.DeleteColumn
 import androidx.room.DeleteTable
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
@@ -13,7 +14,7 @@ import com.pnd.android.loop.data.dao.LoopRetrospectDao
 import com.pnd.android.loop.data.dao.RoomTypeConverters
 
 @Database(
-    version = 7,
+    version = 9,
     entities = [
         LoopVo::class,
         LoopDoneVo::class,
@@ -29,6 +30,13 @@ import com.pnd.android.loop.data.dao.RoomTypeConverters
         // 두 테이블이 남아 있으므로, 마이그레이션 없이 엔티티만 지우면 스키마 검증에서
         // IllegalStateException 으로 앱이 죽는다.
         AutoMigration(from = 6, to = 7, spec = AppDatabase.DropGroupTables::class),
+        // loop.weeklyGoal 추가(기본값 0 = 목표 없음). 기존 루프는 지금까지와 똑같이
+        // "활동 요일 전부"를 기준으로 계산된다.
+        AutoMigration(from = 7, to = 8),
+        // 알람 반복 주기(interval) 기능 제거: loop.interval 컬럼을 드롭한다. 기존 사용자의 DB에는
+        // 컬럼이 남아 있으므로, 마이그레이션 없이 엔티티에서만 지우면 스키마 검증에서
+        // IllegalStateException 으로 앱이 죽는다.
+        AutoMigration(from = 8, to = 9, spec = AppDatabase.DropLoopInterval::class),
     ],
     exportSchema = true
 )
@@ -48,4 +56,8 @@ abstract class AppDatabase : RoomDatabase() {
         DeleteTable(tableName = "loop_group"),
     )
     class DropGroupTables : AutoMigrationSpec
+
+    /** 8 → 9 자동 마이그레이션 명세. 더 이상 쓰지 않는 알람 반복 주기 컬럼을 지운다. */
+    @DeleteColumn(tableName = "loop", columnName = "interval")
+    class DropLoopInterval : AutoMigrationSpec
 }
