@@ -391,59 +391,6 @@ fun LoopBase.isActiveTime(localDateTime: LocalDateTime = LocalDateTime.now()): B
     return isTimeInLoop(localDateTime.toLocalTime().toMs())
 }
 
-@Composable
-fun intervalString(
-    msTime: Long,
-    highlight: String = ""
-): String {
-    return intervalString(LocalContext.current, msTime, highlight)
-}
-
-fun intervalString(
-    context: Context,
-    msTime: Long,
-    highlight: String = "",
-): String {
-    val res = context.resources
-    if (msTime <= 0) {
-        return "$highlight${res.getString(R.string.no_repeat)}"
-    }
-
-    val time: Int
-    val pluralResTimeUnit = when {
-        msTime < MS_1MIN -> {
-            time = (msTime / MS_1SEC).toInt()
-            R.plurals.second
-        }
-
-        msTime < MS_1HOUR -> {
-            time = (msTime / MS_1MIN).toInt()
-            R.plurals.minute
-        }
-
-        msTime < MS_1DAY -> {
-            time = (msTime / MS_1HOUR).toInt()
-            R.plurals.hour
-        }
-
-        msTime < MS_1WEEK -> {
-            time = (msTime / MS_1DAY).toInt()
-            R.plurals.day
-        }
-
-        else -> {
-            time = (msTime / MS_1WEEK).toInt()
-            R.plurals.week
-        }
-    }
-
-    val interval = res.getQuantityString(pluralResTimeUnit, time, time)
-    val result = "$highlight$time $interval"
-
-    return res.getString(R.string.every, result)
-}
-
-
 fun h2m2(msTime: Long): String {
     val timeInDay = msTime % MS_1DAY
     return String.format("%02d:%02d", timeInDay / MS_1HOUR, (timeInDay % MS_1HOUR) / MS_1MIN)

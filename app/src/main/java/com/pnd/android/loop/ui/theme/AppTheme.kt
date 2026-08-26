@@ -6,6 +6,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.glance.material3.ColorProviders
 
@@ -73,6 +74,35 @@ val AppWidgetColorProviders = ColorProviders(
     light = lightColorScheme,
     dark = darkColorScheme,
 )
+
+/** 낮/밤 한 쌍의 색. */
+data class DayNightColor(
+    val day: Color,
+    val night: Color,
+)
+
+/**
+ * 위젯이 쓰는 색의 낮/밤 원본. 앱 UI 와 같은 스킴에서 뽑으므로 앱과 위젯의 색이 갈리지 않는다.
+ *
+ * [AppWidgetColorProviders] 로도 같은 색을 얻을 수 있지만, 그쪽에서 색을 꺼내면 그리는 시점의
+ * 테마 한 벌로 확정된다. 위젯은 "onSurface 를 5% 알파로 깐 배경" 같은 파생 톤을 많이 쓰는데,
+ * 그런 톤까지 낮/밤 두 벌로 만들려면 원본 색 두 벌이 필요하다
+ * ([com.pnd.android.loop.appwidget.ui] 의 색 토큰 참고).
+ */
+object AppWidgetPalette {
+    val surface = DayNightColor(
+        day = lightColorScheme.surface,
+        night = darkColorScheme.surface,
+    )
+    val onSurface = DayNightColor(
+        day = lightColorScheme.onSurface,
+        night = darkColorScheme.onSurface,
+    )
+    val primary = DayNightColor(
+        day = lightColorScheme.primary,
+        night = darkColorScheme.primary,
+    )
+}
 
 val CORNERS_SMALL = 4.dp
 val CORNERS_MEDIUM = 8.dp

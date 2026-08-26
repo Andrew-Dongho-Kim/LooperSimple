@@ -75,7 +75,6 @@ class UserInputState(
         loopStart: Long = value.startInDay,
         loopEnd: Long = value.endInDay,
         loopActiveDays: Int = value.activeDays,
-        interval: Long = value.interval,
         enabled: Boolean = value.enabled,
     ) {
         value = value.copyAs(
@@ -85,7 +84,6 @@ class UserInputState(
             startInDay = if (isAnyTime) ANY_TIME else loopStart,
             endInDay = if (isAnyTime) ANY_TIME else loopEnd,
             activeDays = loopActiveDays,
-            interval = interval,
             enabled = enabled,
             isMock = value.isMock,
         )
@@ -193,7 +191,6 @@ fun rememberUserInputState(context: Context) = rememberSaveable(saver = UserInpu
 enum class InputSelector {
     COLOR,
     START_END_TIME,
-    ALARM_INTERVAL,
     NONE,
 }
 

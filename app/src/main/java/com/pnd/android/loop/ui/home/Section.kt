@@ -122,6 +122,7 @@ fun LazyListScope.section(
 
         is Section.Yesterday -> sectionYesterday(
             section = section,
+            blurState = blurState,
             loopViewModel = loopViewModel,
             snackBarHostState = snackBarHostState,
             onNavigateToDetailPage = onNavigateToDetailPage
@@ -191,6 +192,7 @@ private fun LazyListScope.sectionHeader(
 
 private fun LazyListScope.sectionYesterday(
     section: Section.Yesterday,
+    blurState: BlurState,
     loopViewModel: LoopViewModel,
     snackBarHostState: SnackbarHostState,
     onNavigateToDetailPage: (LoopBase) -> Unit,
@@ -204,6 +206,7 @@ private fun LazyListScope.sectionYesterday(
         key = section.key
     ) {
         LoopYesterdayCard(
+            blurState = blurState,
             loopViewModel = loopViewModel,
             loops = loops,
             snackBarHostState = snackBarHostState,

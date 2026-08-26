@@ -28,8 +28,11 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -55,9 +58,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import com.pnd.android.loop.util.annotatedString
 import java.time.LocalDate
 
+/** '완료로 기록' 다이얼로그의 대상 loopId 가 이 값이면 대상이 없다는 뜻이라 다이얼로그를 띄우지 않는다. */
+private const val NO_RECORD_DONE_TARGET = -1
+
 @Composable
 fun LoopYesterdayCard(
     modifier: Modifier = Modifier,
+    blurState: BlurState,
     loopViewModel: LoopViewModel,
     loops: List<LoopBase>,
     snackBarHostState: SnackbarHostState,
@@ -101,6 +108,32 @@ fun LoopYesterdayCard(
         }
     }
 
+    // 시간 미지정(anytime) 루프는 완료로 남길 시각이 루프에 없다. 그래서 Done 을 누르면 바로
+    // 기록하지 않고 시작·종료를 입력받는다. 대상은 회전 등으로 재구성돼도 유지되도록 id 만
+    // 저장하고, 실제 루프는 목록에서 찾아 쓴다(목록에서 사라지면 다이얼로그도 함께 닫힌다).
+    var recordDoneLoopId by rememberSaveable { mutableIntStateOf(NO_RECORD_DONE_TARGET) }
+    val recordDoneLoop = loops.firstOrNull { loop -> loop.loopId == recordDoneLoopId }
+    if (recordDoneLoop != null) {
+        // 다이얼로그가 떠 있는 동안만 배경을 흐리게 한다. onDispose 에서 반드시 되돌리므로
+        // 마지막 항목에 응답해 카드가 목록에서 사라져도 화면이 흐린 채 남지 않는다.
+        DisposableEffect(Unit) {
+            blurState.on()
+            onDispose { blurState.off() }
+        }
+
+        RecordDoneDialog(
+            loop = recordDoneLoop,
+            // 입력받은 시각은 어제 행에 남겨야 하므로, 그 시각을 실은 루프로 상태를 바꾼다.
+            onConfirm = { startInDay, endInDay ->
+                onAction(
+                    recordDoneLoop.copyAs(startInDay = startInDay, endInDay = endInDay),
+                    LoopDoneVo.DoneState.DONE,
+                )
+            },
+            onDismiss = { recordDoneLoopId = NO_RECORD_DONE_TARGET },
+        )
+    }
+
     Box(
         modifier = modifier
             .padding(vertical = 16.dp, horizontal = 20.dp)
@@ -129,7 +162,15 @@ fun LoopYesterdayCard(
                     YesterdayDivider()
                     LoopYesterdayItem(
                         loop = loop,
-                        onRequestDone = { onAction(loop, LoopDoneVo.DoneState.DONE) },
+                        // 시간 미지정 루프만 시각을 물어보고, 시간제 루프는 예정 시각이 그대로
+                        // 기록되므로 지금까지처럼 한 번에 완료로 남긴다.
+                        onRequestDone = {
+                            if (loop.isAnyTime) {
+                                recordDoneLoopId = loop.loopId
+                            } else {
+                                onAction(loop, LoopDoneVo.DoneState.DONE)
+                            }
+                        },
                         onRequestSkip = { onAction(loop, LoopDoneVo.DoneState.SKIP) },
                         onNavigateToDetailPage = onNavigateToDetailPage,
                     )

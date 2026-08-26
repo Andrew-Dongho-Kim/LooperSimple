@@ -1,11 +1,13 @@
 package com.pnd.android.loop.ui.home
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -43,12 +45,13 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
+import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.ui.home.viewmodel.CurrentLoopInfo
 import com.pnd.android.loop.ui.home.viewmodel.LoopRates
 import com.pnd.android.loop.ui.home.viewmodel.LoopTrend
+import com.pnd.android.loop.ui.home.viewmodel.LoopTrends
 import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.home.viewmodel.NextLoopInfo
-import com.pnd.android.loop.ui.home.viewmodel.LoopTrends
 import com.pnd.android.loop.ui.statisctics.DayOfWeekStat
 import com.pnd.android.loop.ui.statisctics.StreakStat
 import com.pnd.android.loop.ui.theme.AppColor
@@ -411,7 +414,7 @@ private fun formatEnding(minutes: Long): String = when {
  * 추세 페이지(잘하고 있는/주의가 필요한 루프). 상단 캡션(아이콘+문구) 아래에 대표 루프 하나를
  * 강조 블록으로 크게 세우고([TrendHero]), 나머지는 한 줄짜리 미니 행([TrendMiniRow])으로 쌓는다.
  * [onCheckLoop]가 주어지면(주의가 필요한 루프 페이지) 대표 블록에 "확인하기" 버튼을 달아 상세로 보낸다.
- * 표시할 루프가 없으면(표본 부족 포함) 안내 문구만 조용히 보여준다.
+ * 표시할 루프가 없으면 그 이유에 맞는 [emptyText]만 조용히 보여준다.
  */
 @Composable
 private fun LoopTrendPage(
@@ -421,6 +424,7 @@ private fun LoopTrendPage(
     caption: String,
     trends: List<LoopTrend>,
     positive: Boolean,
+    emptyText: String,
     onCheckLoop: ((Int) -> Unit)?,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
@@ -444,7 +448,7 @@ private fun LoopTrendPage(
         if (trends.isEmpty()) {
             Text(
                 modifier = Modifier.padding(top = 12.dp),
-                text = stringResource(id = R.string.header_trend_empty),
+                text = emptyText,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 style = AppTypography.bodySmall.copy(
@@ -519,10 +523,10 @@ private fun TrendHero(
                 )
             }
         }
-        SegmentStrip(
+        TrendSegmentStrip(
             modifier = Modifier.padding(top = 8.dp),
-            // recentDoneFlags는 최신→과거 순이므로 과거→최신으로 뒤집어 왼쪽부터 그린다.
-            flags = trend.recentDoneFlags.reversed(),
+            // recentStates는 최신→과거 순이므로 과거→최신으로 뒤집어 왼쪽부터 그린다.
+            states = trend.recentStates.reversed(),
             accent = accent,
         )
     }
@@ -598,6 +602,24 @@ private fun TrendMiniRow(
     }
 }
 
+/**
+ * 추세 페이지가 비었을 때의 안내 문구. 비는 이유가 둘이라 문구도 갈라야 한다.
+ *
+ * - 추세를 낸 루프가 하나도 없음([analyzedCount] == 0) → 정말로 기록이 부족한 것이다.
+ * - 추세는 냈지만 이 페이지의 완료율 조건에 드는 루프만 없음 → 기록은 충분하다. 예컨대 모든 루프를
+ *   잘 지키고 있으면 "놓치고 있는 루프"가 비는데, 여기에 "기록이 부족해요"를 쓰면 사실과 다르다.
+ *   이때는 페이지가 건네준 [noneResId]("해당 루프 없음") 문구를 쓴다.
+ */
+@Composable
+private fun trendEmptyText(
+    analyzedCount: Int,
+    @StringRes noneResId: Int,
+): String = if (analyzedCount == 0) {
+    stringResource(id = R.string.header_trend_empty)
+} else {
+    stringResource(id = noneResId)
+}
+
 /** 추세 지표 문구. 연속(완료/놓침)이 2 이상이면 그 연속을, 아니면 "완료수/기록수"를 보여준다. */
 @Composable
 private fun trendMetric(trend: LoopTrend, positive: Boolean): String = when {
@@ -622,17 +644,58 @@ private fun SegmentStrip(
     segment: Dp = 9.dp,
 ) {
     val missColor = AppColor.onSurface.copy(alpha = 0.18f)
+    SegmentRow(
+        modifier = modifier,
+        colors = flags.map { done -> if (done) accent else missColor },
+        segment = segment,
+    )
+}
+
+/**
+ * 추세 스트립. 활동일 하나가 한 칸이며 상태를 색으로 구분한다:
+ * 완료 = 강조색 채움, 건너뜀 = 중간 톤, 미응답(놓침) = 옅은 칸.
+ * [states]는 과거→최신 순서로, 왼쪽이 과거·오른쪽이 최신이 된다.
+ */
+@Composable
+private fun TrendSegmentStrip(
+    modifier: Modifier = Modifier,
+    states: List<Int>,
+    accent: Color,
+    segment: Dp = 9.dp,
+) {
+    val skipColor = AppColor.onSurface.copy(alpha = 0.35f)
+    val missColor = AppColor.onSurface.copy(alpha = 0.18f)
+    SegmentRow(
+        modifier = modifier,
+        colors = states.map { state ->
+            when (state) {
+                DoneState.DONE -> accent
+                DoneState.SKIP -> skipColor
+                else -> missColor
+            }
+        },
+        segment = segment,
+    )
+}
+
+/** 세그먼트 스트립의 공통 레이아웃. 칸 하나당 색 하나를 받아 왼쪽부터 나열한다. */
+@Composable
+private fun SegmentRow(
+    modifier: Modifier = Modifier,
+    colors: List<Color>,
+    segment: Dp,
+) {
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(3.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        flags.forEach { done ->
+        colors.forEach { color ->
             Box(
                 modifier = Modifier
                     .size(segment)
                     .clip(RoundedCornerShape(2.dp))
-                    .background(if (done) accent else missColor),
+                    .background(color),
             )
         }
     }
@@ -670,6 +733,7 @@ private fun OverallPager(
                 .fillMaxWidth()
                 .height(OverallPagerHeight),
             verticalAlignment = Alignment.CenterVertically,
+            pageSpacing = 32.dp
         ) { page ->
             when (page) {
                 0 -> OverallStats(
@@ -684,6 +748,10 @@ private fun OverallPager(
                     caption = stringResource(id = R.string.header_trend_doing_well),
                     trends = trends.doingWell,
                     positive = true,
+                    emptyText = trendEmptyText(
+                        analyzedCount = trends.analyzedCount,
+                        noneResId = R.string.header_trend_none_doing_well,
+                    ),
                     // 잘하고 있는 루프는 상세 이동 없이 보기만 한다.
                     onCheckLoop = null,
                 )
@@ -694,6 +762,10 @@ private fun OverallPager(
                     caption = stringResource(id = R.string.header_trend_need_attention),
                     trends = trends.needAttention,
                     positive = false,
+                    emptyText = trendEmptyText(
+                        analyzedCount = trends.analyzedCount,
+                        noneResId = R.string.header_trend_none_need_attention,
+                    ),
                     onCheckLoop = onCheckLoop,
                 )
             }

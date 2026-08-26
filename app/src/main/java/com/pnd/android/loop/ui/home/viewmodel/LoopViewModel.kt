@@ -45,12 +45,15 @@ import java.time.LocalDate
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.milliseconds
 
-// 오늘 루프의 "최근 추세" 계산 파라미터.
-//  - TREND_WINDOW: 어제 이전에서 최근 몇 개의 활동일 기록을 볼지.
+// 루프의 "최근 추세" 계산 파라미터.
+//  - TREND_WINDOW: 어제 이전에서 최근 몇 개의 활동일을 볼지.
+//  - TREND_SCAN_DAYS: 그 활동일을 찾기 위해 달력을 거슬러 볼 최대 일수. 활동 요일이 드문 루프
+//    (예: 주 1회)도 표본을 채울 수 있도록 창보다 넉넉히 둔다.
 //  - TREND_MIN_RECORDS: 이 개수 미만이면 표본이 부족하다고 보고 추세에서 제외.
 //  - TREND_MAX_ITEMS: 각 페이지(잘함/주의)에 최대 몇 개까지 노출할지.
 //  - TREND_GOOD_RATE / TREND_BAD_RATE: 잘함/주의로 분류하는 완료율 경계.
 private const val TREND_WINDOW = 7
+private const val TREND_SCAN_DAYS = 90
 private const val TREND_MIN_RECORDS = 3
 private const val TREND_MAX_ITEMS = 3
 private const val TREND_GOOD_RATE = 0.6f
@@ -248,24 +251,23 @@ class LoopViewModel @Inject constructor(
     }.distinctUntilChanged()
 
     /**
-     * 오늘 수행할 루프 각각의 "최근 추세". 오늘 탭 헤더 2·3페이지(잘하고 있는/주의가 필요한 루프)에 쓴다.
-     * 오늘 기록은 아직 수행 전일 수 있어 제외하고, 어제까지의 최근 [TREND_WINDOW]개 활동일 기록만으로
-     * 완료율·연속을 계산한다. 기록이 부족한 루프([TREND_MIN_RECORDS] 미만)는 후보에서 뺀다.
+     * 각 루프의 "최근 추세". 전체 탭 헤더 2·3페이지(잘 지키는/놓치고 있는 루프)에 쓴다.
+     * 오늘 기록은 아직 수행 전일 수 있어 제외하고, 어제까지의 최근 [TREND_WINDOW]개 활동일만으로
+     * 완료율·연속을 계산한다([computeLoopTrend]). 표본이 부족한 루프([TREND_MIN_RECORDS] 미만)는
+     * 후보에서 뺀다.
      */
     val loopTrends: Flow<LoopTrends> = combine(
         loopRepository.loadedLoops,
         loopRepository.allDoneHistory,
         localDate,
     ) { loops, history, today ->
-        val todayMs = today.toMs()
         val trends = loops
             .filter { loop -> loop.enabled && !loop.isMock }
             .mapNotNull { loop ->
                 computeLoopTrend(
-                    loopId = loop.loopId,
-                    title = loop.title,
+                    loop = loop,
                     history = history[loop.loopId],
-                    todayMs = todayMs,
+                    today = today,
                 )
             }
 
@@ -284,8 +286,10 @@ class LoopViewModel @Inject constructor(
                     compareBy<LoopTrend> { it.doneRate }.thenByDescending { it.currentMiss }
                 )
                 .take(TREND_MAX_ITEMS),
+            analyzedCount = trends.size,
         )
-    }.distinctUntilChanged()
+        // 루프마다 달력을 최대 [TREND_SCAN_DAYS]일 거슬러 훑으므로 메인 스레드에서 비켜 계산한다.
+    }.flowOn(Dispatchers.Default).distinctUntilChanged()
 
     /**
      * 연속 달성 스트릭(현재·최고). 오늘 탭 헤더는 현재 연속을, 전체 탭 헤더는 최고 연속을
@@ -424,13 +428,19 @@ data class CurrentLoopInfo(
 )
 
 /**
- * 한 루프의 최근 수행 추세. [recentDoneFlags]는 최신→과거 순의 완료 여부이며(막대/점 표시에 사용),
- * 완료율([doneRate])과 최근부터 이어지는 연속 완료·연속 놓침을 함께 담는다.
+ * 한 루프의 최근 수행 추세.
+ *
+ * [recentStates]는 최신→과거 순으로 이 루프의 활동일 하나당 한 칸씩 담은 상태
+ * ([LoopDoneVo.DoneState]의 DONE / SKIP / NO_RESPONSE)다. 활동 요일이 아닌 날과 루프가 꺼져 있던 날은
+ * 애초에 수행 대상이 아니므로 칸이 만들어지지 않는다.
+ *
+ * 건너뜀(SKIP)은 의도적인 응답이므로 [currentStreak](연속 완료)을 끊기는 하지만
+ * [currentMiss](연속 놓침)로 세지는 않는다. 다만 완료한 날은 아니므로 완료율([doneRate])의 분모에는 든다.
  */
 data class LoopTrend(
     val loopId: Int,
     val title: String,
-    val recentDoneFlags: List<Boolean>,
+    val recentStates: List<Int>,
     val doneCount: Int,
     val totalCount: Int,
     val currentStreak: Int,
@@ -442,24 +452,25 @@ data class LoopTrend(
 /**
  * 추세 페이지 묶음. [doingWell]은 최근 잘 지키는 루프, [needAttention]은 최근
  * 놓치고 있는 루프. 각 리스트는 표시 상한만큼 이미 잘려 있다.
+ *
+ * 두 목록은 완료율 경계(TREND_GOOD_RATE / TREND_BAD_RATE)로 나뉘므로, 기록이 넉넉해도 한쪽이 빌 수 있다.
+ * (예: 모든 루프를 잘 지키고 있으면 [needAttention]이 빈다.) 빈 목록을 "기록 부족"으로 오해하지 않도록
+ * 실제로 추세를 낸 루프 수를 [analyzedCount]로 함께 전달한다.
  */
 data class LoopTrends(
     val doingWell: List<LoopTrend>,
     val needAttention: List<LoopTrend>,
+    val analyzedCount: Int,
 ) {
     companion object {
-        val Empty = LoopTrends(doingWell = emptyList(), needAttention = emptyList())
+        val Empty = LoopTrends(
+            doingWell = emptyList(),
+            needAttention = emptyList(),
+            analyzedCount = 0,
+        )
     }
 }
 
-/**
- * [history](날짜(ms)→완료상태)로 한 루프의 추세를 만든다. 오늘([todayMs]) 기록은 아직 미수행일 수
- * 있어 빼고, 루프가 활동하지 않은 날(DISABLED)도 빼서, 어제 이전의 최근 [TREND_WINDOW]개 활동일만
- * 최신순으로 본다. 활동일 기록이 [TREND_MIN_RECORDS] 미만이면 표본 부족으로 null을 돌려준다.
- *
- * DISABLED 날을 포함하면 그날이 완료가 아니라는 이유로 연속 달성이 끊기거나, 최근 비활동일이
- * "연속 놓침"으로 잘못 잡히므로 반드시 제외한다.
- */
 /**
  * 진행 중인 루프가 끝날 때까지 남은 시간(ms). 자정을 넘기는 루프(종료<시작)도 올바르게 계산한다.
  * 아직 자정 전(now가 시작 이후)이면 종료 시각에 하루를 더해 남은 시간을 잰다.
@@ -474,31 +485,63 @@ private fun remainingUntilEnd(loop: LoopBase, nowInDayMs: Long): Long {
     return endMs - nowInDayMs
 }
 
+/**
+ * [history](날짜(ms)→상태)로 한 루프의 추세를 만든다.
+ *
+ * history 에는 DONE/SKIP/DISABLED 행만 담겨 있고 미응답한 날은 키가 아예 없다
+ * ([com.pnd.android.loop.data.dao.LoopDoneDao.getAllHistoryFlow] 참고). 그래서 map 의 entry 를 훑으면
+ * "놓친 날"이 존재하지 않는 날처럼 사라져, 끊긴 연속 완료가 이어져 보이고(예: 완료→3일 놓침→완료→완료가
+ * 3연속 완료로 집계) 연속 놓침은 사실상 연속 건너뜀만 세게 된다. 완료율의 분모도 응답한 날만 세어
+ * 부풀려진다. 그래서 map 이 아니라 **달력**을 기준으로 훑는다: 어제부터 과거로 내려가며 이 루프의
+ * 활동일만 한 칸씩 쌓고, 그 날 상태를 map 에서 조회해 기록이 없으면 미응답(놓침)으로 본다.
+ *
+ * 표본에서 빼는 날:
+ * - 오늘 — 아직 수행 전일 수 있다.
+ * - 생성일과 그 이전 — 생성 당일은 이미 시간 창이 지난 뒤일 수 있어 무조건 놓침이 된다.
+ * - 활동 요일이 아닌 날, 루프가 꺼져 있던 날(DISABLED) — 수행 대상이 아니었으므로 칸을 만들지 않고,
+ *   따라서 연속을 끊지도 않는다.
+ *
+ * 활동일 표본이 [TREND_MIN_RECORDS] 미만이면 표본 부족으로 null 을 돌려준다.
+ */
 private fun computeLoopTrend(
-    loopId: Int,
-    title: String,
+    loop: LoopBase,
     history: Map<Long, Int>?,
-    todayMs: Long,
+    today: LocalDate,
 ): LoopTrend? {
-    if (history == null) return null
+    val createdDate = loop.created.toLocalDate()
+    val recentStates = ArrayList<Int>(TREND_WINDOW)
 
-    val recentDoneFlags = history
-        .filterKeys { date -> date < todayMs }
-        .filterValues { state -> state != LoopDoneVo.DoneState.DISABLED }
-        .entries
-        .sortedByDescending { entry -> entry.key }
-        .take(TREND_WINDOW)
-        .map { entry -> entry.value == LoopDoneVo.DoneState.DONE }
+    var date = today.minusDays(1L)
+    var scanned = 0
+    while (recentStates.size < TREND_WINDOW &&
+        scanned < TREND_SCAN_DAYS &&
+        date.isAfter(createdDate)
+    ) {
+        scanned++
+        if (loop.isActiveDay(date)) {
+            val state = history?.get(date.toMs())
+            // 기록이 없으면(=NO_RESPONSE 행은 저장되지 않는다) 그 날은 놓친 날이다.
+            if (state != LoopDoneVo.DoneState.DISABLED) {
+                recentStates.add(state ?: LoopDoneVo.DoneState.NO_RESPONSE)
+            }
+        }
+        date = date.minusDays(1L)
+    }
 
-    if (recentDoneFlags.size < TREND_MIN_RECORDS) return null
+    if (recentStates.size < TREND_MIN_RECORDS) return null
 
     return LoopTrend(
-        loopId = loopId,
-        title = title,
-        recentDoneFlags = recentDoneFlags,
-        doneCount = recentDoneFlags.count { done -> done },
-        totalCount = recentDoneFlags.size,
-        currentStreak = recentDoneFlags.takeWhile { done -> done }.size,
-        currentMiss = recentDoneFlags.takeWhile { done -> !done }.size,
+        loopId = loop.loopId,
+        title = loop.title,
+        recentStates = recentStates,
+        doneCount = recentStates.count { state -> state == LoopDoneVo.DoneState.DONE },
+        totalCount = recentStates.size,
+        currentStreak = recentStates
+            .takeWhile { state -> state == LoopDoneVo.DoneState.DONE }
+            .size,
+        // 건너뜀은 응답한 날이므로 놓침으로 세지 않는다(연속 놓침을 끊는다).
+        currentMiss = recentStates
+            .takeWhile { state -> state == LoopDoneVo.DoneState.NO_RESPONSE }
+            .size,
     )
 }

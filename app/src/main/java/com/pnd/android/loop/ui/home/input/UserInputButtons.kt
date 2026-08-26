@@ -28,7 +28,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.outlined.ModeEdit
 import androidx.compose.material.icons.outlined.Timelapse
-import androidx.compose.material.icons.twotone.HourglassBottom
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -122,12 +121,6 @@ private fun UserInputSelectorButtons(
                 icon = Icons.Outlined.Timelapse,
                 contentDescription = stringResource(id = R.string.desc_time_selector)
             ) { inputState.setSelector(InputSelector.START_END_TIME) }
-
-            SelectorButton(
-                modifier = Modifier.size(buttonSize),
-                icon = Icons.TwoTone.HourglassBottom,
-                contentDescription = stringResource(id = R.string.desc_interval_selector)
-            ) { inputState.setSelector(InputSelector.ALARM_INTERVAL) }
         }
     }
 }

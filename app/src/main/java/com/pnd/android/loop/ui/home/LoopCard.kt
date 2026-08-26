@@ -48,7 +48,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
@@ -61,7 +60,6 @@ import com.pnd.android.loop.data.LoopDay.Companion.isOn
 import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.TimeStat
 import com.pnd.android.loop.data.actualStartInDay
-import com.pnd.android.loop.data.common.NO_REPEAT
 import com.pnd.android.loop.data.currentTimeStat
 import com.pnd.android.loop.data.doneState
 import com.pnd.android.loop.ui.theme.AppColor
@@ -78,7 +76,6 @@ import com.pnd.android.loop.util.ABB_DAYS
 import com.pnd.android.loop.util.DAY_STRING_MAP
 import com.pnd.android.loop.util.annotatedString
 import com.pnd.android.loop.util.formatHourMinute
-import com.pnd.android.loop.util.intervalString
 import com.pnd.android.loop.util.toMs
 import java.time.LocalTime
 
@@ -510,14 +507,7 @@ private fun LoopCardMeta(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        LoopCardInterval(
-            modifier = Modifier,
-            interval = loop.interval,
-        )
-        LoopCardActiveDays(
-            modifier = Modifier.padding(start = 8.dp),
-            loop = loop,
-        )
+        LoopCardActiveDays(loop = loop)
     }
 }
 
@@ -863,27 +853,6 @@ private fun LoopCardTitle(
         ),
         maxLines = 1,
         overflow = TextOverflow.Ellipsis
-    )
-}
-
-@Composable
-private fun LoopCardInterval(
-    modifier: Modifier,
-    interval: Long,
-) {
-    Text(
-        text = if (interval == NO_REPEAT) {
-            AnnotatedString("")
-        } else {
-            annotatedString(
-                intervalString(
-                    interval,
-                    highlight = "#",
-                )
-            )
-        },
-        style = AppTypography.labelMedium.copy(color = loopMetaColor()),
-        modifier = modifier,
     )
 }
 

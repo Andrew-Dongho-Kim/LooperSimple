@@ -2,6 +2,8 @@ package com.pnd.android.loop.ui.statisctics
 
 import androidx.annotation.StringRes
 import com.pnd.android.loop.R
+import com.pnd.android.loop.data.LoopDay
+import com.pnd.android.loop.data.LoopDay.Companion.isOn
 import com.pnd.android.loop.data.LoopResponseRecord
 import com.pnd.android.loop.data.LoopWithStatistics
 import com.pnd.android.loop.data.MonthlyCompletionCount
@@ -11,6 +13,7 @@ import com.pnd.android.loop.data.isSkip
 import com.pnd.android.loop.util.ABB_MONTHS
 import com.pnd.android.loop.util.MS_1DAY
 import com.pnd.android.loop.util.MS_1HOUR
+import com.pnd.android.loop.util.dayForLoop
 import com.pnd.android.loop.util.toLocalDate
 import com.pnd.android.loop.util.toMs
 import java.time.DayOfWeek
@@ -357,6 +360,77 @@ fun computeStreak(
     while (cursor != null && cursor in days) {
         current++
         cursor = cursor.minusDays(1)
+    }
+
+    return StreakStat(current = current, longest = longest)
+}
+
+/**
+ * 루프 하나의 스트릭을 **활동 요일 기준**으로 계산한다.
+ *
+ * [computeStreak] 은 "앱을 쓴 날"이 연속인지를 보므로 연속된 달력 일자만 스트릭으로 센다.
+ * 그 규칙을 개별 루프에 그대로 쓰면 주중 루프는 완벽하게 지켜도 매주 토요일에 끊기고,
+ * 최장 기록도 영영 5를 넘지 못한다. 여기서는 활동하지 않는 요일과 생성 이전 날짜를
+ * "건너뛸 뿐 끊지는 않는 날"로 보고, 활동해야 하는 날만 이어서 센다.
+ *
+ * @param doneDates 이 루프를 완료한 날짜들(중복·정렬 여부 무관).
+ * @param activeDays [LoopDay] 비트마스크. 어떤 요일도 켜져 있지 않으면 0/0을 돌려준다.
+ * @param createdDate 루프 생성일. 그 이전은 세지 않는다.
+ * @param today 현재 연속의 기준일. 테스트를 위해 주입 가능하게 열어 둔다.
+ */
+fun computeLoopStreak(
+    doneDates: Collection<LocalDate>,
+    activeDays: Int,
+    createdDate: LocalDate,
+    today: LocalDate = LocalDate.now(),
+): StreakStat {
+    if (doneDates.isEmpty()) return StreakStat(current = 0, longest = 0)
+    if (LoopDay.ALL.none { activeDays.isOn(it) }) return StreakStat(current = 0, longest = 0)
+
+    val days = doneDates.toHashSet()
+    fun isActive(date: LocalDate) = activeDays.isOn(dayForLoop(date))
+
+    // 최장: 생성일부터 오늘까지 활동일만 훑으며 이어지는 구간의 최댓값.
+    var longest = 0
+    var run = 0
+    var cursor = createdDate
+    while (!cursor.isAfter(today)) {
+        if (isActive(cursor)) {
+            if (cursor in days) {
+                run++
+                longest = maxOf(longest, run)
+            } else {
+                run = 0
+            }
+        }
+        cursor = cursor.plusDays(1)
+    }
+
+    // 현재: 오늘(활동일이고 완료했다면)부터, 아니면 직전 활동일부터 거꾸로 이어진 활동일 수.
+    var anchor: LocalDate? = null
+    var back = today
+    while (!back.isBefore(createdDate)) {
+        if (isActive(back)) {
+            // 오늘이 활동일인데 아직 완료 전이면, 어제까지 이어진 스트릭은 살아 있는 것으로 본다.
+            if (back in days) {
+                anchor = back
+            } else if (back == today) {
+                back = back.minusDays(1)
+                continue
+            }
+            break
+        }
+        back = back.minusDays(1)
+    }
+
+    var current = 0
+    var walker = anchor
+    while (walker != null && !walker.isBefore(createdDate) && walker in days) {
+        current++
+        // 직전 활동일로 이동(비활동 요일은 건너뛴다).
+        var prev = walker.minusDays(1)
+        while (!prev.isBefore(createdDate) && !isActive(prev)) prev = prev.minusDays(1)
+        walker = if (prev.isBefore(createdDate)) null else prev
     }
 
     return StreakStat(current = current, longest = longest)

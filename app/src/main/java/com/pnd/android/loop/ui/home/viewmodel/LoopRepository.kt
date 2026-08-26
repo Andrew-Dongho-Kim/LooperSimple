@@ -114,13 +114,17 @@ class LoopRepository @Inject constructor(
     /**
      * 어제 미응답 카드에 올릴 루프.
      *
+     * 시간 미지정(anytime) 루프도 포함한다. 어제 시작조차 하지 않았다면 어제 행은 미응답으로
+     * 남고 오늘 화면 어디에도 걸치지 않아, 여기서 빼면 답할 자리가 사라지기 때문이다.
+     * (어제 시작해 아직 진행 중인 몫은 미응답이 아니라 IN_PROGRESS 이므로 여기 걸리지 않고,
+     * 오늘 목록이 어제 행 그대로 정지 버튼과 함께 맡는다.)
+     *
      * 자정을 넘기는 루프는 제외한다. 그 어젯밤 몫은 오늘 아침에 끝나 오늘 화면에 그대로 걸치므로,
      * 오늘 목록의 "응답 대기" 항목이 대신 맡는다. 여기까지 넣으면 같은 화면에 두 번 나온다.
      */
     val loopsNoResponseYesterday = yesterdayLoops.map { loops ->
         loops.filter { loop ->
             !loop.isDisabled &&
-            !loop.isAnyTime &&
             !loop.isOvernight &&
             loop.isNotRespond &&
             loop.created.toLocalDate().isBefore(LocalDate.now()) &&
