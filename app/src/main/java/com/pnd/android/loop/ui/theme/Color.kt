@@ -162,6 +162,12 @@ val AppColor.onSurfaceLight get() = Black99
 val AppColor.onSurfaceDark get() = White99
 val AppColor.onSurface
     @Composable get() = MaterialTheme.colorScheme.onSurface
+val AppColor.onSurfaceVariant
+    @Composable get() = MaterialTheme.colorScheme.onSurfaceVariant
+
+/** 요약 카드에만 사용하는 강조 표면. 홈과 통계에서 같은 농도로 보인다. */
+val AppColor.primarySurface
+    @Composable get() = primary.copy(alpha = 0.10f).compositeOver(surfaceElevated)
 val AppColor.onBackground
     @Composable get() = MaterialTheme.colorScheme.onBackground
 

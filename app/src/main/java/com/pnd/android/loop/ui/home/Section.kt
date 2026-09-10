@@ -917,7 +917,7 @@ private fun ExpandableHeader(
 
         Text(
             text = headText,
-            style = AppTypography.titleSmall.copy(
+            style = AppTypography.titleMedium.copy(
                 color = AppColor.onSurface,
             )
         )

@@ -16,19 +16,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.ui.common.AppBarIcon
 import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
+import com.pnd.android.loop.ui.theme.Dimens
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.util.formatYearMonthDateDays
 import java.time.LocalDate
 import java.time.LocalTime
 
 /** Height of the action-bar row, matching the Material3 small top app bar. */
-val HomeActionBarHeight = 64.dp
+val HomeActionBarHeight = Dimens.appBarHeight
 
 /**
  * The greeting + date shown on the left of the action bar. It fades out (alpha → 0) as the

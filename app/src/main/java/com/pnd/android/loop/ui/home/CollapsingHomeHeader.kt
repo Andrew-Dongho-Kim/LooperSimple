@@ -51,6 +51,7 @@ val HomeHeaderCollapseDistance = HomeTabsRowHeight
 
 /** Collapsed width of the tabs once they float in the action-bar row. */
 private val CollapsedTabWidth = 148.dp
+private val ActionIconsWidth = Dimens.appBarIconSize * 3 + 16.dp
 
 /** Breathing room between the floating white background and the tabs it sits behind. */
 private val TabFloatingRim = 5.dp
@@ -108,9 +109,6 @@ fun CollapsingHomeHeader(
     // Backgrounds/shadows appear only near the end of the collapse; the tabs still move smoothly
     // over the whole scroll via the raw [progress].
     val surfaceProgress = surfaceReveal(progress)
-    // Both floating pills tuck 8dp further in from the screen edges as they collapse.
-    val floatingMargin = lerp(0.dp, 0.dp, progress)
-
     // 탭이 없는 빈 상태에서는 헤더 높이도 그만큼 줄여 위쪽 공백을 없앤다.
     val headerHeight = homeHeaderExpandedHeight(topInset, includeTabs = showTabs)
     BoxWithConstraints(
@@ -118,11 +116,14 @@ fun CollapsingHomeHeader(
             .fillMaxWidth()
             .height(headerHeight),
     ) {
+        // 날짜와 접힌 탭이 오른쪽 액션 영역에 겹치지 않도록 같은 가용 폭을 쓴다.
+        val titleWidth = (maxWidth - screenPadding * 2 - ActionIconsWidth).coerceAtLeast(0.dp)
         // Greeting + date: pinned to the action-bar row, fading out as the list scrolls.
         Box(
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(top = topInset, start = screenPadding)
+                .width(titleWidth)
                 .height(HomeActionBarHeight),
             contentAlignment = Alignment.CenterStart,
         ) {
@@ -136,7 +137,7 @@ fun CollapsingHomeHeader(
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(top = topInset, end = screenPadding - 8.dp + floatingMargin)
+                .padding(top = topInset, end = screenPadding - 8.dp)
                 .height(HomeActionBarHeight),
             contentAlignment = Alignment.CenterEnd,
         ) {
@@ -163,7 +164,11 @@ fun CollapsingHomeHeader(
             stop = collapsedTabTop(topInset),
             fraction = progress,
         )
-        val tabWidth = lerp(this.maxWidth - screenPadding * 2, CollapsedTabWidth, progress)
+        val tabWidth = lerp(
+            this.maxWidth - screenPadding * 2,
+            minOf(CollapsedTabWidth, titleWidth),
+            progress,
+        )
         val tabTrackHeight = lerp(HomeTabsTrackHeight, CollapsedTabTrackHeight, progress)
         val tabRim = lerp(0.dp, TabFloatingRim, progress)
 
@@ -186,7 +191,7 @@ fun CollapsingHomeHeader(
                 shape = FloatingHeaderShape,
                 backdrop = backdrop,
                 modifier = Modifier
-                    .offset(x = screenPadding + floatingMargin, y = tabTop)
+                    .offset(x = screenPadding, y = tabTop)
                     .width(tabWidth),
             ) {
                 HomeTabs(

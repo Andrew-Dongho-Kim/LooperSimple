@@ -57,6 +57,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -333,16 +338,21 @@ private fun DetailAppBar(
                         tonalElevation = 0.dp,
                     ) {
                         DropdownMenuItem(
+                            modifier = Modifier.semantics {
+                                role = Role.Switch
+                                toggleableState = ToggleableState(enabled)
+                            },
                             text = {
                                 Text(
                                     stringResource(R.string.detail_schedule_enabled),
                                     color = AppColor.onSurface,
                                 )
                             },
-                            trailingContent = {
+                            trailingIcon = {
                                 Switch(
                                     checked = enabled,
-                                    onCheckedChange = onEnabledChange,
+                                    // The menu row handles taps and exposes one accessible switch.
+                                    onCheckedChange = null,
                                 )
                             },
                             onClick = { onEnabledChange(!enabled) },

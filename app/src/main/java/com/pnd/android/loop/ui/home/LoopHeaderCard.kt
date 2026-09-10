@@ -3,11 +3,9 @@ package com.pnd.android.loop.ui.home
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -25,8 +23,6 @@ import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.LocalFireDepartment
 import androidx.compose.material.icons.outlined.PlayCircle
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -54,9 +50,10 @@ import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.home.viewmodel.NextLoopInfo
 import com.pnd.android.loop.ui.statisctics.DayOfWeekStat
 import com.pnd.android.loop.ui.statisctics.StreakStat
+import com.pnd.android.loop.ui.common.AppCard
+import com.pnd.android.loop.ui.theme.primarySurface
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
-import com.pnd.android.loop.ui.theme.Dimens
 import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.compositeOverSurface
 import com.pnd.android.loop.ui.theme.error
@@ -102,48 +99,35 @@ fun LoopHeaderCard(
     // 읽어, 요약 카드가 한 프레임 동안 빈 상태로 그려지는 것을 막는다.
     val loops by loopViewModel.allLoopsWithDoneStates.collectAsState()
 
-    Card(
+    AppCard(
         modifier = modifier,
-        shape = RoundShapes.large,
-        colors = CardDefaults.cardColors(
-            containerColor = headerContainerColor(),
-            contentColor = AppColor.onSurface,
-        ),
+        color = AppColor.primarySurface,
     ) {
-        Column(modifier = Modifier.padding(Dimens.contentPadding)) {
-            if (selectedTab == HomeTab.TODAY) {
-                // 오늘 탭: 지금·다음에 집중한 단일 요약(페이저 없음).
-                TodayHeroStats(
-                    rates = todayRates,
-                    currentStreak = streak.current,
-                    recentDays = recentDays,
-                    currentLoop = currentLoop,
-                    nextLoop = nextLoop,
-                )
-            } else {
-                // 전체 탭: 축적 요약 + 잘하고 있는/주의가 필요한 루프를 좌우로 넘겨 본다.
-                OverallPager(
-                    rates = overallRates,
-                    longestStreak = streak.longest,
-                    weekdayStats = weekdayStats,
-                    trends = loopTrends,
-                    // 추세의 loopId만 알고 있으므로, 현재 루프 목록에서 해당 루프를 찾아 상세로 넘긴다.
-                    onCheckLoop = { loopId ->
-                        loops?.firstOrNull { loop -> loop.loopId == loopId }
-                            ?.let(onNavigateToDetailPage)
-                    },
-                )
-            }
+        if (selectedTab == HomeTab.TODAY) {
+            // 오늘 탭: 지금·다음에 집중한 단일 요약(페이저 없음).
+            TodayHeroStats(
+                rates = todayRates,
+                currentStreak = streak.current,
+                recentDays = recentDays,
+                currentLoop = currentLoop,
+                nextLoop = nextLoop,
+            )
+        } else {
+            // 전체 탭: 축적 요약 + 잘하고 있는/주의가 필요한 루프를 좌우로 넘겨 본다.
+            OverallPager(
+                rates = overallRates,
+                longestStreak = streak.longest,
+                weekdayStats = weekdayStats,
+                trends = loopTrends,
+                // 추세의 loopId만 알고 있으므로, 현재 루프 목록에서 해당 루프를 찾아 상세로 넘긴다.
+                onCheckLoop = { loopId ->
+                    loops?.firstOrNull { loop -> loop.loopId == loopId }
+                        ?.let(onNavigateToDetailPage)
+                },
+            )
         }
     }
 }
-
-/** Soft primary tint that stays subtle on light and lifts the card on dark. */
-@Composable
-private fun headerContainerColor(): Color =
-    AppColor.primary.compositeOverSurface(
-        alpha = if (isSystemInDarkTheme()) 0.20f else 0.08f
-    )
 
 // region 헤더 공용 — 오늘 요약 · 추세 · 페이저 인디케이터
 
@@ -189,31 +173,38 @@ private fun TodayHeroStats(
     currentLoop: CurrentLoopInfo?,
     nextLoop: NextLoopInfo?,
 ) {
-    Column(modifier = modifier.fillMaxWidth()) {
-        Row(verticalAlignment = Alignment.Bottom) {
-            // 달성률 헤드라인: 정수 % + 작은 퍼센트 기호.
-            Text(
-                text = "${rates.doneRate.roundToInt()}",
-                maxLines = 1,
-                style = AppTypography.displayMedium.copy(
-                    color = AppColor.primary,
-                    fontWeight = FontWeight.Bold,
-                ),
-            )
-            Text(
-                modifier = Modifier.padding(start = 2.dp, bottom = 5.dp),
-                text = "%",
-                maxLines = 1,
-                style = AppTypography.titleMedium.copy(
-                    color = AppColor.primary.copy(alpha = 0.7f),
-                ),
-            )
-            Column(
-                modifier = Modifier.padding(start = 16.dp, bottom = 2.dp),
-                verticalArrangement = Arrangement.spacedBy(5.dp),
-            ) {
-                StreakChip(streak = currentStreak)
+    // Keep the 156dp card compact: achievement → recent consistency → immediate action.
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(TodayHeroContentHeight),
+        verticalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(
+                        text = "${rates.doneRate.roundToInt()}",
+                        maxLines = 1,
+                        style = AppTypography.displayMedium.copy(
+                            color = AppColor.primary,
+                            fontWeight = FontWeight.Bold,
+                        ),
+                    )
+                    Text(
+                        modifier = Modifier.padding(start = 2.dp, bottom = 5.dp),
+                        text = "%",
+                        maxLines = 1,
+                        style = AppTypography.titleMedium.copy(
+                            color = AppColor.primary.copy(alpha = 0.7f),
+                        ),
+                    )
+                }
                 Text(
+                    modifier = Modifier.padding(top = 4.dp),
                     text = "${rates.doneCount} / ${rates.totalCount} ${stringResource(id = R.string.header_done_caption)}",
                     maxLines = 1,
                     style = AppTypography.bodySmall.copy(
@@ -221,33 +212,31 @@ private fun TodayHeroStats(
                     ),
                 )
             }
+            StreakChip(streak = currentStreak)
         }
 
         if (recentDays.isNotEmpty()) {
-            Row(
-                modifier = Modifier.padding(top = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                SegmentStrip(flags = recentDays, accent = AppColor.primary)
-                Text(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(start = 10.dp),
-                    text = stringResource(id = R.string.header_recent_days),
-                    maxLines = 1,
-                    textAlign = TextAlign.End,
-                    style = AppTypography.bodySmall.copy(
-                        color = AppColor.onSurface.copy(alpha = 0.45f),
-                    ),
-                )
-            }
+            SegmentStrip(
+                modifier = Modifier.fillMaxWidth(),
+                flags = recentDays,
+                accent = AppColor.primary,
+                segment = 6.dp,
+            )
         }
 
-        FocusLine(
-            modifier = Modifier.padding(top = 14.dp),
-            currentLoop = currentLoop,
-            nextLoop = nextLoop,
-        )
+        Column {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(AppColor.onSurface.copy(alpha = 0.12f)),
+            )
+            FocusLine(
+                modifier = Modifier.padding(top = 10.dp),
+                currentLoop = currentLoop,
+                nextLoop = nextLoop,
+            )
+        }
     }
 }
 
@@ -708,6 +697,7 @@ private fun SegmentRow(
 /** 전체 탭 헤더 페이저의 페이지 수와 고정 높이. 높이는 페이지가 바뀌어도 카드가 출렁이지 않게 고정한다. */
 private const val OVERALL_PAGE_COUNT = 3
 private val OverallPagerHeight = 156.dp
+private val TodayHeroContentHeight = 124.dp
 
 /**
  * 전체 탭 헤더를 좌우로 넘겨 보는 3페이지 묶음.

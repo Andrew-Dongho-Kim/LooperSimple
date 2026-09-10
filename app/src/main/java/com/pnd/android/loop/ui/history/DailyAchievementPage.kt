@@ -80,6 +80,7 @@ import com.pnd.android.loop.data.FullLoopVo
 import com.pnd.android.loop.data.isDisabled
 import com.pnd.android.loop.data.isDone
 import com.pnd.android.loop.data.isRespond
+import com.pnd.android.loop.ui.common.AppCard
 import com.pnd.android.loop.ui.common.BackdropState
 import com.pnd.android.loop.ui.common.StatusBarFadingEdge
 import com.pnd.android.loop.ui.common.backdropSource
@@ -91,14 +92,11 @@ import com.pnd.android.loop.ui.common.supportsBackdropBlur
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.Dimens
-import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.background
 import com.pnd.android.loop.ui.theme.compositeOverOnSurface
-import com.pnd.android.loop.ui.theme.error
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.ui.theme.surfaceContainer
-import com.pnd.android.loop.ui.theme.surfaceElevated
 import com.pnd.android.loop.util.formatMonthDateDay
 import com.pnd.android.loop.util.formatStartEndTime
 import com.pnd.android.loop.util.formatYearMonth
@@ -178,6 +176,8 @@ fun DailyAchievementPage(
             .fillMaxWidth()
             .fillMaxHeight()
             .background(color = AppColor.background),
+        containerColor = AppColor.background,
+        contentColor = AppColor.onSurface,
         // 상태바 영역까지 콘텐츠가 그려지도록 상태바 인셋을 제외한다(접히는 헤더 + 상태바 페이딩 엣지가 처리).
         // 내비게이션 바 인셋도 제외해, 아래 달력 패널이 내비게이션 바 영역까지 같은 배경색으로 이어지게 한다.
         contentWindowInsets = contentWindowInsets,
@@ -745,16 +745,9 @@ private fun DayCard(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Column(
-        modifier = modifier
-            .clip(RoundShapes.large)
-            .background(AppColor.surfaceElevated)
-            .border(
-                width = 0.5.dp,
-                color = AppColor.onSurface.copy(alpha = 0.1f),
-                shape = RoundShapes.large,
-            )
-            .padding(vertical = Dimens.contentPadding),
+    AppCard(
+        modifier = modifier,
+        contentPadding = PaddingValues(vertical = Dimens.contentPadding),
         content = content,
     )
 }
@@ -1029,11 +1022,11 @@ private fun CreatedBadge(modifier: Modifier = Modifier) {
     Text(
         modifier = modifier
             .clip(CircleShape)
-            .background(AppColor.error.copy(alpha = 0.12f))
+            .background(AppColor.primary.copy(alpha = 0.12f))
             .padding(horizontal = 6.dp, vertical = 1.dp),
         text = stringResource(id = R.string.created),
         style = AppTypography.labelSmall.copy(
-            color = AppColor.error.copy(alpha = 0.9f)
+            color = AppColor.primary
         )
     )
 }

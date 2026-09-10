@@ -1,8 +1,6 @@
 package com.pnd.android.loop.ui.statisctics
 
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
@@ -15,14 +13,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
@@ -30,7 +30,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.SpaceDashboard
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -43,6 +50,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -54,8 +62,16 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopWithStatistics
+import com.pnd.android.loop.ui.common.AppCard
+import com.pnd.android.loop.ui.common.AppPageHeader
+import com.pnd.android.loop.ui.common.AppSegmentedControl
+import com.pnd.android.loop.ui.common.appCardSurface
 import com.pnd.android.loop.ui.common.AppEmptyState
-import com.pnd.android.loop.ui.common.SimpleAppBar
+import com.pnd.android.loop.ui.common.StatusBarFadingEdge
+import com.pnd.android.loop.ui.common.backdropSource
+import com.pnd.android.loop.ui.common.rememberBackdropState
+import com.pnd.android.loop.ui.common.rememberListCollapseProgress
+import com.pnd.android.loop.ui.common.supportsBackdropBlur
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.Dimens
@@ -63,10 +79,11 @@ import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.background
 import com.pnd.android.loop.ui.theme.compositeOverOnSurface
 import com.pnd.android.loop.ui.theme.error
-import com.pnd.android.loop.ui.theme.onPrimary
+import com.pnd.android.loop.ui.theme.onSurfaceVariant
+import com.pnd.android.loop.ui.theme.primarySurface
+import com.pnd.android.loop.ui.theme.surfaceElevated
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
-import com.pnd.android.loop.ui.theme.surfaceContainer
 import com.pnd.android.loop.ui.theme.warning
 import com.pnd.android.loop.util.ABB_MONTHS
 import com.pnd.android.loop.util.DAYS_WITH_3CHARS
@@ -75,7 +92,7 @@ import com.pnd.android.loop.util.MS_1MIN
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-// 카드 모서리는 다른 화면(홈/기록/상세)과 동일하게 RoundShapes.large(12dp)로 통일한다.
+// 로딩 자리 표시자와 보조 동작도 앱 공통 모서리를 따른다.
 private val CardShape = RoundShapes.large
 
 // 순위 목록은 기본적으로 상위 N개만 접어서 보여준다. (긴 목록을 한 번에 렌더하지 않기 위한 상한)
@@ -88,26 +105,47 @@ fun StatisticsPage(
     onNavigateToDetailPage: (Int) -> Unit,
     onNavigateUp: () -> Unit,
 ) {
+    var selectedTab by rememberSaveable { mutableStateOf(StatisticsTab.OVERVIEW) }
+    val listState = remember(selectedTab) { LazyListState() }
+    val backdrop = rememberBackdropState()
+    val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val headerProgress by rememberListCollapseProgress(listState, Dimens.appBarHeight)
+
     Scaffold(
         modifier = modifier
             .fillMaxSize()
             .background(color = AppColor.background),
         containerColor = AppColor.background,
-        topBar = {
-            SimpleAppBar(
-                modifier = Modifier.statusBarsPadding(),
-                title = stringResource(id = R.string.statistics),
-                onNavigateUp = onNavigateUp,
+        contentColor = AppColor.onSurface,
+        contentWindowInsets = ScaffoldDefaults.contentWindowInsets.exclude(WindowInsets.statusBars),
+        bottomBar = {
+            StatisticsBottomNavigation(
+                selectedTab = selectedTab,
+                onTabSelected = { selectedTab = it },
             )
         },
     ) { contentPadding ->
-        StatisticsPageContent(
-            modifier = Modifier
-                .padding(contentPadding)
-                .fillMaxSize(),
-            statisticsViewModel = statisticsViewModel,
-            onNavigateToDetailPage = onNavigateToDetailPage,
-        )
+        Box(modifier = Modifier.padding(contentPadding).fillMaxSize()) {
+            StatisticsPageContent(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .backdropSource(backdrop)
+                    .background(AppColor.background),
+                statisticsViewModel = statisticsViewModel,
+                selectedTab = selectedTab,
+                listState = listState,
+                topPadding = topInset + Dimens.appBarHeight + Dimens.contentPadding,
+                onNavigateToDetailPage = onNavigateToDetailPage,
+            )
+            StatusBarFadingEdge(modifier = Modifier.align(Alignment.TopCenter))
+            AppPageHeader(
+                modifier = Modifier.align(Alignment.TopCenter),
+                title = stringResource(R.string.statistics),
+                onNavigateUp = onNavigateUp,
+                progress = headerProgress,
+                backdrop = if (supportsBackdropBlur) backdrop else null,
+            )
+        }
     }
 }
 
@@ -115,11 +153,13 @@ fun StatisticsPage(
 private fun StatisticsPageContent(
     modifier: Modifier = Modifier,
     statisticsViewModel: StatisticsViewModel,
+    selectedTab: StatisticsTab,
+    listState: LazyListState,
+    topPadding: Dp,
     onNavigateToDetailPage: (Int) -> Unit,
 ) {
     // 화면 회전·프로세스 사망에도 사용자의 선택이 유지되도록 rememberSaveable을 쓴다.
-    var selectedTab by rememberSaveable { mutableStateOf(StatisticsTab.SUMMARY) }
-    var selectedPeriod by rememberSaveable { mutableStateOf(StatisticsPeriod.TOTAL) }
+    var selectedPeriod by rememberSaveable { mutableStateOf(StatisticsPeriod.THIS_MONTH) }
     var rankingSortOrder by rememberSaveable { mutableStateOf(RankingSortOrder.COMPLETION_RATE) }
     var rankingExpanded by rememberSaveable { mutableStateOf(false) }
 
@@ -147,14 +187,8 @@ private fun StatisticsPageContent(
     val settlingValue = newLoopSettling.valueOrNull ?: emptyList()
     val milestonesValue = milestones.valueOrNull ?: emptyList()
 
-    // 선택된 정렬 기준으로 순위를 내림차순 정렬한다. (정렬은 목록이 작아 클라이언트에서 처리한다.)
-    val sortedRanking = remember(rankingValue, rankingSortOrder) {
-        rankingValue.sortedByDescending { rankingSortOrder.selector(it) }
-    }
-
-    // 탭마다 독립된 스크롤 상태를 둔다. 탭을 바꾸면 새 상태가 생겨 항상 맨 위에서 시작하므로,
-    // 다른 탭에서 스크롤한 위치에 어정쩡하게 놓이는 일이 없다.
-    val listState = remember(selectedTab) { LazyListState() }
+    // 개요에서는 완료율 상위 루프만 보여, 행동에 필요한 정보량을 제한한다.
+    val topRanking = remember(rankingValue) { rankingValue.sortedByDescending { it.doneRate } }
 
     LazyColumn(
         modifier = modifier,
@@ -162,18 +196,11 @@ private fun StatisticsPageContent(
         contentPadding = PaddingValues(
             start = Dimens.screenHorizontalPadding,
             end = Dimens.screenHorizontalPadding,
-            top = Dimens.contentPadding,
+            top = topPadding,
             bottom = Dimens.sectionSpacing,
         ),
         verticalArrangement = Arrangement.spacedBy(Dimens.sectionSpacing),
     ) {
-        item(key = "tabs") {
-            StatisticsTabRow(
-                selectedTab = selectedTab,
-                onTabSelected = { selectedTab = it },
-            )
-        }
-
         // 기간에 반응하는 탭에서만 기간 선택기를 노출한다. 그 외 탭에는 스코프를 알리는 안내 문구를 둔다.
         item(key = "scope") {
             if (selectedTab.usesPeriod) {
@@ -187,14 +214,17 @@ private fun StatisticsPageContent(
         }
 
         when (selectedTab) {
-            StatisticsTab.SUMMARY -> statefulTab(
+            StatisticsTab.OVERVIEW -> statefulTab(
                 isLoading = periodStats.isLoading || ranking.isLoading,
-                isEmpty = statsValue.isEmpty && sortedRanking.isEmpty(),
+                isEmpty = statsValue.isEmpty && topRanking.isEmpty(),
                 isOverall = false,
             ) {
                 summaryContent(
                     stats = statsValue,
-                    ranking = sortedRanking,
+                    projection = projectionValue,
+                    habitHealth = habitHealthValue,
+                    milestones = milestonesValue,
+                    ranking = topRanking,
                     sortOrder = rankingSortOrder,
                     onSortSelected = { rankingSortOrder = it },
                     rankingExpanded = rankingExpanded,
@@ -203,7 +233,7 @@ private fun StatisticsPageContent(
                 )
             }
 
-            StatisticsTab.PATTERN -> statefulTab(
+            StatisticsTab.RHYTHM -> statefulTab(
                 isLoading = periodStats.isLoading,
                 isEmpty = statsValue.isEmpty,
                 isOverall = false,
@@ -211,30 +241,19 @@ private fun StatisticsPageContent(
                 patternContent(stats = statsValue)
             }
 
-            StatisticsTab.TREND -> statefulTab(
-                isLoading = completionTrend.isLoading || monthlyInvestedTimes.isLoading,
+            StatisticsTab.RECORDS -> statefulTab(
+                isLoading = completionTrend.isLoading || monthlyInvestedTimes.isLoading || projection.isLoading ||
+                    habitHealth.isLoading || milestones.isLoading || streak.isLoading || newLoopSettling.isLoading,
                 isEmpty = trendValue.size < 2 && monthlyValue.isEmpty(),
                 isOverall = true,
             ) {
                 trendContent(completionTrend = trendValue, monthlyInvestedTimes = monthlyValue)
-            }
-
-            StatisticsTab.ACHIEVEMENT -> statefulTab(
-                isLoading = projection.isLoading || habitHealth.isLoading || milestones.isLoading ||
-                    streak.isLoading || newLoopSettling.isLoading,
-                isEmpty = !hasInsights(projectionValue, habitHealthValue, milestonesValue) &&
-                    streakValue.longest == 0 && milestonesValue.isEmpty() &&
-                    habitHealthValue.isEmpty() && settlingValue.isEmpty(),
-                isOverall = true,
-            ) {
                 achievementContent(
-                    projection = projectionValue,
-                    streak = streakValue,
-                    milestones = milestonesValue,
-                    habitHealth = habitHealthValue,
-                    newLoopSettling = settlingValue,
+                    projection = projectionValue, streak = streakValue, milestones = milestonesValue,
+                    habitHealth = habitHealthValue, newLoopSettling = settlingValue,
                 )
             }
+
         }
     }
 }
@@ -254,48 +273,32 @@ private fun <T> rememberLoadable(
 // region Tabs & selectors ----------------------------------------------------
 
 @Composable
-private fun StatisticsTabRow(
-    modifier: Modifier = Modifier,
+private fun StatisticsBottomNavigation(
     selectedTab: StatisticsTab,
     onTabSelected: (StatisticsTab) -> Unit,
 ) {
-    Row(modifier = modifier.fillMaxWidth()) {
+    NavigationBar(containerColor = AppColor.surfaceElevated, tonalElevation = 0.dp) {
         StatisticsTab.entries.forEach { tab ->
-            val isSelected = tab == selectedTab
-            // 선택 전환이 뚝 끊기지 않도록 색과 밑줄 길이를 부드럽게 애니메이션한다.
-            val textColor by animateColorAsState(
-                targetValue = if (isSelected) AppColor.primary else AppColor.onSurface.copy(alpha = 0.6f),
-                label = "tabTextColor",
+            NavigationBarItem(
+                selected = tab == selectedTab,
+                onClick = { onTabSelected(tab) },
+                icon = {
+                    val icon = when (tab) {
+                        StatisticsTab.OVERVIEW -> Icons.Outlined.SpaceDashboard
+                        StatisticsTab.RHYTHM -> Icons.Outlined.BarChart
+                        StatisticsTab.RECORDS -> Icons.Outlined.History
+                    }
+                    Icon(icon, contentDescription = null)
+                },
+                label = { Text(stringResource(tab.titleRes), style = AppTypography.labelLarge) },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = AppColor.primary,
+                    selectedTextColor = AppColor.primary,
+                    indicatorColor = AppColor.primarySurface,
+                    unselectedIconColor = AppColor.onSurfaceVariant,
+                    unselectedTextColor = AppColor.onSurfaceVariant,
+                ),
             )
-            val indicatorWidth by animateDpAsState(
-                targetValue = if (isSelected) 20.dp else 0.dp,
-                label = "tabIndicatorWidth",
-            )
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundShapes.medium)
-                    .clickable { onTabSelected(tab) }
-                    .padding(vertical = 8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(
-                    text = stringResource(id = tab.titleRes),
-                    style = AppTypography.bodyMedium.copy(
-                        color = textColor,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                    ),
-                )
-                // 선택된 탭 아래에만 강조 밑줄을 둔다. (폭이 0이면 그려지지 않는다.)
-                Box(
-                    modifier = Modifier
-                        .padding(top = 6.dp)
-                        .width(indicatorWidth)
-                        .height(2.dp)
-                        .clip(CircleShape)
-                        .background(color = AppColor.primary),
-                )
-            }
         }
     }
 }
@@ -319,44 +322,12 @@ private fun StatisticsPeriodSelector(
     selectedPeriod: StatisticsPeriod,
     onPeriodSelected: (StatisticsPeriod) -> Unit,
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(CardShape)
-            .background(color = AppColor.surfaceContainer)
-            .padding(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        StatisticsPeriod.entries.forEach { period ->
-            PeriodSegment(
-                modifier = Modifier.weight(1f),
-                text = stringResource(id = period.titleRes()),
-                isSelected = period == selectedPeriod,
-                onClick = { onPeriodSelected(period) },
-            )
-        }
-    }
-}
-
-@Composable
-private fun PeriodSegment(
-    modifier: Modifier = Modifier,
-    text: String,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-) {
-    Text(
-        modifier = modifier
-            .clip(RoundShapes.large)
-            .background(color = if (isSelected) AppColor.primary else Color.Transparent)
-            .clickable(onClick = onClick)
-            .padding(vertical = 10.dp),
-        text = text,
-        textAlign = TextAlign.Center,
-        style = AppTypography.bodyMedium.copy(
-            color = if (isSelected) AppColor.onPrimary else AppColor.onSurface.copy(alpha = 0.6f),
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-        ),
+    AppSegmentedControl(
+        modifier = modifier,
+        options = StatisticsPeriod.entries,
+        selected = selectedPeriod,
+        onSelected = onPeriodSelected,
+        label = { stringResource(it.titleRes()) },
     )
 }
 
@@ -442,6 +413,9 @@ private fun EmptyHint(
 /** 요약 탭(기간 기준): 요약 KPI + 계획대비 실제 + 회고 + 루프 순위. */
 private fun LazyListScope.summaryContent(
     stats: PeriodStats,
+    projection: MonthlyProjection,
+    habitHealth: List<HabitHealth>,
+    milestones: List<Milestone>,
     ranking: List<LoopWithStatistics>,
     sortOrder: RankingSortOrder,
     onSortSelected: (RankingSortOrder) -> Unit,
@@ -449,6 +423,16 @@ private fun LazyListScope.summaryContent(
     onToggleRanking: () -> Unit,
     onNavigateToDetailPage: (Int) -> Unit,
 ) {
+    if (hasInsights(projection, habitHealth, milestones)) {
+        item(key = "insight") {
+            InsightFeedSection(
+                projection = projection,
+                habitHealth = habitHealth,
+                milestones = milestones,
+            )
+        }
+    }
+
     item(key = "summary") {
         SummarySection(
             summary = stats.summary,
@@ -626,12 +610,9 @@ private fun InsightCard(
     title: String,
     description: String,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(CardShape)
-            .background(color = accent.copy(alpha = 0.1f))
-            .padding(horizontal = Dimens.contentPadding, vertical = Dimens.contentPadding),
+    AppCard(
+        modifier = modifier,
+        color = accent.copy(alpha = 0.10f).compositeOver(AppColor.surfaceElevated),
     ) {
         Text(
             text = title,
@@ -712,12 +693,7 @@ private fun StatCard(
     accent: Boolean = false,
     valueColor: Color? = null,
 ) {
-    Column(
-        modifier = modifier
-            .clip(CardShape)
-            .background(color = AppColor.surfaceContainer)
-            .padding(horizontal = Dimens.contentPadding, vertical = 20.dp),
-    ) {
+    AppCard(modifier = modifier) {
         Text(
             text = value,
             style = AppTypography.headlineMedium.copy(
@@ -745,13 +721,7 @@ private fun InvestedTimeCard(
     modifier: Modifier = Modifier,
     investedTimeMs: Long,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(CardShape)
-            .background(color = AppColor.primary.copy(alpha = 0.1f))
-            .padding(horizontal = Dimens.contentPadding, vertical = 20.dp),
-    ) {
+    AppCard(modifier = modifier, color = AppColor.primarySurface) {
         Text(
             text = stringResource(id = R.string.stat_summary_invested),
             style = AppTypography.bodySmall.copy(
@@ -786,8 +756,7 @@ private fun CompletionTrendSection(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(CardShape)
-                .background(color = AppColor.surfaceContainer)
+                .appCardSurface()
                 .padding(Dimens.contentPadding),
         ) {
             // 마지막 두 달의 완료율 변화(퍼센트포인트)를 상단에 배지로 요약한다.
@@ -859,8 +828,7 @@ private fun HourlyHeatmapSection(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(CardShape)
-                .background(color = AppColor.surfaceContainer)
+                .appCardSurface()
                 .padding(Dimens.contentPadding),
         ) {
             val hasHighlight = selectedHour != null || peak != null
@@ -948,8 +916,7 @@ private fun WeeklyConsistencySection(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(CardShape)
-                .background(color = AppColor.surfaceContainer)
+                .appCardSurface()
                 .padding(Dimens.contentPadding)
                 .height(160.dp),
             verticalAlignment = Alignment.Bottom,
@@ -999,8 +966,7 @@ private fun MonthlyInvestedSection(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(CardShape)
-                .background(color = AppColor.surfaceContainer)
+                .appCardSurface()
                 .padding(Dimens.contentPadding)
                 .height(160.dp),
             verticalAlignment = Alignment.Bottom,
@@ -1121,28 +1087,18 @@ private fun RankingSortSelector(
     selectedSortOrder: RankingSortOrder,
     onSortSelected: (RankingSortOrder) -> Unit,
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(CardShape)
-            .background(color = AppColor.surfaceContainer)
-            .padding(4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Dimens.itemSpacing)) {
         Text(
-            modifier = Modifier.padding(start = 8.dp, end = 4.dp),
-            text = stringResource(id = R.string.stat_ranking_sort_label),
-            style = AppTypography.labelMedium.copy(color = AppColor.onSurface.copy(alpha = 0.5f)),
+            text = stringResource(R.string.stat_ranking_sort_label),
+            style = AppTypography.bodySmall,
+            color = AppColor.onSurfaceVariant,
         )
-        RankingSortOrder.entries.forEach { sortOrder ->
-            PeriodSegment(
-                modifier = Modifier.weight(1f),
-                text = stringResource(id = sortOrder.titleRes),
-                isSelected = sortOrder == selectedSortOrder,
-                onClick = { onSortSelected(sortOrder) },
-            )
-        }
+        AppSegmentedControl(
+            options = RankingSortOrder.entries,
+            selected = selectedSortOrder,
+            onSelected = onSortSelected,
+            label = { stringResource(it.titleRes) },
+        )
     }
 }
 
@@ -1157,8 +1113,7 @@ private fun LoopRankingItem(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(CardShape)
-            .background(color = AppColor.surfaceContainer)
+            .appCardSurface()
             .clickable(onClick = onClick)
             .padding(horizontal = Dimens.contentPadding, vertical = Dimens.contentPadding),
         verticalAlignment = Alignment.CenterVertically,
@@ -1231,8 +1186,7 @@ private fun PlanVsActualSection(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(CardShape)
-                .background(color = AppColor.surfaceContainer)
+                .appCardSurface()
                 .padding(Dimens.contentPadding),
         ) {
             val diffMinutes = (stat.avgStartDiffMs / MS_1MIN).toInt()
@@ -1292,8 +1246,7 @@ private fun HabitHealthItem(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(CardShape)
-            .background(color = AppColor.surfaceContainer)
+            .appCardSurface()
             .padding(horizontal = Dimens.contentPadding, vertical = Dimens.contentPadding),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -1371,8 +1324,7 @@ private fun NewLoopSettlingItem(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(CardShape)
-            .background(color = AppColor.surfaceContainer)
+            .appCardSurface()
             .padding(horizontal = Dimens.contentPadding, vertical = Dimens.contentPadding),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -1471,8 +1423,7 @@ private fun MilestoneItem(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(CardShape)
-            .background(color = AppColor.surfaceContainer)
+            .appCardSurface()
             .padding(horizontal = Dimens.contentPadding, vertical = Dimens.contentPadding),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1528,8 +1479,7 @@ private fun RetrospectSection(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(CardShape)
-                .background(color = AppColor.surfaceContainer)
+                .appCardSurface()
                 .padding(Dimens.contentPadding),
         ) {
             Text(
@@ -1665,13 +1615,13 @@ private fun SectionHeader(
     Column(modifier = modifier.padding(bottom = Dimens.contentPadding)) {
         Text(
             text = title,
-            style = AppTypography.titleLarge.copy(color = AppColor.onSurface),
+            style = AppTypography.titleMedium.copy(color = AppColor.onSurface),
         )
         Text(
             modifier = Modifier.padding(top = 2.dp),
             text = description,
             style = AppTypography.bodySmall.copy(
-                color = AppColor.onSurface.copy(alpha = 0.5f),
+                color = AppColor.onSurfaceVariant,
             ),
         )
     }

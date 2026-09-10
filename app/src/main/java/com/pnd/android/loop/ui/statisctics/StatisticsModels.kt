@@ -142,10 +142,9 @@ enum class StatisticsTab(
     @StringRes val titleRes: Int,
     val usesPeriod: Boolean,
 ) {
-    SUMMARY(R.string.stat_tab_summary, usesPeriod = true),
-    PATTERN(R.string.stat_tab_pattern, usesPeriod = true),
-    TREND(R.string.stat_tab_trend, usesPeriod = false),
-    ACHIEVEMENT(R.string.stat_tab_achievement, usesPeriod = false),
+    OVERVIEW(R.string.stat_tab_overview, usesPeriod = true),
+    RHYTHM(R.string.stat_tab_rhythm, usesPeriod = true),
+    RECORDS(R.string.stat_tab_records, usesPeriod = false),
 }
 
 /**

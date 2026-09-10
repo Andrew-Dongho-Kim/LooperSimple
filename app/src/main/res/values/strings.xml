@@ -137,6 +137,9 @@
     <string name="stat_tab_habit">Habits</string>
     <string name="stat_tab_trend">Trend</string>
     <string name="stat_tab_achievement">Achievements</string>
+    <string name="stat_tab_overview">Overview</string>
+    <string name="stat_tab_rhythm">Rhythm</string>
+    <string name="stat_tab_records">Records</string>
 
     <!-- Scope caption, empty & loading states -->
     <string name="stat_scope_overall">Based on your overall &amp; recent records, regardless of period</string>
@@ -451,11 +454,6 @@
     <string name="detail_day_no_record">No record</string>
 
     <!-- 상세 페이지 · 통계 타일 -->
-    <string name="detail_tile_trend">Completion trend</string>
-    <string name="detail_tile_weekday">By weekday</string>
-    <string name="detail_tile_monthly">By month</string>
-    <string name="detail_tile_best_day">%1$s · %2$d%%</string>
-    <string name="detail_tile_month_rate">%1$s · %2$d%%</string>
     <string name="detail_tile_no_data">—</string>
     <string name="detail_response_summary">Response summary</string>
     <string name="detail_rate_done">Done</string>
@@ -463,9 +461,6 @@
     <string name="detail_rate_no_response">No response</string>
 
     <!-- 상세 페이지 · 통계 섹션 맨 위의 한 줄 결론 -->
-    <string name="detail_trend_daily_up">Completion is trending up</string>
-    <string name="detail_trend_daily_down">Completion is slipping</string>
-    <string name="detail_trend_daily_steady">Completion is holding steady</string>
 
     <!-- 상세 페이지 · 주간 목표 -->
     <string name="detail_week_goal_label">Weekly goal</string>
@@ -511,4 +506,61 @@
     <string name="detail_active_days_desc">Active days: %1$s</string>
     <string name="detail_timeline_desc">Runs from %1$s to %2$s</string>
 
+    <string name="detail_records_and_memos">Records and notes</string>
+    <string name="detail_detailed_stats">Detailed stats</string>
+    <string name="detail_schedule_management">Schedule and settings</string>
+    <string name="detail_active_state">Loop status</string>
+    <string name="detail_more_actions">More actions</string>
+    <string name="detail_overall_rate">Overall done rate</string>
+    <string name="detail_done_total">%2$d of %1$d completed</string>
+    <string name="detail_week_progress_suffix">/ %1$d completed</string>
+    <string name="detail_week_done_suffix">completed</string>
+    <string name="detail_record_today">Edit today’s record</string>
+    <string name="detail_calendar_edit_hint">Tap a date to edit its record</string>
+    <string name="detail_calendar_legend">✓ Done　− Skipped　• Note</string>
+    <string name="detail_journal_close">Close day editor</string>
+    <string name="detail_journal_add_memo">Add a note</string>
+    <string name="detail_journal_edit_memo">Edit note</string>
+    <string name="detail_journal_loading">Loading note…</string>
+    <string name="detail_journal_load_failed">Could not load the note.</string>
+    <string name="detail_journal_retry">Try again</string>
+    <string name="detail_journal_save_failed">Could not save. Please try again.</string>
+    <string name="detail_journal_saving">Saving…</string>
+    <string name="detail_journal_draft">Unsaved changes</string>
+    <string name="detail_schedule_enabled">Enable loop</string>
+    <string name="detail_schedule_edit">Edit schedule</string>
+    <string name="detail_schedule_close">Close schedule editor</string>
+    <string name="detail_schedule_more">More information</string>
+    <string name="detail_schedule_repeat">Repeat on</string>
+    <string name="detail_schedule_time">Time</string>
+    <string name="detail_schedule_goal_summary">Aim for %1$d times across these days</string>
+    <string name="detail_schedule_overnight">Ends the next day</string>
+    <string name="detail_schedule_checking">Checking schedule…</string>
+    <string name="detail_schedule_check_failed">Could not check overlapping loops. Please try again.</string>
+    <string name="detail_schedule_save_failed">Could not save the schedule. Your changes are still here.</string>
+    <string name="detail_schedule_saving">Saving…</string>
+    <string name="detail_activity_collapsed">28 days · %1$d done</string>
+    <string name="detail_activity_no_recent_records">No recent records</string>
+    <string name="detail_activity_recent_title">Last 28 days</string>
+    <string name="detail_activity_date_range">%1$s – %2$s</string>
+    <string name="detail_activity_completed_days">Completed on %1$d days</string>
+    <string name="detail_activity_empty">No settled records in this period yet. Completed and skipped days will appear here.</string>
+    <string name="detail_activity_delta_more">%1$d more completed days than the previous 28 days</string>
+    <string name="detail_activity_delta_fewer">%1$d fewer completed days than the previous 28 days</string>
+    <string name="detail_activity_delta_same">Same completed days as the previous 28 days</string>
+    <string name="detail_activity_outcomes">%1$d recorded days · %2$d skipped · %3$d unanswered</string>
+    <string name="detail_activity_periods_title">Completed days · 7-day groups</string>
+    <string name="detail_activity_days">%1$d days</string>
+    <string name="detail_activity_no_records">No records</string>
+    <string name="detail_activity_weekdays_title">Completion by weekday</string>
+    <string name="detail_activity_weekdays_hint">Completed days out of recorded days · last 28 days</string>
+    <string name="detail_activity_sample">%2$d of %1$d days</string>
+    <string name="detail_activity_calculation_title">How these stats work</string>
+    <string name="detail_activity_calculation_body">The last 28 days include today. The bars above count completed days in non-overlapping 7-day groups, on a fixed 0–7 scale; these are not calendar weeks or goal achievement rates.\n\nDisabled, in-progress, future, and pre-creation records are excluded. Unanswered records for today are also excluded because today is not over. Missing days are not counted as unanswered.\n\nThe previous 28-day comparison appears only when the loop existed throughout both periods and both contain records. Past records are not re-scored using the current schedule or goal.</string>
+    <string name="detail_activity_record_basis">Based on %1$d recorded days</string>
+    <string name="detail_activity_legend_entry">%1$s %2$d</string>
+    <string name="detail_activity_chart_hint">Completed / recorded days · — No records</string>
+    <string name="detail_loop_info">Loop information</string>
+    <string name="detail_loop_info_close">Close</string>
+    <string name="detail_overlap_none">No overlapping loops</string>
 </resources>

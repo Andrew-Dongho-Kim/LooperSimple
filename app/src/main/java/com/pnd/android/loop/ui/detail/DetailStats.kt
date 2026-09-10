@@ -11,8 +11,6 @@ import com.pnd.android.loop.util.dayForLoop
 import com.pnd.android.loop.util.toLocalDate
 import java.time.DayOfWeek
 import java.time.LocalDate
-import java.time.YearMonth
-import kotlin.math.roundToInt
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 상세 화면이 그리는 모든 수치. Compose 와 무관한 순수 계산만 모아 두어 단위 테스트가 가능하고,
@@ -42,23 +40,6 @@ internal data class WeeklyProgress(
     }
 }
 
-/**
- * 일별 완료율 추세.
- *
- * @param rates 각 날짜의 [windowDays] 일 롤링 완료율(0f..1f), 과거→오늘 순
- * @param deltaPercent 약 2주 전 대비 완료율 변화(%p, 양수=상승)
- */
-internal data class DailyTrend(
-    val rates: List<Float>,
-    val deltaPercent: Int,
-)
-
-/** 한 달의 완료율. */
-internal data class MonthlyRate(
-    val month: YearMonth,
-    val rate: Float,
-)
-
 /** 상세 화면 전체가 공유하는 계산 결과 묶음. */
 internal data class DetailStats(
     val today: LocalDate,
@@ -72,9 +53,7 @@ internal data class DetailStats(
     val donePercent: Int,
     val streak: StreakStat,
     val weekly: WeeklyProgress,
-    val dailyTrend: DailyTrend?,
-    val weekdayRates: List<Float?>,
-    val monthlyRates: List<MonthlyRate>,
+    val activity: DetailActivityStats,
     /** 회고 메모를 남긴 날짜들. 달력 마커와 접힌 행 요약이 함께 쓴다. */
     val memoDates: Set<LocalDate>,
 ) {
@@ -92,9 +71,7 @@ internal data class DetailStats(
             donePercent = 0,
             streak = StreakStat(current = 0, longest = 0),
             weekly = WeeklyProgress.Empty,
-            dailyTrend = null,
-            weekdayRates = List(7) { null },
-            monthlyRates = emptyList(),
+            activity = DetailActivityStats.empty(today),
             memoDates = emptySet(),
         )
     }
@@ -117,28 +94,18 @@ internal fun computeDetailStats(
 ): DetailStats {
     val doneStateByDate = responses.associate { it.date.toLocalDate() to it.done }
 
-    var totalCount = 0
-    var doneCount = 0
-    var skipCount = 0
-    responses.forEach { response ->
-        if (response.isDisabled()) return@forEach
-        totalCount++
-        when {
-            response.isDone() -> doneCount++
-            response.isSkip() -> skipCount++
-        }
-    }
-    val noResponseCount = (totalCount - doneCount - skipCount).coerceAtLeast(0)
+    val resolvedRecords = resolvedActivityRecords(doneStateByDate, createdDate, today)
+    val counts = countActivity(resolvedRecords.values)
 
     return DetailStats(
         today = today,
         createdDate = createdDate,
         doneStateByDate = doneStateByDate,
-        totalCount = totalCount,
-        doneCount = doneCount,
-        skipCount = skipCount,
-        noResponseCount = noResponseCount,
-        donePercent = if (totalCount == 0) 0 else (doneCount * 100f / totalCount).roundToInt(),
+        totalCount = counts.total,
+        doneCount = counts.done,
+        skipCount = counts.skipped,
+        noResponseCount = counts.unanswered,
+        donePercent = counts.completionPercent ?: 0,
         streak = computeLoopStreak(
             doneDates = doneStateByDate.filterValues { it == DoneState.DONE }.keys,
             activeDays = activeDays,
@@ -152,13 +119,11 @@ internal fun computeDetailStats(
             createdDate = createdDate,
             today = today,
         ),
-        dailyTrend = computeDailyTrend(
-            responses = responses,
+        activity = computeDetailActivityStats(
+            resolvedRecords = resolvedRecords,
             createdDate = createdDate,
             today = today,
         ),
-        weekdayRates = computeWeekdayRates(responses = responses),
-        monthlyRates = computeMonthlyRates(responses = responses),
         memoDates = memoDates,
     )
 }
@@ -203,94 +168,6 @@ internal fun computeWeeklyProgress(
         trend = done.compareTo(donePrev),
     )
 }
-
-/**
- * 최근 [maxPoints]일에 대해 [windowDays]일 롤링 완료율을 계산한다.
- * 각 날짜의 값 = (창 안의 완료 수) / (창 안의 응답 대상 수). 응답 대상은 비활성(DISABLED)이 아닌 기록.
- * 기록이 전혀 없거나 구간이 너무 짧으면 null 을 돌려 타일을 빈 상태로 둔다.
- */
-internal fun computeDailyTrend(
-    responses: List<LoopDoneVo>,
-    createdDate: LocalDate,
-    today: LocalDate,
-    windowDays: Int = 7,
-    maxPoints: Int = 60,
-): DailyTrend? {
-    val doneByDate = responses
-        .filter { !it.isDisabled() }
-        .associate { it.date.toLocalDate() to it.isDone() }
-    if (doneByDate.isEmpty()) return null
-
-    val start = maxOf(createdDate, today.minusDays((maxPoints - 1).toLong()))
-    val totalDays = (today.toEpochDay() - start.toEpochDay()).toInt() + 1
-    if (totalDays < 2) return null
-
-    val rates = (0 until totalDays).map { offset ->
-        val day = start.plusDays(offset.toLong())
-        var enabled = 0
-        var done = 0
-        var cursor = day.minusDays((windowDays - 1).toLong())
-        while (!cursor.isAfter(day)) {
-            doneByDate[cursor]?.let { isDone ->
-                enabled++
-                if (isDone) done++
-            }
-            cursor = cursor.plusDays(1)
-        }
-        if (enabled == 0) 0f else done.toFloat() / enabled
-    }
-
-    // 약 2주 전 지점과 비교해 최근 추세를 %p 로 낸다(데이터가 짧으면 첫 지점과 비교).
-    val referenceIndex = (rates.lastIndex - 14).coerceAtLeast(0)
-    val deltaPercent = ((rates.last() - rates[referenceIndex]) * 100).roundToInt()
-    return DailyTrend(rates = rates, deltaPercent = deltaPercent)
-}
-
-/**
- * 최근 [monthsBack]개월의 월별 완료율. 데이터가 있는 달만, 오래된 달→최신 달 순으로 담는다.
- * 완료율 = 그 달의 완료 수 / 응답 대상(비활성 제외) 수.
- */
-internal fun computeMonthlyRates(
-    responses: List<LoopDoneVo>,
-    monthsBack: Int = 6,
-): List<MonthlyRate> {
-    val enabled = responses.filter { !it.isDisabled() }
-    if (enabled.isEmpty()) return emptyList()
-
-    return enabled
-        .groupBy { YearMonth.from(it.date.toLocalDate()) }
-        .map { (yearMonth, records) ->
-            MonthlyRate(
-                month = yearMonth,
-                rate = records.count { it.isDone() }.toFloat() / records.size,
-            )
-        }
-        .sortedBy { it.month }
-        .takeLast(monthsBack)
-}
-
-/**
- * 요일별 완료율(0f..1f). 인덱스 0=일요일 … 6=토요일(달력 헤더와 같은 순서).
- * 그 요일에 응답 대상 기록이 하나도 없으면 해당 칸은 null.
- */
-internal fun computeWeekdayRates(
-    responses: List<LoopDoneVo>,
-): List<Float?> {
-    val byDayOfWeek = responses
-        .filter { !it.isDisabled() }
-        .groupBy { it.date.toLocalDate().dayOfWeek }
-
-    return (0..6).map { index ->
-        val dayOfWeek = DayOfWeek.of(if (index == 0) 7 else index)
-        val records = byDayOfWeek[dayOfWeek]
-        if (records.isNullOrEmpty()) null
-        else records.count { it.isDone() }.toFloat() / records.size
-    }
-}
-
-/** 변화량을 "+12%p" / "-5%p" / "0%p" 형태의 짧은 배지 문자열로 만든다. */
-internal fun formatDeltaPercent(delta: Int): String =
-    (if (delta > 0) "+$delta" else "$delta") + "%p"
 
 /** 활동 요일 수. 접힌 스케줄 행의 요약과 목표 선택기의 기본값 계산에 쓴다. */
 internal fun activeDayCount(activeDays: Int): Int = LoopDay.ALL.count { activeDays.isOn(it) }

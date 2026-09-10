@@ -136,6 +136,9 @@
     <string name="stat_tab_habit">습관</string>
     <string name="stat_tab_trend">추세</string>
     <string name="stat_tab_achievement">성취</string>
+    <string name="stat_tab_overview">개요</string>
+    <string name="stat_tab_rhythm">리듬</string>
+    <string name="stat_tab_records">기록</string>
 
     <!-- 스코프 안내 · 빈 상태 · 로딩 상태 -->
     <string name="stat_scope_overall">기간 선택과 무관하게 전체·최근 기록을 기준으로 해요</string>
@@ -443,11 +446,6 @@
     <string name="detail_day_no_record">기록 없음</string>
 
     <!-- 상세 페이지 · 통계 타일 -->
-    <string name="detail_tile_trend">완료율 추세</string>
-    <string name="detail_tile_weekday">요일별</string>
-    <string name="detail_tile_monthly">월별</string>
-    <string name="detail_tile_best_day">%1$s · %2$d%%</string>
-    <string name="detail_tile_month_rate">%1$s · %2$d%%</string>
     <string name="detail_tile_no_data">—</string>
     <string name="detail_response_summary">응답 요약</string>
     <string name="detail_rate_done">완료</string>
@@ -455,9 +453,6 @@
     <string name="detail_rate_no_response">미응답</string>
 
     <!-- 상세 페이지 · 통계 섹션 맨 위의 한 줄 결론 -->
-    <string name="detail_trend_daily_up">완료율이 오르고 있어요</string>
-    <string name="detail_trend_daily_down">완료율이 주춤하고 있어요</string>
-    <string name="detail_trend_daily_steady">완료율을 꾸준히 유지하고 있어요</string>
 
     <!-- 상세 페이지 · 주간 목표 -->
     <string name="detail_week_goal_label">주간 목표</string>
@@ -502,4 +497,61 @@
     <string name="detail_today">오늘</string>
     <string name="detail_active_days_desc">활동 요일: %1$s</string>
     <string name="detail_timeline_desc">%1$s부터 %2$s까지</string>
+    <string name="detail_records_and_memos">기록과 메모</string>
+    <string name="detail_detailed_stats">자세한 통계</string>
+    <string name="detail_schedule_management">일정과 루프 관리</string>
+    <string name="detail_active_state">루프 활성 상태</string>
+    <string name="detail_more_actions">더보기</string>
+    <string name="detail_overall_rate">전체 완료율</string>
+    <string name="detail_done_total">전체 %1$d회 중 %2$d회 완료</string>
+    <string name="detail_week_progress_suffix">/ %1$d회 완료</string>
+    <string name="detail_week_done_suffix">회 완료</string>
+    <string name="detail_record_today">오늘 기록하기</string>
+    <string name="detail_calendar_edit_hint">날짜를 누르면 기록을 수정할 수 있어요</string>
+    <string name="detail_calendar_legend">✓ 완료　− 건너뜀　• 메모</string>
+    <string name="detail_journal_close">하루 기록 편집창 닫기</string>
+    <string name="detail_journal_add_memo">메모 남기기</string>
+    <string name="detail_journal_edit_memo">메모 수정</string>
+    <string name="detail_journal_loading">메모 불러오는 중…</string>
+    <string name="detail_journal_load_failed">메모를 불러오지 못했어요.</string>
+    <string name="detail_journal_retry">다시 시도</string>
+    <string name="detail_journal_save_failed">저장하지 못했어요. 다시 시도해 주세요.</string>
+    <string name="detail_journal_saving">저장 중…</string>
+    <string name="detail_journal_draft">저장하지 않은 변경사항</string>
+    <string name="detail_schedule_enabled">루프 활성화</string>
+    <string name="detail_schedule_edit">일정 수정</string>
+    <string name="detail_schedule_close">일정 수정 닫기</string>
+    <string name="detail_schedule_more">추가 정보</string>
+    <string name="detail_schedule_repeat">반복 요일</string>
+    <string name="detail_schedule_time">시간</string>
+    <string name="detail_schedule_goal_summary">이 요일 중 주 %1$d회 목표</string>
+    <string name="detail_schedule_overnight">다음 날 종료</string>
+    <string name="detail_schedule_checking">일정을 확인하고 있어요…</string>
+    <string name="detail_schedule_check_failed">겹치는 루프를 확인하지 못했어요. 다시 시도해 주세요.</string>
+    <string name="detail_schedule_save_failed">일정을 저장하지 못했어요. 변경한 내용은 유지됩니다.</string>
+    <string name="detail_schedule_saving">저장 중…</string>
+    <string name="detail_activity_collapsed">28일 · %1$d일 완료</string>
+    <string name="detail_activity_no_recent_records">최근 기록 없음</string>
+    <string name="detail_activity_recent_title">최근 28일</string>
+    <string name="detail_activity_date_range">%1$s – %2$s</string>
+    <string name="detail_activity_completed_days">%1$d일 완료</string>
+    <string name="detail_activity_empty">이 기간에 집계할 기록이 아직 없어요. 완료하거나 건너뛴 기록이 쌓이면 표시됩니다.</string>
+    <string name="detail_activity_delta_more">직전 28일보다 %1$d일 더 완료</string>
+    <string name="detail_activity_delta_fewer">직전 28일보다 %1$d일 적게 완료</string>
+    <string name="detail_activity_delta_same">직전 28일과 같은 완료 일수</string>
+    <string name="detail_activity_outcomes">기록 %1$d일 기준 · 건너뜀 %2$d일 · 미응답 %3$d일</string>
+    <string name="detail_activity_periods_title">7일 단위 완료 일수</string>
+    <string name="detail_activity_days">%1$d일</string>
+    <string name="detail_activity_no_records">기록 없음</string>
+    <string name="detail_activity_weekdays_title">요일별 완료율</string>
+    <string name="detail_activity_weekdays_hint">최근 28일 · 기록한 날 중 완료한 날</string>
+    <string name="detail_activity_sample">%1$d일 중 %2$d일</string>
+    <string name="detail_activity_calculation_title">통계 기준</string>
+    <string name="detail_activity_calculation_body">최근 28일은 오늘을 포함합니다. 위 막대는 겹치지 않는 7일 구간별 완료 일수이며, 최대 7일을 같은 기준으로 표시합니다. 달력상의 주간 기록이나 목표 달성률은 아닙니다.\n\n비활성·진행 중·미래·생성 전 기록은 제외합니다. 오늘의 미응답도 아직 완료할 수 있어 제외하며, 기록이 없는 날을 미응답으로 계산하지 않습니다.\n\n직전 28일 비교는 두 기간 모두 루프가 존재했고 기록이 있을 때만 표시합니다. 현재 요일 설정이나 목표로 과거 기록을 다시 평가하지 않습니다.</string>
+    <string name="detail_activity_record_basis">기록 %1$d일 기준</string>
+    <string name="detail_activity_legend_entry">%1$s %2$d</string>
+    <string name="detail_activity_chart_hint">완료 / 기록 일수 · — 기록 없음</string>
+    <string name="detail_loop_info">루프 정보</string>
+    <string name="detail_loop_info_close">닫기</string>
+    <string name="detail_overlap_none">겹치는 루프 없음</string>
 </resources>

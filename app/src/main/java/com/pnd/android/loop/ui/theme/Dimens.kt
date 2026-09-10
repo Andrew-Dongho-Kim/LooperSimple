@@ -10,6 +10,14 @@ import androidx.compose.ui.unit.dp
  * instead of scattering magic numbers (24 / 12 / 8 dp) per file.
  */
 object Dimens {
+    /** Shared geometry for page headers and segmented controls. */
+    val appBarHeight = 64.dp
+    val appBarIconSize = 48.dp
+    val selectionTrackHeight = 48.dp
+
+    /** Hairline used by every top-level content card. */
+    val cardBorderWidth = 1.dp
+
     /** Left/right inset that every screen's main content lines up to. */
     val screenHorizontalPadding = 20.dp
 

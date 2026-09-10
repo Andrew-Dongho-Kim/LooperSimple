@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Done
@@ -63,6 +62,8 @@ import com.pnd.android.loop.data.actualStartInDay
 import com.pnd.android.loop.data.currentTimeStat
 import com.pnd.android.loop.data.doneState
 import com.pnd.android.loop.ui.theme.AppColor
+import com.pnd.android.loop.ui.theme.Dimens
+import com.pnd.android.loop.ui.theme.outlineVariant
 import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.compositeOver
@@ -85,14 +86,10 @@ import java.time.LocalTime
  * shape and opacity hierarchy consistent and easy to tweak for both light/dark themes.
  */
 private object LoopCardDefaults {
-    /** Rounding of the card surface (also mirrored by the swipe-response backdrop). */
-    val CardCorner = 20.dp
-
     /** Hairline border that separates the card from the background in both themes. */
-    val BorderWidth = 1.dp
-    const val BorderAlpha = 0.08f
+    val BorderWidth = Dimens.cardBorderWidth
 
-    val ContentHorizontalPadding = 16.dp
+    val ContentHorizontalPadding = Dimens.contentPadding
     val ContentVerticalPadding = 14.dp
 
     /**
@@ -157,7 +154,7 @@ private object LoopCardDefaults {
 }
 
 /** Shared rounded shape of the card surface. */
-internal val LoopCardShape = RoundedCornerShape(LoopCardDefaults.CardCorner)
+internal val LoopCardShape = RoundShapes.large
 
 /**
  * Loop card row. In its normal state it reads as a single quiet line — color dot + title/meta
@@ -231,7 +228,7 @@ fun LoopCard(
                 color = if (cardValues.isEditing) {
                     AppColor.primary.copy(alpha = LoopCardDefaults.EditBorderAlpha)
                 } else {
-                    AppColor.onSurface.copy(alpha = LoopCardDefaults.BorderAlpha)
+                    AppColor.outlineVariant
                 },
                 shape = LoopCardShape,
             )

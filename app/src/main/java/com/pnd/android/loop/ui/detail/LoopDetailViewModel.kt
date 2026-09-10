@@ -1,6 +1,7 @@
 package com.pnd.android.loop.ui.detail
 
 import android.app.Application
+import android.os.SystemClock
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -26,10 +27,13 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
+
+private const val DELETE_UNDO_WINDOW_MS = 6_000L
 
 @HiltViewModel
 class LoopDetailViewModel @Inject constructor(
@@ -47,6 +51,18 @@ class LoopDetailViewModel @Inject constructor(
     private val loopDao = appDb.loopDao()
     private val loopDoneDao = appDb.loopDoneDao()
     private val loopRetrospectDao = appDb.loopRetrospectDao()
+
+    /**
+     * 삭제 직후에만 유지하는 복구 정보. 화면의 remember 에 두면 회전 등 구성 변경 때
+     * 실행 취소 기회가 사라지므로 ViewModel 수명에 둔다.
+     */
+    data class PendingDeletion(
+        val deleted: DeletedLoop,
+        val undoDeadlineElapsedMs: Long,
+    )
+
+    private val _pendingDeletion = MutableStateFlow<PendingDeletion?>(null)
+    val pendingDeletion = _pendingDeletion
 
     // 루프를 삭제하면 Room 이 이 자리에 null 을 흘려보낸다. 화면이 닫히는 몇 프레임 동안
     // 마지막으로 유효했던 값을 그대로 쓰도록 걸러 내, 삭제 직후 NPE 가 나지 않게 한다.
@@ -79,9 +95,8 @@ class LoopDetailViewModel @Inject constructor(
     private val allResponses = loopDoneDao.getAllFlow(loopId)
 
     /**
-     * 화면이 그리는 모든 수치. 예전에는 완료율·스트릭·추세·요일별·월별을 각 컴포저블이
-     * 컴포지션 중에 계산했고(최대 60일 × 7일 창을 도는 롤링 계산 포함), 개수 넷은 DAO flow 를
-     * 따로 구독했다. 지금은 한 번만, 그것도 UI 스레드 밖에서 계산한다.
+     * 상단 요약과 최근 활동 통계를 같은 기록으로 계산한다.
+     * 집계는 UI 스레드 밖에서 한 번 수행하고, 화면은 계산 결과만 표시한다.
      */
     internal val stats = combine(loop, allResponses, memos, today) { loop, responses, memos, today ->
         computeDetailStats(
@@ -161,14 +176,16 @@ class LoopDetailViewModel @Inject constructor(
         AppWidgetUpdateWorker.updateWidget(app)
     }
 
-    fun enableLoop(
+    suspend fun setLoopEnabled(
         loop: LoopBase,
         enabled: Boolean
     ) {
-        coroutineScope.launch {
-            loopRepository.addOrUpdateLoop(loop.copyAs(enabled = enabled).asLoopVo())
-            AppWidgetUpdateWorker.updateWidget(app)
-        }
+        loopRepository.addOrUpdateLoop(loop.copyAs(enabled = enabled).asLoopVo())
+        AppWidgetUpdateWorker.updateWidget(app)
+    }
+
+    fun enableLoop(loop: LoopBase, enabled: Boolean) {
+        coroutineScope.launch { setLoopEnabled(loop, enabled) }
     }
 
     /** 상세 화면에서 인라인으로 고친 이름·시간·색·반복·목표를 저장한다. */
@@ -182,7 +199,7 @@ class LoopDetailViewModel @Inject constructor(
         loopRepository.numberOfLoopsAtTheSameTime(loop = loop)
 
     /**
-     * 이 루프와 시간대가 겹치는 **다른** 루프의 수. 스케줄 섹션에서 "이 시간대에 N개 더"로 알려
+     * 이 루프와 시간대가 겹치는 **다른** 루프의 수. 루프 정보에서 "이 시간대에 N개 더"로 알려
      * 시간을 옮길지 판단하게 돕는다. [numberOfLoopsAtTheSameTime] 은 자기 자신을 포함한다.
      */
     suspend fun overlappingLoopCount(loop: LoopBase) =
@@ -202,7 +219,7 @@ class LoopDetailViewModel @Inject constructor(
      * 루프를 지우면서 되살리기용 스냅샷을 돌려준다. 스냅샷을 못 만들면(이미 지워졌다면) null.
      * 화면은 이 값을 들고 실행 취소 스낵바를 띄운다.
      */
-    suspend fun deleteLoop(loop: LoopBase): DeletedLoop? {
+    suspend fun deleteLoop(loop: LoopBase): Boolean {
         val snapshot = loopDao.getLoop(loopId)?.let { vo ->
             DeletedLoop(
                 loop = vo,
@@ -210,9 +227,17 @@ class LoopDetailViewModel @Inject constructor(
                 retrospects = loopRetrospectDao.getRetrospectsFlow(loopId).first(),
             )
         }
+        // 복구할 스냅샷을 만들 수 없는 삭제는 진행하지 않는다. 사용자에게는 실패로 알리고,
+        // 기록·메모를 되돌릴 수 없는 상태가 되지 않게 한다.
+        if (snapshot == null) return false
+
         loopRepository.deleteLoop(loop)
         AppWidgetUpdateWorker.updateWidget(app)
-        return snapshot
+        _pendingDeletion.value = PendingDeletion(
+            deleted = snapshot,
+            undoDeadlineElapsedMs = SystemClock.elapsedRealtime() + DELETE_UNDO_WINDOW_MS,
+        )
+        return true
     }
 
     /**
@@ -221,13 +246,19 @@ class LoopDetailViewModel @Inject constructor(
      * 루프를 먼저 되살려야 loop_done / loop_memo 의 외래 키가 걸리지 않는다. 되살리는 과정에서
      * 저장소가 오늘 몫의 빈 응답 행을 하나 만들어 두므로, 스냅샷을 나중에 덮어써 원래 상태로 돌린다.
      */
-    fun restoreLoop(deleted: DeletedLoop) {
-        coroutineScope.launch {
-            loopRepository.addOrUpdateLoop(deleted.loop)
-            deleted.responses.forEach { loopDoneDao.addOrUpdate(it) }
-            deleted.retrospects.forEach { loopRetrospectDao.insert(it) }
-            AppWidgetUpdateWorker.updateWidget(app)
-        }
+    suspend fun restorePendingDeletion(): Boolean {
+        val deleted = _pendingDeletion.value?.deleted ?: return false
+        loopRepository.addOrUpdateLoop(deleted.loop)
+        deleted.responses.forEach { loopDoneDao.addOrUpdate(it) }
+        deleted.retrospects.forEach { loopRetrospectDao.insert(it) }
+        AppWidgetUpdateWorker.updateWidget(app)
+        _pendingDeletion.value = null
+        return true
+    }
+
+    /** 사용자가 복구 창을 닫거나 시간이 만료되면, 더 이상 되돌릴 수 없음을 확정한다. */
+    fun clearPendingDeletion() {
+        _pendingDeletion.value = null
     }
 
     /**

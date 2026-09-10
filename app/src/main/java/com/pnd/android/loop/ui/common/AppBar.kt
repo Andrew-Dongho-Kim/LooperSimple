@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.pnd.android.loop.ui.theme.Dimens
 
 /**
  * 앱 전역 아이콘 버튼. 48dp 터치 타깃(Material 최소) 안에 14dp 패딩으로 아이콘을 배치해,
@@ -29,7 +30,7 @@ fun AppBarIcon(
     modifier = modifier
         .clip(CircleShape)
         .clickable(onClick = onClick)
-        .size(48.dp)
+        .size(Dimens.appBarIconSize)
         .padding(14.dp),
     imageVector = imageVector,
     tint = color,
