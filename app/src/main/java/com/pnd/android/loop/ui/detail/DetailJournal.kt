@@ -9,15 +9,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.ChevronLeft
@@ -28,7 +25,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -37,13 +34,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
-import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -58,14 +53,13 @@ import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.onSurface
-import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.ui.theme.surfaceContainer
 import com.pnd.android.loop.util.DAYS_WITH_3CHARS_SUNDAY_FIRST
 import com.pnd.android.loop.util.color
 import com.pnd.android.loop.util.formatMonthDateDay
 import com.pnd.android.loop.util.formatYearMonth
 import com.pnd.android.loop.util.toLocalDate
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
@@ -87,12 +81,8 @@ private val YearMonthSaver = Saver<YearMonth, Long>(
 )
 
 /**
- * 한 달 달력을 중심에 두고, 날짜를 누르면 그날의 상태와 회고 메모를 보고 **고칠 수 있는** 섹션.
- * 완료한 날은 잔디처럼 옅은 강조색으로 칠하고, 메모가 있는 날은 우상단에 점 마커를 얹는다.
- *
- * 예전에는 여기서 상태를 읽기만 할 수 있어, 어제 깜빡한 완료를 이 화면에서는 고칠 방법이 없었다.
- * 회고 메모도 저장 버튼을 누르지 않고 다른 날짜로 옮기면 조용히 사라졌다 — 지금은 옮기기 전에
- * 자동으로 저장하고 그 사실을 알린다.
+ * 월간 달력과 메모 목록은 기록을 찾는 영역, 하단 편집창은 선택한 하루를 고치는 영역이다.
+ * 날짜 선택·오늘 기록·메모 선택이 모두 같은 편집창으로 연결되고, 닫을 때도 초안을 보존한다.
  */
 @Composable
 internal fun JournalSection(
@@ -116,6 +106,9 @@ internal fun JournalSection(
         mutableStateOf(YearMonth.from(today))
     }
     var showAllMemos by rememberSaveable { mutableStateOf(false) }
+    var showDaySheet by rememberSaveable { mutableStateOf(false) }
+    var memoLoadFailed by rememberSaveable(selectedDate) { mutableStateOf(false) }
+    var memoLoadAttempt by rememberSaveable { mutableIntStateOf(0) }
 
     // 메모 초안은 날짜별로 살아 있어야 한다. 회전해도 유지되도록 저장 가능한 상태로 둔다.
     var memo by rememberSaveable(selectedDate) { mutableStateOf("") }
@@ -123,16 +116,22 @@ internal fun JournalSection(
     val isLoaded = savedMemo != null
     val isDirty = isLoaded && memo != savedMemo
 
-    LaunchedEffect(selectedDate) {
-        if (savedMemo == null) {
-            val loaded = onLoadMemo(selectedDate) ?: ""
-            savedMemo = loaded
-            memo = loaded
+    LaunchedEffect(selectedDate, showDaySheet, memoLoadAttempt) {
+        if (showDaySheet && savedMemo == null) {
+            memoLoadFailed = false
+            try {
+                val loaded = onLoadMemo(selectedDate) ?: ""
+                savedMemo = loaded
+                memo = loaded
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                memoLoadFailed = true
+            }
         }
     }
 
-    // 날짜를 옮기기 전에 초안을 저장한다. 옮긴 뒤에는 되돌릴 방법이 없으므로, 묻기보다
-    // 저장하고 알리는 쪽을 택했다.
+    // 편집창 닫기·날짜 이동·섹션 접기에서 기존 자동 저장 동작을 유지한다.
     fun flushDraft() {
         if (isDirty) {
             onSaveMemoInBackground(selectedDate, memo)
@@ -141,24 +140,40 @@ internal fun JournalSection(
         }
     }
 
+    fun openDay(date: LocalDate) {
+        if (date.isBefore(createdDate) || date.isAfter(today)) return
+        if (date != selectedDate) {
+            flushDraft()
+            selectedDate = date
+        }
+        visibleMonth = YearMonth.from(date)
+        showDaySheet = true
+    }
+
+    fun closeDay() {
+        flushDraft()
+        showDaySheet = false
+    }
+
     // 섹션을 접거나 화면을 벗어날 때도 같은 규칙으로 초안을 지킨다.
     val latestDirty by rememberUpdatedState(isDirty)
     val latestMemo by rememberUpdatedState(memo)
     val latestDate by rememberUpdatedState(selectedDate)
+    val latestSaveInBackground by rememberUpdatedState(onSaveMemoInBackground)
     DisposableEffect(Unit) {
         onDispose {
-            if (latestDirty) onSaveMemoInBackground(latestDate, latestMemo)
+            if (latestDirty) latestSaveInBackground(latestDate, latestMemo)
         }
     }
 
     ExpandableSection(
         modifier = modifier,
         icon = Icons.Outlined.CalendarMonth,
-        title = stringResource(id = R.string.daily_record),
+        title = stringResource(id = R.string.detail_records_and_memos),
         summary = stringResource(id = R.string.detail_memo_count, memos.size),
         expanded = expanded,
         onExpandedChange = { next ->
-            if (!next) flushDraft()
+            if (!next) closeDay()
             onExpandedChange(next)
         },
     ) {
@@ -171,7 +186,7 @@ internal fun JournalSection(
         )
 
         MonthCalendar(
-            modifier = Modifier.padding(top = 12.dp),
+            modifier = Modifier.padding(top = DetailSpacing.headerToContent),
             visibleMonth = visibleMonth,
             doneStateByDate = stats.doneStateByDate,
             memoDates = stats.memoDates,
@@ -179,52 +194,63 @@ internal fun JournalSection(
             today = today,
             selectedDate = selectedDate,
             accent = accent,
-            onSelect = { date ->
-                if (date != selectedDate) {
-                    flushDraft()
-                    selectedDate = date
-                }
-            },
+            onSelect = ::openDay,
         )
 
-        SelectedDayPanel(
-            modifier = Modifier.padding(top = 18.dp),
-            selectedDate = selectedDate,
-            doneState = stats.doneStateByDate[selectedDate],
-            editable = !selectedDate.isAfter(today) && !selectedDate.isBefore(createdDate),
-            memo = memo,
-            onMemoChange = { memo = it },
-            memoSaveEnabled = isLoaded && isDirty,
-            accent = accent,
-            feedback = feedback,
-            onSaveMemo = {
-                onSaveMemo(selectedDate, memo)
-                savedMemo = memo
-            },
-            onSetDoneState = { state -> onSetDoneState(selectedDate, state) },
+        CalendarLegend(modifier = Modifier.padding(top = DetailSpacing.item))
+        TodayJournalRow(
+            modifier = Modifier.padding(top = DetailSpacing.group),
+            today = today,
+            state = stats.doneStateByDate[today],
+            enabled = !today.isBefore(createdDate),
+            onClick = { openDay(today) },
+        )
+        Text(
+            modifier = Modifier.fillMaxWidth().padding(top = DetailSpacing.related),
+            text = stringResource(R.string.detail_calendar_edit_hint),
+            textAlign = TextAlign.Center,
+            style = AppTypography.bodySmall.copy(color = AppColor.onSurface.copy(alpha = 0.6f)),
         )
 
         if (memos.isNotEmpty()) {
             MemoListToggle(
-                modifier = Modifier.padding(top = 18.dp),
+                modifier = Modifier.padding(top = DetailSpacing.group),
                 count = memos.size,
                 expanded = showAllMemos,
                 onToggle = { showAllMemos = !showAllMemos },
             )
             AnimatedVisibility(visible = showAllMemos) {
                 MemoList(
-                    modifier = Modifier.padding(top = 8.dp),
+                    modifier = Modifier.padding(top = DetailSpacing.item),
                     memos = memos,
-                    onSelect = { date ->
-                        if (date != selectedDate) {
-                            flushDraft()
-                            selectedDate = date
-                        }
-                        visibleMonth = YearMonth.from(date)
-                    },
+                    onSelect = ::openDay,
                 )
             }
         }
+    }
+
+    if (showDaySheet && expanded) {
+        JournalDaySheet(
+            date = selectedDate,
+            doneState = stats.doneStateByDate[selectedDate],
+            editable = !selectedDate.isAfter(today) && !selectedDate.isBefore(createdDate),
+            memo = memo,
+            memoLoaded = isLoaded,
+            memoLoadFailed = memoLoadFailed,
+            memoDirty = isDirty,
+            accent = accent,
+            onRetryLoad = { memoLoadAttempt++ },
+            onMemoChange = { memo = it },
+            onSaveMemo = {
+                // 저장 중 날짜나 초안이 바뀌더라도 실제로 저장한 값만 반영한다.
+                val dateToSave = selectedDate
+                val textToSave = memo
+                onSaveMemo(dateToSave, textToSave)
+                if (selectedDate == dateToSave) savedMemo = textToSave
+            },
+            onSetDoneState = { state -> onSetDoneState(selectedDate, state) },
+            onDismiss = ::closeDay,
+        )
     }
 }
 
@@ -424,215 +450,68 @@ private fun CalendarDayCell(
                     .background(AppColor.onSurface.copy(alpha = 0.55f)),
             )
         }
-    }
-}
-
-/**
- * 달력에서 고른 날짜의 상태와 그날의 회고 메모를 다루는 패널.
- *
- * 상태는 읽기만 하던 알약에서 고칠 수 있는 세 칸으로 바꿨다. 어제 깜빡한 완료를 고치려고
- * 홈으로 돌아갈 필요가 없어졌고, 실수로 누른 건너뜀도 여기서 되돌린다.
- */
-@Composable
-private fun SelectedDayPanel(
-    modifier: Modifier = Modifier,
-    selectedDate: LocalDate,
-    doneState: Int?,
-    editable: Boolean,
-    memo: String,
-    onMemoChange: (String) -> Unit,
-    memoSaveEnabled: Boolean,
-    accent: Color,
-    feedback: DetailFeedback,
-    onSaveMemo: suspend () -> Unit,
-    onSetDoneState: suspend (Int) -> Unit,
-) {
-    val scope = rememberCoroutineScope()
-
-    Column(modifier = modifier.fillMaxWidth()) {
-        Text(
-            text = selectedDate.formatMonthDateDay(),
-            style = AppTypography.titleSmall.copy(color = AppColor.onSurface),
-        )
-
-        if (editable) {
-            DayStateSelector(
-                modifier = Modifier.padding(top = 10.dp),
-                doneState = doneState,
-                accent = accent,
-                onSelect = { state ->
-                    scope.launch {
-                        onSetDoneState(state)
-                        feedback.show(R.string.detail_saved_day_state)
-                    }
-                },
-            )
-        } else {
+        if (state == DoneState.DONE || state == DoneState.SKIP) {
             Text(
-                modifier = Modifier.padding(top = 8.dp),
-                text = stringResource(id = R.string.detail_day_not_editable),
-                style = AppTypography.bodySmall.copy(
-                    color = AppColor.onSurface.copy(alpha = 0.4f),
+                modifier = Modifier.align(Alignment.BottomCenter)
+                    .padding(bottom = 1.dp)
+                    .clearAndSetSemantics { },
+                text = if (state == DoneState.DONE) "✓" else "−",
+                style = AppTypography.labelSmall.copy(
+                    color = textColor,
+                    fontSize = 10.sp,
+                    letterSpacing = 0.sp,
                 ),
             )
         }
-
-        JournalMemoField(
-            modifier = Modifier.padding(top = 14.dp),
-            value = memo,
-            onValueChange = onMemoChange,
-        )
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = stringResource(id = R.string.retrospect_char_count, memo.length),
-                style = AppTypography.bodySmall.copy(
-                    color = AppColor.onSurface.copy(alpha = 0.4f),
-                ),
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            PrimaryPillButton(
-                enabled = memoSaveEnabled,
-                text = stringResource(id = R.string.save),
-                onClick = {
-                    scope.launch {
-                        onSaveMemo()
-                        feedback.show(R.string.detail_saved_memo)
-                    }
-                },
-            )
-        }
     }
 }
 
-/**
- * 선택한 날의 상태를 고르는 세 칸(완료 · 건너뜀 · 기록 없음).
- * 이미 골라 둔 칸을 다시 눌러도 같은 값을 저장하지 않는다.
- */
+/** 달력 기호와 의미를 함께 보여 준다. */
 @Composable
-private fun DayStateSelector(
-    modifier: Modifier = Modifier,
-    doneState: Int?,
-    accent: Color,
-    onSelect: (Int) -> Unit,
-) {
-    val current = doneState ?: DoneState.NO_RESPONSE
-
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .selectableGroup(),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        DayStateChip(
-            modifier = Modifier.weight(1f),
-            label = stringResource(id = R.string.done),
-            selected = current == DoneState.DONE,
-            selectedColor = accent,
-            onClick = { onSelect(DoneState.DONE) },
-        )
-        DayStateChip(
-            modifier = Modifier.weight(1f),
-            label = stringResource(id = R.string.skip),
-            selected = current == DoneState.SKIP,
-            selectedColor = AppColor.onSurface.copy(alpha = 0.6f),
-            onClick = { onSelect(DoneState.SKIP) },
-        )
-        DayStateChip(
-            modifier = Modifier.weight(1f),
-            label = stringResource(id = R.string.detail_day_no_record),
-            selected = current == DoneState.NO_RESPONSE,
-            selectedColor = AppColor.onSurface.copy(alpha = 0.45f),
-            onClick = { onSelect(DoneState.NO_RESPONSE) },
-        )
-    }
+private fun CalendarLegend(modifier: Modifier = Modifier) {
+    Text(
+        modifier = modifier.fillMaxWidth(),
+        text = stringResource(R.string.detail_calendar_legend),
+        textAlign = TextAlign.Center,
+        style = AppTypography.bodySmall.copy(color = AppColor.onSurface.copy(alpha = 0.6f)),
+    )
 }
 
 @Composable
-private fun DayStateChip(
+private fun TodayJournalRow(
     modifier: Modifier = Modifier,
-    label: String,
-    selected: Boolean,
-    selectedColor: Color,
+    today: LocalDate,
+    state: Int?,
+    enabled: Boolean,
     onClick: () -> Unit,
 ) {
-    val isSelected = selected
-    Box(
-        modifier = modifier
-            .height(40.dp)
-            .clip(RoundShapes.medium)
-            .background(
-                if (selected) selectedColor.copy(alpha = 0.16f) else AppColor.surfaceContainer
-            )
-            .then(
-                if (selected) {
-                    Modifier.border(
-                        width = 1.dp,
-                        color = selectedColor.copy(alpha = 0.55f),
-                        shape = RoundShapes.medium,
-                    )
-                } else {
-                    Modifier
-                }
-            )
-            .clickable(enabled = !selected, role = Role.RadioButton, onClick = onClick)
-            .semantics(mergeDescendants = true) { this.selected = isSelected },
-        contentAlignment = Alignment.Center,
+    Column(
+        modifier = modifier.fillMaxWidth()
+            .clip(RoundShapes.large)
+            .background(AppColor.surfaceContainer)
+            .padding(16.dp),
     ) {
-        Text(
-            text = label,
-            maxLines = 1,
-            style = AppTypography.labelMedium.copy(
-                color = if (selected) selectedColor else AppColor.onSurface.copy(alpha = 0.55f),
-                fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-            ),
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                modifier = Modifier.weight(1f).padding(end = 12.dp),
+                text = stringResource(R.string.detail_today) + " · " + today.formatMonthDateDay(),
+                style = AppTypography.bodyMedium.copy(color = AppColor.onSurface),
+            )
+            Text(
+                text = stringResource(when (state) {
+                    DoneState.DONE -> R.string.done
+                    DoneState.SKIP -> R.string.skip
+                    else -> R.string.detail_day_no_record
+                }),
+                style = AppTypography.bodySmall.copy(color = AppColor.onSurface.copy(alpha = 0.65f)),
+            )
+        }
+        TextActionButton(
+            text = stringResource(R.string.detail_record_today),
+            enabled = enabled,
+            onClick = onClick,
         )
     }
-}
-
-/** 회고 입력창. 홈 화면의 회고 입력과 같은 톤이되, 스크롤 중 키보드가 튀지 않도록 자동 포커스는 두지 않는다. */
-@Composable
-private fun JournalMemoField(
-    modifier: Modifier = Modifier,
-    value: String,
-    onValueChange: (String) -> Unit,
-) {
-    BasicTextField(
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 88.dp)
-            .clip(RoundShapes.medium)
-            .background(AppColor.surfaceContainer)
-            .border(
-                width = 0.5.dp,
-                color = AppColor.onSurface.copy(alpha = 0.12f),
-                shape = RoundShapes.medium,
-            )
-            .padding(all = 14.dp),
-        value = value,
-        onValueChange = onValueChange,
-        cursorBrush = SolidColor(AppColor.primary),
-        textStyle = AppTypography.bodyMedium.copy(
-            color = AppColor.onSurface,
-            lineHeight = 20.sp,
-        ),
-        decorationBox = { innerTextField ->
-            if (value.isEmpty()) {
-                Text(
-                    text = stringResource(id = R.string.retrospect_hint),
-                    style = AppTypography.bodyMedium.copy(
-                        color = AppColor.onSurface.copy(alpha = 0.4f),
-                    ),
-                )
-            }
-            innerTextField()
-        },
-    )
 }
 
 /**
@@ -659,7 +538,7 @@ private fun MemoListToggle(
     )
 }
 
-/** 메모를 남긴 날짜와 본문을 최신 순으로. 한 줄을 누르면 그 날짜가 달력에서 선택된다. */
+/** 메모를 최신 순으로 보여 준다. 한 줄을 누르면 그 날짜의 편집창을 연다. */
 @Composable
 private fun MemoList(
     modifier: Modifier = Modifier,

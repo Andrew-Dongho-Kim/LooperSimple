@@ -70,11 +70,12 @@ fun buildTodayOccurrences(
 
             // 2) 지금 몫. 오늘 활성이거나 자정을 넘겨 지금도 진행 중인 루프만 오늘 화면에 올린다.
             if (!loop.enabled) return@forEach
-            if (!loop.isActiveDay(today) && !loop.isActive(now)) return@forEach
+            val current = currentOccurrence(today = loop, yesterday = yesterdayRow, now = now)
+            if (!loop.isActiveDay(today) && !current.isActive(now)) return@forEach
             add(
                 TodayOccurrence(
                     // 자정을 넘겨 이어지는 중이면 done 기록이 어제 행에 있으므로 그 행으로 바꿔 든다.
-                    loop = currentOccurrence(today = loop, yesterday = yesterdayRow, now = now),
+                    loop = current,
                     date = currentOccurrenceDate(today = loop, yesterday = yesterdayRow, now = now),
                     isCarriedOver = false,
                 )

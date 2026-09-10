@@ -1,6 +1,7 @@
 package com.pnd.android.loop.appwidget
 
 import android.content.Context
+import androidx.annotation.Keep
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -70,6 +71,8 @@ class AppWidget : GlanceAppWidget() {
      * 위젯 상태에 저장해 둔 JSON([KEY_LOOPS_JSON])을 그대로 옮겨 담는 그릇.
      * 값을 채우는 쪽은 [AppWidgetUpdateWorker] 다.
      */
+    // Jackson uses this constructor and setters through reflection in minified builds.
+    @Keep
     class AppWidgetData {
         /** 아직 답하지 않은 몫들. 이미 완료/건너뛴 몫은 워커에서 걸러져 여기 오지 않는다. */
         lateinit var loops: List<Map<String, Any>>

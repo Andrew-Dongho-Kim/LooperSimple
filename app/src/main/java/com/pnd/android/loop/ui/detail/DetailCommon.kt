@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -27,7 +26,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
@@ -56,14 +54,15 @@ import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopDay
 import com.pnd.android.loop.data.LoopDay.Companion.isOn
+import com.pnd.android.loop.ui.common.AppCard
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
+import com.pnd.android.loop.ui.theme.Dimens
 import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.onPrimary
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.ui.theme.surfaceContainer
-import com.pnd.android.loop.ui.theme.surfaceElevated
 import com.pnd.android.loop.util.ABB_DAYS
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -72,14 +71,28 @@ import kotlinx.coroutines.launch
 // 상세 화면 전체가 공유하는 치수·컨테이너·작은 조각들
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * 상세 화면의 간격 기준. 바깥 컨테이너는 제목과 본문의 경계를,
+ * 각 콘텐츠는 내부 항목 간격만 관리해 여백이 중복되지 않게 한다.
+ */
+internal object DetailSpacing {
+    val screenTop = Dimens.contentPadding
+    val headerToContent = Dimens.contentPadding
+    val group = Dimens.sectionSpacing
+    val item = 12.dp
+    val related = 8.dp
+    val sectionBottom = 24.dp
+    val actions = 24.dp
+}
+
 /** Inner padding shared by every card on the detail screen. */
-internal val CardPadding = 20.dp
+internal val CardPadding = Dimens.contentPadding
 
 /** Vertical gap between rows inside a card (info rows, header → content). */
 internal val CardInnerSpacing = 16.dp
 
 /** Vertical padding of one collapsible section row. */
-internal val SectionRowPadding = 15.dp
+internal val SectionRowPadding = 16.dp
 
 /** Gap between two stat tiles, horizontally and vertically. */
 internal val TileSpacing = 10.dp
@@ -160,20 +173,11 @@ internal fun DetailCard(
     contentPadding: PaddingValues = PaddingValues(all = CardPadding),
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundShapes.large,
-        color = AppColor.surfaceElevated,
-        border = BorderStroke(
-            width = 0.5.dp,
-            color = AppColor.onSurface.copy(alpha = 0.08f),
-        ),
-    ) {
-        Column(
-            modifier = Modifier.padding(paddingValues = contentPadding),
-            content = content,
-        )
-    }
+    AppCard(
+        modifier = modifier,
+        contentPadding = contentPadding,
+        content = content,
+    )
 }
 
 /**
@@ -194,9 +198,8 @@ internal fun ExpandableSection(
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
     contentPadding: PaddingValues = PaddingValues(
-        start = CardPadding,
-        end = CardPadding,
-        bottom = CardPadding,
+        top = DetailSpacing.headerToContent,
+        bottom = DetailSpacing.sectionBottom,
     ),
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -219,7 +222,7 @@ internal fun ExpandableSection(
                     role = Role.Button
                     stateDescription = if (expanded) expandedLabel else collapsedLabel
                 }
-                .padding(horizontal = CardPadding, vertical = SectionRowPadding)
+                .padding(vertical = SectionRowPadding)
                 .sizeIn(minHeight = MinTouchTarget - SectionRowPadding * 2),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -230,26 +233,23 @@ internal fun ExpandableSection(
                 contentDescription = null,
             )
             Text(
-                modifier = Modifier.padding(start = 12.dp),
+                modifier = Modifier.weight(1f).padding(start = 12.dp),
                 text = title,
-                style = AppTypography.bodyLarge.copy(
+                style = AppTypography.titleMedium.copy(
                     color = AppColor.onSurface,
-                    fontWeight = FontWeight.Medium,
                 ),
             )
             if (summary != null) {
                 Text(
                     modifier = Modifier
                         .padding(start = 12.dp)
-                        .weight(1f),
+                        .weight(0.85f),
                     text = summary,
                     textAlign = TextAlign.End,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     style = AppTypography.bodySmall.copy(color = summaryColor),
                 )
-            } else {
-                Spacer(modifier = Modifier.weight(1f))
             }
             Icon(
                 modifier = Modifier

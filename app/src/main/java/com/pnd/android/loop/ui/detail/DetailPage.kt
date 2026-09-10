@@ -1,6 +1,7 @@
 package com.pnd.android.loop.ui.detail
 
 import android.net.Uri
+import android.os.SystemClock
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ScrollState
@@ -9,44 +10,54 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.ModeEdit
+import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.pnd.android.loop.BuildConfig
@@ -54,17 +65,26 @@ import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopRetrospectVo
 import com.pnd.android.loop.data.LoopVo
+import com.pnd.android.loop.ui.common.AppPageHeader
 import com.pnd.android.loop.ui.common.AppBarIcon
+import com.pnd.android.loop.ui.common.BackdropState
+import com.pnd.android.loop.ui.common.NavigationBarFadingEdge
+import com.pnd.android.loop.ui.common.StatusBarFadingEdge
+import com.pnd.android.loop.ui.common.backdropSource
+import com.pnd.android.loop.ui.common.rememberBackdropState
+import com.pnd.android.loop.ui.common.rememberScrollCollapseProgress
+import com.pnd.android.loop.ui.common.supportsBackdropBlur
 import com.pnd.android.loop.ui.common.SimpleAd
 import com.pnd.android.loop.ui.home.DeleteLoopDialog
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.Dimens
+import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.background
 import com.pnd.android.loop.ui.theme.compositeOverOnSurface
 import com.pnd.android.loop.ui.theme.error
 import com.pnd.android.loop.ui.theme.onSurface
-import com.pnd.android.loop.ui.theme.surface
+import com.pnd.android.loop.ui.theme.surfaceElevated
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -78,6 +98,9 @@ private val adId = if (BuildConfig.DEBUG) {
 
 /** 삭제한 뒤 실행 취소를 기다리는 시간. 지나면 화면을 닫는다. */
 private const val UNDO_WINDOW_MS = 6_000L
+
+/** 상세 상단 바가 펼쳐진 상태에서 차지하는 액션 행 높이. */
+private val DetailAppBarHeight = Dimens.appBarHeight
 
 /**
  * 루프 상세 화면. 두 모습만 갖는다 — 읽는 화면([DetailScreen])과 고치는 화면([LoopEditor]).
@@ -144,9 +167,9 @@ private fun DetailScreen(
 ) {
     val scope = rememberCoroutineScope()
 
-    // 삭제한 직후의 되살리기 창. 값이 있는 동안은 본문 대신 실행 취소 안내가 보인다.
-    var deleted by remember { mutableStateOf<LoopDetailViewModel.DeletedLoop?>(null) }
     var isConfirmingDelete by rememberSaveable { mutableStateOf(false) }
+    var showingLoopInfo by rememberSaveable(loop.loopId) { mutableStateOf(false) }
+    val pendingDeletion by detailViewModel.pendingDeletion.collectAsState()
 
     if (isConfirmingDelete) {
         // 삭제는 기록과 메모까지 함께 지운다. 홈과 같은 확인 다이얼로그를 한 번 거친다.
@@ -156,108 +179,135 @@ private fun DetailScreen(
             onDismiss = { isConfirmingDelete = false },
             onDelete = {
                 isConfirmingDelete = false
-                scope.launch { deleted = detailViewModel.deleteLoop(loop) }
+                scope.launch {
+                    detailViewModel.deleteLoop(loop)
+                }
             },
         )
     }
 
-    val snapshot = deleted
+    val pending = pendingDeletion
+
+    if (showingLoopInfo && pending == null) {
+        val today by detailViewModel.today.collectAsState()
+        LoopInformationDialog(
+            loop = loop,
+            today = today,
+            onLoadOverlapCount = { detailViewModel.overlappingLoopCount(it) },
+            onDismiss = { showingLoopInfo = false },
+        )
+    }
+
+    val backdrop = rememberBackdropState()
+    val headerProgress by rememberScrollCollapseProgress(
+        scrollState = scrollState,
+        collapseDistance = DetailAppBarHeight,
+    )
+    val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val contentPadding = PaddingValues(
+        top = topInset + DetailAppBarHeight + DetailSpacing.screenTop,
+        bottom = bottomInset + DetailSpacing.sectionBottom,
+    )
 
     Scaffold(
         modifier = modifier
-            .fillMaxWidth()
-            .fillMaxHeight()
+            .fillMaxSize()
             .background(color = AppColor.background),
-        topBar = {
-            // 활성화 토글만은 앱바에 두지 않는다. 예전에 앱바에서 가장 누르기 쉬운 자리에 있던
-            // 탓에, 기록을 멈추는 되돌리기 어려운 동작이 실수로 눌리기 쉬웠다. 지금은 본문 최상단
-            // 요약 헤더에서 "지금 어느 쪽인지"를 글자로 보여주며 고른다.
-            DetailAppBar(
-                modifier = Modifier.statusBarsPadding(),
-                title = loop.title,
-                color = loop.color,
-                // 지운 뒤 되살리기를 기다리는 동안은 이미 없는 루프다. 고칠 수도 없고 다시 지울
-                // 수도 없으므로 두 버튼을 거둔다. 남은 선택지는 실행 취소와 닫기뿐이다.
-                showActions = snapshot == null,
-                onNavigateUp = onNavigateUp,
-                onEdit = onEdit,
-                onDelete = { isConfirmingDelete = true },
+        snackbarHost = {
+            SnackbarHost(
+                modifier = Modifier.navigationBarsPadding(),
+                hostState = snackBarHostState,
             )
         },
-        snackbarHost = { SnackbarHost(hostState = snackBarHostState) },
-    ) { contentPadding ->
-        Box(modifier = Modifier.padding(contentPadding)) {
-            if (snapshot != null) {
+        containerColor = Color.Transparent,
+        contentColor = AppColor.onSurface,
+        // 본문을 상태·내비게이션 바까지 확장하고, 각 시스템 바는 fading edge가 마감한다.
+        contentWindowInsets = ScaffoldDefaults.contentWindowInsets
+            .exclude(WindowInsets.statusBars)
+            .exclude(WindowInsets.navigationBars),
+    ) { scaffoldPadding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(scaffoldPadding),
+        ) {
+            if (pending != null) {
                 DeletedNotice(
-                    loopTitle = snapshot.loop.title,
-                    onUndo = {
-                        detailViewModel.restoreLoop(snapshot)
-                        deleted = null
+                    loopTitle = pending.deleted.loop.title,
+                    undoDeadlineElapsedMs = pending.undoDeadlineElapsedMs,
+                    onUndo = { scope.launch { detailViewModel.restorePendingDeletion() } },
+                    onExpire = {
+                        detailViewModel.clearPendingDeletion()
+                        onNavigateUp()
                     },
-                    onExpire = onNavigateUp,
                 )
             } else {
                 DetailPageContent(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .backdropSource(backdrop),
                     detailViewModel = detailViewModel,
                     loop = loop,
                     feedback = feedback,
                     scrollState = scrollState,
+                    contentPadding = contentPadding,
                 )
             }
+
+            // 시스템 바 위로도 본문이 이어지되, 경계에서는 자연스럽게 사라진다.
+            StatusBarFadingEdge(modifier = Modifier.align(Alignment.TopCenter))
+            NavigationBarFadingEdge(modifier = Modifier.align(Alignment.BottomCenter))
+
+            DetailAppBar(
+                modifier = Modifier.align(Alignment.TopCenter),
+                title = loop.title,
+                color = loop.color,
+                progress = headerProgress,
+                backdrop = if (supportsBackdropBlur) backdrop else null,
+                showActions = pending == null,
+                enabled = loop.enabled,
+                onNavigateUp = onNavigateUp,
+                onEdit = onEdit,
+                onEnabledChange = { detailViewModel.enableLoop(loop, it) },
+                onShowInfo = { showingLoopInfo = true },
+                onDelete = { isConfirmingDelete = true },
+            )
         }
     }
 }
 
-/**
- * 상세 화면의 액션 바. 이 루프가 무엇인지(색 · 이름)와 이 루프에 할 수 있는 두 가지 일
- * (수정 · 삭제)이 한 줄에 모인다.
- *
- * 예전에는 이름과 색이 본문 맨 위 요약 헤더에 있었고, 고치는 길은 섹션마다 흩어져 있었다
- * (이름 옆 연필 · 색 점 · 스케줄 섹션의 '시간 수정'). 지금은 스크롤 위치와 무관하게 늘 같은
- * 자리에서 같은 두 버튼을 누른다. 이름과 색도 함께 앱바로 올라와, 본문을 어디까지 내려도
- * "무슨 루프를 보고 있는지"가 화면에서 사라지지 않는다.
- *
- * 삭제만 error 색을 입혀 되돌릴 수 없는 동작임을 색으로도 구분한다.
- */
+/** 이름·색·수정은 항상 보이고, 스크롤 시에는 플로팅 표면 위에 남는다. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DetailAppBar(
     modifier: Modifier = Modifier,
     title: String,
     color: Int,
+    progress: Float,
+    backdrop: BackdropState?,
     showActions: Boolean,
     onNavigateUp: () -> Unit,
     onEdit: () -> Unit,
+    enabled: Boolean,
+    onEnabledChange: (Boolean) -> Unit,
+    onShowInfo: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    TopAppBar(
-        modifier = modifier.background(color = AppColor.surface),
-        title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(LoopColorDotSize)
-                        .clip(CircleShape)
-                        .background(color.compositeOverOnSurface()),
-                )
-                Text(
-                    modifier = Modifier.padding(start = 10.dp),
-                    text = title,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    style = AppTypography.titleLarge.copy(
-                        color = AppColor.onSurface,
-                        fontWeight = FontWeight.Bold,
-                    ),
-                )
-            }
-        },
-        navigationIcon = {
-            AppBarIcon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                color = AppColor.onSurface,
-                descriptionResId = R.string.navi_up,
-                onClick = onNavigateUp,
+    var menuExpanded by remember { mutableStateOf(false) }
+    AppPageHeader(
+        modifier = modifier,
+        title = title,
+        onNavigateUp = onNavigateUp,
+        progress = progress,
+        backdrop = backdrop,
+        titleLeading = {
+            Box(
+                modifier = Modifier
+                    .padding(end = 10.dp)
+                    .size(LoopColorDotSize)
+                    .clip(CircleShape)
+                    .background(color.compositeOverOnSurface()),
             )
         },
         actions = {
@@ -268,29 +318,63 @@ private fun DetailAppBar(
                     descriptionResId = R.string.detail_edit_loop,
                     onClick = onEdit,
                 )
-                AppBarIcon(
-                    imageVector = Icons.Outlined.Delete,
-                    color = AppColor.error,
-                    descriptionResId = R.string.delete_loop_title,
-                    onClick = onDelete,
-                )
+                Box {
+                    AppBarIcon(
+                        imageVector = Icons.Outlined.MoreVert,
+                        color = AppColor.onSurface,
+                        descriptionResId = R.string.detail_more_actions,
+                        onClick = { menuExpanded = true },
+                    )
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false },
+                        shape = RoundShapes.large,
+                        containerColor = AppColor.surfaceElevated,
+                        tonalElevation = 0.dp,
+                    ) {
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    stringResource(R.string.detail_schedule_enabled),
+                                    color = AppColor.onSurface,
+                                )
+                            },
+                            trailingContent = {
+                                Switch(
+                                    checked = enabled,
+                                    onCheckedChange = onEnabledChange,
+                                )
+                            },
+                            onClick = { onEnabledChange(!enabled) },
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.detail_loop_info), color = AppColor.onSurface) },
+                            leadingIcon = {
+                                Icon(Icons.Outlined.Info, contentDescription = null, tint = AppColor.onSurface)
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                onShowInfo()
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.delete_loop_title), color = AppColor.error) },
+                            leadingIcon = {
+                                Icon(Icons.Outlined.Delete, contentDescription = null, tint = AppColor.error)
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                onDelete()
+                            },
+                        )
+                    }
+                }
             }
         },
     )
 }
 
-/**
- * 상세 화면 본문. 화면은 두 층으로만 나뉜다.
- *
- * 1. [SummaryHeader] — 카드 테두리 없이 배경 위에 바로 놓이는 요약. 활성화 상태와 핵심
- *    지표 둘(완료율·연속), 이번 주 목표 진행까지가 여기에 들어가 진입 즉시 스크롤 없이 읽힌다.
- * 2. [SectionList] — 스케줄 / 통계 / 기록 / 내보내기를 한 장의 카드 안에 담는다.
- *    접힌 행에도 오른쪽에 값이 남아 있어 펼치지 않아도 정보가 사라지지 않는다.
- *
- * 화면이 그리는 수치는 전부 [LoopDetailViewModel.stats] 하나에서 온다. 예전에는 요약 헤더와
- * 기록 섹션이 같은 응답 목록으로 같은 날짜 인덱스를 각자 만들고, 60일 롤링 완료율까지 컴포지션
- * 도중에 계산했다.
- */
+/** 활성 상태와 주간 목표 아래에는 기록과 통계만 배치한다. */
 @Composable
 private fun DetailPageContent(
     modifier: Modifier = Modifier,
@@ -298,6 +382,7 @@ private fun DetailPageContent(
     loop: LoopBase,
     feedback: DetailFeedback,
     scrollState: ScrollState,
+    contentPadding: PaddingValues,
 ) {
     val stats by detailViewModel.stats.collectAsState()
     val memos by detailViewModel.memos.collectAsState()
@@ -306,13 +391,13 @@ private fun DetailPageContent(
         modifier = modifier
             .padding(horizontal = Dimens.screenHorizontalPadding)
             .fillMaxWidth()
-            .verticalScroll(state = scrollState),
-        verticalArrangement = Arrangement.spacedBy(Dimens.contentPadding),
+            .verticalScroll(state = scrollState)
+            .padding(contentPadding),
+        verticalArrangement = Arrangement.spacedBy(DetailSpacing.group),
     ) {
         SummaryHeader(
             loop = loop,
             stats = stats,
-            onEnabledChange = { enabled -> detailViewModel.enableLoop(loop, enabled) },
         )
 
         SectionList(
@@ -325,16 +410,10 @@ private fun DetailPageContent(
 
         SimpleAd(adId = adId)
     }
+
 }
 
-/**
- * 스케줄 / 통계 / 기록 / 내보내기를 담는 한 장의 카드.
- *
- * 순서는 "이 루프가 무엇인지 → 잘 지키고 있는지 → 되돌아보기 → 꺼내기" 다. 스케줄이 맨 위인
- * 이유는 루프의 정체성이기 때문이고, 내보내기가 맨 아래인 이유는 가장 드물게 쓰기 때문이다.
- *
- * 기본으로 펼쳐 두는 것은 통계 하나뿐이다. 나머지는 접힌 채로도 오른쪽 요약에 값이 남는다.
- */
+/** 본문은 기록과 메모 → 자세한 통계 순이다. 첫 화면에서는 두 섹션 모두 접어 둔다. */
 @Composable
 private fun SectionList(
     modifier: Modifier = Modifier,
@@ -346,40 +425,11 @@ private fun SectionList(
 ) {
     val accent = Color(loop.color).compositeOverOnSurface()
 
-    var scheduleExpanded by rememberSaveable(loop.loopId) { mutableStateOf(false) }
-    var statsExpanded by rememberSaveable(loop.loopId) { mutableStateOf(true) }
+    var statsExpanded by rememberSaveable(loop.loopId) { mutableStateOf(false) }
     var journalExpanded by rememberSaveable(loop.loopId) { mutableStateOf(false) }
 
-    // 같은 시간대에 몇 개가 몰려 있는지. 시간대가 바뀔 때만 다시 센다.
-    var overlappingCount by remember(loop.loopId) { mutableStateOf(0) }
-    LaunchedEffect(loop.loopId, loop.startInDay, loop.endInDay, loop.activeDays, loop.isAnyTime) {
-        overlappingCount = detailViewModel.overlappingLoopCount(loop)
-    }
-
-    DetailCard(
-        modifier = modifier,
-        contentPadding = PaddingValues(vertical = 4.dp),
-    ) {
-        ScheduleSection(
-            loop = loop,
-            today = stats.today,
-            createdDate = stats.createdDate,
-            overlappingCount = overlappingCount,
-            expanded = scheduleExpanded,
-            onExpandedChange = { scheduleExpanded = it },
-        )
-
-        SectionSeparator()
-
-        StatsSection(
-            stats = stats,
-            accent = accent,
-            expanded = statsExpanded,
-            onExpandedChange = { statsExpanded = it },
-        )
-
-        SectionSeparator()
-
+    Column(modifier = modifier.fillMaxWidth()) {
+        HairlineDivider()
         JournalSection(
             stats = stats,
             memos = memos,
@@ -398,14 +448,14 @@ private fun SectionList(
             },
         )
 
-        SectionSeparator()
-
-        ExportRow(
-            detailViewModel = detailViewModel,
-            loopTitle = loop.title,
-            recordCount = stats.totalCount,
-            feedback = feedback,
+        HairlineDivider()
+        StatsSection(
+            stats = stats,
+            accent = accent,
+            expanded = statsExpanded,
+            onExpandedChange = { statsExpanded = it },
         )
+
     }
 }
 
@@ -471,12 +521,23 @@ private fun csvFileName(loopTitle: String): String {
 private fun DeletedNotice(
     modifier: Modifier = Modifier,
     loopTitle: String,
+    undoDeadlineElapsedMs: Long,
     onUndo: () -> Unit,
     onExpire: () -> Unit,
 ) {
-    LaunchedEffect(loopTitle) {
-        delay(UNDO_WINDOW_MS)
-        onExpire()
+    var remainingSeconds by remember(loopTitle, undoDeadlineElapsedMs) {
+        mutableIntStateOf(remainingSecondsUntil(undoDeadlineElapsedMs))
+    }
+
+    LaunchedEffect(undoDeadlineElapsedMs) {
+        while (true) {
+            remainingSeconds = remainingSecondsUntil(undoDeadlineElapsedMs)
+            if (remainingSeconds <= 0) {
+                onExpire()
+                break
+            }
+            delay(250)
+        }
     }
 
     Column(
@@ -500,6 +561,12 @@ private fun DeletedNotice(
                 color = AppColor.onSurface.copy(alpha = 0.5f),
             ),
         )
+        Text(
+            modifier = Modifier.padding(top = 8.dp),
+            text = "$remainingSeconds",
+            textAlign = TextAlign.Center,
+            style = AppTypography.bodySmall.copy(color = AppColor.onSurface.copy(alpha = 0.5f)),
+        )
         PrimaryPillButton(
             modifier = Modifier.padding(top = 20.dp),
             text = stringResource(id = R.string.detail_undo),
@@ -512,3 +579,8 @@ private fun DeletedNotice(
         )
     }
 }
+
+private fun remainingSecondsUntil(deadlineElapsedMs: Long): Int =
+    ((deadlineElapsedMs - SystemClock.elapsedRealtime() + 999L) / 1_000L)
+        .coerceAtLeast(0L)
+        .toInt()

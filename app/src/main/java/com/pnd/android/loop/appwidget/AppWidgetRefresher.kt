@@ -10,10 +10,6 @@ import com.pnd.android.loop.appwidget.AppWidget.Companion.KEY_REVISION
 import com.pnd.android.loop.common.Logger
 import com.pnd.android.loop.data.AppDatabase
 import com.pnd.android.loop.data.TodayLoopOrder
-import com.pnd.android.loop.data.TodayOccurrence
-import com.pnd.android.loop.data.actualEndInDay
-import com.pnd.android.loop.data.actualStartInDay
-import com.pnd.android.loop.data.asLoopVo
 import com.pnd.android.loop.data.buildTodayOccurrences
 import com.pnd.android.loop.data.isDisabled
 import com.pnd.android.loop.data.isRespond
@@ -23,7 +19,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.json.JSONArray
 import org.json.JSONObject
-import java.time.LocalDate
+import java.time.LocalDateTime
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -60,7 +56,8 @@ class AppWidgetRefresher @Inject constructor(
             return@withLock
         }
 
-        val today = LocalDate.now()
+        val now = LocalDateTime.now()
+        val today = now.toLocalDate()
         // 자정을 넘기는 루프의 done 기록은 시작한 날인 어제 행에 있다. 오늘 행만 보면 이미 완료한
         // 루프가 계속 미응답으로 남고, 오늘 아침에 끝난 몫도 놓친다.
         val yesterdayLoops = fullLoopDao.getAllEnabledLoops(date = today.minusDays(1).toMs())
@@ -71,6 +68,7 @@ class AppWidgetRefresher @Inject constructor(
         val occurrences = buildTodayOccurrences(
             todayLoops = todayLoops,
             yesterdayLoops = yesterdayLoops.associateBy { it.loopId },
+            now = now,
         )
         // 비활성 처리된 몫은 오늘 할 일이 아니므로 목록에서도, 아래 총 개수에서도 뺀다.
         val todayOccurrences = occurrences.filterNot { occurrence -> occurrence.loop.isDisabled }
@@ -86,25 +84,6 @@ class AppWidgetRefresher @Inject constructor(
             registeredTotal = loopDao.countAllLoops(),
         )
     }
-
-    /**
-     * 위젯으로 전달되는 루프는 putTo/asLoop 를 거치며 done 상태·실제 시작/종료 시각을 잃고
-     * 순수 LoopVo 로 재구성된다. anytime 루프는 base start/end 가 항상 ANY_TIME(-1)이라,
-     * 이대로면 위젯이 진행 여부를 알 수 없어 늘 "시작" 버튼만 노출된다.
-     * 그래서 anytime 루프에 한해 실제 시작/종료 시각(done 기록)을 start/end 로 옮겨 실어,
-     * 위젯이 시작/정지 버튼과 "started at" 라벨을 올바로 표시하게 한다.
-     *
-     * 어느 날 몫인지도 함께 실어야 위젯에서 누른 응답이 올바른 날짜 행에 기록된다([WidgetLoop]).
-     */
-    private fun TodayOccurrence.toWidgetLoop(): WidgetLoop = WidgetLoop(
-        loop = if (loop.isAnyTime) {
-            loop.asLoopVo(startInDay = loop.actualStartInDay, endInDay = loop.actualEndInDay)
-        } else {
-            loop
-        },
-        dateMs = date.toMs(),
-        isCarriedOver = isCarriedOver,
-    )
 
     /**
      * [loops] 가 비었을 때 위젯이 어떤 안내를 띄울지는 아래 두 수로 갈린다

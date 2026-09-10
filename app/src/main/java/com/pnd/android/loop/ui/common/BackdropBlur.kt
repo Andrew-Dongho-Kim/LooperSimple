@@ -39,11 +39,11 @@ import com.pnd.android.loop.ui.theme.surface
 /** Blur radius applied behind the floating surfaces — a frosted-glass "50%" look. */
 private val BackdropBlurRadius = 12.dp
 
-/** Surface tint over the blurred backdrop. Kept light (10%) so the blur itself does the work. */
-private const val BlurredTintAlpha = 0.1f
+/** Keep scrolling text from competing with the header's title and actions. */
+private const val BlurredTintAlpha = 0.80f
 
-/** Surface tint used when real blur is unavailable (API < 31); more opaque so it still reads. */
-private const val FallbackTintAlpha = 0.72f
+/** Match the same readable surface on devices without backdrop blur. */
+private const val FallbackTintAlpha = 0.92f
 
 /** Shadow cast by a fully collapsed floating surface, lifting it off the content behind it. */
 private val FloatingElevation = 6.dp
@@ -168,7 +168,7 @@ private fun Modifier.blurredBackdrop(
     this
         .onGloballyPositioned { positionInRoot = it.positionInRoot() }
         .graphicsLayer {
-            alpha = progress.coerceAtLeast(0.7f)
+            alpha = progress.coerceIn(0f, 1f)
             clip = true
             this.shape = shape
             renderEffect = BlurEffect(radiusPx, radiusPx, TileMode.Clamp)

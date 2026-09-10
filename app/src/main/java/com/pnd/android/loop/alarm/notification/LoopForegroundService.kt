@@ -124,6 +124,8 @@ class LoopForegroundService : Service() {
             while (isActive) {
                 val loops = queryActiveLoops()
                 if (loops.isEmpty()) {
+                    // Publish the final running loop's end before stopping ticks.
+                    refreshAppWidget()
                     // 종료 판단은 메인 스레드에서 확정한다. onStartCommand 와 같은 스레드라
                     // "종료를 정한 직후 도착한 refresh" 와 뒤섞이지 않는다. 그 사이 이 잡이
                     // 취소됐다면 withContext 가 취소로 끝나 종료 자체를 건너뛴다.

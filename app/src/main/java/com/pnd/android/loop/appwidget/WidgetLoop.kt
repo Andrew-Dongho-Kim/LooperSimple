@@ -1,6 +1,11 @@
 package com.pnd.android.loop.appwidget
 
 import com.pnd.android.loop.data.LoopBase
+import com.pnd.android.loop.data.LoopVo.Factory.ANY_TIME
+import com.pnd.android.loop.data.TodayOccurrence
+import com.pnd.android.loop.data.actualStartInDay
+import com.pnd.android.loop.data.asLoopVo
+import com.pnd.android.loop.data.isInProgress
 import com.pnd.android.loop.data.asLoop
 import com.pnd.android.loop.data.putTo
 import com.pnd.android.loop.util.isOvernight
@@ -33,6 +38,22 @@ data class WidgetLoop(
      */
     fun itemId(): Long = loop.loopId.toLong() * 2 + if (isCarriedOver) 1 else 0
 }
+
+/** Carry actual running state through the LoopVo JSON format used by the widget. */
+internal fun TodayOccurrence.toWidgetLoop(): WidgetLoop = WidgetLoop(
+    loop = if (loop.isAnyTime) {
+        // A LEFT JOIN without a done row produces zero times. NO_RESPONSE can also retain
+        // old times after an undo. Only IN_PROGRESS represents a running anytime loop.
+        loop.asLoopVo(
+            startInDay = if (loop.isInProgress) loop.actualStartInDay else ANY_TIME,
+            endInDay = ANY_TIME,
+        )
+    } else {
+        loop
+    },
+    dateMs = date.toMs(),
+    isCarriedOver = isCarriedOver,
+)
 
 // ---------------------------------------------------------------------------
 // 위젯 기준 상태 판별

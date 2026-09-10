@@ -130,6 +130,8 @@ class LoopScheduler @Inject constructor(
                 }
             }
             reserveAlarm(scheduleSync())
+            // syncLoops launches asynchronously; publish after the day's records are ready.
+            AppWidgetUpdateWorker.updateWidget(context)
 
             // 진행 중인 루프가 있으면 상시 알림 서비스를 (재)시작한다. 실제로 보여줄
             // 루프가 없다면 서비스가 스스로 종료하므로 안전하다.
