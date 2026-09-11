@@ -114,6 +114,22 @@ fun DailyAchievementPage(
     onNavigateToLoopDetail: (Int) -> Unit,
     onNavigateUp: () -> Unit,
 ) {
+    RecordFirstAchievementPage(
+        modifier = modifier,
+        achievementViewModel = achievementViewModel,
+        onNavigateToLoopDetail = onNavigateToLoopDetail,
+        onNavigateUp = onNavigateUp,
+    )
+}
+
+// Retained during the record-first redesign so existing in-progress layout work is preserved.
+@Composable
+private fun LegacyDailyAchievementPage(
+    modifier: Modifier = Modifier,
+    achievementViewModel: DailyAchievementViewModel = hiltViewModel(),
+    onNavigateToLoopDetail: (Int) -> Unit,
+    onNavigateUp: () -> Unit,
+) {
     val minDate by achievementViewModel.flowMinCreatedDate
         .collectAsState(initial = LocalDate.now())
 

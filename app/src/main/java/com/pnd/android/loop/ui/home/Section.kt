@@ -88,6 +88,7 @@ val HOME_NATIVE_AD_ID = if (BuildConfig.DEBUG) {
 
 fun LazyListScope.section(
     section: Section,
+    recentCompletionByLoop: Map<Int, RecentLoopCompletion>,
     blurState: BlurState,
     loopViewModel: LoopViewModel,
     snackBarHostState: SnackbarHostState,
@@ -149,6 +150,7 @@ fun LazyListScope.section(
 
         is Section.All -> sectionAll(
             section = section,
+            recentCompletionByLoop = recentCompletionByLoop,
             blurState = blurState,
             loopViewModel = loopViewModel,
             editingLoopId = editingLoopId,
@@ -738,6 +740,7 @@ private fun LazyListScope.sectionDoneSkip(
 
 private fun LazyListScope.sectionAll(
     section: Section.All,
+    recentCompletionByLoop: Map<Int, RecentLoopCompletion>,
     blurState: BlurState,
     loopViewModel: LoopViewModel,
     editingLoopId: Int?,
@@ -773,6 +776,8 @@ private fun LazyListScope.sectionAll(
                 isEditDimmed = editingLoopId != null && !isEditing,
                 // 전체 탭은 루프 관리가 목적이라 완료/건너뜀 기록 메뉴는 숨긴다.
                 showRecordActions = false,
+                recentCompletion = if (isEditing || loop.isMock) null
+                    else recentCompletionByLoop[loop.loopId],
             ),
             blurState = blurState,
             loopViewModel = loopViewModel,

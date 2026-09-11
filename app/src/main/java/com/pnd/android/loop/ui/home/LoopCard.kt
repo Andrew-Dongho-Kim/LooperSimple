@@ -12,6 +12,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -268,6 +270,7 @@ fun LoopCard(
  * for live cards — the any-time start/stop control plus the management overflow menu.
  */
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 private fun RowScope.ActiveCardContent(
     loop: LoopBase,
     cardValues: LoopCardValues,
@@ -289,26 +292,48 @@ private fun RowScope.ActiveCardContent(
         // 편집 중이면 도트 색은 그대로 두고 오른쪽 아래에 연필 코너 배지를 얹는다.
         isEditing = cardValues.isEditing,
     )
+    val completion = cardValues.recentCompletion.takeIf {
+        !syncWithTime && !loop.isMock && loop.enabled && !cardValues.isEditing
+    }
     Column(
         modifier = Modifier
             .weight(1f)
             .padding(start = 12.dp)
             .alpha(contentAlpha),
     ) {
-        LoopCardTitle(title = loop.title)
-        LoopCardMeta(
-            modifier = Modifier.padding(top = 3.dp),
+        if (completion != null) {
+            // Let the metadata use the full title + time width. On small screens / large fonts
+            // FlowRow wraps rather than clipping the repeat days or the tappable rate chip.
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                LoopCardTitle(modifier = Modifier.weight(1f), title = loop.title)
+                LoopTimeChip(modifier = Modifier.padding(start = 8.dp), loop = loop)
+            }
+            FlowRow(
+                modifier = Modifier.padding(top = 3.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Box(modifier = Modifier.align(Alignment.CenterVertically)) {
+                    LoopCardActiveDays(loop = loop)
+                }
+                RecentCompletionChip(loopTitle = loop.title, completion = completion)
+            }
+        } else {
+            LoopCardTitle(title = loop.title)
+            LoopCardMeta(
+                modifier = Modifier.padding(top = 3.dp),
+                loop = loop,
+                timeStat = timeStat,
+                syncWithTime = syncWithTime,
+            )
+        }
+    }
+    if (completion == null) {
+        LoopTimeChip(
+            modifier = Modifier.padding(start = 8.dp).alpha(contentAlpha),
             loop = loop,
-            timeStat = timeStat,
-            syncWithTime = syncWithTime,
         )
     }
-    LoopTimeChip(
-        modifier = Modifier
-            .padding(start = 8.dp)
-            .alpha(contentAlpha),
-        loop = loop,
-    )
     if (syncWithTime && loop.enabled &&
         loop.isAnyTime && (loop.startInDay < 0 || loop.endInDay < 0)
     ) {

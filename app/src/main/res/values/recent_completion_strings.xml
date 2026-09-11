@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="recent_completion_chip">Recent %1$d%%</string>
+    <string name="recent_completion_explain">Show how the completion rate is calculated</string>
+    <string name="recent_completion_accessibility">%1$s, recent completion %2$d percent</string>
+    <string name="recent_completion_title">Recent completion</string>
+    <string name="recent_completion_period">%1$s – %2$s</string>
+    <string name="recent_completion_percent">%1$d%%</string>
+    <string name="recent_completion_formula">%1$d completed ÷ %2$d eligible × 100</string>
+    <string name="recent_completion_rounding">Rounded to the nearest whole percent.</string>
+    <string name="recent_completion_done">Completed</string>
+    <string name="recent_completion_skipped">Skipped</string>
+    <string name="recent_completion_unanswered">No response</string>
+    <string name="recent_completion_total">Eligible days</string>
+    <string name="recent_completion_count">%1$d</string>
+    <string name="recent_completion_rules">Based on scheduled days in the 30 days ending yesterday. Today, the creation day, unscheduled weekdays, and days recorded as disabled are excluded. Skipped days and days without a response count toward eligible days, but not completions.</string>
+    <string name="recent_completion_schedule_note">Weekdays use the current repeat setting; changing it may change this rate. The chip appears after at least 3 eligible days.</string>
+    <string name="recent_completion_close">Close</string>
+</resources>

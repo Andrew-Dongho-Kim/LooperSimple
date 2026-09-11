@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import com.pnd.android.loop.data.AppDatabase
+import com.pnd.android.loop.data.FullLoopVo
 import com.pnd.android.loop.data.LoopByDate
 import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.MonthlyCompletionCount
@@ -14,10 +15,12 @@ import com.pnd.android.loop.ui.statisctics.computeStreak
 import com.pnd.android.loop.ui.statisctics.investedTimeMs
 import com.pnd.android.loop.util.toLocalDate
 import com.pnd.android.loop.util.toMs
+import com.pnd.android.loop.util.dayForLoop
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.flowOn
 import java.time.LocalDate
 import java.time.YearMonth
 import javax.inject.Inject
@@ -31,6 +34,47 @@ class DailyAchievementViewModel @Inject constructor(
 
     private val loopDao = appDb.loopDao()
     private val loopWithDoneDao = appDb.fullLoopDao()
+    private val historyDoneDao = appDb.loopDoneDao()
+    private val historyNotesDao = appDb.loopRetrospectDao()
+
+    /** Three bounded, reactive queries, rather than one query per loop and date. */
+    fun flowMonthReport(
+        month: YearMonth,
+        today: LocalDate = LocalDate.now(),
+    ): Flow<AchievementLoadState<MonthInsightReport>> {
+        val from = month.minusMonths(1).atDay(1).toMs()
+        val to = minOf(month.atEndOfMonth(), today).toMs()
+        return combine(
+            loopDao.getHistoryLoopsFlow(),
+            historyDoneDao.getHistoryRangeFlow(from, to),
+            historyNotesDao.getHistoryRangeFlow(from, to),
+        ) { loops, records, notes ->
+            buildMonthInsightReport(month, today, loops, records, notes)
+        }.flowOn(kotlinx.coroutines.Dispatchers.Default).asAchievementState()
+    }
+
+    fun flowDay(date: LocalDate): Flow<AchievementLoadState<List<FullLoopVo>>> =
+        loopWithDoneDao.getAchievementDayFlow(date.toMs(), date.plusDays(1).toMs(), dayForLoop(date))
+            .map { records -> records.map { it.asFullLoop() } }
+            .asAchievementState()
+
+    /** Week and month cells use the same scheduled-record denominator as the monthly report. */
+    fun flowCalendarDays(
+        from: LocalDate,
+        to: LocalDate,
+        today: LocalDate = LocalDate.now(),
+    ): Flow<AchievementLoadState<Map<LocalDate, AchievementCalendarDay>>> {
+        val end = minOf(to, today)
+        return combine(
+            loopDao.getHistoryLoopsFlow(),
+            historyDoneDao.getHistoryRangeFlow(from.toMs(), end.toMs()),
+            historyNotesDao.getHistoryRangeFlow(from.toMs(), end.toMs()),
+        ) { loops, records, notes ->
+            resolveInsightDays(from, end, loops, records, notes).associate { day ->
+                day.date to AchievementCalendarDay(day.doneCount, day.totalCount, day.hasNote)
+            }
+        }.flowOn(kotlinx.coroutines.Dispatchers.Default).asAchievementState()
+    }
 
     val flowMinCreatedDate = loopDao.getMinCreatedTimeFlow()
         .map { minCreated -> minCreated?.toLocalDate() ?: LocalDate.now() }

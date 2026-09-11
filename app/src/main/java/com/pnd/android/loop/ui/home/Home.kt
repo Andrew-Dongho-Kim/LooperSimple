@@ -362,6 +362,13 @@ private fun HomeBody(
         inputState = inputState,
         selectedTab = selectedTab,
     )
+    // Subscribe once for the All list; Today never receives historical-rate chips.
+    val recentCompletionByLoop = if (selectedTab == HomeTab.ALL) {
+        val rates by loopViewModel.recentCompletionByLoop.collectAsState()
+        rates
+    } else {
+        emptyMap()
+    }
     val onEdit = remember { { loop: LoopBase -> inputState.edit(loop) } }
     val onDelete = remember { { loop: LoopBase -> loopViewModel.deleteLoop(loop) } }
     val onStateChanged: (LoopBase, Int) -> Unit = remember {
@@ -474,6 +481,7 @@ private fun HomeBody(
                 currentSections.forEach { section ->
                     section(
                         section = section,
+                        recentCompletionByLoop = recentCompletionByLoop,
                         blurState = blurState,
                         loopViewModel = loopViewModel,
                         snackBarHostState = snackBarHostState,

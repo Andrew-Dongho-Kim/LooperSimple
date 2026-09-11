@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="history_title">기록</string>
+    <string name="history_today">오늘</string>
+    <string name="history_back">뒤로가기</string>
+    <string name="history_month_summary">월 요약 보기</string>
+    <string name="history_calendar_expand">달력 펼치기</string>
+    <string name="history_calendar_collapse">달력 접기</string>
+    <string name="history_choose_date">날짜를 선택하면 기록을 볼 수 있어요</string>
+    <string name="history_previous_month">이전 달</string>
+    <string name="history_next_month">다음 달</string>
+    <string name="history_previous_week">이전 주</string>
+    <string name="history_next_week">다음 주</string>
+    <string name="history_week_range">%1$s – %2$s</string>
+    <string name="history_day_rate">하루 달성률</string>
+    <string name="history_empty_day">이날은 예정된 루프가 없어요.</string>
+    <string name="history_day_notes">이날의 회고 모아보기 (%d)</string>
+    <string name="history_notes_title">회고 · %s</string>
+    <string name="history_in_progress">진행 중</string>
+    <string name="history_no_response">미응답</string>
+    <string name="history_close">닫기</string>
+    <string name="history_more">더 보기</string>
+    <string name="history_less">접기</string>
+    <string name="history_loading">기록을 불러오고 있어요…</string>
+    <string name="history_error">기록을 불러오지 못했어요.</string>
+    <string name="history_retry">다시 시도</string>
+    <string name="history_heat_low">달성률 · 낮음</string>
+    <string name="history_heat_high">높음</string>
+    <string name="history_has_note">회고 있음</string>
+    <string name="history_calendar_short">달력</string>
+    <string name="history_calendar_expanded_state">월 달력 펼쳐짐</string>
+    <string name="history_calendar_collapsed_state">주간 달력</string>
+</resources>

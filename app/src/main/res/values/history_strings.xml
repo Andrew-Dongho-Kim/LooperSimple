@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="history_title">History</string>
+    <string name="history_today">Today</string>
+    <string name="history_back">Back</string>
+    <string name="history_month_summary">Month summary</string>
+    <string name="history_calendar_expand">Show calendar</string>
+    <string name="history_calendar_collapse">Hide calendar</string>
+    <string name="history_choose_date">Select a date to view its records</string>
+    <string name="history_previous_month">Previous month</string>
+    <string name="history_next_month">Next month</string>
+    <string name="history_previous_week">Previous week</string>
+    <string name="history_next_week">Next week</string>
+    <string name="history_week_range">%1$s – %2$s</string>
+    <string name="history_day_rate">Daily achievement</string>
+    <string name="history_empty_day">No loops were scheduled for this day.</string>
+    <string name="history_day_notes">View notes for this day (%d)</string>
+    <string name="history_notes_title">Notes · %s</string>
+    <string name="history_in_progress">In progress</string>
+    <string name="history_no_response">Not recorded</string>
+    <string name="history_close">Close</string>
+    <string name="history_more">Read more</string>
+    <string name="history_less">Show less</string>
+    <string name="history_loading">Loading records…</string>
+    <string name="history_error">Could not load records.</string>
+    <string name="history_retry">Try again</string>
+    <string name="history_heat_low">Completion · Low</string>
+    <string name="history_heat_high">High</string>
+    <string name="history_has_note">Has a note</string>
+    <string name="history_calendar_short">Calendar</string>
+    <string name="history_calendar_expanded_state">Month calendar expanded</string>
+    <string name="history_calendar_collapsed_state">Week calendar</string>
+</resources>

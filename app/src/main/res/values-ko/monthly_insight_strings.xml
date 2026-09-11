@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="mi_analysis">상세 인사이트</string>
+    <string name="mi_notes">이번 달의 회고</string>
+    <string name="mi_definitions">집계 기준</string>
+    <string name="mi_empty">이 기간에는 예정된 루프나 기록이 없어요.</string>
+    <string name="mi_period">%1$s – %2$s</string>
+    <string name="mi_completion">완료율</string>
+    <string name="mi_small_steps">%d번의 작은 실천</string>
+    <string name="mi_planned">예정된 루프 %d회 중</string>
+    <string name="mi_no_comparison">비교할 이전 기간 기록이 없어요</string>
+    <string name="mi_delta">이전 기간 대비 %+d%%p</string>
+    <string name="mi_comparison_period">%1$s – %2$s / %3$s – %4$s 비교</string>
+    <string name="mi_active_days">실천한 날</string>
+    <string name="mi_days">%d일</string>
+    <string name="mi_time">기록된 시간</string>
+    <string name="mi_streak">최장 연속</string>
+    <string name="mi_discoveries">이번 달의 발견</string>
+    <string name="mi_best_weekday">%s에 가장 꾸준했어요</string>
+    <string name="mi_sample">%1$d/%2$d회 완료 · %3$d일 기준</string>
+    <string name="mi_improved_loop">변화가 가장 큰 루프 · %s</string>
+    <string name="mi_loop_gain">%1$+d%%p · 이번 달 %2$d/%3$d회 완료</string>
+    <string name="mi_insufficient">기록이 더 쌓이면 요일과 루프의 패턴을 알려드릴게요. 현재 횟수는 상세 인사이트에서 볼 수 있어요.</string>
+    <string name="mi_notes_count">이번 달 회고 %d개 읽기</string>
+    <string name="mi_status_count">%1$s %2$d</string>
+    <string name="mi_no_notes">이 기간에 남긴 회고가 없어요.</string>
+    <string name="mi_selected_day">완료 %1$d/%2$d · %3$s</string>
+    <string name="mi_open_day">이날의 기록 보기</string>
+    <string name="mi_weekday_pattern">요일별 완료율</string>
+    <string name="mi_tap_weekday">요일을 누르면 관측 횟수를 볼 수 있어요</string>
+    <string name="mi_small_sample">표본이 적어요. 요일 인사이트는 예정된 날 3일·실행 5회 이상부터 표시해요.</string>
+    <string name="mi_loops">루프별 변화</string>
+    <string name="mi_loop_comparison_hint">각 루프의 예정 횟수로 계산하며, 변화는 위에 표시한 기간끼리 비교해요.</string>
+    <string name="mi_loop_detail">%1$d/%2$d회 완료 · %3$s</string>
+    <string name="mi_loop_no_comparison">비교 기록이 부족해요. 두 기간에 각각 실행 5회 이상이 필요해요.</string>
+    <string name="mi_consistency">꾸준함의 흐름</string>
+    <string name="mi_perfect_days">모두 완료한 날</string>
+    <string name="mi_restarts">다음 날 다시 실천 · %2$d번 중 %1$d번</string>
+    <string name="mi_restart_definition">예정된 루프를 하나도 완료하지 못한 날 뒤, 바로 다음 날짜에 예정된 루프를 한 번 이상 완료한 횟수예요. 아직 진행 중인 오늘은 재시작 실패로 세지 않아요.</string>
+    <string name="mi_timed_records">유효한 시간 기록 · 완료 %2$d회 중 %1$d회</string>
+    <string name="mi_outside_period">선택한 기간 밖의 날짜</string>
+    <string name="mi_calendar_note_legend">메모 아이콘: 회고 있음 · 빈 배경: 완료 없음</string>
+    <string name="mi_definition_rate">완료율은 완료 횟수 ÷ 예정된 실행 횟수예요. 건너뜀·미응답·진행 중은 분모에 포함하고, 비활성 루프와 미래 날짜는 제외해요. 오늘의 예정된 루프는 포함해요. 저장된 기록을 우선하며, 기록이 없는 과거 날짜는 현재 일정으로 보완하므로 일정 변경에 따라 추정치가 달라질 수 있어요.</string>
+    <string name="mi_definition_comparison" formatted="false">완료된 달은 전체 기간끼리 비교해요. 진행 중인 달은 전월의 같은 경과 일수와 비교하되, 짧은 달에 맞춰 두 기간을 줄여요. 실제 비교 날짜를 함께 표시해요. 이전 기록이 없으면 0%로 취급하지 않으며, 차이는 %p로 표시해요.</string>
+    <string name="mi_definition_time">완료 기록 중 시작·종료 시각이 유효한 실행만 합산해요. 자정을 넘긴 실행도 계산하고, 시간이 없는 기록에는 예정 시간을 대신 넣지 않아요. 서로 겹친 시간은 각 루프에 포함돼요.</string>
+    <string name="mi_definition_streak">실천한 날은 하루 한 번 이상 완료한 날, 모두 완료한 날은 예정된 루프를 전부 완료한 날이에요. 최장 연속은 이번 달 안에서 완료가 있는 날짜가 연속된 최장 일수예요.</string>
+    <string name="mi_definition_samples">요일의 발견은 예정된 날 3일·실행 5회 이상인 요일이 두 개 이상일 때 비교해요. 루프 변화는 두 기간 각각 실행 5회 이상이고 이전 기간 저장 기록이 있어야 표시해요. 패턴은 관측 결과이며 원인을 단정하지 않아요.</string>
+</resources>

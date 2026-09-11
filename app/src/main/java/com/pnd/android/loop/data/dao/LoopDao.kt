@@ -16,6 +16,9 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface LoopDao {
 
+    @Query("SELECT * FROM loop ORDER BY startInDay ASC, loopId ASC")
+    fun getHistoryLoopsFlow(): Flow<List<LoopVo>>
+
     @Query("SELECT * FROM loop ORDER BY startInDay ASC, endInDay ASC")
     suspend fun getAllLoops(): List<LoopVo>
 

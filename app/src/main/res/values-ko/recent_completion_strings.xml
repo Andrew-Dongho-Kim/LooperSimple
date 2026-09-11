@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="recent_completion_chip">최근 완료 %1$d%%</string>
+    <string name="recent_completion_explain">완료율 계산 방법 보기</string>
+    <string name="recent_completion_accessibility">%1$s, 최근 완료율 %2$d퍼센트</string>
+    <string name="recent_completion_title">최근 완료율 계산 방법</string>
+    <string name="recent_completion_period">%1$s – %2$s</string>
+    <string name="recent_completion_percent">%1$d%%</string>
+    <string name="recent_completion_formula">완료 %1$d회 ÷ 대상 %2$d회 × 100</string>
+    <string name="recent_completion_rounding">소수점 첫째 자리에서 반올림한 값이에요.</string>
+    <string name="recent_completion_done">완료</string>
+    <string name="recent_completion_skipped">건너뜀</string>
+    <string name="recent_completion_unanswered">미응답</string>
+    <string name="recent_completion_total">집계 대상</string>
+    <string name="recent_completion_count">%1$d회</string>
+    <string name="recent_completion_rules">어제까지 최근 30일의 예정일을 기준으로 계산해요. 오늘, 생성 당일, 반복 요일이 아닌 날, 비활성으로 기록된 날은 제외해요. 건너뜀과 응답하지 않은 날은 대상 횟수에는 포함되지만 완료 횟수에는 포함되지 않아요.</string>
+    <string name="recent_completion_schedule_note">현재 반복 요일을 기준으로 하므로 요일 설정을 바꾸면 수치도 달라질 수 있어요. 집계 대상이 3회 이상일 때 칩이 표시돼요.</string>
+    <string name="recent_completion_close">닫기</string>
+</resources>

@@ -3,6 +3,7 @@ package com.pnd.android.loop.data.dao
 import androidx.room.Dao
 import androidx.room.Query
 import com.pnd.android.loop.data.LoopByDate
+import com.pnd.android.loop.data.AchievementDayRecord
 import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.LoopResponseRecord
 import com.pnd.android.loop.data.LoopWithDone
@@ -16,6 +17,26 @@ import java.time.LocalDate
 
 @Dao
 interface FullLoopDao {
+
+    /** Query any date directly; saved records survive subsequent schedule changes. */
+    @Query("""
+        SELECT loop.loopId, loop.color, loop.title, loop.created,
+            CASE WHEN loop.isAnyTime THEN COALESCE(d.startInDay, -1) ELSE loop.startInDay END AS startInDay,
+            CASE WHEN loop.isAnyTime THEN COALESCE(d.endInDay, -1) ELSE loop.endInDay END AS endInDay,
+            loop.activeDays, loop.enabled, loop.isAnyTime, loop.weeklyGoal,
+            COALESCE(d.startInDay, -1) AS actualStartInDay,
+            COALESCE(d.endInDay, -1) AS actualEndInDay,
+            :date AS date, COALESCE(m.text, '') AS retrospect,
+            COALESCE(d.done, 0) AS done
+        FROM loop
+        LEFT JOIN loop_done d ON loop.loopId = d.loopId AND d.date = :date
+        LEFT JOIN loop_memo m ON loop.loopId = m.loopId AND m.date = :date
+        WHERE loop.created < :nextDate
+          AND COALESCE(d.done, 0) != -1
+          AND (d.loopId IS NOT NULL OR (loop.enabled = 1 AND (loop.activeDays & :dayBit) != 0))
+        ORDER BY startInDay ASC, loop.title ASC, loop.loopId ASC
+    """)
+    fun getAchievementDayFlow(date: Long, nextDate: Long, dayBit: Int): Flow<List<AchievementDayRecord>>
 
     @Query(
         "SELECT loop.loopId, loop.color, loop.title, loop.created, loop.startInDay, loop.endInDay, loop.activeDays, loop.enabled, loop.isAnyTime, loop.weeklyGoal, " +

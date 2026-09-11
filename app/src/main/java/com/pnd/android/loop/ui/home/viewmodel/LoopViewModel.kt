@@ -12,6 +12,8 @@ import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.LoopVo
 import com.pnd.android.loop.data.LoopWithDone
 import com.pnd.android.loop.data.TodayLoopOrder
+import com.pnd.android.loop.ui.home.RecentLoopCompletion
+import com.pnd.android.loop.ui.home.computeRecentLoopCompletion
 import com.pnd.android.loop.ui.statisctics.DayOfWeekStat
 import com.pnd.android.loop.ui.statisctics.StreakStat
 import com.pnd.android.loop.ui.statisctics.computeStreak
@@ -303,6 +305,20 @@ class LoopViewModel @Inject constructor(
     val weekdayStats: Flow<List<DayOfWeekStat>> = loopRepository.doneDates.map { millis ->
         computeWeekdayStats(doneDates = millis.map { it.toLocalDate() })
     }
+
+    /** All-tab chips share one calculation, independent of the truncated trend rankings. */
+    val recentCompletionByLoop: StateFlow<Map<Int, RecentLoopCompletion>> = combine(
+        loopRepository.loadedLoops,
+        loopRepository.allDoneHistory,
+        localDate,
+    ) { loops, history, today ->
+        loops.mapNotNull { loop ->
+            computeRecentLoopCompletion(loop, history[loop.loopId], today)
+                ?.let { loop.loopId to it }
+        }.toMap()
+    }.flowOn(Dispatchers.Default)
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), emptyMap())
 
     /** 전체 탭 하단 기록 그리드: loopId -> (날짜(ms) -> done 상태). */
     val allDoneHistory: Flow<Map<Int, Map<Long, Int>>> = loopRepository.allDoneHistory

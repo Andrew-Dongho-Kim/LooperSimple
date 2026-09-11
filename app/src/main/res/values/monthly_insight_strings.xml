@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="mi_analysis">Detailed insights</string>
+    <string name="mi_notes">Monthly notes</string>
+    <string name="mi_definitions">How these numbers work</string>
+    <string name="mi_empty">No scheduled loops or records in this period.</string>
+    <string name="mi_period">%1$s – %2$s</string>
+    <string name="mi_completion">Completion</string>
+    <string name="mi_small_steps">%d small steps</string>
+    <string name="mi_planned">Out of %d scheduled runs</string>
+    <string name="mi_no_comparison">No previous-period records to compare</string>
+    <string name="mi_delta">%+d pp vs. previous period</string>
+    <string name="mi_comparison_period">%1$s – %2$s vs. %3$s – %4$s</string>
+    <string name="mi_active_days">Active days</string>
+    <string name="mi_days">%d days</string>
+    <string name="mi_time">Recorded time</string>
+    <string name="mi_streak">Longest streak</string>
+    <string name="mi_discoveries">This month’s discoveries</string>
+    <string name="mi_best_weekday">Most consistent on %s</string>
+    <string name="mi_sample">%1$d/%2$d completed · %3$d observed days</string>
+    <string name="mi_improved_loop">Biggest change: %s</string>
+    <string name="mi_loop_gain">%1$+d pp · %2$d/%3$d completed this month</string>
+    <string name="mi_insufficient">Keep recording to reveal weekday and loop patterns. Explore the available counts below.</string>
+    <string name="mi_notes_count">Read monthly notes (%d)</string>
+    <string name="mi_status_count">%1$s %2$d</string>
+    <string name="mi_no_notes">No notes in this period.</string>
+    <string name="mi_selected_day">%1$d/%2$d completed · %3$s</string>
+    <string name="mi_open_day">Open this day’s records</string>
+    <string name="mi_weekday_pattern">Completion by weekday</string>
+    <string name="mi_tap_weekday">Tap a weekday to see its sample size</string>
+    <string name="mi_small_sample">Small sample: at least 3 scheduled days and 5 runs are needed for a weekday insight.</string>
+    <string name="mi_loops">Changes by loop</string>
+    <string name="mi_loop_comparison_hint">Rates use each loop’s scheduled runs. Changes compare the periods shown above.</string>
+    <string name="mi_loop_detail">%1$d/%2$d completed · %3$s</string>
+    <string name="mi_loop_no_comparison">Not enough comparable records (at least 5 runs in each period).</string>
+    <string name="mi_consistency">Your consistency</string>
+    <string name="mi_perfect_days">All-complete days</string>
+    <string name="mi_restarts">Resumed the next day: %1$d of %2$d opportunities</string>
+    <string name="mi_restart_definition">After a day with scheduled runs but no completions, the next scheduled calendar day had a completion. An unfinished today is not counted as a failed restart.</string>
+    <string name="mi_timed_records">Valid time records: %1$d of %2$d completed runs</string>
+    <string name="mi_outside_period">Outside the selected period</string>
+    <string name="mi_calendar_note_legend">Note icon: a note is available · blank: no completion</string>
+    <string name="mi_definition_rate">Completion = completed runs / scheduled runs. Skipped, unrecorded and in-progress runs remain in the denominator. Disabled runs and future dates are excluded; today’s scheduled runs are included. Saved history takes priority. If a historical record is missing, the current schedule is used to reconstruct it; changing a schedule can change these estimates.</string>
+    <string name="mi_definition_comparison">Completed months compare their full periods. The current month compares equal elapsed day counts with the previous month, shortened to the shorter month if needed. The comparison dates are shown. A missing previous record is not treated as 0%. Differences are percentage points (pp).</string>
+    <string name="mi_definition_time">Only completed runs with valid recorded start and end times contribute to recorded time. Overnight runs are handled across midnight. Missing times are excluded; scheduled duration is not substituted. Overlapping loops are added separately.</string>
+    <string name="mi_definition_streak">Active day: at least one completed run. All-complete day: every scheduled run completed. Longest streak: consecutive calendar days with a completion within the selected month.</string>
+    <string name="mi_definition_samples">Weekday highlights require at least 3 scheduled days and 5 runs, with two comparable weekdays. Loop changes require at least 5 runs in each period plus saved previous-period records. Patterns describe observations, not causes.</string>
+</resources>

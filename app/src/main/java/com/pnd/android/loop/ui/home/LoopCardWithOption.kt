@@ -31,6 +31,8 @@ data class LoopCardValues(
     // 시계상으로는 다음 시작 전이라 TimeStat 은 "시작 전"으로 보지만, 실제로는 이미 끝난
     // occurrence 이므로 카드를 응답 대기 모습으로 고정하고 시각 앞에 "어제"를 붙인다.
     val isCarriedOver: Boolean = false,
+    // Supplied only by the All section. Null also represents insufficient history.
+    val recentCompletion: RecentLoopCompletion? = null,
 )
 
 @Composable

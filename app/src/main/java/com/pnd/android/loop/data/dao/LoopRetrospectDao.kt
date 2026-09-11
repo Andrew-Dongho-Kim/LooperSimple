@@ -10,6 +10,9 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface LoopRetrospectDao {
 
+    @Query("SELECT * FROM loop_memo WHERE date >= :from AND date <= :to ORDER BY date, loopId")
+    fun getHistoryRangeFlow(from: Long, to: Long): Flow<List<LoopRetrospectVo>>
+
     @Query("SELECT * FROM loop_memo WHERE loopId=:loopId AND date=:localDate")
     suspend fun getRetrospect(
         loopId: Int,

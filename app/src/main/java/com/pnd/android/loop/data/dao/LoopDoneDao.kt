@@ -14,6 +14,9 @@ import java.time.ZoneId
 @Dao
 interface LoopDoneDao {
 
+    @Query("SELECT * FROM loop_done WHERE date >= :from AND date <= :to ORDER BY date, loopId")
+    fun getHistoryRangeFlow(from: Long, to: Long): Flow<List<LoopDoneVo>>
+
     @Query("SELECT * FROM loop_done WHERE loopId=:loopId ORDER BY date DESC")
     fun getAllFlow(loopId: Int): Flow<List<LoopDoneVo>>
 
