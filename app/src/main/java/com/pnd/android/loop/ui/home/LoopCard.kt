@@ -302,18 +302,22 @@ private fun RowScope.ActiveCardContent(
             .alpha(contentAlpha),
     ) {
         if (completion != null) {
-            // Let the metadata use the full title + time width. On small screens / large fonts
-            // FlowRow wraps rather than clipping the repeat days or the tappable rate chip.
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            // Both rows share the same trailing edge, before the vertically centered menu.
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 LoopCardTitle(modifier = Modifier.weight(1f), title = loop.title)
                 LoopTimeChip(modifier = Modifier.padding(start = 8.dp), loop = loop)
             }
             FlowRow(
-                modifier = Modifier.padding(top = 3.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.fillMaxWidth().padding(top = 3.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                Box(modifier = Modifier.align(Alignment.CenterVertically)) {
+                // Days occupy the remaining width, keeping the rate chip right-aligned.
+                // If it wraps at large font sizes, End also aligns the chip on its new line.
+                Box(modifier = Modifier.weight(1f).align(Alignment.CenterVertically)) {
                     LoopCardActiveDays(loop = loop)
                 }
                 RecentCompletionChip(loopTitle = loop.title, completion = completion)
@@ -345,7 +349,7 @@ private fun RowScope.ActiveCardContent(
     }
     if (!loop.isMock) {
         LoopCardMenu(
-            modifier = Modifier.padding(start = 4.dp),
+            modifier = Modifier.align(Alignment.CenterVertically).padding(start = 4.dp),
             loop = loop,
             showRecordActions = cardValues.showRecordActions,
             onStateChanged = onStateChanged,

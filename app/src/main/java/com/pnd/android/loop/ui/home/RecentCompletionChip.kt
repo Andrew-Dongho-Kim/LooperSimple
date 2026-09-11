@@ -27,6 +27,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.pnd.android.loop.R
@@ -37,6 +38,7 @@ import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.onSurfaceVariant
 import com.pnd.android.loop.ui.theme.outlineVariant
+import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.ui.theme.surfaceContainer
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -48,14 +50,23 @@ internal fun RecentCompletionChip(loopTitle: String, completion: RecentLoopCompl
     val accessibleLabel = stringResource(
         R.string.recent_completion_accessibility, loopTitle, completion.percent,
     )
-    // A neutral label, not a success/warning badge. clickable keeps its own click semantics
-    // and consumes the tap, so opening the explanation does not open the parent loop detail.
+    // One theme-aware blue; only the background alpha changes with the displayed percentage.
+    // Keep text fully opaque so low completion rates remain readable.
+    val backgroundAlpha = when {
+        completion.percent < 50 -> 0.07f
+        completion.percent < 80 -> 0.14f
+        else -> 0.24f
+    }
+    // This click is consumed separately from the parent card's detail-navigation action.
     Text(
         text = stringResource(R.string.recent_completion_chip, completion.percent),
-        style = AppTypography.labelMedium.copy(color = AppColor.onSurfaceVariant),
+        style = AppTypography.labelMedium.copy(
+            color = AppColor.onSurface,
+            fontWeight = FontWeight.Normal,
+        ),
         modifier = Modifier
             .clip(RoundShapes.small)
-            .background(AppColor.surfaceContainer)
+            .background(AppColor.primary.copy(alpha = backgroundAlpha))
             .clickable(role = Role.Button, onClickLabel = explanationLabel) { showExplanation = true }
             .semantics { contentDescription = accessibleLabel }
             .padding(horizontal = 7.dp, vertical = 3.dp),
