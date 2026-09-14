@@ -89,9 +89,25 @@
                 android:resource="@xml/app_widget_info" />
         </receiver>
 
+        <receiver android:name=".appwidget.TodayStatisticsWidgetReceiver"
+            android:label="@string/stat_widget_today" android:exported="true">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/statistics_widget_today" />
+        </receiver>
+        <receiver android:name=".appwidget.WeeklyStatisticsWidgetReceiver"
+            android:label="@string/stat_widget_week" android:exported="true">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/statistics_widget_weekly" />
+        </receiver>
+        <receiver android:name=".appwidget.MonthlyStatisticsWidgetReceiver"
+            android:label="@string/stat_widget_month" android:exported="true">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/statistics_widget_monthly" />
+        </receiver>
+
         <provider
             android:name="androidx.startup.InitializationProvider"
-            android:authorities="com.pnd.android.loop.androidx-startup"
+            android:authorities="${applicationId}.androidx-startup"
             tools:node="remove" />
     </application>
 

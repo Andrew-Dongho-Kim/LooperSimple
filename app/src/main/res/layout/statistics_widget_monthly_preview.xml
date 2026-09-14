@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:padding="18dp"
+    android:background="@drawable/statistics_widget_preview_background">
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="@string/stat_widget_month" android:textSize="16sp" android:textStyle="bold"
+        android:textColor="@color/stat_widget_preview_text" />
+    <View android:layout_width="22dp" android:layout_height="3dp" android:layout_marginTop="8dp"
+        android:background="@color/stat_widget_preview_accent" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="18dp" android:text="18h 20m" android:textSize="32sp" android:textStyle="bold"
+        android:textColor="@color/stat_widget_preview_text" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="76%" android:textSize="18sp" android:textColor="@color/stat_widget_preview_accent" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="16dp" android:text="@string/stat_widget_month_description"
+        android:textSize="12sp" android:textColor="@color/stat_widget_preview_text" />
+</LinearLayout>

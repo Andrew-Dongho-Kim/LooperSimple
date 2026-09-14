@@ -32,6 +32,6 @@ class AppWidgetReceiver : GlanceAppWidgetReceiver() {
     /** 마지막 위젯이 제거됐다. 더 갱신할 곳이 없으니 정기 갱신을 거둔다. */
     override fun onDisabled(context: Context) {
         super.onDisabled(context)
-        AppWidgetUpdateWorker.cancelPeriodicUpdate(context)
+        cancelWidgetUpdatesIfUnused(context)
     }
 }

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="stat_widget_preview_surface">#FAFAFA</color>
+    <color name="stat_widget_preview_text">#1A1B21</color>
+    <color name="stat_widget_preview_accent">#0540F2</color>
+</resources>

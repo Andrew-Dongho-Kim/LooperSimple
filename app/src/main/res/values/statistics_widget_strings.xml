@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stat_widget_today">Today\'s pace</string>
+    <string name="stat_widget_week">Weekly rhythm</string>
+    <string name="stat_widget_month">Monthly achievements</string>
+    <string name="stat_widget_today_description">Today’s progress, current streak and invested time.</string>
+    <string name="stat_widget_week_description">Daily completions and your most consistent loop this week.</string>
+    <string name="stat_widget_month_description">Six months of invested time, completion rate and longest streak.</string>
+    <string name="stat_widget_loading">Loading statistics…</string>
+    <string name="stat_widget_empty">Start your first loop</string>
+    <string name="stat_widget_empty_hint">Your records will appear here.</string>
+    <string name="stat_widget_done_of">%1$d / %2$d completed</string>
+    <string name="stat_widget_remaining">%1$d remaining · %2$d skipped</string>
+    <string name="stat_widget_no_plan">No loops scheduled today</string>
+    <string name="stat_widget_all_done">All planned loops completed</string>
+    <string name="stat_widget_days">%1$d days</string>
+    <string name="stat_widget_current_streak">Current streak</string>
+    <string name="stat_widget_longest_streak">Longest streak · all time</string>
+    <string name="stat_widget_invested">Invested time</string>
+    <string name="stat_widget_completed">%1$d completed</string>
+    <string name="stat_widget_rate">Completion rate %1$s</string>
+    <string name="stat_widget_best">Most consistent this week</string>
+    <string name="stat_widget_best_result">%1$s · %2$d / %3$d completed</string>
+    <string name="stat_widget_no_completions">No completions yet</string>
+    <string name="stat_widget_month_time">Month %1$d · time invested</string>
+    <string name="stat_widget_hours_chart">Hours · current month in progress</string>
+    <string name="stat_widget_completion_rate">Monthly completion rate</string>
+    <string name="stat_widget_minutes">%1$d min</string>
+    <string name="stat_widget_duration">%1$dh %2$dm</string>
+    <string name="stat_widget_open">%1$s · View statistics ›</string>
+    <string name="stat_widget_today_rule">Today’s progress includes pending plans. Overnight loops count on their start date.</string>
+    <string name="stat_widget_rate_rule">Completion rate excludes today’s pending loops. Days without records show –.</string>
+    <string name="stat_widget_estimated">Some historical plans are estimated.</string>
+</resources>

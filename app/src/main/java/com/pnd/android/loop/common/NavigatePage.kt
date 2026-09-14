@@ -71,6 +71,8 @@ sealed class NavigatePage(val route: String) {
     }
 
     data object StatisticsPage : NavigatePage("statistics") {
+        fun deepLink() = uriPattern("statistics")
+
         fun navigate(navController: NavHostController) {
             navController.navigate(route)
         }

@@ -173,6 +173,9 @@ private fun NavGraphBuilder.page(
     composable(
         route = page.route,
         arguments = page.arguments,
+        deepLinks = if (page == NavigatePage.StatisticsPage) listOf(navDeepLink {
+            uriPattern = NavigatePage.StatisticsPage.deepLink()
+        }) else emptyList(),
         enterTransition = { enterTransition() },
         exitTransition = { exitTransition() },
         popEnterTransition = { enterTransition() },

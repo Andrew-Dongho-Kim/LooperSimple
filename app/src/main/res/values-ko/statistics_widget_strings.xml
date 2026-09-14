@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stat_widget_today">오늘의 페이스</string>
+    <string name="stat_widget_week">주간 리듬</string>
+    <string name="stat_widget_month">월간 성취</string>
+    <string name="stat_widget_today_description">오늘의 진행률, 현재 연속 일수, 투자 시간</string>
+    <string name="stat_widget_week_description">요일별 완료 횟수와 이번 주 가장 꾸준한 루프</string>
+    <string name="stat_widget_month_description">최근 6개월 투자 시간, 월간 완료율, 최장 연속 기록</string>
+    <string name="stat_widget_loading">통계를 불러오는 중…</string>
+    <string name="stat_widget_empty">첫 루프를 시작해 보세요</string>
+    <string name="stat_widget_empty_hint">루프를 기록하면 통계가 여기에 표시됩니다.</string>
+    <string name="stat_widget_done_of">%1$d / %2$d 완료</string>
+    <string name="stat_widget_remaining">남은 루프 %1$d개 · 건너뜀 %2$d개</string>
+    <string name="stat_widget_no_plan">오늘 예정된 루프가 없어요</string>
+    <string name="stat_widget_all_done">오늘 예정된 루프를 모두 완료했어요</string>
+    <string name="stat_widget_days">%1$d일</string>
+    <string name="stat_widget_current_streak">현재 연속</string>
+    <string name="stat_widget_longest_streak">최장 연속 · 전체</string>
+    <string name="stat_widget_invested">투자 시간</string>
+    <string name="stat_widget_completed">%1$d회 완료</string>
+    <string name="stat_widget_rate">완료율 %1$s</string>
+    <string name="stat_widget_best">이번 주 가장 꾸준한 루프</string>
+    <string name="stat_widget_best_result">%1$s · %2$d / %3$d 완료</string>
+    <string name="stat_widget_no_completions">아직 완료 기록이 없어요</string>
+    <string name="stat_widget_month_time">%1$d월 · 투자 시간</string>
+    <string name="stat_widget_hours_chart">시간 단위 · 이번 달 집계 중</string>
+    <string name="stat_widget_completion_rate">이번 달 완료율</string>
+    <string name="stat_widget_minutes">%1$d분</string>
+    <string name="stat_widget_duration">%1$d시간 %2$d분</string>
+    <string name="stat_widget_open">%1$s · 통계 보기 ›</string>
+    <string name="stat_widget_today_rule">오늘 예정에 미완료 루프를 포함합니다. 자정을 넘긴 루프는 시작일 기준입니다.</string>
+    <string name="stat_widget_rate_rule">완료율에서 오늘 미응답은 제외합니다. 집계 대상이 없으면 –로 표시합니다.</string>
+    <string name="stat_widget_estimated">일부 과거 계획은 추정값입니다.</string>
+</resources>

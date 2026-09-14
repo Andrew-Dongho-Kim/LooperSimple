@@ -49,8 +49,11 @@ class AppWidgetRefresher @Inject constructor(
      */
     suspend fun refresh() = lock.withLock {
         // 위젯이 하나도 없으면 읽어 봐야 쓸 곳이 없다. 1분마다 오는 갱신이 헛돌지 않게 먼저 끊는다.
-        val glanceIds = GlanceAppWidgetManager(context).getGlanceIds(AppWidget::class.java)
-        if (glanceIds.isEmpty()) {
+        val manager = GlanceAppWidgetManager(context)
+        val glanceIds = manager.getGlanceIds(AppWidget::class.java)
+        val statisticsWidgets = listOf(TodayStatisticsWidget(), WeeklyStatisticsWidget(), MonthlyStatisticsWidget())
+            .map { widget -> widget to manager.getGlanceIds(widget.javaClass) }
+        if (glanceIds.isEmpty() && statisticsWidgets.all { it.second.isEmpty() }) {
             logger.i { "no app widget is placed - skip refresh" }
             return@withLock
         }
@@ -60,6 +63,16 @@ class AppWidgetRefresher @Inject constructor(
         // 자정을 넘기는 루프의 done 기록은 시작한 날인 어제 행에 있다. 오늘 행만 보면 이미 완료한
         // 루프가 계속 미응답으로 남고, 오늘 아침에 끝난 몫도 놓친다.
         val snapshot = fullLoopDao.getSnapshot()
+        if (statisticsWidgets.any { it.second.isNotEmpty() }) {
+            val json = statisticsMapper.writeValueAsString(computeStatisticsWidgetData(snapshot, today))
+            statisticsWidgets.forEach { (widget, ids) ->
+                ids.forEach { id ->
+                    updateAppWidgetState(context, id) { it[KEY_STATISTICS_JSON] = json }
+                    widget.update(context, id)
+                }
+            }
+        }
+        if (glanceIds.isEmpty()) return@withLock
         val yesterdayLoops = snapshot.timelines.map { it.liveLoop(today.minusDays(1)) }
         val todayLoops = snapshot.timelines.map { it.liveLoop(today) }
 
