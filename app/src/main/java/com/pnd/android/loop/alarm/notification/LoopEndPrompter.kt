@@ -5,19 +5,16 @@ import com.pnd.android.loop.data.AppDatabase
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.isDisabled
 import com.pnd.android.loop.data.isRespond
-import com.pnd.android.loop.util.currentOccurrence
-import com.pnd.android.loop.util.isActive
 import com.pnd.android.loop.util.isActiveDay
 import com.pnd.android.loop.util.occurrenceStartDate
-import com.pnd.android.loop.util.toMs
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalDateTime
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 /**
  * occurrence 판정을 종료 시각보다 이만큼 앞선 시점에서 한다. 종료 시각이 지난 뒤에 보면 자정을
@@ -48,10 +45,10 @@ class LoopEndPrompter @Inject constructor(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     /** 종료 알람이 도착한 루프. 지금도 미응답이면 확인 알림을 띄운다. */
-    fun prompt(loopId: Int) {
+    fun prompt(loopId: Int, occurrenceDate: LocalDate? = null) {
         scope.launch {
             val endedAt = LocalDateTime.now().minusMinutes(OCCURRENCE_LOOKBACK_MINUTES)
-            val loop = queryUnresponded(loopId = loopId, endedAt = endedAt)
+            val loop = queryUnresponded(loopId = loopId, endedAt = endedAt, occurrenceDate = occurrenceDate)
             if (loop == null) {
                 logger.i { "loop:$loopId needs no end prompt" }
                 return@launch
@@ -61,7 +58,7 @@ class LoopEndPrompter @Inject constructor(
                 loop = loop,
                 // 사용자가 이 알림에서 답하면 방금 끝난 occurrence 에 기록해야 한다. 누르는
                 // 시점은 이미 occurrence 밖이라 그때 다시 계산할 수 없으므로 지금 정해서 넘긴다.
-                occurrenceDate = loop.occurrenceStartDate(endedAt),
+                occurrenceDate = occurrenceDate ?: loop.occurrenceStartDate(endedAt),
             )
         }
     }
@@ -73,32 +70,30 @@ class LoopEndPrompter @Inject constructor(
      * 다시 읽는다. 자정을 넘겨 이어지는 루프(예: 23:00~01:00)는 done 기록이 "어제" 행에
      * 있으므로 두 날짜를 함께 읽어 occurrence 기준 행으로 판정한다.
      */
-    private suspend fun queryUnresponded(loopId: Int, endedAt: LocalDateTime): LoopBase? {
+    private suspend fun queryUnresponded(loopId: Int, endedAt: LocalDateTime, occurrenceDate: LocalDate?): LoopBase? {
         val dao = appDb.fullLoopDao()
         val today = LocalDate.now()
-        val yesterdayLoops = dao.getAllLoops(today.minusDays(1).toMs()).associateBy { it.loopId }
-
-        val loop = dao.getAllLoops(today.toMs())
-            .firstOrNull { loop -> loop.loopId == loopId }
-            ?.let { loop ->
-                currentOccurrence(
-                    today = loop,
-                    yesterday = yesterdayLoops[loop.loopId],
-                    now = endedAt,
-                )
-            } ?: return null
+        val snapshot = dao.getSnapshot()
+        val timeline = snapshot.byId[loopId] ?: return null
+        val date = occurrenceDate ?: com.pnd.android.loop.util.currentOccurrenceDate(
+            timeline.liveLoop(today), timeline.liveLoop(today.minusDays(1)), endedAt,
+        )
+        val day = timeline.day(date) ?: return null
+        val loop = timeline.liveLoop(date)
+        val endDate = if (day.loop.endInDay < day.loop.startInDay) date.plusDays(1) else date
+        val plannedEnd = endDate.atStartOfDay().plusNanos(day.loop.endInDay * 1_000_000)
+        if (plannedEnd > LocalDateTime.now()) return null
 
         // anytime 루프는 종료 시각이 없어 종료 알람도 예약되지 않는다(방어적으로 제외한다).
         if (loop.isAnyTime) return null
         if (!loop.enabled) return null
         // 종료 알람은 활성 요일과 무관하게 도착한다(예약이 요일을 보지 않는다). 오늘이 그 루프의
         // 요일이 아니면 애초에 할 일이 없었으므로 묻지 않는다.
-        if (!loop.isActiveDay(loop.occurrenceStartDate(endedAt))) return null
+        if (!loop.isActiveDay(date)) return null
         // 이미 완료/건너뛰기로 답했거나 비활성 처리된 루프는 물을 필요가 없다.
         if (loop.isRespond || loop.isDisabled) return null
         // 알람이 예상보다 일찍 도착해 아직 진행 중이라면, 상시 알림이 이미 응답 버튼과 함께
         // 보여주고 있다. 끝나지도 않은 루프에 "완료했나요?" 를 묻지 않는다.
-        if (loop.isActive()) return null
 
         return loop
     }

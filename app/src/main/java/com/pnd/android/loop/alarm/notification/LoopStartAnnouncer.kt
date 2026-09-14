@@ -131,9 +131,10 @@ class LoopStartAnnouncer @Inject constructor(
     private suspend fun queryStillRunning(loopIds: Set<Int>): List<LoopBase> {
         val dao = appDb.fullLoopDao()
         val today = LocalDate.now()
-        val yesterdayLoops = dao.getAllLoops(today.minusDays(1).toMs()).associateBy { it.loopId }
+        val snapshot = dao.getSnapshot()
+        val yesterdayLoops = snapshot.timelines.map { it.liveLoop(today.minusDays(1)) }.associateBy { it.loopId }
 
-        return dao.getAllLoops(today.toMs())
+        return snapshot.timelines.map { it.liveLoop(today) }
             .filter { loop -> loop.loopId in loopIds }
             .map { loop -> currentOccurrence(today = loop, yesterday = yesterdayLoops[loop.loopId]) }
             .filter { loop -> loop.isActive() && !loop.isRespond && !loop.isDisabled }

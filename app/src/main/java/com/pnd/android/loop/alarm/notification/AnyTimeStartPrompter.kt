@@ -75,9 +75,10 @@ class AnyTimeStartPrompter @Inject constructor(
     private suspend fun queryNotStartedYet(loopId: Int): LoopBase? {
         val dao = appDb.fullLoopDao()
         val today = LocalDate.now()
-        val yesterdayLoops = dao.getAllLoops(today.minusDays(1).toMs()).associateBy { it.loopId }
+        val snapshot = dao.getSnapshot()
+        val yesterdayLoops = snapshot.timelines.map { it.liveLoop(today.minusDays(1)) }.associateBy { it.loopId }
 
-        val loop = dao.getAllLoops(today.toMs())
+        val loop = snapshot.timelines.map { it.liveLoop(today) }
             .firstOrNull { loop -> loop.loopId == loopId }
             ?.let { loop -> currentOccurrence(today = loop, yesterday = yesterdayLoops[loop.loopId]) }
             ?: return null

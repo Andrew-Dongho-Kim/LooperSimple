@@ -1,11 +1,11 @@
 package com.pnd.android.loop.alarm
 
 import com.pnd.android.loop.alarm.notification.NotificationSettings
-import com.pnd.android.loop.data.AppDatabase
+import com.pnd.android.loop.data.LoopDoneVo
+import com.pnd.android.loop.data.history.LoopHistoryRepository
+import com.pnd.android.loop.data.history.localDate
 import com.pnd.android.loop.util.MS_1DAY
 import com.pnd.android.loop.util.MS_1HOUR
-import com.pnd.android.loop.util.toLocalDate
-import com.pnd.android.loop.util.toMs
 import java.time.DayOfWeek
 import java.time.LocalDate
 import javax.inject.Inject
@@ -198,24 +198,19 @@ private val DayOfWeek.isHoliday: Boolean
  */
 @Singleton
 class HabitualStartEstimator @Inject constructor(
-    appDb: AppDatabase,
+    private val histories: LoopHistoryRepository,
     private val notificationSettings: NotificationSettings,
 ) {
 
-    private val loopDoneDao = appDb.loopDoneDao()
 
     suspend fun estimate(loopId: Int, today: LocalDate = LocalDate.now()): HabitualStart? {
-        val samples = loopDoneDao.getRecentStarts(
-            loopId = loopId,
-            since = today.minusDays(SAMPLE_MAX_DAYS).toMs(),
-            today = today.toMs(),
-            limit = SAMPLE_LIMIT,
-        ).map { done ->
-            StartSample(
-                dayOfWeek = done.date.toLocalDate().dayOfWeek,
-                startInDay = done.startInDay,
-            )
-        }
+        val timeline = histories.snapshot().byId[loopId] ?: return null
+        val samples = timeline.history.responses.asSequence()
+            .filter { it.localDate() >= today.minusDays(SAMPLE_MAX_DAYS) && it.localDate() < today }
+            .filter { it.timeSource == LoopDoneVo.TimeSource.MEASURED && it.startedAt != null && it.startInDay >= 0 }
+            .filter { timeline.day(it.localDate())?.loop?.isAnyTime == true }
+            .sortedByDescending { it.localDate() }.take(SAMPLE_LIMIT)
+            .map { StartSample(it.localDate().dayOfWeek, it.startInDay) }.toList()
 
         return estimateHabitualStart(
             samples = samples,

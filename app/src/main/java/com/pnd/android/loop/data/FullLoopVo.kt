@@ -20,6 +20,7 @@ data class FullLoopVo @JvmOverloads constructor(
     override val isAnyTime: Boolean = false,
     override val weeklyGoal: Int = DEFAULT_WEEKLY_GOAL,
     @Ignore override val isMock: Boolean = false,
+    val measuredDurationMs: Long? = null,
 ) : LoopBase {
 
     override fun copyAs(
@@ -34,7 +35,7 @@ data class FullLoopVo @JvmOverloads constructor(
         isAnyTime: Boolean,
         weeklyGoal: Int,
         isMock: Boolean,
-    ): LoopBase = LoopWithDone(
+    ): LoopBase = FullLoopVo(
         loopId = loopId,
         title = title,
         color = color,
@@ -50,6 +51,8 @@ data class FullLoopVo @JvmOverloads constructor(
         isAnyTime = isAnyTime,
         weeklyGoal = weeklyGoal,
         isMock = isMock,
+        retrospect = this.retrospect,
+        measuredDurationMs = this.measuredDurationMs,
     )
 }
 
@@ -57,19 +60,13 @@ fun LoopBase.toFullLoopVo(
     retrospectVo: LoopRetrospectVo?,
     doneVo: LoopDoneVo
 ): FullLoopVo {
-    // 시간이 정해진 루프는 정의된 스케줄을 그대로 쓴다. 반면 'anytime' 루프는 고정된
-    // 시간이 없어, 그날 실제로 시작/종료한 구간이 done 기록에 남는다(건너뛰거나 시작 전이면
-    // ANY_TIME). 그래서 anytime 루프의 시간은 done 기록에서 가져온다.
-    val effectiveStart = if (isAnyTime) doneVo.startInDay else startInDay
-    val effectiveEnd = if (isAnyTime) doneVo.endInDay else endInDay
-
     return FullLoopVo(
         loopId = loopId,
         title = title,
         color = color,
         created = created,
-        startInDay = effectiveStart,
-        endInDay = effectiveEnd,
+        startInDay = startInDay,
+        endInDay = endInDay,
         activeDays = activeDays,
         enabled = enabled,
         actualStartInDay = doneVo.startInDay,
@@ -77,9 +74,9 @@ fun LoopBase.toFullLoopVo(
         date = doneVo.date,
         retrospect = retrospectVo?.text ?: "",
         done = doneVo.done,
-        // 시작/종료 중 하나라도 값이 없으면(ANY_TIME) 고정 시간이 없는 것으로 본다.
-        isAnyTime = effectiveStart < 0 || effectiveEnd < 0,
+        isAnyTime = isAnyTime,
         weeklyGoal = weeklyGoal,
         isMock = isMock,
+        measuredDurationMs = doneVo.measuredDurationMs(),
     )
 }

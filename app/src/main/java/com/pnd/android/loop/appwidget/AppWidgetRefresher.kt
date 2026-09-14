@@ -41,7 +41,6 @@ class AppWidgetRefresher @Inject constructor(
     appDb: AppDatabase,
 ) {
     private val fullLoopDao = appDb.fullLoopDao()
-    private val loopDao = appDb.loopDao()
 
     /**
      * 갱신은 "DB 읽기 → 위젯 상태 쓰기" 두 걸음이라, 두 갱신이 겹쳐 돌면 늦게 끝난 쪽이 먼저
@@ -60,8 +59,9 @@ class AppWidgetRefresher @Inject constructor(
         val today = now.toLocalDate()
         // 자정을 넘기는 루프의 done 기록은 시작한 날인 어제 행에 있다. 오늘 행만 보면 이미 완료한
         // 루프가 계속 미응답으로 남고, 오늘 아침에 끝난 몫도 놓친다.
-        val yesterdayLoops = fullLoopDao.getAllEnabledLoops(date = today.minusDays(1).toMs())
-        val todayLoops = fullLoopDao.getAllEnabledLoops(date = today.toMs())
+        val snapshot = fullLoopDao.getSnapshot()
+        val yesterdayLoops = snapshot.timelines.map { it.liveLoop(today.minusDays(1)) }
+        val todayLoops = snapshot.timelines.map { it.liveLoop(today) }
 
         // 홈 오늘 탭과 같은 규칙으로 occurrence 를 만든다. 자정을 넘기는 루프는 어젯밤 몫과
         // 오늘 밤 몫이 각각 한 줄씩 올라온다.
@@ -81,7 +81,7 @@ class AppWidgetRefresher @Inject constructor(
                 .sortedWith(compareBy(TodayLoopOrder()) { occurrence -> occurrence.loop })
                 .map { occurrence -> occurrence.toWidgetLoop() },
             todayTotal = todayOccurrences.size,
-            registeredTotal = loopDao.countAllLoops(),
+            registeredTotal = snapshot.timelines.size,
         )
     }
 

@@ -23,6 +23,6 @@ data class AchievementDayRecord(
         startInDay = startInDay, endInDay = endInDay, activeDays = activeDays,
         enabled = enabled, actualStartInDay = actualStartInDay, actualEndInDay = actualEndInDay,
         date = date, retrospect = retrospect, done = done,
-        isAnyTime = isAnyTime && (startInDay < 0 || endInDay < 0), weeklyGoal = weeklyGoal,
+        isAnyTime = isAnyTime, weeklyGoal = weeklyGoal,
     )
 }

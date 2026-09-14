@@ -40,8 +40,24 @@ data class LoopDoneVo(
     val startInDay: Long = 0L,
     @ColumnInfo(defaultValue = "0")
     val endInDay: Long = 0L,
-    val done: Int = NO_RESPONSE
+    val done: Int = NO_RESPONSE,
+    val revisionId: Long? = null,
+    val localEpochDay: Long? = null,
+    @ColumnInfo(defaultValue = "0") val timeSource: Int = TimeSource.UNKNOWN,
+    val startedAt: Long? = null,
+    val endedAt: Long? = null
 ) {
+    fun measuredDurationMs(): Long? = startedAt?.let { start ->
+        endedAt?.let { end -> (end - start).takeIf { it >= 0 } }
+    }
+
+    object TimeSource {
+        const val UNKNOWN = 0
+        const val MEASURED = 1
+        const val PLANNED = 2
+        const val USER_ENTERED = 3
+    }
+
     fun isDisabled() = done.isDisabled()
     fun isDone() = done.isDone()
 

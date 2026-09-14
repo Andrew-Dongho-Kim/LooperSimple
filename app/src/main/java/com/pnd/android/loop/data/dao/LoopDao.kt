@@ -1,6 +1,5 @@
 package com.pnd.android.loop.data.dao
 
-import android.database.sqlite.SQLiteConstraintException
 import androidx.lifecycle.LiveData
 import androidx.room.Dao
 import androidx.room.Insert
@@ -35,7 +34,7 @@ interface LoopDao {
     suspend fun getLoop(loopId: Int): LoopVo?
 
     @Query("SELECT * FROM loop WHERE loopId=:loopId")
-    fun getLoopFlow(loopId: Int): Flow<LoopVo>
+    fun getLoopFlow(loopId: Int): Flow<LoopVo?>
 
     // Nullable: min() returns NULL when the loop table is empty.
     @Query("SELECT min(created) FROM loop")
@@ -47,14 +46,6 @@ interface LoopDao {
 
     @Update
     suspend fun update(vararg loops: LoopVo)
-
-    suspend fun addOrUpdate(vararg loops: LoopVo) =
-        try {
-            insert(*loops).map { it.toInt() }
-        } catch (e: SQLiteConstraintException) {
-            update(*loops)
-            loops.map { loop -> loop.loopId }
-        }
 
     @Query("DELETE FROM loop WHERE loopId = :id")
     suspend fun delete(id: Int)

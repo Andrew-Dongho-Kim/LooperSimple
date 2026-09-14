@@ -10,17 +10,22 @@ import androidx.room.migration.AutoMigrationSpec
 import com.pnd.android.loop.data.dao.FullLoopDao
 import com.pnd.android.loop.data.dao.LoopDao
 import com.pnd.android.loop.data.dao.LoopDoneDao
+import com.pnd.android.loop.data.dao.LoopHistoryDao
 import com.pnd.android.loop.data.dao.LoopRetrospectDao
 import com.pnd.android.loop.data.dao.RoomTypeConverters
+import com.pnd.android.loop.data.history.LoopRevisionVo
+import com.pnd.android.loop.data.history.SeedLoopHistory
 
 @Database(
-    version = 9,
+    version = 10,
     entities = [
         LoopVo::class,
         LoopDoneVo::class,
-        LoopRetrospectVo::class
+        LoopRetrospectVo::class,
+        LoopRevisionVo::class
     ],
     autoMigrations = [
+        AutoMigration(from = 9, to = 10, spec = SeedLoopHistory::class),
         AutoMigration(from = 1, to = 2),
         AutoMigration(from = 2, to = 3),
         AutoMigration(from = 3, to = 4),
@@ -42,6 +47,7 @@ import com.pnd.android.loop.data.dao.RoomTypeConverters
 )
 @TypeConverters(RoomTypeConverters::class)
 abstract class AppDatabase : RoomDatabase() {
+    abstract fun loopHistoryDao(): LoopHistoryDao
     abstract fun loopDao(): LoopDao
     abstract fun loopDoneDao(): LoopDoneDao
     abstract fun loopRetrospectDao(): LoopRetrospectDao

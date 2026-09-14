@@ -56,9 +56,9 @@ fun LoopBase.description() =
     | isMock : $isMock""".trimMargin()
 
 
-val LoopBase.actualStartInDay get() = (this as? LoopWithDone)?.actualStartInDay ?: startInDay
-val LoopBase.actualEndInDay get() = (this as? LoopWithDone)?.actualEndInDay ?: endInDay
-val LoopBase.doneState get() = (this as? LoopWithDone)?.done
+val LoopBase.actualStartInDay get() = (this as? LoopWithDone)?.actualStartInDay ?: (this as? FullLoopVo)?.actualStartInDay ?: startInDay
+val LoopBase.actualEndInDay get() = (this as? LoopWithDone)?.actualEndInDay ?: (this as? FullLoopVo)?.actualEndInDay ?: endInDay
+val LoopBase.doneState get() = (this as? LoopWithDone)?.done ?: (this as? FullLoopVo)?.done
 val LoopBase.isRespond get() = doneState == DoneState.DONE || doneState == DoneState.SKIP
 val LoopBase.isNotRespond get() = doneState == DoneState.NO_RESPONSE
 val LoopBase.isInProgress get() = doneState == DoneState.IN_PROGRESS
