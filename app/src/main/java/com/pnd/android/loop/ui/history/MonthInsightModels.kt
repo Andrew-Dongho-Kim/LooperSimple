@@ -1,5 +1,6 @@
 package com.pnd.android.loop.ui.history
 
+import com.pnd.android.loop.data.history.*
 import com.pnd.android.loop.data.FullLoopVo
 import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.LoopDoneVo.DoneState
@@ -32,9 +33,16 @@ internal fun monthComparisonPeriod(month: YearMonth, today: LocalDate): MonthCom
     }
 }
 
-data class InsightDay(val date: LocalDate, val records: List<FullLoopVo>) {
+data class InsightDay(
+    val date: LocalDate,
+    val records: List<FullLoopVo>,
+    val settledRecords: List<FullLoopVo> = records,
+    val estimated: Boolean = false,
+    val occurrenceCount: Int = records.size,
+    val unansweredCount: Int = records.count { it.done == DoneState.NO_RESPONSE },
+) {
     val doneCount get() = records.count { it.done == DoneState.DONE }
-    val totalCount get() = records.size
+    val totalCount get() = settledRecords.size
     val rate get() = if (totalCount == 0) null else doneCount.toFloat() / totalCount
     val timeMs get() = records.sumOf { it.insightDurationMs() }
     val hasNote get() = records.any { it.retrospect.isNotBlank() }
@@ -76,14 +84,16 @@ data class MonthInsightReport(
     val loops: List<LoopMonthInsight>,
 ) {
     val records get() = days.flatMap { it.records }
+    val hasEstimatedHistory get() = days.any { it.estimated }
     val totalCount get() = days.sumOf { it.totalCount }
     val doneCount get() = days.sumOf { it.doneCount }
     val completionRate get() = if (totalCount == 0) 0f else doneCount.toFloat() / totalCount
     val skippedCount get() = records.count { it.done == DoneState.SKIP }
-    val pendingCount get() = records.count { it.done == DoneState.NO_RESPONSE }
+    val pendingCount get() = days.sumOf { it.unansweredCount }
     val inProgressCount get() = records.count { it.done == DoneState.IN_PROGRESS }
     val activeDays get() = days.count { it.doneCount > 0 }
-    val perfectDays get() = days.count { it.totalCount > 0 && it.doneCount == it.totalCount }
+    val perfectDays get() = days.count { it.occurrenceCount > 0 && it.doneCount == it.occurrenceCount }
+    val occurrenceCount get() = days.sumOf { it.occurrenceCount }
     val timeMs get() = days.sumOf { it.timeMs }
     val notes get() = records.filter { it.retrospect.isNotBlank() }.sortedByDescending { it.date }
     val timedCount get() = records.count { it.done.isDone() && it.hasInsightTime() }
@@ -116,45 +126,49 @@ internal fun FullLoopVo.hasInsightTime(): Boolean =
     actualStartInDay in 0 until 86_400_000L && actualEndInDay in 0 until 86_400_000L
 
 internal fun FullLoopVo.insightDurationMs(): Long {
-    if (!done.isDone() || !hasInsightTime()) return 0
+    if (!done.isDone()) return 0
+    measuredDurationMs?.let { return it }
+    if (!hasInsightTime()) return 0
     val raw = actualEndInDay - actualStartInDay
     return if (raw >= 0) raw else raw + 86_400_000L
 }
 
-/**
- * Same occurrence rules as getAchievementDayFlow: saved state wins over today's schedule.
- * Missing records are reconstructed from the current schedule, never written to the database.
- * Iterating LocalDate (not fixed milliseconds) keeps DST and month boundaries correct.
- */
+/** Compatibility for fixtures and callers that already have the four history components. */
 internal fun resolveInsightDays(
     from: LocalDate,
     to: LocalDate,
     loops: List<LoopVo>,
     saved: List<LoopDoneVo>,
     notes: List<LoopRetrospectVo>,
+): List<InsightDay> = resolveInsightDays(from, to, historySnapshot(loops, saved, notes), to.plusDays(1))
+
+internal fun resolveInsightDays(
+    from: LocalDate,
+    to: LocalDate,
+    snapshot: LoopHistorySnapshot,
+    today: LocalDate,
 ): List<InsightDay> {
-    val savedByKey = saved.associateBy { it.loopId to it.date.toLocalDate() }
-    val notesByKey = notes.associateBy { it.loopId to it.date.toLocalDate() }
-    val days = mutableListOf<InsightDay>()
-    var date = from
-    while (!date.isAfter(to)) {
-        val current = date
-        val records = loops.mapNotNull { loop ->
-            if (loop.created.toLocalDate().isAfter(current)) return@mapNotNull null
-            val stored = savedByKey[loop.loopId to current]
-            if (stored?.done == DoneState.DISABLED) return@mapNotNull null
-            if (stored == null && (!loop.enabled || (loop.activeDays and dayForLoop(current)) == 0)) return@mapNotNull null
-            val state = stored ?: LoopDoneVo(
-                loopId = loop.loopId, date = current.toMs(),
-                startInDay = -1, endInDay = -1, done = DoneState.NO_RESPONSE,
-            )
-            loop.toFullLoopVo(notesByKey[loop.loopId to current], state)
-        }.sortedWith(compareBy({ it.startInDay }, { it.title }, { it.loopId }))
-        days += InsightDay(current, records)
-        date = date.plusDays(1)
+    val byDate = snapshot.days(from, to).groupBy { it.date }
+    return buildList {
+        var date = from
+        while (date <= to) {
+            val days = byDate[date].orEmpty()
+            add(InsightDay(
+                date, days.map { it.asFullLoop() },
+                days.filter { it.isSettled(today) }.map { it.asFullLoop() },
+                days.any { it.estimated },
+                occurrenceCount = days.count { it.hasOccurrence },
+                unansweredCount = days.count { it.hasOccurrence && it.response.done == DoneState.NO_RESPONSE },
+            ))
+            date = date.plusDays(1)
+        }
     }
-    return days
 }
+
+private fun historySnapshot(loops: List<LoopVo>, saved: List<LoopDoneVo>, notes: List<LoopRetrospectVo>) =
+    LoopHistorySnapshot(loops.map { loop ->
+        LoopHistory(loop, emptyList(), saved.filter { it.loopId == loop.loopId }, notes.filter { it.loopId == loop.loopId })
+    })
 
 internal fun buildMonthInsightReport(
     month: YearMonth,
@@ -162,36 +176,39 @@ internal fun buildMonthInsightReport(
     loops: List<LoopVo>,
     saved: List<LoopDoneVo>,
     notes: List<LoopRetrospectVo>,
+): MonthInsightReport = buildMonthInsightReport(month, today, historySnapshot(loops, saved, notes))
+
+internal fun buildMonthInsightReport(
+    month: YearMonth,
+    today: LocalDate,
+    snapshot: LoopHistorySnapshot,
 ): MonthInsightReport {
     val end = minOf(month.atEndOfMonth(), today)
     val comparison = monthComparisonPeriod(month, today)
-    val days = resolveInsightDays(month.atDay(1), end, loops, saved, notes)
-    val previous = resolveInsightDays(comparison.previousStart, minOf(comparison.previousEnd, today), loops, saved, notes)
-        .flatMap { it.records }
-    val comparable = days.filter { !it.date.isAfter(comparison.currentEnd) }.flatMap { it.records }
-    val records = days.flatMap { it.records }
+    val days = resolveInsightDays(month.atDay(1), end, snapshot, today)
+    val previousDays = snapshot.settled(comparison.previousStart, minOf(comparison.previousEnd, today), today)
+    // Known scheduled misses are valid comparison samples, even without stored response rows.
+    val comparableIds = previousDays.filter { !it.estimated || it.response.revisionId != null ||
+        snapshot.byId[it.loop.loopId]?.responseOn(it.date) != null }.map { it.loop.loopId }.toSet()
+    val previous = previousDays.map { it.asFullLoop() }
+    val comparable = days.filter { it.date <= comparison.currentEnd }.flatMap { it.settledRecords }
+    val records = days.flatMap { it.settledRecords }
     val byPreviousLoop = previous.groupBy { it.loopId }
     val byComparableLoop = comparable.groupBy { it.loopId }
-    val previousSavedIds = saved.filter {
-        val date = it.date.toLocalDate()
-        it.done != DoneState.DISABLED &&
-            !date.isBefore(comparison.previousStart) && !date.isAfter(comparison.previousEnd)
-    }.map { it.loopId }.toSet()
     val loopInsights = records.groupBy { it.loopId }.map { (id, values) ->
         val before = byPreviousLoop[id].orEmpty()
         val current = byComparableLoop[id].orEmpty()
         LoopMonthInsight(
-            id, values.first().title, values.count { it.done.isDone() }, values.size,
+            id, snapshot.byId.getValue(id).current.title, values.count { it.done.isDone() }, values.size,
             values.sumOf { it.insightDurationMs() }, before.count { it.done.isDone() },
-            if (id in previousSavedIds) before.size else 0,
+            if (id in comparableIds) before.size else 0,
             current.count { it.done.isDone() }, current.size,
         )
     }.sortedWith(compareByDescending<LoopMonthInsight> { it.rate }.thenBy { it.title })
     return MonthInsightReport(
         month, today, end, days, comparison,
-        if (previous.any { it.loopId in previousSavedIds }) previous.size else 0,
-        previous.count { it.done.isDone() },
-        comparable.size, comparable.count { it.done.isDone() },
+        if (comparableIds.isNotEmpty()) previous.size else 0,
+        previous.count { it.done.isDone() }, comparable.size, comparable.count { it.done.isDone() },
         (0..6).map { index ->
             val weekday = if (index == 0) DayOfWeek.SUNDAY else DayOfWeek.of(index)
             val matching = days.filter { it.date.dayOfWeek == weekday }

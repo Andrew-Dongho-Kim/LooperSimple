@@ -315,8 +315,10 @@ private fun DetailAppBar(
                     .background(color.compositeOverOnSurface()),
             )
         },
-        actions = {
-            if (showActions) {
+        // 삭제 안내 중에는 액션이 하나도 없다. 빈 람다를 넘기면 내용 없는 알약만 떠 보이므로
+        // 이때는 액션 슬롯 자체를 비운다(null).
+        actions = if (!showActions) null else {
+            {
                 AppBarIcon(
                     imageVector = Icons.Outlined.ModeEdit,
                     color = AppColor.onSurface,
@@ -384,7 +386,7 @@ private fun DetailAppBar(
     )
 }
 
-/** 활성 상태와 주간 목표 아래에는 기록과 통계만 배치한다. */
+/** 활성 상태와 주간 목표 아래에 기록·통계·수정 이력을 배치한다. */
 @Composable
 private fun DetailPageContent(
     modifier: Modifier = Modifier,
@@ -423,7 +425,7 @@ private fun DetailPageContent(
 
 }
 
-/** 본문은 기록과 메모 → 자세한 통계 순이다. 첫 화면에서는 두 섹션 모두 접어 둔다. */
+/** 기록과 메모 → 자세한 통계 → 수정 이력. 각 섹션은 접힌 상태로 시작한다. */
 @Composable
 private fun SectionList(
     modifier: Modifier = Modifier,
@@ -437,6 +439,8 @@ private fun SectionList(
 
     var statsExpanded by rememberSaveable(loop.loopId) { mutableStateOf(false) }
     var journalExpanded by rememberSaveable(loop.loopId) { mutableStateOf(false) }
+    var historyExpanded by rememberSaveable(loop.loopId) { mutableStateOf(false) }
+    val revisionHistory by detailViewModel.revisionHistory.collectAsState()
 
     Column(modifier = modifier.fillMaxWidth()) {
         HairlineDivider()
@@ -454,7 +458,7 @@ private fun SectionList(
                 detailViewModel.saveRetrospectInBackground(date, text)
             },
             onSetDoneState = { date, state ->
-                detailViewModel.setDoneState(loop = loop, localDate = date, doneState = state)
+                detailViewModel.setDoneState(localDate = date, doneState = state)
             },
         )
 
@@ -464,6 +468,14 @@ private fun SectionList(
             accent = accent,
             expanded = statsExpanded,
             onExpandedChange = { statsExpanded = it },
+        )
+
+        HairlineDivider()
+        RevisionHistorySection(
+            loopId = loop.loopId,
+            entries = revisionHistory,
+            expanded = historyExpanded,
+            onExpandedChange = { historyExpanded = it },
         )
 
     }

@@ -477,14 +477,14 @@ private fun HistoryCell(
 ) {
     val date = column.date
     val createdDate = remember(loop.created) { loop.created.toLocalDate() }
-    val isActiveDay = remember(loop.activeDays, date) { loop.activeDays.isOn(dayForLoop(date)) }
+
 
     // 위에서부터 우선순위대로 판단한다. 기록이 있으면 요일 설정보다 기록을 우선하는데,
     // 나중에 활성 요일을 바꿔도 그전에 쌓인 기록은 그대로 보여야 하기 때문이다.
     val look = when {
         date.isBefore(createdDate) -> CellLook.BeforeCreated
+        doneState == com.pnd.android.loop.ui.home.viewmodel.HISTORY_NOT_SCHEDULED -> CellLook.InactiveDay
         doneState != null -> CellLook.Status(doneState)
-        isActiveDay -> CellLook.Status(doneState = null)
         else -> CellLook.InactiveDay
     }
 

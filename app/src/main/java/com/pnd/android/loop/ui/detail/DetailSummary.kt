@@ -26,21 +26,21 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
-import com.pnd.android.loop.data.LoopDay.Companion.isOn
 import com.pnd.android.loop.data.LoopDoneVo.DoneState
+import com.pnd.android.loop.ui.common.HistoryCalculationNote
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.compositeOverOnSurface
@@ -48,7 +48,6 @@ import com.pnd.android.loop.ui.theme.error
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.surfaceContainer
 import com.pnd.android.loop.util.DAYS_WITH_3CHARS
-import com.pnd.android.loop.util.dayForLoop
 import java.time.LocalDate
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -82,13 +81,20 @@ internal fun SummaryHeader(
             accent = accent,
         )
 
+        stats.pendingGoal?.let { goal ->
+            Text(
+                text = stringResource(if (goal > 0) R.string.history_goal_next_week else R.string.history_goal_removed_next_week, goal),
+                modifier = Modifier.padding(top = 8.dp), style = AppTypography.bodySmall,
+                color = AppColor.onSurface.copy(alpha = 0.7f),
+            )
+        }
+
         // 이번 주(월~일) 흐름. 완료(강조색)·건너뜀(옅음)·그 외를 색으로 구분한다.
         WeekStrip(
             modifier = Modifier.padding(top = 14.dp),
             doneStateByDate = stats.doneStateByDate,
-            createdDate = stats.createdDate,
             today = stats.today,
-            activeDays = loop.activeDays,
+            scheduledDates = stats.scheduledWeekDates,
             accent = accent,
         )
 
@@ -98,10 +104,12 @@ internal fun SummaryHeader(
         )
 
         DetailCard(modifier = Modifier.padding(top = DetailSpacing.group)) {
-            KpiRow(
-                stats = stats,
-            )
+            KpiRow(stats = stats)
         }
+        HistoryCalculationNote(
+            estimated = stats.hasEstimatedHistory,
+            modifier = Modifier.padding(top = 10.dp),
+        )
     }
 }
 
@@ -268,9 +276,8 @@ private fun WeeklyGoalBar(
 private fun WeekStrip(
     modifier: Modifier = Modifier,
     doneStateByDate: Map<LocalDate, Int>,
-    createdDate: LocalDate,
     today: LocalDate,
-    activeDays: Int,
+    scheduledDates: Set<LocalDate>,
     accent: Color,
 ) {
     val doneLabel = stringResource(id = R.string.done)
@@ -292,7 +299,7 @@ private fun WeekStrip(
                 else -> AppColor.surfaceContainer
             }
             // 생성 이전이거나 비활성 요일은 흐리게 처리해 "해당 없음"을 구분한다.
-            val isActive = !date.isBefore(createdDate) && activeDays.isOn(dayForLoop(date))
+            val isActive = date in scheduledDates
             val isFuture = date.isAfter(today)
             val dayLabel = stringResource(id = DAYS_WITH_3CHARS[date.dayOfWeek.value - 1])
             val stateLabel = when {

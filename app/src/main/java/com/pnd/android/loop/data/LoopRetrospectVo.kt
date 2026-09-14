@@ -22,5 +22,6 @@ data class LoopRetrospectVo(
     val loopId: Int,
     val date: Long,
     val text: String?,
+    val localEpochDay: Long? = null,
 )
 

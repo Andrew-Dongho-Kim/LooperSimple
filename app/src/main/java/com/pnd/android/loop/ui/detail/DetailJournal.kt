@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.sp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.data.LoopRetrospectVo
+import com.pnd.android.loop.data.history.localDate
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.RoundShapes
@@ -550,7 +551,7 @@ private fun MemoList(
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         memos.forEach { memo ->
-            val date = memo.date.toLocalDate()
+            val date = memo.localDate()
             Column(
                 modifier = Modifier
                     .fillMaxWidth()

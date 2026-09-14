@@ -2,10 +2,11 @@ package com.pnd.android.loop.ui.home
 
 import androidx.compose.runtime.Immutable
 import com.pnd.android.loop.data.LoopBase
+import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.LoopDoneVo.DoneState
-import com.pnd.android.loop.util.isActiveDay
-import com.pnd.android.loop.util.toLocalDate
-import com.pnd.android.loop.util.toMs
+import com.pnd.android.loop.data.asLoopVo
+import com.pnd.android.loop.data.history.LoopHistory
+import com.pnd.android.loop.data.history.LoopTimeline
 import java.time.LocalDate
 import kotlin.math.roundToInt
 
@@ -26,35 +27,23 @@ data class RecentLoopCompletion(
         (100.0 * doneCount / totalCount).roundToInt()
 }
 
-/**
- * Calendar-based denominator, as in the home trends: missing responses must not disappear.
- * Use yesterday through 30 days ago, excluding creation day and DISABLED records. Historical
- * schedules are not stored, so eligible weekdays use the loop's current repeat setting.
- * A sample is a scheduled day, not just a day with a response; three misses must show 0%.
- */
-internal fun computeRecentLoopCompletion(
-    loop: LoopBase,
-    history: Map<Long, Int>?,
-    today: LocalDate,
-): RecentLoopCompletion? {
+/** The same occurrence resolver as monthly and detailed statistics, bounded to 30 days. */
+internal fun computeRecentLoopCompletion(timeline: LoopTimeline, today: LocalDate): RecentLoopCompletion? {
+    val loop = timeline.current
     if (loop.isMock || !loop.enabled) return null
-    val start = maxOf(today.minusDays(RECENT_COMPLETION_DAYS), loop.created.toLocalDate().plusDays(1))
+    val start = maxOf(today.minusDays(RECENT_COMPLETION_DAYS), timeline.createdDate)
     val end = today.minusDays(1)
-    var done = 0
-    var skipped = 0
-    var unanswered = 0
-    var date = start
-    while (!date.isAfter(end)) {
-        if (loop.isActiveDay(date)) {
-            when (history?.get(date.toMs())) {
-                DoneState.DISABLED -> Unit
-                DoneState.DONE -> done++
-                DoneState.SKIP -> skipped++
-                else -> unanswered++
-            }
-        }
-        date = date.plusDays(1)
-    }
-    return RecentLoopCompletion(start, end, done, skipped, unanswered)
-        .takeIf { it.totalCount >= RECENT_COMPLETION_MIN_SAMPLES }
+    val days = timeline.days(start, end).filter { it.isSettled(today) }
+    return RecentLoopCompletion(
+        start, end, days.count { it.response.isDone() }, days.count { it.response.isSkip() },
+        days.count { it.response.done == DoneState.NO_RESPONSE },
+    ).takeIf { it.totalCount >= RECENT_COMPLETION_MIN_SAMPLES }
 }
+
+/** Legacy fixture adapter; production passes the complete timeline. */
+internal fun computeRecentLoopCompletion(loop: LoopBase, history: Map<Long, Int>?, today: LocalDate): RecentLoopCompletion? =
+    computeRecentLoopCompletion(LoopTimeline(LoopHistory(
+        loop.asLoopVo(), emptyList(), history.orEmpty().map { (date, state) ->
+            LoopDoneVo(loop.loopId, date, done = state)
+        }, emptyList(),
+    )), today)

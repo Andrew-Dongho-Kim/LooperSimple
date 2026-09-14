@@ -78,11 +78,12 @@ fun LoopYesterdayCard(
 
     // 다이얼로그로 확인받는 대신, 요청 즉시 상태를 바꾸고 스낵바로 알린다.
     // 스낵바의 "실행취소"를 누르면 어제 상태를 미응답(NO_RESPONSE)으로 되돌린다.
-    val onAction: (LoopBase, Int) -> Unit = { loop, doneState ->
+    val onAction: (LoopBase, Int, Pair<Long, Long>?) -> Unit = { loop, doneState, suppliedTimes ->
         loopViewModel.changeLoopState(
             loop = loop,
             localDate = yesterday,
-            doneState = doneState
+            doneState = doneState,
+            suppliedTimes = suppliedTimes,
         )
 
         val messageRes = if (doneState == LoopDoneVo.DoneState.DONE) {
@@ -126,8 +127,7 @@ fun LoopYesterdayCard(
             // 입력받은 시각은 어제 행에 남겨야 하므로, 그 시각을 실은 루프로 상태를 바꾼다.
             onConfirm = { startInDay, endInDay ->
                 onAction(
-                    recordDoneLoop.copyAs(startInDay = startInDay, endInDay = endInDay),
-                    LoopDoneVo.DoneState.DONE,
+                    recordDoneLoop, LoopDoneVo.DoneState.DONE, startInDay to endInDay,
                 )
             },
             onDismiss = { recordDoneLoopId = NO_RECORD_DONE_TARGET },
@@ -168,10 +168,10 @@ fun LoopYesterdayCard(
                             if (loop.isAnyTime) {
                                 recordDoneLoopId = loop.loopId
                             } else {
-                                onAction(loop, LoopDoneVo.DoneState.DONE)
+                                onAction(loop, LoopDoneVo.DoneState.DONE, null)
                             }
                         },
-                        onRequestSkip = { onAction(loop, LoopDoneVo.DoneState.SKIP) },
+                        onRequestSkip = { onAction(loop, LoopDoneVo.DoneState.SKIP, null) },
                         onNavigateToDetailPage = onNavigateToDetailPage,
                     )
                 }

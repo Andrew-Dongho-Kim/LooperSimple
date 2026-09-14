@@ -106,7 +106,7 @@ fun FloatingSurface(
             Modifier
                 .matchParentSize()
                 // Shadow grows in with the collapse so the pill lifts off the content behind it.
-                .shadow(elevation = FloatingElevation * progress, shape = shape)
+                .shadow(elevation = if (progress == 1f) FloatingElevation else 0.dp, shape = shape)
                 .floatingSurfaceBackground(
                     backdrop = backdrop,
                     shape = shape,

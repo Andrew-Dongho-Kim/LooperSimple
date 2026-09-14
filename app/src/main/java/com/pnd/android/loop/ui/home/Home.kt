@@ -369,7 +369,12 @@ private fun HomeBody(
     } else {
         emptyMap()
     }
-    val onEdit = remember { { loop: LoopBase -> inputState.edit(loop) } }
+    val editScope = rememberCoroutineScope()
+    val onEdit: (LoopBase) -> Unit = { loop ->
+        editScope.launch {
+            loopViewModel.editableLoop(loop.loopId)?.let { inputState.edit(it) }
+        }
+    }
     val onDelete = remember { { loop: LoopBase -> loopViewModel.deleteLoop(loop) } }
     val onStateChanged: (LoopBase, Int) -> Unit = remember {
         { loop, doneState ->

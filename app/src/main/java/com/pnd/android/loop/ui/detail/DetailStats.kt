@@ -5,6 +5,8 @@ import com.pnd.android.loop.data.LoopDay.Companion.isOn
 import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.data.common.NO_WEEKLY_GOAL
+import com.pnd.android.loop.data.history.LoopTimeline
+import com.pnd.android.loop.data.history.localDate
 import com.pnd.android.loop.ui.statisctics.StreakStat
 import com.pnd.android.loop.ui.statisctics.computeLoopStreak
 import com.pnd.android.loop.util.dayForLoop
@@ -56,6 +58,9 @@ internal data class DetailStats(
     val activity: DetailActivityStats,
     /** 회고 메모를 남긴 날짜들. 달력 마커와 접힌 행 요약이 함께 쓴다. */
     val memoDates: Set<LocalDate>,
+    val scheduledWeekDates: Set<LocalDate> = emptySet(),
+    val hasEstimatedHistory: Boolean = false,
+    val pendingGoal: Int? = null,
 ) {
     val hasAnyRecord: Boolean get() = totalCount > 0
 
@@ -171,3 +176,50 @@ internal fun computeWeeklyProgress(
 
 /** 활동 요일 수. 접힌 스케줄 행의 요약과 목표 선택기의 기본값 계산에 쓴다. */
 internal fun activeDayCount(activeDays: Int): Int = LoopDay.ALL.count { activeDays.isOn(it) }
+
+/** App entry point: every date uses its own settings, including disabled spans. */
+internal fun computeDetailStats(
+    timeline: LoopTimeline,
+    today: LocalDate,
+): DetailStats {
+    val days = timeline.days(timeline.createdDate, today)
+    val states = days.associate { it.date to it.response.done }
+    val settled = days.filter { it.isSettled(today) }.associate { it.date to it.response.done }
+    val counts = countActivity(settled.values)
+    val week = weekDatesOf(today)
+    val weekStart = week.first()
+    val previousEnd = today.minusWeeks(1)
+    val done = days.count { it.date >= weekStart && it.response.isDone() }
+    val previous = days.count { it.date >= weekStart.minusWeeks(1) && it.date <= previousEnd && it.response.isDone() }
+    val goal = timeline.goalOn(today)
+    val scheduledWeekDates = week.filter { timeline.day(it)?.hasOccurrence == true }.toSet()
+    return DetailStats(
+        today = today,
+        createdDate = timeline.createdDate,
+        doneStateByDate = states,
+        totalCount = counts.total,
+        doneCount = counts.done,
+        skipCount = counts.skipped,
+        noResponseCount = counts.unanswered,
+        donePercent = counts.completionPercent ?: 0,
+        streak = computeLoopStreak(
+            doneDates = days.filter { it.response.isDone() }.map { it.date },
+            activeDays = timeline.current.activeDays,
+            createdDate = timeline.createdDate,
+            today = today,
+            scheduledOn = { date -> timeline.day(date)?.isSettled(today) == true },
+        ),
+        weekly = WeeklyProgress(
+            done = done,
+            target = if (goal > 0) goal else scheduledWeekDates.size,
+            hasGoal = goal > 0,
+            trend = done.compareTo(previous),
+        ),
+        activity = computeDetailActivityStats(settled, timeline.createdDate, today),
+        memoDates = timeline.history.notes.filter { !it.text.isNullOrBlank() }
+            .map { it.localDate() }.toSet(),
+        scheduledWeekDates = scheduledWeekDates,
+        hasEstimatedHistory = days.any { it.estimated },
+        pendingGoal = timeline.current.weeklyGoal.takeIf { it != goal },
+    )
+}

@@ -129,7 +129,7 @@ val LoopBase.currentTimeStat: TimeStat
 
         // Recompose 로 인해 매번 flow 가 생성 되는 것을 막고, 기존의  flow를 사용하도록 하기 위한 우회방법
         // 시간관련 변경이 있을 경우, time stat flow가 재 실행 되도록 해야 한다.
-        LaunchedEffect(loopId, startInDay, endInDay, isAnyTime) {
+        LaunchedEffect(this) {
             timeStatFlow.collect { timeStat -> currTimeStat = timeStat }
         }
         return currTimeStat
@@ -206,7 +206,7 @@ private suspend fun FlowCollector<TimeStat>.anyTimeStat(loop: LoopBase): Long {
         }
         // 진행 중: 시작 이후 경과 시간을 보여준다.
         else -> {
-            val elapsedMs = startTime.until(LocalTime.now(), ChronoUnit.MILLIS).coerceAtLeast(0L)
+            val elapsedMs = ((LocalTime.now().toMs() - startTime.toMs()) % MS_1DAY + MS_1DAY) % MS_1DAY
             emit(TimeStat.InProgress(time = elapsedMs.toLocalTime(), isAnyTime = true))
             (elapsedMs % MS_1MIN).coerceAtLeast(1000L)
         }

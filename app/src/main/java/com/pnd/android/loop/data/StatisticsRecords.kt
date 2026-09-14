@@ -36,6 +36,8 @@ data class LoopResponseRecord(
     val plannedStartInDay: Long,
     val isAnyTime: Boolean,
     val retrospect: String?,
+    val timeSource: Int = LoopDoneVo.TimeSource.UNKNOWN,
+    val measuredDurationMs: Long? = null,
 )
 
 /**

@@ -871,7 +871,7 @@ private fun DayAchievementPercent(
  * 앰버(중간)→파랑(높음)→초록(완료)으로 바뀌며 성취 정도를 색으로 전한다.
  * 라이트/다크 각각 대비가 유지되도록 색을 따로 지정한다.
  */
-@Composable   
+@Composable
 private fun progressColorOf(fraction: Float): Color {
     val isDark = isSystemInDarkTheme()
     return AppColor.onSurface.copy(alpha = if (isDark) 0.60f else 0.50f)
@@ -969,7 +969,9 @@ private fun TimelineLoopRow(
 
                 Text(
                     modifier = Modifier.padding(start = Dimens.itemSpacing),
-                    text = loop.formatStartEndTime(),
+                    text = if (loop.actualStartInDay >= 0 && loop.actualEndInDay >= 0) {
+                        loop.copyAs(startInDay = loop.actualStartInDay, endInDay = loop.actualEndInDay, isAnyTime = false).formatStartEndTime()
+                    } else loop.formatStartEndTime(),
                     maxLines = 1,
                     style = AppTypography.labelMedium.copy(
                         color = AppColor.onSurface.copy(alpha = 0.5f),

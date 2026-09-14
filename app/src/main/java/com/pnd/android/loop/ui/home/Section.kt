@@ -809,7 +809,7 @@ private fun LazyListScope.sectionAll(
                 onExpandChanged = { expanded -> isExpanded = expanded },
                 // 활성화 버튼: 루프의 enabled 플래그만 켜서 저장한다.
                 onEnable = { loop ->
-                    loopViewModel.addOrUpdateLoop(loop.copyAs(enabled = true).asLoopVo())
+                    loopViewModel.setEnabled(loop.loopId, true)
                 },
                 onNavigateToDetailPage = onNavigateToDetailPage,
             )

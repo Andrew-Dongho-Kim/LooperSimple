@@ -22,14 +22,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.pnd.android.loop.R
 import com.pnd.android.loop.ui.common.AppCard
+import com.pnd.android.loop.ui.common.HistoryCalculationNote
 import com.pnd.android.loop.ui.statisctics.investedDurationText
 import com.pnd.android.loop.ui.theme.*
 import com.pnd.android.loop.util.formatMonthDateDay
@@ -51,7 +52,7 @@ internal fun MonthlyInsightExperience(
     onOpenDate: (LocalDate) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val today = LocalDate.now()
+    val today by remember { com.pnd.android.loop.util.todayFlow() }.collectAsState(LocalDate.now())
     var monthEpoch by rememberSaveable { mutableStateOf(initialDate.withDayOfMonth(1).toEpochDay()) }
     val month = YearMonth.from(LocalDate.ofEpochDay(monthEpoch))
     var route by rememberSaveable { mutableStateOf("summary") }
@@ -64,7 +65,7 @@ internal fun MonthlyInsightExperience(
     val back = { route = if (route == "notes") notesReturn else "summary" }
 
     key(month, retry) {
-        val state by remember { viewModel.flowMonthReport(month, today) }
+        val state by remember { viewModel.flowMonthReport(month) }
             .collectAsState(initial = AchievementLoadState.Loading)
         val report = (state as? AchievementLoadState.Ready)?.value
         val monthHeader: @Composable () -> Unit = {
@@ -79,7 +80,7 @@ internal fun MonthlyInsightExperience(
                 AchievementLoadState.Loading -> HistoryLoading()
                 AchievementLoadState.Error -> HistoryError { retry++ }
                 is AchievementLoadState.Ready -> {
-                    if (result.value.totalCount == 0) {
+                    if (result.value.days.all { it.records.isEmpty() }) {
                         Text(
                             stringResource(R.string.mi_empty),
                             Modifier.fillMaxWidth().padding(vertical = 32.dp),
@@ -114,6 +115,7 @@ internal fun MonthlyInsightExperience(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     item { monthHeader() }
+                    item { HistoryCalculationNote(report?.hasEstimatedHistory == true) }
                     item { content() }
                 }
             }
@@ -148,6 +150,7 @@ internal fun MonthlyInsightExperience(
                                 verticalArrangement = Arrangement.spacedBy(16.dp),
                             ) {
                                 item { monthHeader() }
+                    item { HistoryCalculationNote(report?.hasEstimatedHistory == true) }
                                 item { content() }
                             }
                         }
@@ -163,6 +166,7 @@ internal fun MonthlyInsightExperience(
             text = {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     item { Text(stringResource(R.string.mi_definition_rate)) }
+                    item { Text(stringResource(R.string.history_estimated)) }
                     item { Text(stringResource(R.string.mi_definition_comparison)) }
                     item { Text(stringResource(R.string.mi_definition_time)) }
                     item { Text(stringResource(R.string.mi_definition_streak)) }
@@ -243,7 +247,7 @@ private fun InsightSummary(report: MonthInsightReport, onAnalysis: () -> Unit, o
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                 Text(stringResource(R.string.mi_small_steps, report.doneCount), style = AppTypography.titleMedium)
-                Text(stringResource(R.string.mi_planned, report.totalCount), style = AppTypography.labelMedium, color = AppColor.onSurfaceVariant)
+                Text(stringResource(R.string.mi_planned, report.occurrenceCount), style = AppTypography.labelMedium, color = AppColor.onSurfaceVariant)
                 InsightComparison(report)
             }
         }

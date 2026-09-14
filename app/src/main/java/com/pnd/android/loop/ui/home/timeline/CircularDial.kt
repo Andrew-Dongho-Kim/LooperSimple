@@ -68,6 +68,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
@@ -95,10 +96,10 @@ import com.pnd.android.loop.ui.home.DeleteLoopDialog
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.RoundShapes
-import com.pnd.android.loop.ui.theme.compositedOnSurface
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.ui.theme.surfaceElevated
+import com.pnd.android.loop.ui.theme.background
 import com.pnd.android.loop.util.MS_1DAY
 import com.pnd.android.loop.util.MS_1MIN
 import com.pnd.android.loop.util.formatHourMinute
@@ -108,6 +109,7 @@ import com.pnd.android.loop.util.overlapsInTime
 import com.pnd.android.loop.util.toMs
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.hypot
@@ -116,16 +118,16 @@ import kotlin.math.roundToInt
 import kotlin.math.sin
 
 /**
- * 시안 A — 24시간 원형 다이얼.
+ * Refined Orbit — 24시간 원형 다이얼.
  *
  * 하루(0~24시)를 한 바퀴로 펼쳐, 각 루프를 시각에 비례한 호(arc)로 그린다.
  * - 겹치는 루프: 안쪽 레인으로 분리해 서로 가리지 않게 한다.
- * - 현재 시각: WineRed 바늘 + 중앙의 큰 시각 텍스트로 명확히 표시한다.
- * - 진행 중 루프: 더 굵게 + 현재 위치에 맥박(pulse) 점으로 한눈에 띈다.
+ * - 현재 시각: 링 가장자리의 짧은 바늘 + 중앙 시각·진행 요약으로 표시한다.
+ * - 진행 중 루프: 경과/잔여 명도 차이와 현재 위치의 점으로 구분한다.
  * - 겹침: 레인(동심원)으로 분리하되 최대 3줄까지만 그리고, 넘치면 "+N" 배지로 접는다.
  * - 시작/종료·잔여 시간: 호를 탭하면 뜨는 말풍선 팝업에서 확인하고 완료/스킵한다.
  * - AnyTime(시간 미지정) 루프: 24시간 링 바깥의 점선 궤도에 노드로 얹고(대기=속 빈 링,
- *   실행 중=채움+헤일로), 노드를 탭하면 시작/정지 팝업이 뜬다.
+ *   시작하면 시간 레인으로 이동), 노드를 탭하면 시작/정지 팝업이 뜬다.
  *
  * 색은 모두 [AppColor](테마 토큰) 기반이라 다크/라이트 모두에서 동일한 강도로 읽힌다.
  */
@@ -201,7 +203,7 @@ fun LoopCircularDial(
             onDelete = onDelete,
         )
 
-        // 다이얼 아래: 어떤 색이 어떤 루프인지 대응시키는 색상 범례(시안 A).
+        // 다이얼 아래: 어떤 색이 어떤 루프인지 대응시키는 색상 범례.
         // 다이얼에 그린 루프와 동일하게 완료/스킵을 제외한 목록만 대응시킨다.
         LoopColorLegend(
             modifier = Modifier.padding(top = 16.dp, start = 16.dp, end = 16.dp),
@@ -213,14 +215,14 @@ fun LoopCircularDial(
     }
 }
 
-// region ─────────────────────────── 하단 색상 범례(시안 A) ───────────────────────────
+// region ─────────────────────────── 하단 색상 범례 ───────────────────────────
 
 /**
- * 다이얼 아래에 루프의 색과 이름을 칩으로 나열하는 범례(시안 A).
+ * 다이얼 아래에 루프의 색과 이름을 칩으로 나열하는 범례.
  *
  * 다이얼의 호는 색으로만 구분되므로, "이 색 = 이 루프"를 한눈에 대응시켜 준다.
  * 칩은 좌→우로 흐르다 폭이 차면 다음 줄로 접힌다([FlowRow]).
- * 색 점·칩 배경·글자 모두 [AppColor] 토큰 기반이라 다크·라이트에서 동일한 강도로 읽힌다.
+ * 시간 지정 범례는 배경을 비우고, AnyTime은 별도 제목과 테두리로 구분한다.
  *
  * - 칩을 누르면 [onChipClick] 으로 해당 루프가 다이얼에서도 선택된다([selectedKey] 로 강조).
  * - 수정 중(임시 mock 루프 존재)에는 편집 대상 칩 하나만 노출해, 편집 중인 루프에 집중시킨다.
@@ -255,47 +257,88 @@ private fun LoopColorLegend(
     }
     if (legendItems.isEmpty()) return
 
-    FlowRow(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        legendItems.forEach { occurrence ->
-            LegendChip(
-                color = Color(occurrence.loop.color),
-                name = occurrence.loop.title,
-                selected = occurrence.key == selectedKey,
-                onClick = { onChipClick(occurrence.key) },
+    Column(modifier = modifier.fillMaxWidth()) {
+        val (anyTime, timed) = legendItems.partition { it.loop.isAnyTime }
+        if (timed.isNotEmpty()) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                timed.forEach { occurrence ->
+                    LegendChip(
+                        color = Color(occurrence.loop.color),
+                        name = occurrence.loop.title,
+                        selected = occurrence.key == selectedKey,
+                        onClick = { onChipClick(occurrence.key) },
+                    )
+                }
+            }
+        }
+        if (anyTime.isNotEmpty()) {
+            if (timed.isNotEmpty()) {
+                Box(
+                    Modifier.padding(vertical = 10.dp).fillMaxWidth().sizeIn(minHeight = 1.dp)
+                        .background(AppColor.onSurface.copy(alpha = 0.08f))
+                )
+            }
+            Text(
+                text = stringResource(R.string.anytime),
+                style = AppTypography.labelLarge.copy(
+                    color = AppColor.onSurface.copy(alpha = 0.65f),
+                    fontWeight = FontWeight.Normal,
+                ),
+                modifier = Modifier.padding(bottom = 8.dp),
             )
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                anyTime.forEach { occurrence ->
+                    LegendChip(
+                        color = Color(occurrence.loop.color),
+                        name = occurrence.loop.title,
+                        selected = occurrence.key == selectedKey,
+                        outlined = true,
+                        onClick = { onChipClick(occurrence.key) },
+                    )
+                }
+            }
         }
     }
 }
 
 /**
  * 색 점 + 이름으로 이뤄진 범례 칩 하나. 이름이 길면 말줄임(…)으로 자른다.
- * [selected] 면 primary 틴트 배경 + primary 테두리·글자로 강조한다.
+ * 선택 시에만 틴트를 채우고, AnyTime은 얇은 테두리로 별도 조작임을 드러낸다.
  */
 @Composable
 private fun LegendChip(
     color: Color,
     name: String,
     selected: Boolean,
+    outlined: Boolean = false,
     onClick: () -> Unit,
 ) {
-    val background = if (selected) AppColor.primary.copy(alpha = 0.16f) else AppColor.surfaceElevated
-    val borderColor = if (selected) AppColor.primary else AppColor.onSurface.copy(alpha = 0.14f)
+    val background = when {
+        selected -> AppColor.primary.copy(alpha = 0.10f)
+        outlined -> AppColor.surfaceElevated
+        else -> Color.Transparent
+    }
+    val borderColor = if (outlined) AppColor.onSurface.copy(alpha = 0.12f) else Color.Transparent
+    val shape = RoundedCornerShape(12.dp)
     val textColor = if (selected) AppColor.primary else AppColor.onSurface
     Row(
         modifier = Modifier
-            .clip(CircleShape)
+            .clip(shape)
             .clickable(onClick = onClick)
             .background(background)
             .border(
-                width = if (selected) 1.dp else 0.5.dp,
+                width = 0.5.dp,
                 color = borderColor,
-                shape = CircleShape,
+                shape = shape,
             )
-            .padding(horizontal = 10.dp, vertical = 5.dp),
+            .sizeIn(minHeight = 44.dp)
+            .padding(horizontal = 8.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // 루프 색을 나타내는 점.
@@ -310,7 +353,7 @@ private fun LegendChip(
                 .padding(start = 6.dp)
                 .widthIn(max = 120.dp),
             text = name,
-            style = AppTypography.labelMedium.copy(color = textColor),
+            style = AppTypography.labelLarge.copy(color = textColor, fontWeight = FontWeight.Medium),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -494,7 +537,7 @@ private fun Density.dialGeometry(
     heightPx: Float,
     reserveOrbit: Boolean
 ): DialGeometry {
-    val stroke = 24.dp.toPx() // 루프/트랙 레일 높이
+    val stroke = 16.dp.toPx()
     // 바깥쪽 여백: 시각 라벨(기본) + AnyTime 궤도(있을 때).
     val labelInset = (if (reserveOrbit) 46.dp else 26.dp).toPx()
     val outer = min(widthPx, heightPx) / 2f - labelInset
@@ -502,7 +545,7 @@ private fun Density.dialGeometry(
         cx = widthPx / 2f,
         cy = heightPx / 2f,
         stroke = stroke,
-        laneStep = stroke + 3.dp.toPx(),
+        laneStep = stroke + 7.dp.toPx(),
         outer = outer,
         orbitRadius = outer + 30.dp.toPx(),
     )
@@ -541,11 +584,12 @@ private fun DialGeometry.hitTest(
     // 방금 시작한 AnyTime 처럼 지속시간이 0 에 가까운 호도 탭할 수 있게 하기 위함.
     val minSpanMs = MS_1DAY * 4 / 360
     val angleSlopMs = MS_1DAY * 3 / 360
-    val arc = arcs.firstOrNull { arc ->
-        if (arc.lane >= visibleLanes) return@firstOrNull false // 접힌(숨긴) 호는 탭 대상에서 제외
+    // 인접 레인의 터치 여유가 겹치면 실제로 가까운 링을 우선한다.
+    val arc = arcs.filter { arc ->
+        if (arc.lane >= visibleLanes) return@filter false // 접힌(숨긴) 호는 탭 대상에서 제외
         val radius = laneRadius(arc.lane)
         val half = stroke / 2f + slop
-        if (dist < radius - half || dist > radius + half) return@firstOrNull false
+        if (dist < radius - half || dist > radius + half) return@filter false
         val s = arc.loop.startInDay.coerceAtLeast(0L)
         val e = maxOf(arc.loop.endMsInDay(), s + minSpanMs)
         val lo = s - angleSlopMs
@@ -553,7 +597,7 @@ private fun DialGeometry.hitTest(
         // 자정을 넘겨 감긴 호는 종료(e)가 24h 를 넘는 단조 좌표라, 아침 쪽(예: 01:00)을 탭하면
         // tappedMs 는 작은 값이 된다. 하루를 더한 값도 함께 확인해 감긴 구간의 탭을 놓치지 않는다.
         tappedMs in lo..hi || (tappedMs + MS_1DAY) in lo..hi
-    } ?: return null
+    }.minByOrNull { abs(dist - laneRadius(it.lane)) } ?: return null
 
     val radius = laneRadius(arc.lane)
     val a = Math.toRadians(-90.0 + tappedMs.toDouble() / MS_1DAY * 360.0)
@@ -669,7 +713,7 @@ private fun DialFace(
         )
     }
 
-    // 진행 중 루프의 맥박 애니메이션(반지름·투명도). 하나의 트랜지션을 모든 진행 호가 공유한다.
+    // 편집 표시용 맥박과 훑는 빛. 진행 상태 자체는 정적인 명도와 점으로 표시한다.
     val pulse = rememberInfiniteTransition(label = "DialPulse")
     val pulseRadius by pulse.animateFloat(
         initialValue = 4f,
@@ -683,27 +727,6 @@ private fun DialFace(
         animationSpec = infiniteRepeatable(tween(1200), RepeatMode.Reverse),
         label = "pulseAlpha",
     )
-    // 진행 중 호 뒤에서 숨쉬는(breathing) 글로우. 폭·투명도가 함께 커졌다 작아진다.
-    val glowWidth by pulse.animateFloat(
-        initialValue = 5f,
-        targetValue = 16f,
-        animationSpec = infiniteRepeatable(tween(1200), RepeatMode.Reverse),
-        label = "glowWidth",
-    )
-    val glowAlpha by pulse.animateFloat(
-        initialValue = 0.32f,
-        targetValue = 0.04f,
-        animationSpec = infiniteRepeatable(tween(1200), RepeatMode.Reverse),
-        label = "glowAlpha",
-    )
-    // 진행 중 밴드 위로 흐르는 점선(마칭 앤츠)의 위상. 0→1 을 반복해 종료 방향으로 계속 흐른다.
-    val dashPhase by pulse.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(700, easing = LinearEasing), RepeatMode.Restart),
-        label = "dashPhase",
-    )
-
     // 수정중(mock) 호를 알리는 "스포트라이트 + 반짝임"(안 C)의 훑는 빛 위상.
     // 0→1 을 반복해 편집 중인 호 위로 밝은 빛이 한 방향으로 계속 지나가게 한다.
     val shimmerPhase by pulse.animateFloat(
@@ -739,17 +762,16 @@ private fun DialFace(
     }
 
     // 테마 토큰을 미리 읽어 Canvas 람다에서 재사용한다(다크/라이트 자동 대응).
-    val trackColor = AppColor.onSurface.copy(alpha = 0.08f)
-    val tickMajorColor = AppColor.onSurface.copy(alpha = 0.55f)
-    val tickMinorColor = AppColor.onSurface.copy(alpha = 0.22f)
-    // 지난 미응답(PAST) 호는 "색 외곽선 + 빈 속" 으로 그린다. 속을 트랙과 같은 불투명색으로
-    // 덧칠해 테두리만 남기는 방식이라, 색 밴드 아래 배경(트랙)과 자연스럽게 이어진다.
-    val hollowFillColor = compositedOnSurface(alpha = 0.08f)
-    val highlightColor = AppColor.onSurface.copy(alpha = 0.18f) // 선택된 호 뒤에 까는 후광
+    val trackColor = AppColor.onSurface.copy(alpha = 0.07f)
+    val tickMajorColor = AppColor.onSurface.copy(alpha = 0.60f)
+    val tickMinorColor = AppColor.onSurface.copy(alpha = 0.15f)
+    // 지난 미응답(PAST)은 속 빈 호로 유지하고, 안쪽은 다이얼 표면색으로 채운다.
+    val hollowFillColor = AppColor.background
+    val highlightColor = AppColor.onSurface.copy(alpha = 0.10f) // 선택된 호 뒤에 까는 후광
     val needleColor = AppColor.onSurface
     val primaryColor = AppColor.primary
     val badgeFillColor = primaryColor.copy(alpha = 0.16f) // "+N" 배지 배경(primary 틴트)
-    val orbitColor = AppColor.onSurface.copy(alpha = 0.3f) // AnyTime 바깥 점선 궤도
+    val orbitColor = AppColor.onSurface.copy(alpha = 0.14f) // AnyTime 바깥 점선 궤도
     val labelStyle =
         TextStyle(color = tickMajorColor, fontSize = 11.sp, fontWeight = FontWeight.Medium)
     val badgeTextStyle =
@@ -802,12 +824,12 @@ private fun DialFace(
                 val stroke = geo.stroke
 
                 // 1) 사용 중인 레인 수만큼 옅은 배경 트랙 원을 깐다.
-                for (lane in 0 until visibleLanes) {
+                for (lane in 0 until visibleLanes.coerceAtLeast(1)) {
                     drawCircle(
                         color = trackColor,
                         radius = geo.laneRadius(lane),
                         center = Offset(cx, cy),
-                        style = Stroke(width = stroke),
+                        style = Stroke(width = 2.dp.toPx()),
                     )
                 }
 
@@ -817,17 +839,17 @@ private fun DialFace(
                     val angle = Math.toRadians(-90.0 + hour / 24.0 * 360.0)
                     val cosA = cos(angle).toFloat()
                     val sinA = sin(angle).toFloat()
-                    val inner = geo.outer + 2.dp.toPx()
-                    val tick = geo.outer + (if (major) 8.dp.toPx() else 4.dp.toPx())
+                    val inner = geo.outer + 4.dp.toPx()
+                    val tick = geo.outer + (if (major) 9.dp.toPx() else 6.dp.toPx())
                     drawLine(
                         color = if (major) tickMajorColor else tickMinorColor,
                         start = Offset(cx + inner * cosA, cy + inner * sinA),
                         end = Offset(cx + tick * cosA, cy + tick * sinA),
-                        strokeWidth = if (major) 1.5.dp.toPx() else 1.dp.toPx(),
+                        strokeWidth = 1.dp.toPx(),
                     )
                     if (major) {
                         val lr = geo.outer + 16.dp.toPx()
-                        val layout = textMeasurer.measure(hour.toString(), labelStyle)
+                        val layout = textMeasurer.measure(hour.toString().padStart(2, '0'), labelStyle)
                         drawText(
                             textLayoutResult = layout,
                             topLeft = Offset(
@@ -848,7 +870,7 @@ private fun DialFace(
                     val isSkip = arc.state == DialState.SKIP
                     val isEditing = arc.loop.isMock // 편집 중인(임시 mock) 루프
                     // 진행 중은 가장 굵게, 나머지는 기본 두께(스킵은 아래에서 취소선으로 별도 처리).
-                    val width = if (isActive) stroke + 4.dp.toPx() else stroke
+                    val width = if (isActive) stroke + 2.dp.toPx() else stroke
 
                     // 안 C(스포트라이트): 편집 중인 루프가 있으면 편집 대상이 아닌 호는 흐려(dim) 편집 호만 부각한다.
                     val dim = if (isEditingMode && !isEditing) DIM_ALPHA else 1f
@@ -870,32 +892,15 @@ private fun DialFace(
                             useCenter = false,
                             topLeft = topLeft,
                             size = arcSize,
-                            style = Stroke(width = width + 8.dp.toPx(), cap = StrokeCap.Round),
-                        )
-                    }
-
-                    // 진행 중 호는 뒤에서 숨쉬는 글로우가 커졌다 작아지며 "지금 진행 중"을 확실히 알린다.
-                    // (편집 중인 호 자신은 아래 훑는 빛으로 대신 표현하므로 글로우는 생략한다.)
-                    if (isActive && !isEditing) {
-                        drawArc(
-                            color = loopColor.copy(alpha = glowAlpha).dimmed(),
-                            startAngle = startAngle,
-                            sweepAngle = sweep,
-                            useCenter = false,
-                            topLeft = topLeft,
-                            size = arcSize,
-                            style = Stroke(
-                                width = width + glowWidth.dp.toPx(),
-                                cap = StrokeCap.Round
-                            ),
+                            style = Stroke(width = width + 6.dp.toPx(), cap = StrokeCap.Round),
                         )
                     }
 
                     when {
                         isPast -> {
-                            // 지난 미응답: 색 밴드를 그린 뒤 속을 트랙색으로 덧칠 → 색 외곽선만 남는 빈 형태.
+                            // 지난 미응답: 색 밴드를 그린 뒤 속을 배경색으로 덧칠 → 색 외곽선만 남는 빈 형태.
                             // 겹침은 레인(반지름)이 달라 서로 침범하지 않으므로 이 방식이 안전하다.
-                            val rim = 2.2.dp.toPx()
+                            val rim = 1.5.dp.toPx()
                             drawArc(
                                 color = loopColor.dimmed(),
                                 startAngle = startAngle,
@@ -920,8 +925,7 @@ private fun DialFace(
                         }
 
                         isActive -> {
-                            // 진행 중: 경과분은 진한 색, 잔여분은 옅은 색으로 나눠 진행률을 보여주고(추천 A),
-                            // 밴드 위로 흐르는 점선을 옅게 얹어 "지금 흐르고 있다"는 모션을 준다(추천 B).
+                            // 진행 중: 경과분과 잔여분의 명도 차이로 진행률을 보여준다.
                             val endMs = arc.loop.endMsInDay()
                             // 자정을 넘기는 루프의 아침 구간에서는 nowMs(예: 01:00)가 start(예: 23:00)보다
                             // 작아 단조 좌표를 벗어난다. 하루를 더해 [start, end] 축 위로 올린다.
@@ -933,7 +937,7 @@ private fun DialFace(
 
                             // 잔여분(옅게)
                             drawArc(
-                                color = loopColor.copy(alpha = 0.33f).dimmed(),
+                                color = loopColor.copy(alpha = 0.24f).dimmed(),
                                 startAngle = nowAngle,
                                 sweepAngle = remainSweep,
                                 useCenter = false,
@@ -950,24 +954,6 @@ private fun DialFace(
                                 topLeft = topLeft,
                                 size = arcSize,
                                 style = Stroke(width = width, cap = StrokeCap.Round),
-                            )
-                            // 흐르는 점선(마칭 앤츠) — 종료 방향으로 계속 흐른다.
-                            val period = 2.dp.toPx() + 11.dp.toPx()
-                            drawArc(
-                                color = Color.White.copy(alpha = 0.5f).dimmed(),
-                                startAngle = startAngle,
-                                sweepAngle = sweep,
-                                useCenter = false,
-                                topLeft = topLeft,
-                                size = arcSize,
-                                style = Stroke(
-                                    width = width * 0.28f,
-                                    cap = StrokeCap.Round,
-                                    pathEffect = PathEffect.dashPathEffect(
-                                        intervals = floatArrayOf(2.dp.toPx(), 11.dp.toPx()),
-                                        phase = -dashPhase * period,
-                                    ),
-                                ),
                             )
                         }
 
@@ -994,10 +980,10 @@ private fun DialFace(
                         }
 
                         else -> {
-                            // 시안 3: 완료=꽉 찬 색, 예정=옅은 색.
+                            // 예정은 채도를 낮춰 진행 중인 호와 시각적 우선순위를 나눈다.
                             val arcColor = when (arc.state) {
-                                DialState.UPCOMING -> loopColor
-                                else -> loopColor.copy(alpha = 0.4f)
+                                DialState.UPCOMING -> loopColor.copy(alpha = 0.65f)
+                                else -> loopColor
                             }
                             drawArc(
                                 color = arcColor.dimmed(),
@@ -1034,7 +1020,7 @@ private fun DialFace(
                         )
                     }
 
-                    // 진행 중이면 현재 위치에 맥박 점을 얹어 "지금 이거"를 즉시 인지시킨다.
+                    // 진행 중 위치는 작고 정적인 점으로 표시한다. 궤도 진입/편집 효과는 유지한다.
                     if (isActive) {
                         val a = Math.toRadians(-90.0 + nowMs.toDouble() / MS_1DAY * 360.0)
                         val cosA2 = cos(a).toFloat()
@@ -1058,8 +1044,8 @@ private fun DialFace(
                             drawCircle(loopColor, 5.dp.toPx(), curPos)
                         }
 
-                        drawCircle(loopColor.copy(alpha = pulseAlpha).dimmed(), pulseRadius.dp.toPx(), pos)
-                        drawCircle(loopColor.dimmed(), 3.5.dp.toPx(), pos)
+                        drawCircle(hollowFillColor, 3.5.dp.toPx(), pos)
+                        drawCircle(loopColor.dimmed(), 3.5.dp.toPx(), pos, style = Stroke(2.dp.toPx()))
                     }
                 }
 
@@ -1092,20 +1078,19 @@ private fun DialFace(
                     }
                 }
 
-                // 4) 현재 시각 바늘. 중앙 텍스트를 가리지 않도록 안쪽 반지름에서 출발한다.
+                // 4) 짧은 현재 시각 바늘. 가장 바깥 링만 가리켜 중앙 요약과 안쪽 레인을 가리지 않는다.
                 val na = Math.toRadians(-90.0 + nowMs.toDouble() / MS_1DAY * 360.0)
                 val cosN = cos(na).toFloat()
                 val sinN = sin(na).toFloat()
-                val needleInner = geo.outer * 0.36f
+                val needleInner = geo.outer - 15.dp.toPx()
                 val needleOuter = geo.outer + 6.dp.toPx()
                 drawLine(
                     color = needleColor,
                     start = Offset(cx + needleInner * cosN, cy + needleInner * sinN),
                     end = Offset(cx + needleOuter * cosN, cy + needleOuter * sinN),
-                    strokeWidth = 2.5.dp.toPx(),
+                    strokeWidth = 2.dp.toPx(),
                     cap = StrokeCap.Round,
                 )
-                drawCircle(needleColor, 4.dp.toPx(), Offset(cx, cy))
 
                 // 5) AnyTime(시간 미지정) 루프: 바깥 점선 궤도 + 노드.
                 //    대기 = 속 빈 색 링, 실행 중 = 채움 + 맥박 헤일로.
@@ -1115,11 +1100,11 @@ private fun DialFace(
                         radius = geo.orbitRadius,
                         center = Offset(cx, cy),
                         style = Stroke(
-                            width = 1.2.dp.toPx(),
+                            width = 1.dp.toPx(),
                             pathEffect = PathEffect.dashPathEffect(
                                 floatArrayOf(
-                                    3.dp.toPx(),
-                                    4.dp.toPx()
+                                    1.dp.toPx(),
+                                    6.dp.toPx()
                                 )
                             ),
                         ),
@@ -1143,7 +1128,7 @@ private fun DialFace(
                         // (점에는 훑는 빛 대신 숨쉬는 밝은 링으로 스포트라이트를 표현한다.)
                         if (isEditing) {
                             drawCircle(
-                                Color.White.copy(alpha = pulseAlpha + 0.15f),
+                                primaryColor.copy(alpha = pulseAlpha + 0.15f),
                                 nodeRadius + pulseRadius.dp.toPx(),
                                 center,
                                 style = Stroke(width = 1.6.dp.toPx()),
@@ -1169,11 +1154,21 @@ private fun DialFace(
                 }
             }
 
-            // 중앙 오버레이: 현재 시각.
-            DialCenterLabel(
-                modifier = Modifier.padding(bottom = 32.dp),
-                currentTimeText = currentTimeText
-            )
+            // 가장 안쪽 링에 내접하는 정사각형 안에만 요약을 배치한다.
+            // 레인이 늘거나 글꼴이 커지면 시각과 진행 개수만 남긴다.
+            geometry?.let { geo ->
+                val centerWidth = with(density) {
+                    ((geo.laneRadius((visibleLanes - 1).coerceAtLeast(0)) - geo.stroke / 2f -
+                        8.dp.toPx()).coerceAtLeast(0f) * 1.4142f).toDp()
+                }
+                DialCenterLabel(
+                    modifier = Modifier.size(centerWidth),
+                    currentTimeText = currentTimeText,
+                    activeArcs = if (isEditingMode) emptyList() else arcs.filter { it.state == DialState.ACTIVE },
+                    nowMs = nowMs,
+                    availableTextWidth = centerWidth.value / density.fontScale,
+                )
+            }
 
             // 탭한 호를 가리키는 말풍선 팝업(시안 1). 별도 윈도우(Popup)라 부모에 잘리지 않고
             // 항상 최상단에 뜨며, 위치는 화면 밖으로 넘치지 않게 보정된다.
@@ -1268,15 +1263,74 @@ private fun DialFace(
 private fun DialCenterLabel(
     modifier: Modifier = Modifier,
     currentTimeText: String,
+    activeArcs: List<DialArc>,
+    nowMs: Long,
+    availableTextWidth: Float,
 ) {
-    Text(
+    val compact = availableTextWidth < 120f
+    val timeSize = minOf(36f, availableTextWidth / 3.2f).sp
+    val secondaryColor = AppColor.onSurface.copy(alpha = 0.65f)
+    Column(
         modifier = modifier,
-        text = currentTimeText,
-        style = AppTypography.headlineSmall.copy(
-            color = AppColor.onSurface,
-            fontWeight = FontWeight.SemiBold,
-        ),
-    )
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        if (!compact) {
+            Text(
+                text = stringResource(R.string.dial_center_now),
+                style = AppTypography.labelSmall.copy(color = secondaryColor, fontWeight = FontWeight.Normal),
+                maxLines = 1,
+            )
+        }
+        Text(
+            text = currentTimeText,
+            style = AppTypography.displayMedium.copy(
+                color = AppColor.onSurface,
+                fontWeight = FontWeight.Medium,
+                fontSize = timeSize,
+                lineHeight = timeSize * 1.2f,
+                letterSpacing = (-1).sp,
+                fontFeatureSettings = "tnum",
+            ),
+            maxLines = 1,
+        )
+        val active = activeArcs.singleOrNull()
+        if (active != null && !compact) {
+            Text(
+                text = stringResource(R.string.dial_center_running, active.loop.title),
+                modifier = Modifier.padding(top = 4.dp),
+                style = AppTypography.labelLarge.copy(color = AppColor.onSurface, fontWeight = FontWeight.Medium),
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            val durationMs = if (active.loop.isAnyTime) {
+                ((nowMs - active.loop.startInDay) % MS_1DAY + MS_1DAY) % MS_1DAY
+            } else {
+                val nowMonotonic = if (active.loop.isOvernight && nowMs < active.loop.startInDay) {
+                    nowMs + MS_1DAY
+                } else nowMs
+                (active.loop.endMsInDay() - nowMonotonic).coerceAtLeast(0L)
+            }
+            Text(
+                text = stringResource(
+                    if (active.loop.isAnyTime) R.string.dial_center_elapsed_minutes else R.string.dial_remaining_minutes,
+                    (durationMs / MS_1MIN).toInt(),
+                ),
+                style = AppTypography.labelSmall.copy(color = secondaryColor, fontWeight = FontWeight.Normal),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        } else if (activeArcs.isNotEmpty() && availableTextWidth >= 70f) {
+            Text(
+                text = stringResource(R.string.dial_in_progress_count, activeArcs.size),
+                modifier = Modifier.padding(top = 2.dp),
+                style = AppTypography.labelSmall.copy(color = secondaryColor, fontWeight = FontWeight.Normal),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
 }
 
 // endregion
@@ -1377,7 +1431,7 @@ private fun StateSwatch(kind: StateSwatchKind) {
                 drawLine(color, start, end, strokeWidth = w, cap = cap)
 
             StateSwatchKind.LIGHT ->
-                drawLine(color.copy(alpha = 0.4f), start, end, strokeWidth = w, cap = cap)
+                drawLine(color.copy(alpha = 0.65f), start, end, strokeWidth = w, cap = cap)
 
             StateSwatchKind.STRIKE -> {
                 // 취소선: 옅은 밴드 위에 가운데 관통선.

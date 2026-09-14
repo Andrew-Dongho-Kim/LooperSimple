@@ -8,7 +8,7 @@ import kotlin.math.roundToInt
 internal const val ACTIVITY_WINDOW_DAYS = 28L
 private const val DAYS_PER_ACTIVITY_GROUP = 7L
 
-/** 실제 기록의 구성. 기록이 없는 날을 미응답으로 만들어 내지 않는다. */
+/** 일정 이력으로 해석한 집계 대상의 구성. */
 internal data class ActivityCounts(
     val done: Int = 0,
     val skipped: Int = 0,
@@ -57,7 +57,7 @@ internal data class DetailActivityStats(
  * 완료율에 사용할 확정 기록만 남긴다.
  * - 비활성·진행 중·미래·생성 전 기록은 제외한다.
  * - 오늘의 미응답은 아직 완료할 수 있으므로 제외한다. 오늘의 완료·건너뜀은 바로 반영한다.
- * - 과거 요일 설정 이력이 없으므로 현재 활동 요일로 과거 기록을 재해석하지 않는다.
+ * - 입력 날짜는 LoopTimeline에서 당시 일정과 저장 기록을 함께 해석한 결과다.
  */
 internal fun resolvedActivityRecords(
     statesByDate: Map<LocalDate, Int>,

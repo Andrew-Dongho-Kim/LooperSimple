@@ -10,28 +10,28 @@ import com.pnd.android.loop.common.NavigatePage
 import com.pnd.android.loop.data.AppDatabase
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
-import com.pnd.android.loop.data.LoopRetrospectVo
-import com.pnd.android.loop.data.LoopVo
 import com.pnd.android.loop.data.asLoopVo
+import com.pnd.android.loop.data.history.LoopHistory
+import com.pnd.android.loop.data.history.localDate
 import com.pnd.android.loop.ui.home.viewmodel.LoopRepository
-import com.pnd.android.loop.util.toLocalDate
-import com.pnd.android.loop.util.toMs
 import com.pnd.android.loop.util.todayFlow
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.time.LocalDate
+import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import javax.inject.Inject
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 private const val DELETE_UNDO_WINDOW_MS = 6_000L
 
@@ -49,7 +49,6 @@ class LoopDetailViewModel @Inject constructor(
     private val loopId: Int = savedStateHandle[NavigatePage.ARGS_ID] ?: -1
 
     private val loopDao = appDb.loopDao()
-    private val loopDoneDao = appDb.loopDoneDao()
     private val loopRetrospectDao = appDb.loopRetrospectDao()
 
     /**
@@ -57,12 +56,13 @@ class LoopDetailViewModel @Inject constructor(
      * 실행 취소 기회가 사라지므로 ViewModel 수명에 둔다.
      */
     data class PendingDeletion(
-        val deleted: DeletedLoop,
+        val deleted: LoopHistory,
         val undoDeadlineElapsedMs: Long,
     )
 
     private val _pendingDeletion = MutableStateFlow<PendingDeletion?>(null)
     val pendingDeletion = _pendingDeletion
+    private val restoreMutex = Mutex()
 
     // 루프를 삭제하면 Room 이 이 자리에 null 을 흘려보낸다. 화면이 닫히는 몇 프레임 동안
     // 마지막으로 유효했던 값을 그대로 쓰도록 걸러 내, 삭제 직후 NPE 가 나지 않게 한다.
@@ -84,7 +84,7 @@ class LoopDetailViewModel @Inject constructor(
         .map { retrospects ->
             retrospects
                 .filter { !it.text.isNullOrBlank() }
-                .sortedByDescending { it.date }
+                .sortedByDescending { it.localDate() }
         }
         .stateIn(
             scope = viewModelScope,
@@ -92,45 +92,34 @@ class LoopDetailViewModel @Inject constructor(
             initialValue = emptyList(),
         )
 
-    private val allResponses = loopDoneDao.getAllFlow(loopId)
 
     /**
      * 상단 요약과 최근 활동 통계를 같은 기록으로 계산한다.
      * 집계는 UI 스레드 밖에서 한 번 수행하고, 화면은 계산 결과만 표시한다.
      */
-    internal val stats = combine(loop, allResponses, memos, today) { loop, responses, memos, today ->
-        computeDetailStats(
-            responses = responses,
-            memoDates = memos.map { it.date.toLocalDate() }.toSet(),
-            activeDays = loop.activeDays,
-            weeklyGoal = loop.weeklyGoal,
-            createdDate = loop.created.toLocalDate(),
-            today = today,
-        )
-    }
+    internal val stats = combine(loopRepository.historyRepository.snapshots, today) { snapshot, date ->
+        val timeline = snapshot.byId[loopId]
+        if (timeline == null) DetailStats.empty(date) else computeDetailStats(timeline, date)
+    }.flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DetailStats.empty())
+
+    /** Null means loading; an empty list means no stored history. */
+    internal val revisionHistory = loopRepository.historyRepository.snapshots
+        .map { snapshot -> buildLoopRevisionEntries(snapshot.byId[loopId]?.history?.revisions.orEmpty()) }
+        .distinctUntilChanged()
         .flowOn(Dispatchers.Default)
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = DetailStats.empty(),
-        )
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /** 선택한 날짜에 남긴 회고 메모 본문. 없으면 null. */
     suspend fun retrospectOf(date: LocalDate): String? =
-        loopRetrospectDao.getRetrospect(loopId = loopId, localDate = date.toMs())?.text
+        loopRepository.getMemo(loopId, date)?.text
 
     /**
      * 선택한 날짜의 회고 메모를 저장한다. 내용이 비어 있으면 null 로 지워, 달력의 메모 마커도
      * 함께 사라지게 한다. 저장이 실제로 끝난 뒤에 돌아오므로, 화면은 그때 확인 메시지를 띄운다.
      */
     suspend fun saveRetrospect(date: LocalDate, text: String) {
-        loopRetrospectDao.insert(
-            LoopRetrospectVo(
-                loopId = loopId,
-                date = date.toMs(),
-                text = text.ifBlank { null },
-            )
-        )
+        loopRepository.saveMemo(loopId, date, text)
     }
 
     /**
@@ -153,26 +142,10 @@ class LoopDetailViewModel @Inject constructor(
      * 저장은 저장소를 거친다 — 오늘 몫을 고치면 상시 알림과 대기 중인 알림도 함께 정리돼야 한다.
      */
     suspend fun setDoneState(
-        loop: LoopBase,
         localDate: LocalDate,
         @LoopDoneVo.DoneState doneState: Int,
     ) {
-        val existing = loopDoneDao.getDoneState(loopId = loopId, date = localDate.toMs())
-        val loopForWrite = if (
-            loop.isAnyTime &&
-            existing != null &&
-            doneState != LoopDoneVo.DoneState.NO_RESPONSE
-        ) {
-            loop.copyAs(startInDay = existing.startInDay, endInDay = existing.endInDay)
-        } else {
-            loop
-        }
-
-        loopRepository.changeLoopState(
-            loop = loopForWrite,
-            localDate = localDate,
-            doneState = doneState,
-        )
+        loopRepository.setRecordedState(loopId, localDate, doneState)
         AppWidgetUpdateWorker.updateWidget(app)
     }
 
@@ -180,7 +153,7 @@ class LoopDetailViewModel @Inject constructor(
         loop: LoopBase,
         enabled: Boolean
     ) {
-        loopRepository.addOrUpdateLoop(loop.copyAs(enabled = enabled).asLoopVo())
+        loopRepository.setEnabled(loop.loopId, enabled)
         AppWidgetUpdateWorker.updateWidget(app)
     }
 
@@ -209,51 +182,24 @@ class LoopDetailViewModel @Inject constructor(
      * 삭제하기 전의 루프·응답 기록·회고 메모 전부. 삭제는 되돌릴 수 없는 동작이라,
      * 실행 취소를 눌렀을 때 그대로 되살릴 수 있도록 통째로 들고 있는다.
      */
-    data class DeletedLoop(
-        val loop: LoopVo,
-        val responses: List<LoopDoneVo>,
-        val retrospects: List<LoopRetrospectVo>,
-    )
-
-    /**
-     * 루프를 지우면서 되살리기용 스냅샷을 돌려준다. 스냅샷을 못 만들면(이미 지워졌다면) null.
-     * 화면은 이 값을 들고 실행 취소 스낵바를 띄운다.
-     */
     suspend fun deleteLoop(loop: LoopBase): Boolean {
-        val snapshot = loopDao.getLoop(loopId)?.let { vo ->
-            DeletedLoop(
-                loop = vo,
-                responses = loopDoneDao.getAllFlow(loopId).first(),
-                retrospects = loopRetrospectDao.getRetrospectsFlow(loopId).first(),
-            )
-        }
-        // 복구할 스냅샷을 만들 수 없는 삭제는 진행하지 않는다. 사용자에게는 실패로 알리고,
-        // 기록·메모를 되돌릴 수 없는 상태가 되지 않게 한다.
-        if (snapshot == null) return false
-
-        loopRepository.deleteLoop(loop)
+        val snapshot = loopRepository.deleteLoop(loop) ?: return false
         AppWidgetUpdateWorker.updateWidget(app)
-        _pendingDeletion.value = PendingDeletion(
-            deleted = snapshot,
-            undoDeadlineElapsedMs = SystemClock.elapsedRealtime() + DELETE_UNDO_WINDOW_MS,
-        )
+        _pendingDeletion.value = PendingDeletion(snapshot, SystemClock.elapsedRealtime() + DELETE_UNDO_WINDOW_MS)
         return true
     }
 
-    /**
-     * [deleteLoop] 로 지운 루프를 기록·메모까지 되돌린다.
-     *
-     * 루프를 먼저 되살려야 loop_done / loop_memo 의 외래 키가 걸리지 않는다. 되살리는 과정에서
-     * 저장소가 오늘 몫의 빈 응답 행을 하나 만들어 두므로, 스냅샷을 나중에 덮어써 원래 상태로 돌린다.
-     */
-    suspend fun restorePendingDeletion(): Boolean {
-        val deleted = _pendingDeletion.value?.deleted ?: return false
-        loopRepository.addOrUpdateLoop(deleted.loop)
-        deleted.responses.forEach { loopDoneDao.addOrUpdate(it) }
-        deleted.retrospects.forEach { loopRetrospectDao.insert(it) }
+    /** Restore the original identities and every child row in one transaction. */
+    suspend fun restorePendingDeletion(): Boolean = restoreMutex.withLock {
+        val pending = _pendingDeletion.value ?: return@withLock false
+        if (SystemClock.elapsedRealtime() > pending.undoDeadlineElapsedMs) {
+            _pendingDeletion.value = null
+            return@withLock false
+        }
+        loopRepository.restoreLoop(pending.deleted)
         AppWidgetUpdateWorker.updateWidget(app)
         _pendingDeletion.value = null
-        return true
+        true
     }
 
     /** 사용자가 복구 창을 닫거나 시간이 만료되면, 더 이상 되돌릴 수 없음을 확정한다. */
@@ -266,26 +212,24 @@ class LoopDetailViewModel @Inject constructor(
      * 백업과 다른 도구로의 반출을 겸하므로 날짜는 로캘과 무관한 ISO 형식으로 적는다.
      */
     suspend fun buildCsv(loopTitle: String): String {
-        val responses = allResponses.first().sortedBy { it.date }
-        val memoByDate = loopRetrospectDao.getRetrospectsFlow(loopId).first()
-            .associate { it.date to (it.text ?: "") }
-
+        val timeline = loopRepository.historyRepository.snapshot().byId[loopId]
+            ?: return ""
+        val days = timeline.days(timeline.createdDate, LocalDate.now())
         return buildString {
             append("# ").append(csvCell(loopTitle)).append('\n')
-            append("date,state,memo\n")
-            responses.forEach { response ->
-                append(response.date.toLocalDate().toString()).append(',')
-                append(
-                    when (response.done) {
-                        LoopDoneVo.DoneState.DONE -> "done"
-                        LoopDoneVo.DoneState.SKIP -> "skip"
-                        LoopDoneVo.DoneState.DISABLED -> "disabled"
-                        LoopDoneVo.DoneState.IN_PROGRESS -> "in_progress"
-                        else -> "no_response"
-                    }
-                ).append(',')
-                append(csvCell(memoByDate[response.date] ?: ""))
-                append('\n')
+            append("date,state,memo,title,color,planned_start_ms,planned_end_ms,anytime,estimated,revision_id,weekly_goal\n")
+            days.forEach { day ->
+                val state = when (day.response.done) {
+                    LoopDoneVo.DoneState.DONE -> "done"
+                    LoopDoneVo.DoneState.SKIP -> "skip"
+                    LoopDoneVo.DoneState.IN_PROGRESS -> "in_progress"
+                    else -> if (day.hasOccurrence) "no_response" else "not_scheduled"
+                }
+                val columns = listOf(day.date.toString(), state, day.note, day.loop.title,
+                    day.loop.color.toString(), day.loop.startInDay.toString(), day.loop.endInDay.toString(),
+                    day.loop.isAnyTime.toString(), day.estimated.toString(),
+                    day.response.revisionId?.toString().orEmpty(), timeline.goalOn(day.date).toString())
+                append(columns.joinToString(",", transform = ::csvCell)).append('\n')
             }
         }
     }

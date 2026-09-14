@@ -9,19 +9,22 @@ import androidx.room.Room
 import com.pnd.android.loop.alarm.LoopScheduler
 import com.pnd.android.loop.alarm.notification.NotificationHelper
 import com.pnd.android.loop.data.AppDatabase
+import com.pnd.android.loop.data.history.LoopHistoryRepository
+import com.pnd.android.loop.data.history.LoopMutationStore
 import com.pnd.android.loop.ui.home.viewmodel.LoopRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
-
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
 class AppModule {
 
     @Provides
+    @Singleton
     fun provideAppDb(@ApplicationContext context: Context): AppDatabase = Room.databaseBuilder(
         context,
         AppDatabase::class.java,
@@ -62,10 +65,14 @@ class AppModule {
     fun provideLoopRepository(
         appDb: AppDatabase,
         alarmController: LoopScheduler,
+        historyRepository: LoopHistoryRepository,
+        mutations: LoopMutationStore,
     ): LoopRepository {
         return LoopRepository(
             appDb = appDb,
             loopScheduler = alarmController,
+            historyRepository = historyRepository,
+            mutations = mutations,
         )
     }
 
