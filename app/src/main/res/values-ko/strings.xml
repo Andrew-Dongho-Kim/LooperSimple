@@ -547,7 +547,7 @@
     <string name="detail_activity_weekdays_hint">최근 28일 · 기록한 날 중 완료한 날</string>
     <string name="detail_activity_sample">%1$d일 중 %2$d일</string>
     <string name="detail_activity_calculation_title">통계 기준</string>
-    <string name="detail_activity_calculation_body">최근 28일은 오늘을 포함합니다. 위 막대는 겹치지 않는 7일 구간별 완료 일수이며, 최대 7일을 같은 기준으로 표시합니다. 달력상의 주간 기록이나 목표 달성률은 아닙니다.\n\n비활성·진행 중·미래·생성 전 기록은 제외합니다. 오늘의 미응답도 아직 완료할 수 있어 제외하며, 기록이 없는 날을 미응답으로 계산하지 않습니다.\n\n직전 28일 비교는 두 기간 모두 루프가 존재했고 기록이 있을 때만 표시합니다. 현재 요일 설정이나 목표로 과거 기록을 다시 평가하지 않습니다.</string>
+    <string name="detail_activity_calculation_body">최근 28일은 오늘을 포함합니다. 위 막대는 겹치지 않는 7일 구간별 완료 일수이며, 최대 7일을 같은 기준으로 표시합니다. 달력상의 주간 기록이나 목표 달성률은 아닙니다.\n\n비활성·진행 중·미래·생성 전 기록은 제외합니다. 오늘의 미응답도 아직 완료할 수 있어 제외하며, 당시 일정에 예정된 과거 날짜는 저장 행이 없어도 미응답으로 계산합니다.\n\n직전 28일 비교는 두 기간 모두 루프가 존재했고 기록이 있을 때만 표시합니다. 현재 요일 설정이나 목표로 과거 기록을 다시 평가하지 않습니다.</string>
     <string name="detail_activity_record_basis">기록 %1$d일 기준</string>
     <string name="detail_activity_legend_entry">%1$s %2$d</string>
     <string name="detail_activity_chart_hint">완료 / 기록 일수 · — 기록 없음</string>

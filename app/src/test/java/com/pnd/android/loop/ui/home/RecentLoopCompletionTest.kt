@@ -34,33 +34,33 @@ class RecentLoopCompletionTest {
             today.minusDays(3).toMs() to DoneState.DISABLED,
         )
         val stats = computeRecentLoopCompletion(loop(today.minusDays(6)), history, today)!!
-        assertEquals(4, stats.totalCount)
+        assertEquals(5, stats.totalCount)
         assertEquals(1, stats.doneCount)
         assertEquals(1, stats.skipCount)
-        assertEquals(2, stats.unansweredCount)
-        assertEquals(25, stats.percent)
+        assertEquals(3, stats.unansweredCount)
+        assertEquals(20, stats.percent)
     }
 
-    @Test fun `creation day is excluded even with a completion`() {
+    @Test fun `creation day contributes from the first scheduled occurrence`() {
         val created = today.minusDays(4)
         val stats = computeRecentLoopCompletion(loop(created), mapOf(created.toMs() to DoneState.DONE), today)!!
-        assertEquals(created.plusDays(1), stats.start)
-        assertEquals(3, stats.totalCount)
-        assertEquals(0, stats.percent)
+        assertEquals(created, stats.start)
+        assertEquals(4, stats.totalCount)
+        assertEquals(25, stats.percent)
     }
 
     @Test fun `insufficient samples are hidden but genuine zero is shown`() {
         assertNull(computeRecentLoopCompletion(loop(today), null, today))
-        assertNull(computeRecentLoopCompletion(loop(today.minusDays(3)), null, today))
+        assertNull(computeRecentLoopCompletion(loop(today.minusDays(2)), null, today))
         assertEquals(0, computeRecentLoopCompletion(loop(today.minusDays(4)), null, today)!!.percent)
         assertNull(computeRecentLoopCompletion(loop(today.plusDays(1)), null, today))
     }
 
-    @Test fun `unscheduled weekdays are excluded even if they have records`() {
+    @Test fun `explicitly saved runs count even outside scheduled weekdays`() {
         val scheduledLoop = loop(days = LoopDay.WEEKDAYS)
         val history = (1L..30L).associate { today.minusDays(it).toMs() to DoneState.DONE }
         val stats = computeRecentLoopCompletion(scheduledLoop, history, today)!!
-        val expected = (1L..30L).count { scheduledLoop.isActiveDay(today.minusDays(it)) }
+        val expected = 30
         assertEquals(expected, stats.totalCount)
         assertEquals(expected, stats.doneCount)
         assertEquals(100, stats.percent)
@@ -69,10 +69,10 @@ class RecentLoopCompletionTest {
     @Test fun `rounded percentage and explanation counts agree`() {
         val history = (1L..12L).associate { today.minusDays(it).toMs() to DoneState.DONE }
         val stats = computeRecentLoopCompletion(loop(today.minusDays(15)), history, today)!!
-        assertEquals(14, stats.totalCount)
+        assertEquals(15, stats.totalCount)
         assertEquals(12, stats.doneCount)
-        assertEquals(2, stats.unansweredCount)
-        assertEquals(86, stats.percent)
+        assertEquals(3, stats.unansweredCount)
+        assertEquals(80, stats.percent)
     }
 
     @Test fun `disabled and mock loops never produce a chip`() {

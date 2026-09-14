@@ -1,7 +1,6 @@
 package com.pnd.android.loop.ui.home.viewmodel
 
 import com.pnd.android.loop.alarm.LoopScheduler
-import com.pnd.android.loop.alarm.LoopScheduler.Companion.scheduleStart
 import com.pnd.android.loop.common.log
 import com.pnd.android.loop.data.AppDatabase
 import com.pnd.android.loop.data.LoopBase
@@ -9,6 +8,10 @@ import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.LoopRetrospectVo
 import com.pnd.android.loop.data.LoopVo
 import com.pnd.android.loop.data.LoopWithDone
+import com.pnd.android.loop.data.history.LoopHistory
+import com.pnd.android.loop.data.history.LoopHistoryRepository
+import com.pnd.android.loop.data.history.LoopMutationStore
+import com.pnd.android.loop.data.history.localDate
 import com.pnd.android.loop.data.isDisabled
 import com.pnd.android.loop.data.isNotRespond
 import com.pnd.android.loop.util.isActive
@@ -17,6 +20,12 @@ import com.pnd.android.loop.util.isOvernight
 import com.pnd.android.loop.util.toLocalDate
 import com.pnd.android.loop.util.toLocalTime
 import com.pnd.android.loop.util.toMs
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.temporal.ChronoUnit
+import javax.inject.Inject
+import kotlin.math.min
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -24,31 +33,24 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.transform
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.LocalTime
-import java.time.temporal.ChronoUnit
-import javax.inject.Inject
-import kotlin.math.min
 
 class LoopRepository @Inject constructor(
     appDb: AppDatabase,
     private val loopScheduler: LoopScheduler,
+    val historyRepository: LoopHistoryRepository,
+    private val mutations: LoopMutationStore,
 ) {
     private val logger = log("LoopRepository")
 
     private val loopDao = appDb.loopDao()
-    private val fullLoopDao = appDb.fullLoopDao()
-    private val loopDoneDao = appDb.loopDoneDao()
-    private val loopMemoDao = appDb.loopRetrospectDao()
     private val coroutineScope = CoroutineScope(SupervisorJob())
 
     val localDateTime = flow {
@@ -83,14 +85,10 @@ class LoopRepository @Inject constructor(
     // collect a single DB stream instead of each re-running the query.
     // initialValue = null 은 "아직 DB에서 로딩 전"을 뜻한다. 로딩 완료 후 값이 비어 있으면(진짜
     // 루프 0개) emptyList()가 방출된다. UI는 이 null/empty 구분으로 로딩 중 빈 화면 깜빡임을 막는다.
-    val allLoopsWithDoneStates: Flow<List<LoopWithDone>?> = localDate.transform { currDate ->
-        emit(fullLoopDao.getAllLoops(currDate.toLocalTime()))
-        emitAll(fullLoopDao.getAllLoopsFlow(currDate.toLocalTime()))
-    }.stateIn(
-        scope = coroutineScope,
-        started = SharingStarted.WhileSubscribed(5_000L),
-        initialValue = null
-    )
+    val allLoopsWithDoneStates: Flow<List<LoopWithDone>?> = combine(
+        historyRepository.snapshots, localDate,
+    ) { snapshot, date -> snapshot.timelines.map { it.liveLoop(date) } }
+        .stateIn(coroutineScope, SharingStarted.WhileSubscribed(5_000L), null)
 
     // 로딩 여부(null)를 신경 쓰지 않는 내부 소비자용 non-null 뷰. 상위 stateIn을 공유하므로
     // 추가 DB 쿼리는 발생하지 않고, 로딩 전(null)에는 아무 값도 흘려보내지 않는다.
@@ -102,13 +100,10 @@ class LoopRepository @Inject constructor(
      * 자정을 넘기는 루프는 done 기록이 "시작한 날"인 어제 행에 있으므로, 오늘 화면에서 그 몫을
      * 다루려면 오늘 행만으로는 부족하다([com.pnd.android.loop.data.TodayOccurrence] 참고).
      */
-    val yesterdayLoops: Flow<List<LoopWithDone>> = localDate.transform { currDate ->
-        emitAll(fullLoopDao.getAllLoopsFlow(currDate.minusDays(1).toLocalTime()))
-    }.stateIn(
-        scope = coroutineScope,
-        started = SharingStarted.WhileSubscribed(5_000L),
-        initialValue = emptyList()
-    )
+    val yesterdayLoops: Flow<List<LoopWithDone>> = combine(
+        historyRepository.snapshots, localDate,
+    ) { snapshot, date -> snapshot.timelines.map { it.liveLoop(date.minusDays(1)) } }
+        .stateIn(coroutineScope, SharingStarted.WhileSubscribed(5_000L), emptyList())
 
     // @formatter:off
     /**
@@ -160,45 +155,32 @@ class LoopRepository @Inject constructor(
     val countInToday = todayCounts.map { it.first }
     val countInTodayRemain = todayCounts.map { it.second }
 
-    val allEnabledCount = loopDoneDao.getAllEnabledCountFlow()
-    val allRespondCount = loopDoneDao.getRespondCountFlow()
-    val doneCount = loopDoneDao.getDoneCountFlow()
-    val skipCount = loopDoneDao.getSkipCountFlow()
+    internal val settledDays = combine(historyRepository.snapshots, localDate) { snapshot, today ->
+        snapshot.settled(snapshot.firstDate ?: today, today, today)
+    }.flowOn(Dispatchers.Default)
+        .shareIn(coroutineScope, SharingStarted.WhileSubscribed(5_000L), replay = 1)
 
-    // 완료(DONE) 기록이 있는 날짜(전체 기간). 헤더의 연속 달성/요일 패턴 계산에 쓰인다.
-    val doneDates = fullLoopDao.getDoneDatesFlow()
+    val doneDates = settledDays.map { days ->
+        days.filter { it.response.isDone() }.map { it.date.toMs() }.distinct()
+    }
+    internal val todaySettled = combine(settledDays, localDate) { days, today -> days.filter { it.date == today } }
 
-    // 전체 탭 하단 기록 그리드용 데이터.
-    // 완료/건너뜀/비활성(DISABLED) 기록을 loopId -> (날짜(ms) -> 상태) 형태로 묶어 노출한다.
-    // 그리드 셀은 이 map을 조회해 해당 날짜의 상태를 O(1)로 판단하며, 값이 없으면 미응답으로 본다.
-    val allDoneHistory: Flow<Map<Int, Map<Long, Int>>> =
-        loopDoneDao.getAllHistoryFlow().map { records ->
-            records
-                .groupBy { it.loopId }
-                .mapValues { (_, dones) -> dones.associate { it.date to it.done } }
+    /** Missing scheduled days and inactive spans use the same timeline as every rate. */
+    val allDoneHistory: Flow<Map<Int, Map<Long, Int>>> = combine(
+        historyRepository.snapshots, localDate,
+    ) { snapshot, today ->
+        snapshot.timelines.associate { timeline ->
+            val states = mutableMapOf<Long, Int>()
+            var date = timeline.createdDate
+            while (date <= today) {
+                states[date.toMs()] = timeline.responseOn(date)?.done
+                    ?: timeline.day(date)?.response?.done
+                    ?: if (!timeline.settingsOn(date).enabled) LoopDoneVo.DoneState.DISABLED else HISTORY_NOT_SCHEDULED
+                date = date.plusDays(1)
+            }
+            timeline.current.loopId to states
         }
-
-    // Counts scoped to the current day so the header can show "today's" done rate
-    // separately from the all-time figures above. They re-query whenever the day rolls over.
-    @OptIn(ExperimentalCoroutinesApi::class)
-    val todayEnabledCount = localDate.flatMapLatest { date ->
-        loopDoneDao.getEnabledCountByDateFlow(date.toMs())
-    }
-
-    @OptIn(ExperimentalCoroutinesApi::class)
-    val todayDoneCount = localDate.flatMapLatest { date ->
-        loopDoneDao.getDoneCountByDateFlow(date.toMs())
-    }
-
-    @OptIn(ExperimentalCoroutinesApi::class)
-    val todayRespondCount = localDate.flatMapLatest { date ->
-        loopDoneDao.getRespondCountByDateFlow(date.toMs())
-    }
-
-    @OptIn(ExperimentalCoroutinesApi::class)
-    val todaySkipCount = localDate.flatMapLatest { date ->
-        loopDoneDao.getSkipCountByDateFlow(date.toMs())
-    }
+    }.flowOn(Dispatchers.Default)
 
     fun syncLoops() = loopScheduler.syncLoops()
 
@@ -207,93 +189,57 @@ class LoopRepository @Inject constructor(
 
     /** 추가/갱신된 루프를 (자동 생성된 loopId가 채워진 상태로) 반환한다. 실행취소 등에서 활용한다. */
     suspend fun addOrUpdateLoop(vararg loops: LoopVo): List<LoopVo> {
-        val results = mutableListOf<LoopVo>()
-        loopDao.addOrUpdate(*loops).forEachIndexed { index, id ->
-            val loop = loops[index].copy(loopId = id)
-            results += loop
-            logger.i { "$loop is added or updated" }
-
-
-            if (loop.isActiveDay() || !loop.enabled) {
-                loopDoneDao.addOrUpdate(
-                    LoopDoneVo(
-                        loopId = loop.loopId,
-                        date = LocalDate.now().toMs(),
-                        startInDay = loop.startInDay,
-                        endInDay = loop.endInDay,
-                        done = if (loop.enabled) {
-                            LoopDoneVo.DoneState.NO_RESPONSE
-                        } else {
-                            LoopDoneVo.DoneState.DISABLED
-                        }
-                    )
-                )
-            } else {
-                loopDoneDao.delete(
-                    loopId = loop.loopId,
-                    date = LocalDate.now().toMs()
-                )
-            }
-
-            if (loop.enabled) {
-                loopScheduler.reserveAlarm(scheduleStart(loop))
-            } else {
-                loopScheduler.cancelAlarm(loop)
-            }
-        }
-
-        // 활성화/비활성화도 상시 알림에 즉시 반영한다. 현재 진행 시간대인 루프를 켜면
-        // 곧바로 알림에 등록되고, 끄면 알림에서 삭제(또는 서비스 자동 종료)된다.
-        loopScheduler.refreshOngoingNotification()
-        return results
+        val saved = mutations.saveSettings(loops.toList())
+        loopScheduler.syncLoops()
+        return saved
     }
 
-    suspend fun deleteLoop(loop: LoopBase) {
+    suspend fun deleteLoop(loop: LoopBase): LoopHistory? {
+        val deleted = mutations.delete(loop.loopId)
         loopScheduler.cancelAlarm(loop)
-        loopDao.delete(loop.loopId)
+        loopScheduler.cancelLoopPrompts(loop.loopId)
+        loopScheduler.refreshOngoingNotification()
+        return deleted
+    }
+
+    suspend fun restoreLoop(deleted: LoopHistory) {
+        mutations.restore(deleted)
+        loopScheduler.syncLoops()
     }
 
     suspend fun changeLoopState(
         loop: LoopBase,
         localDate: LocalDate = LocalDate.now(),
-        @LoopDoneVo.DoneState doneState: Int
+        @LoopDoneVo.DoneState doneState: Int,
+        suppliedTimes: Pair<Long, Long>? = null,
     ) {
-        loopDoneDao.addOrUpdate(
-            loop = loop,
-            localDate = localDate,
-            doneState = doneState
-        )
-
-        // 루프 상태가 바뀔 때마다 통합 알림을 즉시 동기화한다.
-        //  - anytime 루프를 시작(IN_PROGRESS)하면 곧바로 알림에 등록되고,
-        //  - 완료/스킵(DONE/SKIP)으로 종료하면 곧바로 알림에서 삭제된다.
-        // 서비스가 DB를 다시 읽어 진행 중인 루프가 없으면 스스로 알림을 내리므로,
-        // 어떤 상태 변경이든 refresh 한 번으로 등록/삭제가 항상 동기화된다.
-        loopScheduler.refreshOngoingNotification()
-
-        // 앱에서 답했다면 그 루프에 답을 기다리던 알림들("완료했나요?", "시작할까요?")은 이미
-        // 할 일을 다 했다. 상시 알림과 달리 스스로 사라지지 않으므로 여기서 명시적으로 내린다.
-        // 어떤 상태로 바뀌었든 사용자가 그 루프에 손을 댄 것이므로 상태를 따로 가리지 않는다.
-        loopScheduler.cancelLoopPrompts(loop.loopId)
+        if (doneState == LoopDoneVo.DoneState.IN_PROGRESS) mutations.start(loop.loopId)
+        else mutations.setResponse(loop.loopId, localDate, doneState, suppliedTimes)
+        refreshAfterResponse(loop.loopId)
     }
 
-    suspend fun getMemo(
-        loopId: Int,
-        localDate: LocalDate
-    ) = loopMemoDao.getRetrospect(
-        loopId = loopId,
-        localDate = localDate.toMs(),
-    )
+    suspend fun setRecordedState(loopId: Int, date: LocalDate, state: Int) {
+        mutations.setResponse(loopId, date, state)
+        refreshAfterResponse(loopId)
+    }
 
-    suspend fun saveMemo(
-        loopId: Int,
-        localDate: LocalDate,
-        text: String
-    ) = loopMemoDao.insert(
-        LoopRetrospectVo(
-            loopId = loopId,
-            date = localDate.toMs(),
-            text = text
-        )
-    )
+    private fun refreshAfterResponse(loopId: Int) {
+        loopScheduler.refreshOngoingNotification()
+        loopScheduler.cancelLoopPrompts(loopId)
+    }
+
+    suspend fun editableLoop(loopId: Int): LoopVo? = historyRepository.snapshot().byId[loopId]?.current
+
+    suspend fun setEnabled(loopId: Int, enabled: Boolean) {
+        mutations.setEnabled(loopId, enabled)
+        loopScheduler.syncLoops()
+    }
+
+    suspend fun getMemo(loopId: Int, localDate: LocalDate): LoopRetrospectVo? =
+        historyRepository.snapshot().byId[loopId]?.history?.notes?.firstOrNull { it.localDate() == localDate }
+
+    suspend fun saveMemo(loopId: Int, localDate: LocalDate, text: String) =
+        mutations.saveNote(loopId, localDate, text)
 }
+/** Presentation-only value: never persisted in loop_done. */
+const val HISTORY_NOT_SCHEDULED = -2

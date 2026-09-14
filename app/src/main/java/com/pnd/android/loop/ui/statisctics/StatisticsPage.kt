@@ -40,12 +40,12 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -63,11 +63,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopWithStatistics
 import com.pnd.android.loop.ui.common.AppCard
+import com.pnd.android.loop.ui.common.AppEmptyState
 import com.pnd.android.loop.ui.common.AppPageHeader
 import com.pnd.android.loop.ui.common.AppSegmentedControl
-import com.pnd.android.loop.ui.common.appCardSurface
-import com.pnd.android.loop.ui.common.AppEmptyState
+import com.pnd.android.loop.ui.common.HistoryCalculationNote
 import com.pnd.android.loop.ui.common.StatusBarFadingEdge
+import com.pnd.android.loop.ui.common.appCardSurface
 import com.pnd.android.loop.ui.common.backdropSource
 import com.pnd.android.loop.ui.common.rememberBackdropState
 import com.pnd.android.loop.ui.common.rememberListCollapseProgress
@@ -79,11 +80,11 @@ import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.background
 import com.pnd.android.loop.ui.theme.compositeOverOnSurface
 import com.pnd.android.loop.ui.theme.error
+import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.onSurfaceVariant
+import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.ui.theme.primarySurface
 import com.pnd.android.loop.ui.theme.surfaceElevated
-import com.pnd.android.loop.ui.theme.onSurface
-import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.ui.theme.warning
 import com.pnd.android.loop.util.ABB_MONTHS
 import com.pnd.android.loop.util.DAYS_WITH_3CHARS
@@ -163,6 +164,8 @@ private fun StatisticsPageContent(
     var rankingSortOrder by rememberSaveable { mutableStateOf(RankingSortOrder.COMPLETION_RATE) }
     var rankingExpanded by rememberSaveable { mutableStateOf(false) }
 
+    val estimated by remember { statisticsViewModel.hasEstimatedHistory }.collectAsState(false)
+
     // 기간에 따라 달라지는 지표들.
     val periodStats = rememberLoadable(selectedPeriod) { statisticsViewModel.flowPeriodStats(selectedPeriod) }
     val ranking = rememberLoadable(selectedPeriod) { statisticsViewModel.flowLoopRanking(selectedPeriod) }
@@ -213,6 +216,9 @@ private fun StatisticsPageContent(
             }
         }
 
+        item(key = "calculation") {
+            HistoryCalculationNote(estimated)
+        }
         when (selectedTab) {
             StatisticsTab.OVERVIEW -> statefulTab(
                 isLoading = periodStats.isLoading || ranking.isLoading,

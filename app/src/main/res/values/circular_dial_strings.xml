@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="dial_center_now">Now</string>
+    <string name="dial_center_running">%1$s in progress</string>
+    <string name="dial_center_elapsed_minutes">%1$d min elapsed</string>
+</resources>

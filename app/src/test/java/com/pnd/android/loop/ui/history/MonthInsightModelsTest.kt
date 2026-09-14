@@ -65,7 +65,7 @@ class MonthInsightModelsTest {
         val report = buildMonthInsightReport(august, today, listOf(loop(created = august.atDay(2))),
             listOf(record(august.atDay(1)), record(august.atDay(4))), emptyList())
         assertEquals(3, report.days.size)
-        assertEquals(2, report.totalCount)
+        assertEquals(1, report.totalCount)
         assertEquals(0, report.doneCount)
     }
 
@@ -90,7 +90,7 @@ class MonthInsightModelsTest {
         val saved = (1..28).map { record(LocalDate.of(2026, 2, it)) } +
             (1..28).map { record(month.atDay(it)) }
         val report = buildMonthInsightReport(month, month.atDay(31), listOf(loop), saved, emptyList())
-        assertEquals(31, report.totalCount)
+        assertEquals(30, report.totalCount)
         assertEquals(28, report.comparableCount)
         assertEquals(0, report.deltaPoints)
         assertEquals(0, report.loops.single().deltaPoints)
@@ -138,7 +138,8 @@ class MonthInsightModelsTest {
         val saved = listOf(record(august.atDay(1)), record(august.atDay(2), DoneState.SKIP),
             record(august.atDay(3), DoneState.IN_PROGRESS))
         val report = buildMonthInsightReport(august, august.atDay(4), listOf(loop()), saved, emptyList())
-        assertEquals(report.totalCount, report.doneCount + report.skippedCount + report.pendingCount + report.inProgressCount)
+        assertEquals(2, report.totalCount) // Today pending and the running occurrence are unsettled.
+        assertEquals(report.occurrenceCount, report.doneCount + report.skippedCount + report.pendingCount + report.inProgressCount)
         assertNull(report.bestWeekday) // One week is not enough to announce a weekday pattern.
     }
 }

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="revision_history_title">Edit history</string>
+    <string name="revision_history_loading">Loading</string>
+    <string name="revision_history_no_edits">No edits</string>
+    <string name="revision_history_count">%1$d edits</string>
+    <string name="revision_history_empty">No settings history has been saved.</string>
+    <string name="revision_history_policy">Newest edits appear first. Started, completed and skipped runs keep their original settings. When a field is edited again for the same effective date, its last saved value is used.</string>
+    <string name="revision_history_more">Show older records · %1$d remaining</string>
+    <string name="revision_history_initial">Initial settings</string>
+    <string name="revision_history_initial_note">Settings when history was first saved. Earlier edits cannot be reconstructed.</string>
+    <string name="revision_history_effective">Settings effective date · %1$s</string>
+    <string name="revision_history_goal_effective">Weekly goal effective date · %1$s</string>
+    <string name="revision_history_before">Before: %1$s</string>
+    <string name="revision_history_after">After: %1$s</string>
+    <string name="revision_field_name">Name</string>
+    <string name="revision_field_color">Color</string>
+    <string name="revision_field_days">Repeat days</string>
+    <string name="revision_field_time">Time</string>
+    <string name="revision_field_goal">Weekly goal</string>
+    <string name="revision_field_enabled">Enabled status</string>
+    <string name="revision_anytime">Anytime</string>
+    <string name="revision_unknown_time">No saved time</string>
+    <string name="revision_overnight">%1$s · ends next day</string>
+    <string name="revision_goal_times">%1$d per week</string>
+    <string name="revision_goal_none">No goal · follows scheduled runs</string>
+    <string name="revision_enabled">On</string>
+    <string name="revision_disabled">Off</string>
+    <string name="revision_no_days">No repeat days</string>
+</resources>

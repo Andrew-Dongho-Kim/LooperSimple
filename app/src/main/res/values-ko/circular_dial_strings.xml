@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="dial_center_now">지금</string>
+    <string name="dial_center_running">%1$s 진행 중</string>
+    <string name="dial_center_elapsed_minutes">%1$d분 경과</string>
+</resources>

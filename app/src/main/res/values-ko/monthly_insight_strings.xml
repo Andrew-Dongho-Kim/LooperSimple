@@ -40,7 +40,7 @@
     <string name="mi_timed_records">유효한 시간 기록 · 완료 %2$d회 중 %1$d회</string>
     <string name="mi_outside_period">선택한 기간 밖의 날짜</string>
     <string name="mi_calendar_note_legend">메모 아이콘: 회고 있음 · 빈 배경: 완료 없음</string>
-    <string name="mi_definition_rate">완료율은 완료 횟수 ÷ 예정된 실행 횟수예요. 건너뜀·미응답·진행 중은 분모에 포함하고, 비활성 루프와 미래 날짜는 제외해요. 오늘의 예정된 루프는 포함해요. 저장된 기록을 우선하며, 기록이 없는 과거 날짜는 현재 일정으로 보완하므로 일정 변경에 따라 추정치가 달라질 수 있어요.</string>
+    <string name="mi_definition_rate">완료율은 당시 일정의 예정 횟수를 기준으로 계산해요. 오늘의 미응답과 진행 중인 실행은 제외해요. 건너뜀과 지난 예정일의 미응답은 분모에 포함하고, 비활성 기간과 미래 날짜는 제외해요. 일정 밖에 직접 저장한 실행도 포함해요.</string>
     <string name="mi_definition_comparison" formatted="false">완료된 달은 전체 기간끼리 비교해요. 진행 중인 달은 전월의 같은 경과 일수와 비교하되, 짧은 달에 맞춰 두 기간을 줄여요. 실제 비교 날짜를 함께 표시해요. 이전 기록이 없으면 0%로 취급하지 않으며, 차이는 %p로 표시해요.</string>
     <string name="mi_definition_time">완료 기록 중 시작·종료 시각이 유효한 실행만 합산해요. 자정을 넘긴 실행도 계산하고, 시간이 없는 기록에는 예정 시간을 대신 넣지 않아요. 서로 겹친 시간은 각 루프에 포함돼요.</string>
     <string name="mi_definition_streak">실천한 날은 하루 한 번 이상 완료한 날, 모두 완료한 날은 예정된 루프를 전부 완료한 날이에요. 최장 연속은 이번 달 안에서 완료가 있는 날짜가 연속된 최장 일수예요.</string>

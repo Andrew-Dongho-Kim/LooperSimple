@@ -13,7 +13,7 @@
     <string name="recent_completion_unanswered">미응답</string>
     <string name="recent_completion_total">집계 대상</string>
     <string name="recent_completion_count">%1$d회</string>
-    <string name="recent_completion_rules">어제까지 최근 30일의 예정일을 기준으로 계산해요. 오늘, 생성 당일, 반복 요일이 아닌 날, 비활성으로 기록된 날은 제외해요. 건너뜀과 응답하지 않은 날은 대상 횟수에는 포함되지만 완료 횟수에는 포함되지 않아요.</string>
-    <string name="recent_completion_schedule_note">현재 반복 요일을 기준으로 하므로 요일 설정을 바꾸면 수치도 달라질 수 있어요. 집계 대상이 3회 이상일 때 칩이 표시돼요.</string>
+    <string name="recent_completion_rules">어제까지 최근 30일의 당시 일정과 저장 기록으로 계산해요. 생성 당일도 포함하며, 비활성·진행 중·예정이 없고 기록도 없는 날은 제외해요. 건너뜀과 지난 예정일의 미응답은 분모에 포함해요.</string>
+    <string name="recent_completion_schedule_note">집계 대상이 3회 이상일 때 표시해요. 이력 도입 이전의 일정·이름·색은 초기 설정으로 추정해요. 저장된 실행 기록은 보존하며, 이후 설정을 바꿔도 과거 추정 기준은 유지해요.</string>
     <string name="recent_completion_close">닫기</string>
 </resources>

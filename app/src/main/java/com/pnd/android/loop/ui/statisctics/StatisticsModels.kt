@@ -382,12 +382,13 @@ fun computeLoopStreak(
     activeDays: Int,
     createdDate: LocalDate,
     today: LocalDate = LocalDate.now(),
+    scheduledOn: ((LocalDate) -> Boolean)? = null,
 ): StreakStat {
     if (doneDates.isEmpty()) return StreakStat(current = 0, longest = 0)
-    if (LoopDay.ALL.none { activeDays.isOn(it) }) return StreakStat(current = 0, longest = 0)
+    if (scheduledOn == null && LoopDay.ALL.none { activeDays.isOn(it) }) return StreakStat(current = 0, longest = 0)
 
     val days = doneDates.toHashSet()
-    fun isActive(date: LocalDate) = activeDays.isOn(dayForLoop(date))
+    fun isActive(date: LocalDate) = scheduledOn?.invoke(date) ?: activeDays.isOn(dayForLoop(date))
 
     // 최장: 생성일부터 오늘까지 활동일만 훑으며 이어지는 구간의 최댓값.
     var longest = 0
@@ -466,6 +467,8 @@ fun computeWeekdayStats(doneDates: List<LocalDate>): List<DayOfWeekStat> {
  * 기록 화면의 월 요약도 응답 기록 한 벌에서 투자 시간을 함께 계산하므로 공개한다.
  */
 fun LoopResponseRecord.investedTimeMs(): Long {
+    measuredDurationMs?.let { return it.coerceAtLeast(0) }
+    if (startInDay !in 0 until MS_1DAY || endInDay !in 0 until MS_1DAY) return 0
     val raw = endInDay - startInDay
     return if (raw >= 0) raw else raw + MS_1DAY
 }
@@ -546,11 +549,14 @@ fun computeRetrospectStat(doneRecords: List<LoopResponseRecord>): RetrospectStat
 /** ⑤ 계획 시각이 있는 완료 기록에서 평균 시작 지연과 정시 비율을 계산한다. */
 fun computePlanVsActual(doneRecords: List<LoopResponseRecord>): PlanVsActualStat {
     val samples = doneRecords.filter {
-        !it.isAnyTime && it.startInDay >= 0 && it.plannedStartInDay >= 0
+        !it.isAnyTime && it.startInDay in 0 until MS_1DAY && it.plannedStartInDay in 0 until MS_1DAY &&
+            it.timeSource in listOf(com.pnd.android.loop.data.LoopDoneVo.TimeSource.MEASURED,
+                com.pnd.android.loop.data.LoopDoneVo.TimeSource.USER_ENTERED)
     }
     if (samples.isEmpty()) return PlanVsActualStat.Empty
 
-    val diffs = samples.map { it.startInDay - it.plannedStartInDay }
+    // Use the closest clock displacement across midnight (e.g. 23:55 -> 00:05 is +10 min).
+    val diffs = samples.map { (it.startInDay - it.plannedStartInDay + MS_1DAY + MS_1DAY / 2) % MS_1DAY - MS_1DAY / 2 }
     return PlanVsActualStat(
         sampleCount = samples.size,
         avgStartDiffMs = diffs.sum() / samples.size,

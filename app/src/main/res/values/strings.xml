@@ -556,7 +556,7 @@
     <string name="detail_activity_weekdays_hint">Completed days out of recorded days · last 28 days</string>
     <string name="detail_activity_sample">%2$d of %1$d days</string>
     <string name="detail_activity_calculation_title">How these stats work</string>
-    <string name="detail_activity_calculation_body">The last 28 days include today. The bars above count completed days in non-overlapping 7-day groups, on a fixed 0–7 scale; these are not calendar weeks or goal achievement rates.\n\nDisabled, in-progress, future, and pre-creation records are excluded. Unanswered records for today are also excluded because today is not over. Missing days are not counted as unanswered.\n\nThe previous 28-day comparison appears only when the loop existed throughout both periods and both contain records. Past records are not re-scored using the current schedule or goal.</string>
+    <string name="detail_activity_calculation_body">The last 28 days include today. The bars above count completed days in non-overlapping 7-day groups, on a fixed 0–7 scale; these are not calendar weeks or goal achievement rates.\n\nDisabled, in-progress, future, and pre-creation records are excluded. Unanswered records for today are also excluded because today is not over. Past scheduled days without saved records count as unanswered.\n\nThe previous 28-day comparison appears only when the loop existed throughout both periods and both contain records. Past records are not re-scored using the current schedule or goal.</string>
     <string name="detail_activity_record_basis">Based on %1$d recorded days</string>
     <string name="detail_activity_legend_entry">%1$s %2$d</string>
     <string name="detail_activity_chart_hint">Completed / recorded days · — No records</string>

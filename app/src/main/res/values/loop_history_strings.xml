@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="history_rate_basis">Completion uses the schedule for each date. Unanswered runs today and runs still in progress are excluded.</string>
+    <string name="history_estimated">Schedules, names and colors before history tracking are estimated from the initial settings. Saved runs are preserved; later edits do not change this baseline.</string>
+    <string name="history_goal_next_week">The weekly goal of %1$d starts next week.</string>
+    <string name="history_goal_removed_next_week">Starting next week, progress follows scheduled runs without a weekly goal.</string>
+</resources>

@@ -1,139 +1,112 @@
 package com.pnd.android.loop.ui.statisctics
 
 import androidx.lifecycle.ViewModel
-import com.pnd.android.loop.data.AppDatabase
-import com.pnd.android.loop.data.LoopWithStatistics
-import com.pnd.android.loop.data.isDone
-import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
+import com.pnd.android.loop.data.*
+import com.pnd.android.loop.data.history.LoopHistoryRepository
+import com.pnd.android.loop.data.history.LoopHistorySnapshot
+import com.pnd.android.loop.data.history.ResolvedLoopDay
 import com.pnd.android.loop.util.toLocalDate
-import com.pnd.android.loop.util.toMs
-import kotlinx.coroutines.flow.map
+import com.pnd.android.loop.util.todayFlow
+import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDate
 import java.time.YearMonth
 import javax.inject.Inject
-
-// 월별 투자 시간 / 완료율 추세 차트에 노출할 최근 개월 수.
-private const val MONTHLY_CHART_MONTHS = 6
-
-// 습관 건강 비교 구간(일). 최근 14일 vs 직전 14일을 본다.
-private const val HABIT_HEALTH_WINDOW_DAYS = 14
-
-// 신규 루프 정착률에서 '신규'로 볼 최근 생성 기간(일).
-private const val NEW_LOOP_WINDOW_DAYS = 30
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 
 @HiltViewModel
 class StatisticsViewModel @Inject constructor(
-    appDb: AppDatabase,
+    private val histories: LoopHistoryRepository,
 ) : ViewModel() {
+    private fun <T> observe(calculate: (LoopHistorySnapshot, LocalDate) -> T): Flow<T> =
+        combine(histories.snapshots, todayFlow(), calculate).flowOn(Dispatchers.Default)
 
-    private val fullLoopDao = appDb.fullLoopDao()
+    private fun LoopHistorySnapshot.periodDays(period: StatisticsPeriod, today: LocalDate): List<ResolvedLoopDay> =
+        settled(maxOf(firstDate ?: today, period.from(today).toLocalDate()), period.to(today).toLocalDate(), today)
 
-    /**
-     * Loops ranked by their done rate within [period]. Loops that never ran in the
-     * period (and therefore have no meaningful rate) are dropped so the ranking only
-     * shows habits the user actually engaged with.
-     */
-    fun flowLoopRanking(period: StatisticsPeriod): Flow<List<LoopWithStatistics>> =
-        fullLoopDao.getLoopsWithStatisticsFlow(from = period.from(), to = period.to())
-            .map { loops -> loops.filter { it.doneRate.isFinite() } }
-
-    /**
-     * 기간([period]) 기반 지표 묶음. 응답 기록을 한 번 조회해 요약 KPI·시간대·요일·완벽한 날·
-     * 스킵·회고·계획대비 실제를 한꺼번에 계산한다.
-     */
-    fun flowPeriodStats(period: StatisticsPeriod): Flow<PeriodStats> =
-        fullLoopDao.getResponsesFlow(from = period.from(), to = period.to())
-            .map { records -> computePeriodStats(records) }
-
-    /**
-     * ② 월별 완료율 추세(최근 [MONTHLY_CHART_MONTHS]개월). 기간 선택과 무관하게 전체 흐름을 본다.
-     */
-    fun flowCompletionTrend(): Flow<List<CompletionRatePoint>> =
-        fullLoopDao.getMonthlyCompletionCountFlow().map { rows ->
-            computeCompletionTrend(monthly = rows, months = MONTHLY_CHART_MONTHS)
+    val hasEstimatedHistory = observe { snapshot, _ ->
+        snapshot.timelines.any { timeline ->
+            timeline.history.revisions.any { it.knownFrom > timeline.createdDate.toEpochDay() }
         }
+    }
 
-    /**
-     * ⑩ 이번 달 완료 횟수 예측. 이번 달 완료 기록만으로 현재 페이스를 월말로 환산한다.
-     */
-    fun flowMonthlyProjection(): Flow<MonthlyProjection> {
-        val today = LocalDate.now()
-        val monthStart = today.withDayOfMonth(1).toMs()
-        return fullLoopDao.getResponsesFlow(from = monthStart, to = today.toMs()).map { records ->
-            computeMonthlyProjection(
-                doneSoFar = records.count { it.done.isDone() },
-                today = today,
+    fun flowPeriodStats(period: StatisticsPeriod): Flow<PeriodStats> = observe { snapshot, today ->
+        val allDays = snapshot.days(
+            maxOf(snapshot.firstDate ?: today, period.from(today).toLocalDate()),
+            minOf(today, period.to(today).toLocalDate()),
+        )
+        computePeriodStats(allDays.filter { it.isSettled(today) }.map { it.asResponseRecord() })
+            .copy(perfectDays = allDays.filter { it.hasOccurrence }.groupBy { it.date }
+                .count { (_, days) -> days.all { it.response.isDone() } })
+    }
+
+    fun flowLoopRanking(period: StatisticsPeriod): Flow<List<LoopWithStatistics>> = observe { snapshot, today ->
+        snapshot.periodDays(period, today).groupBy { it.loop.loopId }.map { (id, days) ->
+            val loop = snapshot.byId.getValue(id).current
+            val done = days.filter { it.response.isDone() }
+            LoopWithStatistics(
+                loopId = id, title = loop.title, color = loop.color,
+                doneRate = done.size.toFloat() / days.size, doneCount = done.size,
+                investedTimeMs = done.sumOf { it.asResponseRecord().investedTimeMs() },
             )
+        }.sortedByDescending { it.doneRate }
+    }
+
+    fun flowCompletionTrend(): Flow<List<CompletionRatePoint>> = observe { snapshot, today ->
+        val start = YearMonth.from(today).minusMonths(5).atDay(1)
+        snapshot.settled(start, today, today).groupBy { YearMonth.from(it.date) }.map { (month, days) ->
+            CompletionRatePoint(month, days.count { it.response.isDone() }.toFloat() / days.size)
+        }.sortedBy { it.yearMonth }
+    }
+
+    fun flowMonthlyProjection(): Flow<MonthlyProjection> = observe { snapshot, today ->
+        computeMonthlyProjection(
+            snapshot.settled(today.withDayOfMonth(1), today, today).count { it.response.isDone() }, today,
+        )
+    }
+
+    fun flowHabitHealth(): Flow<List<HabitHealth>> = observe { snapshot, today ->
+        val records = snapshot.settled(today.minusDays(27), today, today).map { day ->
+            val current = snapshot.byId.getValue(day.loop.loopId).current
+            day.asResponseRecord().copy(title = current.title, color = current.color)
+        }
+        computeHabitHealth(records, today, windowDays = 14)
+    }
+
+    fun flowNewLoopSettling(): Flow<List<NewLoopSettling>> = observe { snapshot, today ->
+        val loops = snapshot.timelines.filter { it.current.enabled && it.createdDate >= today.minusDays(30) }
+        val records = loops.map { timeline ->
+            val days = timeline.days(timeline.createdDate, today).filter { it.isSettled(today) }
+            val loop = timeline.current
+            NewLoopRecord(loop.loopId, loop.title, loop.color, loop.created, days.size, days.count { it.response.isDone() })
+        }
+        computeSettling(records, today)
+    }
+
+    fun flowMilestones(): Flow<List<Milestone>> = observe { snapshot, today ->
+        val days = snapshot.settled(snapshot.firstDate ?: today, today, today).filter { it.response.isDone() }
+        computeMilestones(
+            totalInvestedMs = days.sumOf { it.asResponseRecord().investedTimeMs() },
+            totalDoneCount = days.size,
+            longestStreak = computeStreak(days.map { it.date }, today).longest,
+        )
+    }
+
+    fun flowMonthlyInvestedTime(): Flow<List<MonthlyInvestedTime>> = observe { snapshot, today ->
+        val days = snapshot.settled(YearMonth.from(today).minusMonths(5).atDay(1), today, today)
+        val totals = days.filter { it.response.isDone() }.groupBy { YearMonth.from(it.date) }
+            .mapValues { (_, records) -> records.sumOf { it.asResponseRecord().investedTimeMs() } }
+        val maximum = totals.values.maxOrNull() ?: 0L
+        totals.toSortedMap().map { (month, time) ->
+            MonthlyInvestedTime(month, time, if (maximum == 0L) 0f else time.toFloat() / maximum)
         }
     }
 
-    /**
-     * ⑥ 최근 완료율이 하락 중인 루프 목록. 기간 선택과 무관하게 항상 최근 흐름을 본다.
-     */
-    fun flowHabitHealth(): Flow<List<HabitHealth>> {
-        val today = LocalDate.now()
-        // 최근 구간 + 직전 구간(각 windowDays)을 모두 덮도록 2*window - 1 일 전부터 조회한다.
-        val from = today.minusDays((2L * HABIT_HEALTH_WINDOW_DAYS - 1)).toMs()
-        return fullLoopDao.getResponsesFlow(from = from, to = today.toMs()).map { records ->
-            computeHabitHealth(records = records, today = today, windowDays = HABIT_HEALTH_WINDOW_DAYS)
-        }
+    fun flowStreak(): Flow<StreakStat> = observe { snapshot, today ->
+        val dates = snapshot.settled(snapshot.firstDate ?: today, today, today)
+            .filter { it.response.isDone() }.map { it.date }
+        computeStreak(dates, today)
     }
-
-    /**
-     * ⑦ 최근 [NEW_LOOP_WINDOW_DAYS]일 안에 만든 루프들의 정착 현황.
-     */
-    fun flowNewLoopSettling(): Flow<List<NewLoopSettling>> {
-        val today = LocalDate.now()
-        val since = today.minusDays(NEW_LOOP_WINDOW_DAYS.toLong()).toMs()
-        return fullLoopDao.getNewLoopsFlow(since = since).map { rows ->
-            computeSettling(newLoops = rows, today = today)
-        }
-    }
-
-    /**
-     * ⑨ 누적 성취 마일스톤(투자시간·총 완료 횟수·최장 스트릭). 전체 기록 기준.
-     */
-    fun flowMilestones(): Flow<List<Milestone>> {
-        val to = LocalDate.now().toMs()
-        return combine(
-            fullLoopDao.getInvestedTimeFlow(from = 0L, to = to),
-            fullLoopDao.getTotalDoneCountFlow(),
-            fullLoopDao.getDoneDatesFlow(),
-        ) { investedMs, totalDone, doneDates ->
-            computeMilestones(
-                totalInvestedMs = investedMs,
-                totalDoneCount = totalDone,
-                longestStreak = computeStreak(doneDates = doneDates.map { it.toLocalDate() }).longest,
-            )
-        }
-    }
-
-    /**
-     * 월별 루프 투자 시간을 최근 [MONTHLY_CHART_MONTHS]개월만 잘라내어, 표시되는 달들 중
-     * 최댓값 대비 비율([MonthlyInvestedTime.ratio])과 함께 반환한다. 기간 선택과 무관하게
-     * 항상 전체 데이터의 최근 흐름을 보여준다.
-     */
-    fun flowMonthlyInvestedTime(): Flow<List<MonthlyInvestedTime>> =
-        fullLoopDao.getMonthlyInvestedTimeFlow().map { rows ->
-            val recent = rows.takeLast(MONTHLY_CHART_MONTHS)
-            val busiest = recent.maxOfOrNull { it.durationMs } ?: 0L
-            recent.map { row ->
-                MonthlyInvestedTime(
-                    yearMonth = YearMonth.of(row.year, row.month),
-                    investedTimeMs = row.durationMs,
-                    ratio = if (busiest == 0L) 0f else row.durationMs.toFloat() / busiest,
-                )
-            }
-        }
-
-    /**
-     * 완료한 날짜 목록으로부터 현재/최장 연속 달성 스트릭을 계산한다.
-     * 기간 선택과 무관하게 전체 기록을 대상으로 한다.
-     */
-    fun flowStreak(): Flow<StreakStat> =
-        fullLoopDao.getDoneDatesFlow().map { millis ->
-            computeStreak(doneDates = millis.map { it.toLocalDate() })
-        }
 }

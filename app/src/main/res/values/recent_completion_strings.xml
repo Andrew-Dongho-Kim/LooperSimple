@@ -13,7 +13,7 @@
     <string name="recent_completion_unanswered">No response</string>
     <string name="recent_completion_total">Eligible days</string>
     <string name="recent_completion_count">%1$d</string>
-    <string name="recent_completion_rules">Based on scheduled days in the 30 days ending yesterday. Today, the creation day, unscheduled weekdays, and days recorded as disabled are excluded. Skipped days and days without a response count toward eligible days, but not completions.</string>
-    <string name="recent_completion_schedule_note">Weekdays use the current repeat setting; changing it may change this rate. The chip appears after at least 3 eligible days.</string>
+    <string name="recent_completion_rules">Uses historical schedules and saved runs in the 30 days ending yesterday, including the creation date. Disabled, ongoing and unscheduled days without records are excluded. Skipped and unanswered scheduled runs count toward the denominator.</string>
+    <string name="recent_completion_schedule_note">Shown after at least 3 eligible runs. Schedules, names and colors before history tracking are estimated from the initial settings. Saved runs are preserved; later edits do not change this baseline.</string>
     <string name="recent_completion_close">Close</string>
 </resources>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="revision_history_title">수정 이력</string>
+    <string name="revision_history_loading">불러오는 중</string>
+    <string name="revision_history_no_edits">수정 없음</string>
+    <string name="revision_history_count">수정 %1$d회</string>
+    <string name="revision_history_empty">저장된 설정 이력이 없어요.</string>
+    <string name="revision_history_policy">최신 수정부터 표시해요. 시작했거나 완료·건너뜀으로 기록한 실행은 당시 설정을 유지해요. 같은 적용일에 다시 바뀐 항목은 마지막 수정값이 사용돼요.</string>
+    <string name="revision_history_more">이전 기록 더 보기 · %1$d개 남음</string>
+    <string name="revision_history_initial">초기 설정</string>
+    <string name="revision_history_initial_note">이력이 처음 저장되었을 때의 설정이에요. 그보다 앞선 수정 내역은 확인할 수 없어요.</string>
+    <string name="revision_history_effective">설정 적용 기준일 · %1$s</string>
+    <string name="revision_history_goal_effective">주간 목표 적용 기준일 · %1$s</string>
+    <string name="revision_history_before">이전: %1$s</string>
+    <string name="revision_history_after">이후: %1$s</string>
+    <string name="revision_field_name">이름</string>
+    <string name="revision_field_color">색상</string>
+    <string name="revision_field_days">반복 요일</string>
+    <string name="revision_field_time">시간</string>
+    <string name="revision_field_goal">주간 목표</string>
+    <string name="revision_field_enabled">활성 상태</string>
+    <string name="revision_anytime">언제든지</string>
+    <string name="revision_unknown_time">저장된 시간 없음</string>
+    <string name="revision_overnight">%1$s · 다음 날 종료</string>
+    <string name="revision_goal_times">주 %1$d회</string>
+    <string name="revision_goal_none">목표 없음 · 예정 횟수 기준</string>
+    <string name="revision_enabled">켜짐</string>
+    <string name="revision_disabled">꺼짐</string>
+    <string name="revision_no_days">반복 요일 없음</string>
+</resources>

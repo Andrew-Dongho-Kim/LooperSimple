@@ -12,6 +12,9 @@ import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.LoopVo
 import com.pnd.android.loop.data.LoopWithDone
 import com.pnd.android.loop.data.TodayLoopOrder
+import com.pnd.android.loop.data.isRespond
+import com.pnd.android.loop.data.history.LoopTimeline
+import com.pnd.android.loop.data.history.ResolvedLoopDay
 import com.pnd.android.loop.ui.home.RecentLoopCompletion
 import com.pnd.android.loop.ui.home.computeRecentLoopCompletion
 import com.pnd.android.loop.ui.statisctics.DayOfWeekStat
@@ -25,6 +28,9 @@ import com.pnd.android.loop.util.isActiveDay
 import com.pnd.android.loop.util.toLocalDate
 import com.pnd.android.loop.util.toMs
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.time.LocalDate
+import javax.inject.Inject
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -43,9 +49,6 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import javax.inject.Inject
-import kotlin.time.Duration.Companion.milliseconds
 
 // 루프의 "최근 추세" 계산 파라미터.
 //  - TREND_WINDOW: 어제 이전에서 최근 몇 개의 활동일을 볼지.
@@ -118,17 +121,6 @@ class LoopViewModel @Inject constructor(
                 initialValue = null,
             )
 
-    private val allCount = loopRepository.allEnabledCount
-    private val allResponseCount = loopRepository.allRespondCount
-    private val doneCount = loopRepository.doneCount
-    private val skipCount = loopRepository.skipCount
-
-    private val todayCount = loopRepository.todayEnabledCount
-    private val todayDoneCount = loopRepository.todayDoneCount
-    private val todayResponseCount = loopRepository.todayRespondCount
-    private val todaySkipCount = loopRepository.todaySkipCount
-
-
     private val _highlightId = MutableStateFlow(NavigatePage.UNKNOWN_ID)
     val highlightId: StateFlow<Int> = _highlightId
     private var resetHighlightJob: Job? = null
@@ -154,33 +146,16 @@ class LoopViewModel @Inject constructor(
      * 오늘 / 전체 tab changes. Rates are percentages (0..100); a scope with no recorded
      * activity yields 0% across the board rather than a misleading 100%.
      */
-    val overallRates: Flow<LoopRates> = combine(
-        allCount,
-        doneCount,
-        allResponseCount,
-        skipCount,
-    ) { total, done, response, skip ->
-        LoopRates(
-            doneRate = percentOf(done, total),
-            responseRate = percentOf(response, total),
-            skipRate = percentOf(skip, total),
-            doneCount = done,
-            totalCount = total,
-        )
-    }
+    val overallRates: Flow<LoopRates> = loopRepository.settledDays.map(::ratesFor)
+    val todayRates: Flow<LoopRates> = loopRepository.todaySettled.map(::ratesFor)
 
-    val todayRates: Flow<LoopRates> = combine(
-        todayCount,
-        todayDoneCount,
-        todayResponseCount,
-        todaySkipCount,
-    ) { total, done, response, skip ->
-        LoopRates(
-            doneRate = percentOf(done, total),
-            responseRate = percentOf(response, total),
-            skipRate = percentOf(skip, total),
-            doneCount = done,
-            totalCount = total,
+    private fun ratesFor(days: List<ResolvedLoopDay>): LoopRates {
+        val done = days.count { it.response.isDone() }
+        return LoopRates(
+            doneRate = percentOf(done, days.size),
+            responseRate = percentOf(days.count { it.response.isRespond() }, days.size),
+            skipRate = percentOf(days.count { it.response.isSkip() }, days.size),
+            doneCount = done, totalCount = days.size,
         )
     }
 
@@ -199,7 +174,7 @@ class LoopViewModel @Inject constructor(
             .filter { loop ->
                 loop.enabled &&
                         !loop.isMock &&
-                        !loop.isAnyTime &&
+                        !loop.isAnyTime && !loop.isRespond &&
                         loop.isActiveDay(now.toLocalDate()) &&
                         loop.startInDay > nowInDayMs
             }
@@ -221,10 +196,13 @@ class LoopViewModel @Inject constructor(
      */
     val currentLoop: Flow<CurrentLoopInfo?> = combine(
         loopRepository.loadedLoops,
+        loopRepository.yesterdayLoops,
         localDateTime,
-    ) { loops, now ->
+    ) { loops, yesterday, now ->
         val nowInDayMs = now.toLocalTime().toMs()
-        val active = loops
+        val active = com.pnd.android.loop.data.buildTodayOccurrences(
+            loops, yesterday.associateBy { it.loopId }, now,
+        ).map { it.loop }
             .filter { loop -> !loop.isMock && !loop.isAnyTime && loop.isActive(now) }
             .map { loop -> loop to remainingUntilEnd(loop, nowInDayMs) }
             .sortedBy { (_, remainingMs) -> remainingMs }
@@ -259,19 +237,11 @@ class LoopViewModel @Inject constructor(
      * 후보에서 뺀다.
      */
     val loopTrends: Flow<LoopTrends> = combine(
-        loopRepository.loadedLoops,
-        loopRepository.allDoneHistory,
-        localDate,
-    ) { loops, history, today ->
-        val trends = loops
-            .filter { loop -> loop.enabled && !loop.isMock }
-            .mapNotNull { loop ->
-                computeLoopTrend(
-                    loop = loop,
-                    history = history[loop.loopId],
-                    today = today,
-                )
-            }
+        loopRepository.historyRepository.snapshots, localDate,
+    ) { snapshot, today ->
+        val trends = snapshot.timelines
+            .filter { it.current.enabled && !it.current.isMock }
+            .mapNotNull { computeLoopTrend(it, today) }
 
         LoopTrends(
             // 잘함: 완료율이 높은 순, 같으면 연속 완료가 긴 순.
@@ -308,13 +278,10 @@ class LoopViewModel @Inject constructor(
 
     /** All-tab chips share one calculation, independent of the truncated trend rankings. */
     val recentCompletionByLoop: StateFlow<Map<Int, RecentLoopCompletion>> = combine(
-        loopRepository.loadedLoops,
-        loopRepository.allDoneHistory,
-        localDate,
-    ) { loops, history, today ->
-        loops.mapNotNull { loop ->
-            computeRecentLoopCompletion(loop, history[loop.loopId], today)
-                ?.let { loop.loopId to it }
+        loopRepository.historyRepository.snapshots, localDate,
+    ) { snapshot, today ->
+        snapshot.timelines.mapNotNull { timeline ->
+            computeRecentLoopCompletion(timeline, today)?.let { timeline.current.loopId to it }
         }.toMap()
     }.flowOn(Dispatchers.Default)
         .distinctUntilChanged()
@@ -359,16 +326,27 @@ class LoopViewModel @Inject constructor(
         }
     }
 
+    suspend fun editableLoop(loopId: Int) = loopRepository.editableLoop(loopId)
+
+    fun setEnabled(loopId: Int, enabled: Boolean) {
+        coroutineScope.launch {
+            loopRepository.setEnabled(loopId, enabled)
+            AppWidgetUpdateWorker.updateWidget(application)
+        }
+    }
+
     fun changeLoopState(
         loop: LoopBase,
         localDate: LocalDate = LocalDate.now(),
-        @LoopDoneVo.DoneState doneState: Int
+        @LoopDoneVo.DoneState doneState: Int,
+        suppliedTimes: Pair<Long, Long>? = null,
     ) {
         coroutineScope.launch {
             loopRepository.changeLoopState(
                 loop = loop,
                 localDate = localDate,
                 doneState = doneState,
+                suppliedTimes = suppliedTimes,
             )
             AppWidgetUpdateWorker.updateWidget(application)
         }
@@ -501,46 +479,21 @@ private fun remainingUntilEnd(loop: LoopBase, nowInDayMs: Long): Long {
     return endMs - nowInDayMs
 }
 
-/**
- * [history](날짜(ms)→상태)로 한 루프의 추세를 만든다.
- *
- * history 에는 DONE/SKIP/DISABLED 행만 담겨 있고 미응답한 날은 키가 아예 없다
- * ([com.pnd.android.loop.data.dao.LoopDoneDao.getAllHistoryFlow] 참고). 그래서 map 의 entry 를 훑으면
- * "놓친 날"이 존재하지 않는 날처럼 사라져, 끊긴 연속 완료가 이어져 보이고(예: 완료→3일 놓침→완료→완료가
- * 3연속 완료로 집계) 연속 놓침은 사실상 연속 건너뜀만 세게 된다. 완료율의 분모도 응답한 날만 세어
- * 부풀려진다. 그래서 map 이 아니라 **달력**을 기준으로 훑는다: 어제부터 과거로 내려가며 이 루프의
- * 활동일만 한 칸씩 쌓고, 그 날 상태를 map 에서 조회해 기록이 없으면 미응답(놓침)으로 본다.
- *
- * 표본에서 빼는 날:
- * - 오늘 — 아직 수행 전일 수 있다.
- * - 생성일과 그 이전 — 생성 당일은 이미 시간 창이 지난 뒤일 수 있어 무조건 놓침이 된다.
- * - 활동 요일이 아닌 날, 루프가 꺼져 있던 날(DISABLED) — 수행 대상이 아니었으므로 칸을 만들지 않고,
- *   따라서 연속을 끊지도 않는다.
- *
- * 활동일 표본이 [TREND_MIN_RECORDS] 미만이면 표본 부족으로 null 을 돌려준다.
- */
-private fun computeLoopTrend(
-    loop: LoopBase,
-    history: Map<Long, Int>?,
-    today: LocalDate,
-): LoopTrend? {
-    val createdDate = loop.created.toLocalDate()
+/** Recent settled occurrences, using the same historical schedule as every completion rate. */
+private fun computeLoopTrend(timeline: LoopTimeline, today: LocalDate): LoopTrend? {
+    val loop = timeline.current
+    val createdDate = timeline.createdDate
     val recentStates = ArrayList<Int>(TREND_WINDOW)
 
     var date = today.minusDays(1L)
     var scanned = 0
     while (recentStates.size < TREND_WINDOW &&
         scanned < TREND_SCAN_DAYS &&
-        date.isAfter(createdDate)
+        !date.isBefore(createdDate)
     ) {
         scanned++
-        if (loop.isActiveDay(date)) {
-            val state = history?.get(date.toMs())
-            // 기록이 없으면(=NO_RESPONSE 행은 저장되지 않는다) 그 날은 놓친 날이다.
-            if (state != LoopDoneVo.DoneState.DISABLED) {
-                recentStates.add(state ?: LoopDoneVo.DoneState.NO_RESPONSE)
-            }
-        }
+        val day = timeline.day(date)
+        if (day != null && day.isSettled(today)) recentStates.add(day.response.done)
         date = date.minusDays(1L)
     }
 

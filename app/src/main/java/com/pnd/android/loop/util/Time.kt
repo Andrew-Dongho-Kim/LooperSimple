@@ -364,12 +364,13 @@ fun currentOccurrenceDate(
     val date = now.toLocalDate()
     if (yesterday == null) return date
 
-    return if (today.isAnyTime) {
-        // 오늘 다시 시작했다면 오늘 것이 우선이다(어제 기록은 이미 지난 occurrence).
-        if (!today.isInProgress && yesterday.isInProgress) date.minusDays(1) else date
-    } else {
-        today.occurrenceStartDate(now)
-    }
+    if (today.isInProgress) return date
+    if (yesterday.isAnyTime && yesterday.isInProgress) return date.minusDays(1)
+    // The previous occurrence can have a different type/time after an edit this morning.
+    val previousDate = date.minusDays(1)
+    val continuesFromYesterday = yesterday.isOvernight && yesterday.isActiveDay(previousDate) &&
+        !yesterday.created.toLocalDate().isAfter(previousDate) && now.toLocalTime().toMs() < yesterday.endInDay
+    return if (continuesFromYesterday) previousDate else date
 }
 
 /**
