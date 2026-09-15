@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="stat_widget_short_today">Today</string>
+    <string name="stat_widget_short_week">Week</string>
+    <string name="stat_widget_short_month">Month</string>
+    <string name="stat_widget_short_count">%1$s×</string>
+    <string name="stat_widget_short_empty">Start</string>
+    <string name="stat_widget_short_loading">…</string>
     <string name="stat_widget_today">Today\'s pace</string>
     <string name="stat_widget_week">Weekly rhythm</string>
     <string name="stat_widget_month">Monthly achievements</string>

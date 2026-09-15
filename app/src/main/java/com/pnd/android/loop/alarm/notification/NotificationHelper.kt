@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.os.Build
+import android.util.TypedValue
 import android.view.View
 import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
@@ -117,7 +118,7 @@ fun cancelLoopPrompts(context: Context, loopId: Int) {
 }
 
 /** 펼친 알림에 한 번에 나열할 최대 루프 수. 초과분은 "외 N개"로 요약한다. */
-private const val MAX_EXPANDED_ROWS = 4
+private const val MAX_EXPANDED_ROWS = 3
 
 class NotificationHelper @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -176,7 +177,8 @@ class NotificationHelper @Inject constructor(
      */
     fun buildOngoingNotification(loops: List<LoopBase>): Notification {
         val builder = NotificationCompat.Builder(context, CHANNEL_ID_ONGOING)
-            .setSmallIcon(R.drawable.app_icon)
+            .setSmallIcon(R.drawable.ic_notification_loop)
+            .setColor(context.getColor(R.color.notification_accent))
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setAutoCancel(false)
@@ -228,7 +230,8 @@ class NotificationHelper @Inject constructor(
      */
     fun notifyLoopStarted(loop: LoopBase) {
         val builder = newAnnouncementBuilder()
-            .setContentTitle(context.getString(R.string.notification_loop_started_title, loop.title))
+            .setSubText(context.getString(R.string.notification_state_started))
+            .setContentTitle(loop.title)
             .setContentText(lineText(loop))
         // 방금 뜬 알림에서 바로 응답할 수 있게 액션 버튼을 붙인다. 이게 없으면 사용자가
         // 알림창을 내려 상시 알림을 찾아야 해서, 두 알림이 그냥 중복으로만 보인다.
@@ -274,9 +277,8 @@ class NotificationHelper @Inject constructor(
         val builder = newAnnouncementBuilder()
         val single = loops.singleOrNull()
         if (single != null) {
-            builder.setContentTitle(
-                context.getString(R.string.notification_loop_in_progress_title, single.title)
-            ).setContentText(lineText(single))
+            builder.setSubText(context.getString(R.string.notification_state_running))
+                .setContentTitle(single.title).setContentText(lineText(single))
             addLoopActions(builder, single)
         } else {
             builder.setContentTitle(loopsInProgressTitle(loops)).withLoopLines(loops)
@@ -299,7 +301,8 @@ class NotificationHelper @Inject constructor(
             channelId = CHANNEL_ID_LOOP_PROMPT,
             timeoutMs = LOOP_ENDED_TIMEOUT_MS,
         )
-            .setContentTitle(context.getString(R.string.notification_loop_ended_title, loop.title))
+            .setSubText(context.getString(R.string.notification_state_ended))
+            .setContentTitle(loop.title)
             .setContentText(
                 context.getString(
                     R.string.notification_loop_ended_text,
@@ -322,8 +325,11 @@ class NotificationHelper @Inject constructor(
         val builder = newAnnouncementBuilder(
             channelId = CHANNEL_ID_LOOP_PROMPT,
             timeoutMs = ANYTIME_DUE_TIMEOUT_MS,
-        ).setContentTitle(context.getString(R.string.notification_anytime_due_title, loop.title))
-        usualStartText(habitualStart)?.let { text -> builder.setContentText(text) }
+        ).setSubText(context.getString(R.string.notification_state_due))
+            .setContentTitle(loop.title)
+        usualStartText(habitualStart)?.let { text ->
+            builder.setContentText(text).setStyle(NotificationCompat.BigTextStyle().bigText(text))
+        }
         addStartSkipActions(builder, loop)
         nm.notify(ANYTIME_DUE_NOTIFICATION_ID_BASE + loop.loopId, builder.build())
     }
@@ -366,9 +372,11 @@ class NotificationHelper @Inject constructor(
         timeoutMs: Long = LOOP_STARTED_TIMEOUT_MS,
     ): NotificationCompat.Builder =
         NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(R.drawable.app_icon)
+            .setSmallIcon(R.drawable.ic_notification_loop)
+            .setColor(context.getColor(R.color.notification_accent))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setShowWhen(false)
             .setAutoCancel(true)
             .setOnlyAlertOnce(false)
             .setTimeoutAfter(timeoutMs)
@@ -436,46 +444,51 @@ class NotificationHelper @Inject constructor(
         )
     }
 
-    /**
-     * 접힌 알림: "N개 진행 중" + 가장 먼저 끝나는 루프의 종료 시각·진행률 요약.
-     * 시간제 루프가 하나도 없으면(모두 anytime) 진행률 바를 감추고 루프 제목만 나열한다.
-     */
+    /** Compact view: full-width title, then remaining time and secondary context. */
     private fun buildLoopsCollapsedView(loops: List<LoopBase>): RemoteViews {
         val view = RemoteViews(context.packageName, R.layout.notification_loops_collapsed)
         val single = loops.singleOrNull()
-
-        if (single != null) {
-            // 단일 루프: 제목 + 그 루프의 시간 요약("11:20까지 · 32분 남음") + 진행률.
-            view.setTextViewText(R.id.collapsed_title, single.title)
-            view.setTextViewText(R.id.collapsed_subtitle, lineText(single))
-            bindCollapsedProgress(view, single)
-            return view
-        }
-
-        // 다중 루프: "N개 진행 중" + 가장 임박한 루프 기준 요약/진행률.
-        view.setTextViewText(R.id.collapsed_title, loopsInProgressTitle(loops))
-        val nearest = nearestEndingLoop(loops)
-        if (nearest != null) {
+        val focus = single ?: nearestEndingLoop(loops)
+        view.setTextViewText(R.id.collapsed_title, single?.title ?: loopsInProgressTitle(loops))
+        if (focus != null) {
             view.setTextViewText(
                 R.id.collapsed_subtitle,
-                context.getString(
-                    R.string.notification_next_end,
-                    nearest.endInDay.toLocalTime().formatText(),
-                ),
+                if (focus.isAnyTime) timePassed(focus) else timeLeftText(focus),
             )
-            bindCollapsedProgress(view, nearest)
+            view.setTextViewText(
+                R.id.collapsed_detail,
+                when {
+                    single == null -> context.getString(R.string.notification_next_loop, focus.title)
+                    focus.isAnyTime -> context.getString(R.string.notification_state_anytime)
+                    else -> context.getString(
+                        R.string.notification_until_time,
+                        focus.endInDay.toLocalTime().formatText(),
+                    )
+                },
+            )
+            bindCollapsedProgress(view, focus)
         } else {
-            // 시간제 루프가 하나도 없으면(모두 anytime) 진행률을 감추고 제목만 나열한다.
-            view.setTextViewText(R.id.collapsed_subtitle, loops.joinToString(", ") { it.title })
+            view.setTextViewText(R.id.collapsed_subtitle, context.getString(R.string.notification_state_running))
+            view.setTextViewText(R.id.collapsed_detail, loops.joinToString(", ") { it.title })
             view.setViewVisibility(R.id.collapsed_progress, View.GONE)
+        }
+        // The system gives collapsed custom content at most 64dp. Preserve text at large font sizes.
+        if (context.resources.configuration.fontScale > 1.3f) {
+            view.setViewVisibility(R.id.collapsed_progress, View.GONE)
+        }
+        // Compact system content cannot grow vertically. Keep enlarged text readable here;
+        // the expanded view continues to honor the full font scale.
+        if (context.resources.configuration.fontScale > 1.5f) {
+            view.setTextViewTextSize(R.id.collapsed_title, TypedValue.COMPLEX_UNIT_DIP, 20f)
+            view.setTextViewTextSize(R.id.collapsed_subtitle, TypedValue.COMPLEX_UNIT_DIP, 16f)
+            view.setTextViewTextSize(R.id.collapsed_detail, TypedValue.COMPLEX_UNIT_DIP, 16f)
         }
         return view
     }
 
-    /** 접힘 뷰의 진행률 바를 해당 루프에 맞춰 채운다. anytime(시간 창 없음)이면 감춘다. */
     private fun bindCollapsedProgress(view: RemoteViews, loop: LoopBase) {
         val window = LoopTimeWindow.of(loop)
-        if (window == null) {
+        if (window == null || loop.isAnyTime) {
             view.setViewVisibility(R.id.collapsed_progress, View.GONE)
             return
         }
@@ -484,68 +497,54 @@ class NotificationHelper @Inject constructor(
         view.setProgressColor(R.id.collapsed_progress, loop.color.opaque())
     }
 
-    /**
-     * 펼친 알림: 종료가 임박한 시간제 루프부터, anytime 루프는 뒤로 정렬해 한 줄씩 쌓는다.
-     * 표시 한도([MAX_EXPANDED_ROWS])를 넘으면 마지막에 "외 N개"를 덧붙인다.
-     */
+    /** Keep the list within the system's expanded height budget, including large text. */
     private fun buildLoopsExpandedView(loops: List<LoopBase>): RemoteViews {
         val view = RemoteViews(context.packageName, R.layout.notification_loops_expanded)
+        view.setTextViewText(R.id.expanded_heading, loopsInProgressTitle(loops))
         view.removeAllViews(R.id.loops_container)
-
         val ordered = loops.sortedWith(
             compareBy(
                 { it.isAnyTime },
                 { LoopTimeWindow.of(it)?.remainMinutes ?: Int.MAX_VALUE },
             )
         )
-
-        // 루프가 하나일 때는 알림 액션 버튼(완료·건너뛰기)이 이미 붙으므로 줄 버튼을 감춘다.
+        val rowLimit = when {
+            context.resources.configuration.fontScale > 1.5f -> 1
+            context.resources.configuration.fontScale > 1.15f -> 2
+            else -> MAX_EXPANDED_ROWS
+        }
         val showRowAction = loops.size > 1
-        ordered.take(MAX_EXPANDED_ROWS).forEach { loop ->
+        ordered.take(rowLimit).forEach { loop ->
             view.addView(R.id.loops_container, buildLoopRow(loop, showRowAction))
         }
-
-        val hidden = ordered.size - MAX_EXPANDED_ROWS
+        val hidden = ordered.size - rowLimit
         if (hidden > 0) {
             val more = RemoteViews(context.packageName, R.layout.notification_loops_more)
             more.setTextViewText(
                 R.id.loops_more,
-                context.resources.getQuantityString(
-                    R.plurals.notification_more_loops,
-                    hidden,
-                    hidden,
-                ),
+                context.resources.getQuantityString(R.plurals.notification_more_open, hidden, hidden),
             )
+            more.setOnClickPendingIntent(R.id.loops_more, contentIntent())
             view.addView(R.id.loops_container, more)
         }
         return view
     }
 
-    /** 펼친 알림의 루프 한 줄. anytime 루프는 종료 시각·진행률이 없어 경과 시간만 보여준다. */
     private fun buildLoopRow(loop: LoopBase, showAction: Boolean): RemoteViews {
         val row = RemoteViews(context.packageName, R.layout.notification_loop_row)
         row.setTextViewText(R.id.loop_row_title, loop.title)
-        row.setInt(R.id.loop_row_accent, "setBackgroundColor", loop.color.opaque())
+        row.setInt(R.id.loop_row_accent, "setColorFilter", loop.color.opaque())
         bindRowAction(row, loop, showAction)
-
-        if (loop.isAnyTime) {
-            row.setTextViewText(R.id.loop_row_remaining, timePassed(loop))
-            row.setViewVisibility(R.id.loop_row_progress, View.GONE)
-            row.setViewVisibility(R.id.loop_row_end, View.GONE)
-            return row
-        }
-
-        row.setTextViewText(R.id.loop_row_remaining, timeLeftText(loop))
+        row.setTextViewText(
+            R.id.loop_row_remaining,
+            if (loop.isAnyTime) timePassed(loop) else timeLeftText(loop),
+        )
         row.setTextViewText(
             R.id.loop_row_end,
-            context.getString(
-                R.string.notification_until_time,
-                loop.endInDay.toLocalTime().formatText(),
-            ),
+            if (loop.isAnyTime) context.getString(R.string.notification_state_anytime)
+            else context.getString(R.string.notification_until_time, loop.endInDay.toLocalTime().formatText()),
         )
-        row.setViewVisibility(R.id.loop_row_end, View.VISIBLE)
-
-        val window = LoopTimeWindow.of(loop)
+        val window = if (loop.isAnyTime) null else LoopTimeWindow.of(loop)
         if (window != null) {
             row.setViewVisibility(R.id.loop_row_progress, View.VISIBLE)
             row.setProgressBar(R.id.loop_row_progress, window.totalMinutes, window.elapsedMinutes, false)
@@ -556,24 +555,19 @@ class NotificationHelper @Inject constructor(
         return row
     }
 
-    /**
-     * 줄마다 붙는 응답 버튼. anytime 루프는 [정지], 시간대 루프는 [완료]로 대상을 하나로
-     * 좁힌다(건너뛰기까지 넣으면 한 줄에 아이콘이 몰려 좁은 알림에서 눌리기 어렵다).
-     */
+    /** Labeled, neutral buttons stay legible even when a loop uses a very pale color. */
     private fun bindRowAction(row: RemoteViews, loop: LoopBase, showAction: Boolean) {
-        if (!showAction) {
-            row.setViewVisibility(R.id.loop_row_action, View.GONE)
-            return
-        }
-
+        row.setViewVisibility(R.id.loop_row_action, if (showAction) View.VISIBLE else View.GONE)
+        if (!showAction) return
         val isStop = loop.isAnyTime
-        val labelRes =
-            if (isStop) R.string.notification_action_stop else R.string.notification_action_done
-        row.setViewVisibility(R.id.loop_row_action, View.VISIBLE)
-        row.setImageViewResource(R.id.loop_row_action, if (isStop) R.drawable.stop else R.drawable.done)
-        // 알림 배경(라이트/다크)에 상관없이 보이도록 루프 색으로 칠한다.
-        row.setInt(R.id.loop_row_action, "setColorFilter", loop.color.opaque())
-        row.setContentDescription(R.id.loop_row_action, context.getString(labelRes))
+        val label = context.getString(
+            if (isStop) R.string.notification_action_stop else R.string.notification_action_done,
+        )
+        row.setTextViewText(R.id.loop_row_action, label)
+        row.setContentDescription(
+            R.id.loop_row_action,
+            context.getString(R.string.notification_action_for_loop, loop.title, label),
+        )
         row.setOnClickPendingIntent(
             R.id.loop_row_action,
             loopActionIntent(loop.loopId, if (isStop) Action.STOP_LOOP else Action.DONE_LOOP),
@@ -681,7 +675,7 @@ class NotificationHelper @Inject constructor(
      * 접두사가 붙어 있어 알림에 그대로 쓸 수 없으므로 알림 전용 문자열을 쓴다.
      */
     private fun timePassed(loop: LoopBase): String {
-        val elapsed = loop.elapsedMinutesSinceStart() ?: return ""
+        val elapsed = loop.elapsedMinutesSinceStart() ?: return context.getString(R.string.notification_state_running)
         val hours = elapsed / 60
         return if (hours > 0) {
             context.resources.getQuantityString(

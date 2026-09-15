@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="stat_widget_short_today">오늘</string>
+    <string name="stat_widget_short_week">주간</string>
+    <string name="stat_widget_short_month">월간</string>
+    <string name="stat_widget_short_count">%1$s회</string>
+    <string name="stat_widget_short_empty">시작</string>
+    <string name="stat_widget_short_loading">…</string>
     <string name="stat_widget_today">오늘의 페이스</string>
     <string name="stat_widget_week">주간 리듬</string>
     <string name="stat_widget_month">월간 성취</string>

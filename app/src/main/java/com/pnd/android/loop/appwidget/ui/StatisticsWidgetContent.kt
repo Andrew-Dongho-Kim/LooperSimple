@@ -61,10 +61,16 @@ internal fun StatisticsWidgetContent(kind: StatisticsWidgetKind, data: Statistic
         StatisticsWidgetKind.WEEK -> R.string.stat_widget_week
         StatisticsWidgetKind.MONTH -> R.string.stat_widget_month
     }
+    val card = GlanceModifier.fillMaxSize().appWidgetBackground().background(widgetSurface())
+        .cornerRadius(WIDGET_CARD_RADIUS).clickable(actionStartActivity(intent))
+    // Both axes matter: a wide, single-row widget must not receive the expanded chart layout.
+    val expandedHeight = if (kind == StatisticsWidgetKind.MONTH) 280 else 260
+    if (!roomy || size.height < (expandedHeight * scale).dp) {
+        CompactStatisticsWidgetContent(kind, data, context.getString(title), card)
+        return
+    }
     Column(
-        GlanceModifier.fillMaxSize().appWidgetBackground().background(widgetSurface())
-            .cornerRadius(WIDGET_CARD_RADIUS).clickable(actionStartActivity(intent))
-            .padding(if (roomy) 18.dp else 12.dp),
+        card.padding(18.dp),
     ) {
         Column {
             Label(context.getString(title), 15, bold = true)

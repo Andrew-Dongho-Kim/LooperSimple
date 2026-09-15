@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="notification_accent">#A8BEFF</color>
+    <color name="notification_track">#338D9BB5</color>
+    <color name="notification_action_surface">#268D9BB5</color>
+</resources>

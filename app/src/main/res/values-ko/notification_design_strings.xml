@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="notification_state_running">진행 중</string>
+    <string name="notification_state_started">시작할 시간이에요</string>
+    <string name="notification_state_ended">완료했나요?</string>
+    <string name="notification_state_due">시작할까요?</string>
+    <string name="notification_state_anytime">시간 제한 없음</string>
+    <string name="notification_next_loop">다음 종료 · %s</string>
+    <string name="notification_action_for_loop">%1$s · %2$s</string>
+    <plurals name="notification_more_open">
+        <item quantity="other">외 %d개 · 앱에서 보기</item>
+    </plurals>
+</resources>

@@ -1,79 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 진행 중 루프 알림(펼침)의 한 줄. 왼쪽 색상 바 + 제목/남은시간 + 진행률 + 종료시각. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:paddingTop="6dp"
-    android:paddingBottom="6dp">
-
-    <!-- 루프 색상 액센트 바 (loop.color 로 배경색을 지정한다).
-         RemoteViews 는 기본 View 를 인플레이트하지 못하므로 허용 클래스인 ImageView 를 쓴다. -->
-    <ImageView
-        android:id="@+id/loop_row_accent"
-        android:layout_width="3dp"
-        android:layout_height="match_parent"
-        android:layout_marginEnd="10dp"
-        android:background="#000000"
-        android:importantForAccessibility="no" />
-
-    <LinearLayout
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:orientation="vertical">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:baselineAligned="true"
-            android:orientation="horizontal">
-
-            <TextView
-                android:id="@+id/loop_row_title"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:textAppearance="@style/TextAppearance.Compat.Notification.Title"
-                android:textSize="14sp" />
-
-            <TextView
-                android:id="@+id/loop_row_remaining"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:textAppearance="@style/TextAppearance.Compat.Notification.Info"
-                android:textSize="12sp" />
+    android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:gravity="center_vertical" android:orientation="horizontal"
+    android:paddingTop="7dp" android:paddingBottom="7dp">
+    <ImageView android:id="@+id/loop_row_accent" android:layout_width="3dp" android:layout_height="32dp"
+        android:layout_marginEnd="10dp" android:importantForAccessibility="no"
+        android:src="@drawable/notification_accent" />
+    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+        android:layout_weight="1" android:orientation="vertical">
+        <TextView android:id="@+id/loop_row_title" style="@style/Notification.LoopTitle"
+            android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="4dp" android:orientation="horizontal">
+            <TextView android:id="@+id/loop_row_remaining" style="@style/Notification.Time"
+                android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxWidth="140dp" />
+            <TextView android:id="@+id/loop_row_end" style="@style/Notification.Detail"
+                android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_marginStart="8dp" android:layout_weight="1" android:gravity="end" />
         </LinearLayout>
-
-        <ProgressBar
-            android:id="@+id/loop_row_progress"
-            style="?android:attr/progressBarStyleHorizontal"
-            android:layout_width="match_parent"
-            android:layout_height="6dp"
-            android:layout_marginTop="5dp"
-            android:max="100" />
-
-        <TextView
-            android:id="@+id/loop_row_end"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="3dp"
-            android:textAppearance="@style/TextAppearance.Compat.Notification.Info"
-            android:textSize="11sp" />
+        <ProgressBar android:id="@+id/loop_row_progress" style="@style/Notification.Progress"
+            android:layout_width="match_parent" android:layout_height="3dp" android:layout_marginTop="6dp" />
     </LinearLayout>
-
-    <!-- 라인별 응답 버튼(완료 / anytime 은 정지). 알림 액션 버튼은 알림 전체에 하나씩만
-         달 수 있어, 루프가 여러 개일 때는 이 버튼으로 대상을 명확히 한다.
-         루프가 하나일 때는 아래쪽 알림 액션 버튼이 더 풍부하므로 코드에서 감춘다. -->
-    <ImageView
-        android:id="@+id/loop_row_action"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
-        android:layout_gravity="center_vertical"
-        android:layout_marginStart="8dp"
-        android:padding="9dp"
-        android:scaleType="fitCenter" />
+    <TextView android:id="@+id/loop_row_action" style="@style/Notification.Time"
+        android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="12dp"
+        android:background="@drawable/notification_action_background" android:gravity="center"
+        android:minWidth="48dp" android:minHeight="48dp"
+        android:paddingStart="10dp" android:paddingEnd="10dp" android:paddingTop="8dp" android:paddingBottom="8dp" />
 </LinearLayout>

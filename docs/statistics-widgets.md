@@ -5,6 +5,16 @@ Three independent Android home-screen providers are available: **오늘의 페�
 Tap any widget to open the statistics screen. Resize to reveal charts and supporting metrics.
 The default sizes show each design; narrow/short sizes show the primary number.
 
+The minimum requested resize bounds are **56 × 56dp** (previously 160 × 160dp).
+The launcher determines the actual cell dimensions and may impose a larger minimum.
+Below the expanded layout threshold (250dp wide and 260dp tall, or 280dp tall for monthly, scaled for system font size),
+the compact layout measures text against both available axes. Single-row, wide widgets put the
+period and value side by side; narrow widgets stack them. Supporting metrics appear only when
+their whole group fits. The smallest sizes prioritize the primary value, shortening period labels
+and abbreviating hours/minutes as h/m or large values with SI suffixes. Accessibility descriptions
+retain the full period and unabridged value. Large system fonts may hide the heading at tiny sizes.
+Resizing uses Glance SizeMode.Exact, so no data refresh or widget re-add is needed.
+
 ## Calculation rules
 
 - Today: completed / all occurrences scheduled for that calendar date, including pending and skipped
@@ -37,8 +47,10 @@ Korean and English strings and picker previews are included. Empty and loading s
 `StatisticsWidgetModelsTest` covers pending versus settled counts, historical schedule changes,
 year boundaries, zero-filled months, overnight/measured durations, disabled plans, and JSON restoration.
 
-`StatisticsWidgetRenderingTest` renders synthetic state through Glance into real RemoteViews at small
-and default sizes in both themes. It checks visible text bounds and required values and writes PNGs
+`StatisticsWidgetRenderingTest` renders synthetic state through Glance into real RemoteViews at tiny,
+narrow, square, horizontal and default sizes, in both themes, Korean/English, and 1×/2× font scales.
+It also covers empty/loading states and large values, checking text bounds, compact ellipsis,
+text height and presence of primary values. It writes representative PNGs
 to the test application's external-files `widget-renders` directory. It does not access loop records.
 Use AndroidJUnitRunner for this instrumentation test; the repository's default HiltJUnitRunner is absent.
 

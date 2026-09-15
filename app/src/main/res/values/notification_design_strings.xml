@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="notification_state_running">In progress</string>
+    <string name="notification_state_started">Time to start</string>
+    <string name="notification_state_ended">Finished?</string>
+    <string name="notification_state_due">Ready to start?</string>
+    <string name="notification_state_anytime">No time limit</string>
+    <string name="notification_next_loop">Next · %s</string>
+    <string name="notification_action_for_loop">%1$s · %2$s</string>
+    <plurals name="notification_more_open">
+        <item quantity="one">+%d more · Open app</item>
+        <item quantity="other">+%d more · Open app</item>
+    </plurals>
+</resources>
