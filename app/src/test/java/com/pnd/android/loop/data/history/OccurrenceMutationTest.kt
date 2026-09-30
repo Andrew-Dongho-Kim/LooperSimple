@@ -1,11 +1,13 @@
 package com.pnd.android.loop.data.history
 
 import com.pnd.android.loop.data.LoopDoneVo
-import com.pnd.android.loop.data.LoopDoneVo.DoneState
-import org.junit.Assert.*
-import org.junit.Test
+import com.pnd.android.loop.state.DoneState
+import com.pnd.android.loop.state.plannedRecord
+import com.pnd.android.loop.state.updatedResponse
 import java.time.Clock
 import java.time.ZoneId
+import org.junit.Assert.*
+import org.junit.Test
 
 class OccurrenceMutationTest {
     private val zone = ZoneId.systemDefault()
@@ -97,6 +99,33 @@ class OccurrenceMutationTest {
         assertEquals(LoopDoneVo.TimeSource.USER_ENTERED, after.timeSource)
         assertNull(after.startedAt)
         assertNull(after.endedAt)
+    }
+
+
+    @Test fun `skipping a running timer preserves elapsed time for a later done correction`() {
+        val loop = testLoop().copy(isAnyTime = true, startInDay = -1, endInDay = -1)
+        val started = updatedResponse(plannedRecord(loop, firstDay, 7), loop,
+            DoneState.IN_PROGRESS, null, clock(23))
+        val skipped = updatedResponse(started, loop, DoneState.SKIP, null, clock(1, firstDay.plusDays(1)))
+        val corrected = updatedResponse(skipped, loop, DoneState.DONE, null, clock(12, firstDay.plusDays(1)))
+        assertEquals(2 * 3_600_000L, skipped.measuredDurationMs())
+        assertEquals(skipped.measuredDurationMs(), corrected.measuredDurationMs())
+        assertEquals(skipped.endedAt, corrected.endedAt)
+        assertEquals(7L, corrected.revisionId)
+        assertEquals(firstDay, corrected.localDate())
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun `disabled cannot be written as a response transition`() {
+        val loop = testLoop()
+        updatedResponse(plannedRecord(loop, firstDay, 1), loop, DoneState.DISABLED, null, clock(12))
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun `manual recording rejects times outside the day`() {
+        val loop = testLoop()
+        updatedResponse(plannedRecord(loop, firstDay, 1), loop, DoneState.DONE,
+            0L to 86_400_000L, clock(12))
     }
 
 }

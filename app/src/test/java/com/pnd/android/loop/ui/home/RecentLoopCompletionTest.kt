@@ -1,14 +1,13 @@
 package com.pnd.android.loop.ui.home
 
 import com.pnd.android.loop.data.LoopDay
-import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.data.LoopVo
-import com.pnd.android.loop.util.isActiveDay
+import com.pnd.android.loop.state.DoneState
 import com.pnd.android.loop.util.toMs
+import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
-import java.time.LocalDate
 
 class RecentLoopCompletionTest {
     private val today = LocalDate.of(2026, 9, 11)

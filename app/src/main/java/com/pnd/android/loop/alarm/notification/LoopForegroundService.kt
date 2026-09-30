@@ -173,7 +173,7 @@ class LoopForegroundService : Service() {
         val dao = appDb.fullLoopDao()
         val today = LocalDate.now()
         val snapshot = dao.getSnapshot()
-        val yesterdayLoops = snapshot.timelines.map { it.liveLoop(today.minusDays(1)) }.associateBy { it.loopId }
+        val yesterdayLoops = snapshot.timelines.mapNotNull { it.occurrenceOn(today.minusDays(1)) }.associateBy { it.loopId }
 
         return snapshot.timelines.map { it.liveLoop(today) }
             .map { loop -> currentOccurrence(today = loop, yesterday = yesterdayLoops[loop.loopId]) }

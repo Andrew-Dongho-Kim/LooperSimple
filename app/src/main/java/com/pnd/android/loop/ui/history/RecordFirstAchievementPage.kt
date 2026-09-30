@@ -13,26 +13,21 @@ import androidx.compose.foundation.layout.add
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.exclude
-import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
-import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.EditNote
-import androidx.compose.material.icons.outlined.MoreHoriz
-import androidx.compose.material.icons.outlined.Remove
-import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -61,18 +56,19 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.FullLoopVo
-import com.pnd.android.loop.data.LoopDoneVo.DoneState
-import com.pnd.android.loop.data.isDone
-import com.pnd.android.loop.data.isSkip
+import com.pnd.android.loop.state.isDone
+import com.pnd.android.loop.state.isSkip
+import com.pnd.android.loop.state.stateIcon
+import com.pnd.android.loop.state.stateLabelRes
 import com.pnd.android.loop.ui.common.AppCard
 import com.pnd.android.loop.ui.common.NavigationBarFadingEdge
 import com.pnd.android.loop.ui.common.StatusBarFadingEdge
+import com.pnd.android.loop.ui.common.appCardSurface
 import com.pnd.android.loop.ui.common.backdropSource
 import com.pnd.android.loop.ui.common.isPortrait
 import com.pnd.android.loop.ui.common.rememberBackdropState
 import com.pnd.android.loop.ui.common.rememberListCollapseProgress
 import com.pnd.android.loop.ui.common.supportsBackdropBlur
-import com.pnd.android.loop.ui.common.appCardSurface
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.Dimens
@@ -87,8 +83,8 @@ import com.pnd.android.loop.util.formatYearMonth
 import com.pnd.android.loop.util.toLocalDate
 import java.time.LocalDate
 import java.time.YearMonth
-import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
+import kotlinx.coroutines.launch
 
 @Composable
 internal fun RecordFirstAchievementPage(
@@ -331,12 +327,8 @@ private fun DayRecords(date: LocalDate, loops: List<FullLoopVo>, onNavigateToLoo
 private fun AchievementRecordRow(loop: FullLoopVo, onClick: () -> Unit) {
     var expanded by rememberSaveable(loop.loopId) { mutableStateOf(false) }
     var hasOverflow by remember { mutableStateOf(false) }
-    val (statusId, statusIcon) = when (loop.done) {
-        DoneState.DONE -> R.string.done to Icons.Outlined.Check
-        DoneState.SKIP -> R.string.skip to Icons.Outlined.Remove
-        DoneState.IN_PROGRESS -> R.string.history_in_progress to Icons.Outlined.Schedule
-        else -> R.string.history_no_response to Icons.Outlined.MoreHoriz
-    }
+    val statusId = loop.done.stateLabelRes()
+    val statusIcon = loop.done.stateIcon()
     val statusColor = if (loop.done.isDone()) AppColor.primary else AppColor.onSurfaceVariant
     Column(Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
         Row(

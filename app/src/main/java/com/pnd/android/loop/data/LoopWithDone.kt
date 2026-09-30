@@ -1,7 +1,7 @@
 package com.pnd.android.loop.data
 
 import androidx.room.Ignore
-import com.pnd.android.loop.data.LoopDoneVo.DoneState
+import com.pnd.android.loop.state.DoneState
 import java.time.LocalDate
 
 data class LoopWithDone @JvmOverloads constructor(

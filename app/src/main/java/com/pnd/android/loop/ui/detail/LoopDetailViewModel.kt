@@ -9,10 +9,11 @@ import com.pnd.android.loop.appwidget.AppWidgetUpdateWorker
 import com.pnd.android.loop.common.NavigatePage
 import com.pnd.android.loop.data.AppDatabase
 import com.pnd.android.loop.data.LoopBase
-import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.asLoopVo
 import com.pnd.android.loop.data.history.LoopHistory
 import com.pnd.android.loop.data.history.localDate
+import com.pnd.android.loop.state.DoneState
+import com.pnd.android.loop.state.stateExportName
 import com.pnd.android.loop.ui.home.viewmodel.LoopRepository
 import com.pnd.android.loop.util.todayFlow
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -143,7 +144,7 @@ class LoopDetailViewModel @Inject constructor(
      */
     suspend fun setDoneState(
         localDate: LocalDate,
-        @LoopDoneVo.DoneState doneState: Int,
+        @DoneState doneState: Int,
     ) {
         loopRepository.setRecordedState(loopId, localDate, doneState)
         AppWidgetUpdateWorker.updateWidget(app)
@@ -219,12 +220,7 @@ class LoopDetailViewModel @Inject constructor(
             append("# ").append(csvCell(loopTitle)).append('\n')
             append("date,state,memo,title,color,planned_start_ms,planned_end_ms,anytime,estimated,revision_id,weekly_goal\n")
             days.forEach { day ->
-                val state = when (day.response.done) {
-                    LoopDoneVo.DoneState.DONE -> "done"
-                    LoopDoneVo.DoneState.SKIP -> "skip"
-                    LoopDoneVo.DoneState.IN_PROGRESS -> "in_progress"
-                    else -> if (day.hasOccurrence) "no_response" else "not_scheduled"
-                }
+                val state = timeline.stateOn(day.date).stateExportName()
                 val columns = listOf(day.date.toString(), state, day.note, day.loop.title,
                     day.loop.color.toString(), day.loop.startInDay.toString(), day.loop.endInDay.toString(),
                     day.loop.isAnyTime.toString(), day.estimated.toString(),

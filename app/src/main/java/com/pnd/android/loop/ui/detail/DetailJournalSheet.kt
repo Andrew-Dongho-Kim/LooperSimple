@@ -52,7 +52,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pnd.android.loop.R
-import com.pnd.android.loop.data.LoopDoneVo.DoneState
+import com.pnd.android.loop.state.DoneState
+import com.pnd.android.loop.state.isWritableResponse
+import com.pnd.android.loop.state.stateLabelRes
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.Dimens
@@ -63,9 +65,9 @@ import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.ui.theme.surfaceContainer
 import com.pnd.android.loop.ui.theme.surfaceElevated
 import com.pnd.android.loop.util.formatMonthDateDay
+import java.time.LocalDate
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
-import java.time.LocalDate
 
 /** 날짜 선택으로 여는 편집창. 처음에는 메모를 읽고, 수정할 때만 입력창과 저장 버튼을 표시한다. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -288,7 +290,7 @@ private fun DayStateSelector(
     enabled: Boolean,
     onSelect: (Int) -> Unit,
 ) {
-    val current = doneState ?: DoneState.NO_RESPONSE
+    val current = doneState?.takeIf { it.isWritableResponse() } ?: DoneState.NO_RESPONSE
 
     Row(
         modifier = modifier
@@ -302,7 +304,7 @@ private fun DayStateSelector(
         DayStateChip(
             modifier = Modifier.weight(1f),
             enabled = enabled,
-            label = stringResource(id = R.string.done),
+            label = stringResource(DoneState.DONE.stateLabelRes()),
             selected = current == DoneState.DONE,
             selectedColor = accent,
             onClick = { onSelect(DoneState.DONE) },
@@ -310,7 +312,7 @@ private fun DayStateSelector(
         DayStateChip(
             modifier = Modifier.weight(1f),
             enabled = enabled,
-            label = stringResource(id = R.string.skip),
+            label = stringResource(DoneState.SKIP.stateLabelRes()),
             selected = current == DoneState.SKIP,
             selectedColor = AppColor.onSurface.copy(alpha = 0.6f),
             onClick = { onSelect(DoneState.SKIP) },

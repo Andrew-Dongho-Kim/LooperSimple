@@ -8,8 +8,8 @@ import com.pnd.android.loop.data.LoopResponseRecord
 import com.pnd.android.loop.data.LoopWithStatistics
 import com.pnd.android.loop.data.MonthlyCompletionCount
 import com.pnd.android.loop.data.NewLoopRecord
-import com.pnd.android.loop.data.isDone
-import com.pnd.android.loop.data.isSkip
+import com.pnd.android.loop.state.isDone
+import com.pnd.android.loop.state.isSkip
 import com.pnd.android.loop.util.ABB_MONTHS
 import com.pnd.android.loop.util.MS_1DAY
 import com.pnd.android.loop.util.MS_1HOUR

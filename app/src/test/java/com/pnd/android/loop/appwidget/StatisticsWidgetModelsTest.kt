@@ -1,13 +1,13 @@
 package com.pnd.android.loop.appwidget
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.data.LoopDay
 import com.pnd.android.loop.data.history.*
+import com.pnd.android.loop.state.DoneState
 import com.pnd.android.loop.ui.statisctics.computePeriodStats
+import java.time.LocalDate
 import org.junit.Assert.*
 import org.junit.Test
-import java.time.LocalDate
 
 class StatisticsWidgetModelsTest {
     @Test fun `today progress includes pending but statistics rates do not`() {

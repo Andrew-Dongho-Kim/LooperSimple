@@ -78,8 +78,10 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.FullLoopVo
 import com.pnd.android.loop.data.isDisabled
-import com.pnd.android.loop.data.isDone
 import com.pnd.android.loop.data.isRespond
+import com.pnd.android.loop.state.isDisabled
+import com.pnd.android.loop.state.isDone
+import com.pnd.android.loop.state.isRespond
 import com.pnd.android.loop.ui.common.AppCard
 import com.pnd.android.loop.ui.common.BackdropState
 import com.pnd.android.loop.ui.common.StatusBarFadingEdge
@@ -101,11 +103,11 @@ import com.pnd.android.loop.util.formatMonthDateDay
 import com.pnd.android.loop.util.formatStartEndTime
 import com.pnd.android.loop.util.formatYearMonth
 import com.pnd.android.loop.util.toLocalDate
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import kotlin.math.abs
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun DailyAchievementPage(

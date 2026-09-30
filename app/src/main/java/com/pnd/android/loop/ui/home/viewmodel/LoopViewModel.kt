@@ -8,13 +8,14 @@ import com.pnd.android.loop.appwidget.AppWidgetUpdateWorker
 import com.pnd.android.loop.common.NavigatePage
 import com.pnd.android.loop.common.log
 import com.pnd.android.loop.data.LoopBase
-import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.LoopVo
 import com.pnd.android.loop.data.LoopWithDone
 import com.pnd.android.loop.data.TodayLoopOrder
-import com.pnd.android.loop.data.isRespond
 import com.pnd.android.loop.data.history.LoopTimeline
 import com.pnd.android.loop.data.history.ResolvedLoopDay
+import com.pnd.android.loop.data.isRespond
+import com.pnd.android.loop.state.DoneState
+import com.pnd.android.loop.state.isRespond
 import com.pnd.android.loop.ui.home.RecentLoopCompletion
 import com.pnd.android.loop.ui.home.computeRecentLoopCompletion
 import com.pnd.android.loop.ui.statisctics.DayOfWeekStat
@@ -338,7 +339,7 @@ class LoopViewModel @Inject constructor(
     fun changeLoopState(
         loop: LoopBase,
         localDate: LocalDate = LocalDate.now(),
-        @LoopDoneVo.DoneState doneState: Int,
+        @DoneState doneState: Int,
         suppliedTimes: Pair<Long, Long>? = null,
     ) {
         coroutineScope.launch {
@@ -425,7 +426,7 @@ data class CurrentLoopInfo(
  * 한 루프의 최근 수행 추세.
  *
  * [recentStates]는 최신→과거 순으로 이 루프의 활동일 하나당 한 칸씩 담은 상태
- * ([LoopDoneVo.DoneState]의 DONE / SKIP / NO_RESPONSE)다. 활동 요일이 아닌 날과 루프가 꺼져 있던 날은
+ * ([DoneState]의 DONE / SKIP / NO_RESPONSE)다. 활동 요일이 아닌 날과 루프가 꺼져 있던 날은
  * 애초에 수행 대상이 아니므로 칸이 만들어지지 않는다.
  *
  * 건너뜀(SKIP)은 의도적인 응답이므로 [currentStreak](연속 완료)을 끊기는 하지만
@@ -503,14 +504,14 @@ private fun computeLoopTrend(timeline: LoopTimeline, today: LocalDate): LoopTren
         loopId = loop.loopId,
         title = loop.title,
         recentStates = recentStates,
-        doneCount = recentStates.count { state -> state == LoopDoneVo.DoneState.DONE },
+        doneCount = recentStates.count { state -> state == DoneState.DONE },
         totalCount = recentStates.size,
         currentStreak = recentStates
-            .takeWhile { state -> state == LoopDoneVo.DoneState.DONE }
+            .takeWhile { state -> state == DoneState.DONE }
             .size,
         // 건너뜀은 응답한 날이므로 놓침으로 세지 않는다(연속 놓침을 끊는다).
         currentMiss = recentStates
-            .takeWhile { state -> state == LoopDoneVo.DoneState.NO_RESPONSE }
+            .takeWhile { state -> state == DoneState.NO_RESPONSE }
             .size,
     )
 }

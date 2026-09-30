@@ -17,12 +17,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Autorenew
 import androidx.compose.material.icons.rounded.ExpandMore
@@ -40,10 +38,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
-import com.pnd.android.loop.data.LoopDoneVo
+import com.pnd.android.loop.state.DoneState
 import com.pnd.android.loop.ui.theme.AppColor
-import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.AppTypography
+import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.ui.theme.surfaceContainer
@@ -325,7 +323,7 @@ private fun disabledSinceMs(history: Map<Long, Int>?): Long? {
 
     var since: Long? = null
     for ((date, state) in history.entries.sortedByDescending { it.key }) {
-        if (state == LoopDoneVo.DoneState.DISABLED) {
+        if (state == DoneState.DISABLED) {
             since = date
         } else {
             break

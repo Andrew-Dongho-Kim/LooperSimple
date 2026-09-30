@@ -1,6 +1,7 @@
 package com.pnd.android.loop.ui.detail
 
-import com.pnd.android.loop.data.LoopDoneVo.DoneState
+import com.pnd.android.loop.state.DoneState
+import com.pnd.android.loop.state.isSettledOn
 import java.time.DayOfWeek
 import java.time.LocalDate
 import kotlin.math.roundToInt
@@ -64,11 +65,7 @@ internal fun resolvedActivityRecords(
     createdDate: LocalDate,
     today: LocalDate,
 ): Map<LocalDate, Int> = statesByDate.filter { (date, state) ->
-    date >= createdDate && date <= today && when (state) {
-        DoneState.DONE, DoneState.SKIP -> true
-        DoneState.NO_RESPONSE -> date < today
-        else -> false
-    }
+    date >= createdDate && state.isSettledOn(date, today)
 }
 
 internal fun countActivity(states: Collection<Int>) = ActivityCounts(

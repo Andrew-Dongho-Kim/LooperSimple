@@ -39,7 +39,8 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
-import com.pnd.android.loop.data.LoopDoneVo.DoneState
+import com.pnd.android.loop.state.DoneState
+import com.pnd.android.loop.state.stateLabelRes
 import com.pnd.android.loop.ui.common.HistoryCalculationNote
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
@@ -280,8 +281,6 @@ private fun WeekStrip(
     scheduledDates: Set<LocalDate>,
     accent: Color,
 ) {
-    val doneLabel = stringResource(id = R.string.done)
-    val skipLabel = stringResource(id = R.string.skip)
     val noRecordLabel = stringResource(id = R.string.detail_day_no_record)
     val notActiveLabel = stringResource(id = R.string.detail_day_not_active)
     // 루프 색은 사용자가 고른다. 밝은 색에도 완료 표시가 묻히지 않게 대비를 맞춘다.
@@ -305,9 +304,7 @@ private fun WeekStrip(
             val stateLabel = when {
                 !isActive -> notActiveLabel
                 isFuture -> noRecordLabel
-                state == DoneState.DONE -> doneLabel
-                state == DoneState.SKIP -> skipLabel
-                else -> noRecordLabel
+                else -> stringResource(state.stateLabelRes())
             }
 
             Column(

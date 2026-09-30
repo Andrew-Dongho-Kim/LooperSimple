@@ -84,22 +84,23 @@ import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
-import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.TodayOccurrence
 import com.pnd.android.loop.data.actualStartInDay
 import com.pnd.android.loop.data.doneState
 import com.pnd.android.loop.data.isInProgress
 import com.pnd.android.loop.data.isRespond
+import com.pnd.android.loop.state.DoneState
+import com.pnd.android.loop.state.stateLabelRes
 import com.pnd.android.loop.ui.home.AnyTimeLoopStartOrStop
 import com.pnd.android.loop.ui.home.BlurState
 import com.pnd.android.loop.ui.home.DeleteLoopDialog
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.RoundShapes
+import com.pnd.android.loop.ui.theme.background
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.ui.theme.surfaceElevated
-import com.pnd.android.loop.ui.theme.background
 import com.pnd.android.loop.util.MS_1DAY
 import com.pnd.android.loop.util.MS_1MIN
 import com.pnd.android.loop.util.formatHourMinute
@@ -107,7 +108,6 @@ import com.pnd.android.loop.util.isOvernight
 import com.pnd.android.loop.util.isTimeInLoop
 import com.pnd.android.loop.util.overlapsInTime
 import com.pnd.android.loop.util.toMs
-import kotlinx.coroutines.launch
 import java.time.LocalDate
 import kotlin.math.abs
 import kotlin.math.atan2
@@ -116,6 +116,7 @@ import kotlin.math.hypot
 import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sin
+import kotlinx.coroutines.launch
 
 /**
  * Refined Orbit — 24시간 원형 다이얼.
@@ -372,8 +373,8 @@ private fun LoopBase.endMsInDay(): Long =
     if (endInDay < startInDay) endInDay + MS_1DAY else endInDay
 
 private fun LoopBase.dialStateAt(nowMs: Long): DialState = when {
-    doneState == LoopDoneVo.DoneState.DONE -> DialState.DONE
-    doneState == LoopDoneVo.DoneState.SKIP -> DialState.SKIP
+    doneState == DoneState.DONE -> DialState.DONE
+    doneState == DoneState.SKIP -> DialState.SKIP
     isInProgress -> DialState.ACTIVE
     // 진행 중: 시각 창 안(자정을 넘기는 창은 [start,24h)∪[0,end)). 자정 이후에도 올바르게 잡힌다.
     isTimeInLoop(nowMs) -> DialState.ACTIVE
@@ -656,7 +657,7 @@ private fun DialFace(
     selectedKey: String?,
     onSelectLoop: (String?) -> Unit,
     onLoopClick: (LoopBase) -> Unit,
-    onStateChanged: (loop: LoopBase, date: LocalDate, doneState: @LoopDoneVo.DoneState Int) -> Unit,
+    onStateChanged: (loop: LoopBase, date: LocalDate, doneState: @DoneState Int) -> Unit,
     onEdit: (LoopBase) -> Unit,
     onDelete: (LoopBase) -> Unit,
 ) {
@@ -1499,7 +1500,7 @@ private fun DialLoopTooltip(
     anchor: Offset,
     onDismiss: () -> Unit,
     onClick: () -> Unit,
-    onStateChanged: (loop: LoopBase, doneState: @LoopDoneVo.DoneState Int) -> Unit,
+    onStateChanged: (loop: LoopBase, doneState: @DoneState Int) -> Unit,
     onEdit: (LoopBase) -> Unit,
     onDelete: (LoopBase) -> Unit,
 ) {
@@ -1524,7 +1525,7 @@ private fun AnyTimeTooltip(
     anchor: Offset,
     onDismiss: () -> Unit,
     onClick: () -> Unit,
-    onStateChanged: (loop: LoopBase, doneState: @LoopDoneVo.DoneState Int) -> Unit,
+    onStateChanged: (loop: LoopBase, doneState: @DoneState Int) -> Unit,
     onEdit: (LoopBase) -> Unit,
     onDelete: (LoopBase) -> Unit,
 ) {
@@ -1635,7 +1636,7 @@ private fun DialTooltipCard(
     pointingUp: Boolean,
     tailXPx: Float,
     onClick: () -> Unit,
-    onStateChanged: (loop: LoopBase, doneState: @LoopDoneVo.DoneState Int) -> Unit,
+    onStateChanged: (loop: LoopBase, doneState: @DoneState Int) -> Unit,
     onEdit: (LoopBase) -> Unit,
     onDelete: (LoopBase) -> Unit,
 ) {
@@ -1731,7 +1732,7 @@ private fun AnyTimeTooltipCard(
     pointingUp: Boolean,
     tailXPx: Float,
     onClick: () -> Unit,
-    onStateChanged: (loop: LoopBase, doneState: @LoopDoneVo.DoneState Int) -> Unit,
+    onStateChanged: (loop: LoopBase, doneState: @DoneState Int) -> Unit,
     onEdit: (LoopBase) -> Unit,
     onDelete: (LoopBase) -> Unit,
 ) {
@@ -1797,8 +1798,8 @@ private fun DialStatusPill(state: DialState) {
     val label = stringResource(
         id = when (state) {
             DialState.ACTIVE -> R.string.dial_running
-            DialState.DONE -> R.string.done
-            DialState.SKIP -> R.string.skip
+            DialState.DONE -> DoneState.DONE.stateLabelRes()
+            DialState.SKIP -> DoneState.SKIP.stateLabelRes()
             DialState.UPCOMING -> R.string.dial_status_upcoming
             DialState.PAST -> R.string.dial_status_past
         }
@@ -1849,7 +1850,7 @@ private fun TooltipTail(
 private fun TooltipActions(
     loop: LoopBase,
     state: DialState,
-    onStateChanged: (loop: LoopBase, doneState: @LoopDoneVo.DoneState Int) -> Unit,
+    onStateChanged: (loop: LoopBase, doneState: @DoneState Int) -> Unit,
 ) {
     val responded = state == DialState.DONE || state == DialState.SKIP
     Row(
@@ -1862,7 +1863,7 @@ private fun TooltipActions(
                 icon = Icons.AutoMirrored.Rounded.Undo,
                 label = stringResource(id = R.string.dial_undo),
                 emphasized = false,
-                onClick = { onStateChanged(loop, LoopDoneVo.DoneState.NO_RESPONSE) },
+                onClick = { onStateChanged(loop, DoneState.NO_RESPONSE) },
             )
         } else {
             TooltipActionButton(
@@ -1870,14 +1871,14 @@ private fun TooltipActions(
                 icon = Icons.Rounded.Check,
                 label = stringResource(id = R.string.done),
                 emphasized = true,
-                onClick = { onStateChanged(loop, LoopDoneVo.DoneState.DONE) },
+                onClick = { onStateChanged(loop, DoneState.DONE) },
             )
             TooltipActionButton(
                 modifier = Modifier.weight(1f),
                 icon = Icons.Rounded.Close,
                 label = stringResource(id = R.string.skip),
                 emphasized = false,
-                onClick = { onStateChanged(loop, LoopDoneVo.DoneState.SKIP) },
+                onClick = { onStateChanged(loop, DoneState.SKIP) },
             )
         }
     }

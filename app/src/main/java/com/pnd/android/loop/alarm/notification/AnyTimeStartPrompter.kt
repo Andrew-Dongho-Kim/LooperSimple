@@ -76,7 +76,7 @@ class AnyTimeStartPrompter @Inject constructor(
         val dao = appDb.fullLoopDao()
         val today = LocalDate.now()
         val snapshot = dao.getSnapshot()
-        val yesterdayLoops = snapshot.timelines.map { it.liveLoop(today.minusDays(1)) }.associateBy { it.loopId }
+        val yesterdayLoops = snapshot.timelines.mapNotNull { it.occurrenceOn(today.minusDays(1)) }.associateBy { it.loopId }
 
         val loop = snapshot.timelines.map { it.liveLoop(today) }
             .firstOrNull { loop -> loop.loopId == loopId }

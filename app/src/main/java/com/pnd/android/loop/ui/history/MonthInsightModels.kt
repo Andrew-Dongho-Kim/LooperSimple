@@ -1,16 +1,12 @@
 package com.pnd.android.loop.ui.history
 
-import com.pnd.android.loop.data.history.*
 import com.pnd.android.loop.data.FullLoopVo
 import com.pnd.android.loop.data.LoopDoneVo
-import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.data.LoopRetrospectVo
 import com.pnd.android.loop.data.LoopVo
-import com.pnd.android.loop.data.isDone
-import com.pnd.android.loop.data.toFullLoopVo
-import com.pnd.android.loop.util.dayForLoop
-import com.pnd.android.loop.util.toLocalDate
-import com.pnd.android.loop.util.toMs
+import com.pnd.android.loop.data.history.*
+import com.pnd.android.loop.state.DoneState
+import com.pnd.android.loop.state.isDone
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth

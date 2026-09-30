@@ -9,8 +9,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.pnd.android.loop.R
 import com.pnd.android.loop.common.Logger
-import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.data.LoopVo.Factory.ANY_TIME
+import com.pnd.android.loop.state.DoneState
 import com.pnd.android.loop.util.MS_1DAY
 import com.pnd.android.loop.util.MS_1MIN
 import com.pnd.android.loop.util.isActiveDay
@@ -18,17 +18,17 @@ import com.pnd.android.loop.util.isTimeInLoop
 import com.pnd.android.loop.util.occurrenceStartDate
 import com.pnd.android.loop.util.toLocalTime
 import com.pnd.android.loop.util.toMs
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.temporal.ChronoUnit
+import kotlin.math.min
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.isActive
-import java.time.LocalDateTime
-import java.time.LocalTime
-import java.time.temporal.ChronoUnit
-import kotlin.math.min
-import kotlin.time.Duration.Companion.milliseconds
 
 private val logger = Logger(tag = "TimeStat")
 

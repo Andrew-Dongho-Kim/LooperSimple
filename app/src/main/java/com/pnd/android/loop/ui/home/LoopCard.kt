@@ -58,20 +58,20 @@ import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDay
 import com.pnd.android.loop.data.LoopDay.Companion.isOn
-import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.TimeStat
 import com.pnd.android.loop.data.actualStartInDay
 import com.pnd.android.loop.data.currentTimeStat
 import com.pnd.android.loop.data.doneState
+import com.pnd.android.loop.state.DoneState
 import com.pnd.android.loop.ui.theme.AppColor
-import com.pnd.android.loop.ui.theme.Dimens
-import com.pnd.android.loop.ui.theme.outlineVariant
-import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.AppTypography
+import com.pnd.android.loop.ui.theme.Dimens
+import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.compositeOver
 import com.pnd.android.loop.ui.theme.compositeOverOnSurface
 import com.pnd.android.loop.ui.theme.onPrimary
 import com.pnd.android.loop.ui.theme.onSurface
+import com.pnd.android.loop.ui.theme.outlineVariant
 import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.ui.theme.surfaceContainer
 import com.pnd.android.loop.ui.theme.surfaceElevated
@@ -81,7 +81,6 @@ import com.pnd.android.loop.util.annotatedString
 import com.pnd.android.loop.util.formatHourMinute
 import com.pnd.android.loop.util.toMs
 import java.time.LocalTime
-
 
 /**
  * Visual tokens shared by every loop card. Keeping them here makes the spacing,
@@ -657,7 +656,7 @@ private fun LoopCardMenu(
             )
             LoopCardPopupMenuItem(
                 text = stringResource(id = R.string.loop_record_skip),
-                onClick = { closeAfter { onStateChanged(loop, LoopDoneVo.DoneState.SKIP) } },
+                onClick = { closeAfter { onStateChanged(loop, DoneState.SKIP) } },
             )
             HorizontalDivider(
                 modifier = Modifier.padding(vertical = 4.dp),
@@ -761,10 +760,10 @@ fun LoopCardColor(
 fun AnyTimeLoopStartOrStop(
     modifier: Modifier = Modifier,
     loop: LoopBase,
-    onStateChanged: (loop: LoopBase, doneState: @LoopDoneVo.DoneState Int) -> Unit
+    onStateChanged: (loop: LoopBase, doneState: @DoneState Int) -> Unit
 ) {
     // 시작·정지 모두 이 루프를 "진행"시키는 긍정 동작이므로 primary 틴트로 통일한다.
-    if (loop.doneState != LoopDoneVo.DoneState.IN_PROGRESS) {
+    if (loop.doneState != DoneState.IN_PROGRESS) {
         ResponseButton(
             modifier = modifier,
             imageVector = Icons.Filled.PlayArrow,
@@ -774,7 +773,7 @@ fun AnyTimeLoopStartOrStop(
             onClick = {
                 onStateChanged(
                     loop.copyAs(startInDay = LocalTime.now().toMs()),
-                    LoopDoneVo.DoneState.IN_PROGRESS
+                    DoneState.IN_PROGRESS
                 )
             },
         )
@@ -794,7 +793,7 @@ fun AnyTimeLoopStartOrStop(
                         startInDay = loop.actualStartInDay,
                         endInDay = LocalTime.now().toMs(),
                     ),
-                    LoopDoneVo.DoneState.DONE
+                    DoneState.DONE
                 )
             },
         )
@@ -805,7 +804,7 @@ fun AnyTimeLoopStartOrStop(
 fun LoopDoneOrSkip(
     modifier: Modifier = Modifier,
     loop: LoopBase,
-    onStateChanged: (loop: LoopBase, doneState: @LoopDoneVo.DoneState Int) -> Unit,
+    onStateChanged: (loop: LoopBase, doneState: @DoneState Int) -> Unit,
 ) {
     Row(
         modifier = modifier,
@@ -818,14 +817,14 @@ fun LoopDoneOrSkip(
             contentDescription = stringResource(id = R.string.done),
             containerColor = AppColor.primary.copy(alpha = LoopCardDefaults.ResponseTintAlpha),
             tint = AppColor.primary,
-            onClick = { onStateChanged(loop, LoopDoneVo.DoneState.DONE) },
+            onClick = { onStateChanged(loop, DoneState.DONE) },
         )
         ResponseButton(
             imageVector = Icons.Filled.Close,
             contentDescription = stringResource(id = R.string.skip),
             containerColor = AppColor.onSurface.copy(alpha = LoopCardDefaults.ResponseNeutralAlpha),
             tint = AppColor.onSurface.copy(alpha = 0.6f),
-            onClick = { onStateChanged(loop, LoopDoneVo.DoneState.SKIP) },
+            onClick = { onStateChanged(loop, DoneState.SKIP) },
         )
     }
 }

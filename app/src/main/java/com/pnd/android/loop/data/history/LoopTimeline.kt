@@ -1,7 +1,9 @@
 package com.pnd.android.loop.data.history
 
 import com.pnd.android.loop.data.*
-import com.pnd.android.loop.data.LoopDoneVo.DoneState
+import com.pnd.android.loop.state.DoneState
+import com.pnd.android.loop.state.NOT_SCHEDULED
+import com.pnd.android.loop.state.isSettledOn
 import com.pnd.android.loop.util.dayForLoop
 import com.pnd.android.loop.util.toLocalDate
 import com.pnd.android.loop.util.toMs
@@ -35,6 +37,24 @@ class LoopTimeline(val history: LoopHistory) {
         revisionOn(date)?.settings?.applyTo(current) ?: current
 
     fun responseOn(date: LocalDate): LoopDoneVo? = responses[date]
+
+    /** Recorded responses take precedence over settings; a note alone is not an occurrence. */
+    fun stateOn(date: LocalDate): Int {
+        if (date < createdDate) return NOT_SCHEDULED
+        responseOn(date)?.let { return it.done }
+        val day = day(date)
+        if (day?.hasOccurrence == true) return day.response.done
+        return if (settingsOn(date).enabled) NOT_SCHEDULED else DoneState.DISABLED
+    }
+
+    /** Includes disabled and unscheduled days so every calendar uses the same interpretation. */
+    fun states(from: LocalDate, to: LocalDate): Map<LocalDate, Int> = buildMap {
+        var date = maxOf(from, createdDate)
+        while (date <= to) {
+            put(date, stateOn(date))
+            date = date.plusDays(1)
+        }
+    }
 
     fun goalOn(date: LocalDate): Int = revisions
         .filter { it.goalEffectiveFrom <= date.toEpochDay() }
@@ -70,7 +90,16 @@ class LoopTimeline(val history: LoopHistory) {
         }
     }
 
-    /** Current labels, but the plan/state of the requested occurrence. */
+    /**
+     * Current labels, but the plan/state of the requested occurrence.
+     *
+     * 그날 몫이 없어도([day] 가 null 이어도) 미응답 행을 만들어 돌려준다. 그러므로 "그날
+     * 답하지 않았다"를 판정하는 데 써서는 안 된다. 그런 곳은 [occurrenceOn] 을 쓴다.
+     *
+     * [LoopWithDone.enabled] 만은 그 날짜가 아니라 현재 값이다. 오늘 기준으로 켜짐/꺼짐을
+     * 봐야 하는 곳(알람 예약·전체 탭의 비활성 묶음)이 이 값을 쓴다. 그 날짜에 편성돼 있었는지는
+     * [day] 의 [ResolvedLoopDay.scheduled] / [ResolvedLoopDay.hasOccurrence] 로 봐야 한다.
+     */
     fun liveLoop(date: LocalDate): LoopWithDone {
         val day = day(date)
         val plan = day?.loop ?: settingsOn(date)
@@ -82,6 +111,16 @@ class LoopTimeline(val history: LoopHistory) {
             created = createdDate.toMs(),
         ).toLoopWithDone(response.copy(date = date.toMs()))
     }
+
+    /**
+     * [date] 에 실제로 걸치는 occurrence. 그날 예정도 기록도 없었으면 null.
+     *
+     * 비활성이거나 활동 요일이 아니어서 애초에 할 일이 없었던 날을 [liveLoop] 은 미응답 행으로
+     * 만들어 낸다. 그 행을 그대로 쓰면 꺼 둔 루프가 "답하지 않은 루프"로 계속 보이므로,
+     * 그날 몫이 있었는지를 따져야 하는 곳은 [liveLoop] 대신 이 함수를 쓴다.
+     */
+    fun occurrenceOn(date: LocalDate): LoopWithDone? =
+        if (day(date)?.hasOccurrence == true) liveLoop(date) else null
 }
 
 fun LoopDoneVo.localDate(): LocalDate = localEpochDay?.let(LocalDate::ofEpochDay) ?: date.toLocalDate()
@@ -96,11 +135,7 @@ data class ResolvedLoopDay(
     val scheduled: Boolean,
     val hasOccurrence: Boolean = true,
 ) {
-    fun isSettled(today: LocalDate): Boolean = hasOccurrence && date <= today && when (response.done) {
-        DoneState.DONE, DoneState.SKIP -> true
-        DoneState.NO_RESPONSE -> date < today
-        else -> false
-    }
+    fun isSettled(today: LocalDate): Boolean = hasOccurrence && response.done.isSettledOn(date, today)
 
     fun asFullLoop(): FullLoopVo = loop.toFullLoopVo(
         LoopRetrospectVo(loop.loopId, date.toMs(), note), response.copy(date = date.toMs()),

@@ -1,14 +1,14 @@
 package com.pnd.android.loop.ui.history
 
 import com.pnd.android.loop.data.LoopDoneVo
-import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.data.LoopRetrospectVo
 import com.pnd.android.loop.data.LoopVo
+import com.pnd.android.loop.state.DoneState
 import com.pnd.android.loop.util.toMs
-import org.junit.Assert.*
-import org.junit.Test
 import java.time.LocalDate
 import java.time.YearMonth
+import org.junit.Assert.*
+import org.junit.Test
 
 class MonthInsightModelsTest {
     private val august = YearMonth.of(2026, 8)

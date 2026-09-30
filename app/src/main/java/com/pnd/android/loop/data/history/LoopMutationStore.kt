@@ -2,7 +2,11 @@ package com.pnd.android.loop.data.history
 
 import androidx.room.withTransaction
 import com.pnd.android.loop.data.*
-import com.pnd.android.loop.data.LoopDoneVo.DoneState
+import com.pnd.android.loop.state.DoneState
+import com.pnd.android.loop.state.isRespond
+import com.pnd.android.loop.state.isWritableResponse
+import com.pnd.android.loop.state.plannedRecord
+import com.pnd.android.loop.state.updatedResponse
 import com.pnd.android.loop.util.dayForLoop
 import com.pnd.android.loop.util.toLocalDate
 import com.pnd.android.loop.util.toMs
@@ -89,11 +93,11 @@ class LoopMutationStore @Inject constructor(private val db: AppDatabase) {
     suspend fun setResponse(
         loopId: Int,
         date: LocalDate,
-        state: Int,
+        @DoneState state: Int,
         suppliedTimes: Pair<Long, Long>? = null,
         clock: Clock = Clock.systemDefaultZone(),
     ) = db.withTransaction {
-        require(state in listOf(DoneState.NO_RESPONSE, DoneState.DONE, DoneState.SKIP, DoneState.IN_PROGRESS))
+        require(state.isWritableResponse()) { "Disabling a loop must change settings, not its response" }
         val saved = history.get(loopId) ?: return@withTransaction
         val timeline = LoopTimeline(saved)
         require(date >= timeline.createdDate && date <= LocalDate.now(clock))
@@ -112,10 +116,10 @@ class LoopMutationStore @Inject constructor(private val db: AppDatabase) {
     suspend fun respondIfUnanswered(
         loopId: Int,
         requestedDate: LocalDate?,
-        state: Int,
+        @DoneState state: Int,
         clock: Clock = Clock.systemDefaultZone(),
     ) = db.withTransaction {
-        require(state == DoneState.DONE || state == DoneState.SKIP)
+        require(state.isRespond())
         val saved = history.get(loopId) ?: return@withTransaction
         if (!saved.loop.enabled) return@withTransaction
         val timeline = LoopTimeline(saved)
@@ -145,7 +149,7 @@ class LoopMutationStore @Inject constructor(private val db: AppDatabase) {
         if (listOf(today, today.minusDays(1)).any { date ->
             timeline.responseOn(date)?.done == DoneState.IN_PROGRESS
         }) return@withTransaction
-        if (timeline.responseOn(today)?.done in listOf(DoneState.DONE, DoneState.SKIP)) return@withTransaction
+        if (timeline.responseOn(today)?.done.isRespond()) return@withTransaction
         setResponse(loopId, today, DoneState.IN_PROGRESS, clock = clock)
     }
 

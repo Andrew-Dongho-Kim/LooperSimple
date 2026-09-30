@@ -4,8 +4,8 @@ import androidx.annotation.Keep
 import com.pnd.android.loop.data.history.LoopHistorySnapshot
 import com.pnd.android.loop.data.history.ResolvedLoopDay
 import com.pnd.android.loop.data.history.localDate
-import com.pnd.android.loop.data.isDone
-import com.pnd.android.loop.data.isSkip
+import com.pnd.android.loop.state.isDone
+import com.pnd.android.loop.state.isSkip
 import com.pnd.android.loop.ui.statisctics.computeStreak
 import com.pnd.android.loop.ui.statisctics.investedTimeMs
 import java.time.LocalDate

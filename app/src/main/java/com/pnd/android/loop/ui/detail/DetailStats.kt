@@ -3,10 +3,10 @@ package com.pnd.android.loop.ui.detail
 import com.pnd.android.loop.data.LoopDay
 import com.pnd.android.loop.data.LoopDay.Companion.isOn
 import com.pnd.android.loop.data.LoopDoneVo
-import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.data.common.NO_WEEKLY_GOAL
 import com.pnd.android.loop.data.history.LoopTimeline
 import com.pnd.android.loop.data.history.localDate
+import com.pnd.android.loop.state.DoneState
 import com.pnd.android.loop.ui.statisctics.StreakStat
 import com.pnd.android.loop.ui.statisctics.computeLoopStreak
 import com.pnd.android.loop.util.dayForLoop
@@ -183,7 +183,7 @@ internal fun computeDetailStats(
     today: LocalDate,
 ): DetailStats {
     val days = timeline.days(timeline.createdDate, today)
-    val states = days.associate { it.date to it.response.done }
+    val states = timeline.states(timeline.createdDate, today)
     val settled = days.filter { it.isSettled(today) }.associate { it.date to it.response.done }
     val counts = countActivity(settled.values)
     val week = weekDatesOf(today)

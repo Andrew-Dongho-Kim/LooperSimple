@@ -1,15 +1,15 @@
 package com.pnd.android.loop.data.history
 
 import com.pnd.android.loop.data.*
-import com.pnd.android.loop.data.LoopDoneVo.DoneState
+import com.pnd.android.loop.state.DoneState
 import com.pnd.android.loop.ui.detail.computeDetailStats
 import com.pnd.android.loop.ui.history.buildMonthInsightReport
 import com.pnd.android.loop.ui.home.computeRecentLoopCompletion
 import com.pnd.android.loop.ui.statisctics.*
 import com.pnd.android.loop.util.currentOccurrenceDate
+import java.time.YearMonth
 import org.junit.Assert.*
 import org.junit.Test
-import java.time.YearMonth
 
 class HistoryStatisticsTest {
     @Test fun `detail month statistics and home chip agree after a schedule change`() {

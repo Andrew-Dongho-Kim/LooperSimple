@@ -41,7 +41,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
-import com.pnd.android.loop.data.LoopDoneVo.DoneState
+import com.pnd.android.loop.state.DoneState
+import com.pnd.android.loop.ui.common.AppCard
 import com.pnd.android.loop.ui.home.viewmodel.CurrentLoopInfo
 import com.pnd.android.loop.ui.home.viewmodel.LoopRates
 import com.pnd.android.loop.ui.home.viewmodel.LoopTrend
@@ -50,8 +51,6 @@ import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.home.viewmodel.NextLoopInfo
 import com.pnd.android.loop.ui.statisctics.DayOfWeekStat
 import com.pnd.android.loop.ui.statisctics.StreakStat
-import com.pnd.android.loop.ui.common.AppCard
-import com.pnd.android.loop.ui.theme.primarySurface
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.RoundShapes
@@ -59,11 +58,12 @@ import com.pnd.android.loop.ui.theme.compositeOverSurface
 import com.pnd.android.loop.ui.theme.error
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
+import com.pnd.android.loop.ui.theme.primarySurface
 import com.pnd.android.loop.ui.theme.secondary
 import java.time.DayOfWeek
+import java.time.format.TextStyle as JavaTextStyle
 import java.util.Locale
 import kotlin.math.roundToInt
-import java.time.format.TextStyle as JavaTextStyle
 
 /**
  * Summary card shown at the top of Home.

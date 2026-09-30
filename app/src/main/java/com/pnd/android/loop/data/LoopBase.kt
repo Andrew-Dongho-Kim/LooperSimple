@@ -2,8 +2,11 @@ package com.pnd.android.loop.data
 
 import androidx.compose.runtime.Immutable
 import com.pnd.android.loop.data.LoopDay.Companion.isOn
-import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.data.common.NO_WEEKLY_GOAL
+import com.pnd.android.loop.state.isDisabled
+import com.pnd.android.loop.state.isInProgress
+import com.pnd.android.loop.state.isNoResponse
+import com.pnd.android.loop.state.isRespond
 import com.pnd.android.loop.util.overlapsInTime
 import com.pnd.android.loop.util.toTimeTextForLog
 
@@ -59,8 +62,8 @@ fun LoopBase.description() =
 val LoopBase.actualStartInDay get() = (this as? LoopWithDone)?.actualStartInDay ?: (this as? FullLoopVo)?.actualStartInDay ?: startInDay
 val LoopBase.actualEndInDay get() = (this as? LoopWithDone)?.actualEndInDay ?: (this as? FullLoopVo)?.actualEndInDay ?: endInDay
 val LoopBase.doneState get() = (this as? LoopWithDone)?.done ?: (this as? FullLoopVo)?.done
-val LoopBase.isRespond get() = doneState == DoneState.DONE || doneState == DoneState.SKIP
-val LoopBase.isNotRespond get() = doneState == DoneState.NO_RESPONSE
-val LoopBase.isInProgress get() = doneState == DoneState.IN_PROGRESS
-val LoopBase.isDisabled get() = doneState == DoneState.DISABLED
+val LoopBase.isRespond get() = doneState.isRespond()
+val LoopBase.isNotRespond get() = doneState.isNoResponse()
+val LoopBase.isInProgress get() = doneState.isInProgress()
+val LoopBase.isDisabled get() = doneState.isDisabled()
 

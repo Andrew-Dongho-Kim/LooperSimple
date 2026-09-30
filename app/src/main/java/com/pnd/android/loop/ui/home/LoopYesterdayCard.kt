@@ -31,6 +31,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -44,7 +45,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
-import com.pnd.android.loop.data.LoopDoneVo
+import com.pnd.android.loop.state.DoneState
 import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
@@ -53,10 +54,9 @@ import com.pnd.android.loop.ui.theme.error
 import com.pnd.android.loop.ui.theme.onSurface
 import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.ui.theme.surfaceContainer
-import kotlinx.coroutines.launch
-import androidx.compose.runtime.rememberCoroutineScope
 import com.pnd.android.loop.util.annotatedString
 import java.time.LocalDate
+import kotlinx.coroutines.launch
 
 /** '완료로 기록' 다이얼로그의 대상 loopId 가 이 값이면 대상이 없다는 뜻이라 다이얼로그를 띄우지 않는다. */
 private const val NO_RECORD_DONE_TARGET = -1
@@ -86,7 +86,7 @@ fun LoopYesterdayCard(
             suppliedTimes = suppliedTimes,
         )
 
-        val messageRes = if (doneState == LoopDoneVo.DoneState.DONE) {
+        val messageRes = if (doneState == DoneState.DONE) {
             R.string.done_snack_message
         } else {
             R.string.skip_snack_message
@@ -103,7 +103,7 @@ fun LoopYesterdayCard(
                 loopViewModel.changeLoopState(
                     loop = loop,
                     localDate = yesterday,
-                    doneState = LoopDoneVo.DoneState.NO_RESPONSE
+                    doneState = DoneState.NO_RESPONSE
                 )
             }
         }
@@ -127,7 +127,7 @@ fun LoopYesterdayCard(
             // 입력받은 시각은 어제 행에 남겨야 하므로, 그 시각을 실은 루프로 상태를 바꾼다.
             onConfirm = { startInDay, endInDay ->
                 onAction(
-                    recordDoneLoop, LoopDoneVo.DoneState.DONE, startInDay to endInDay,
+                    recordDoneLoop, DoneState.DONE, startInDay to endInDay,
                 )
             },
             onDismiss = { recordDoneLoopId = NO_RECORD_DONE_TARGET },
@@ -168,10 +168,10 @@ fun LoopYesterdayCard(
                             if (loop.isAnyTime) {
                                 recordDoneLoopId = loop.loopId
                             } else {
-                                onAction(loop, LoopDoneVo.DoneState.DONE, null)
+                                onAction(loop, DoneState.DONE, null)
                             }
                         },
-                        onRequestSkip = { onAction(loop, LoopDoneVo.DoneState.SKIP, null) },
+                        onRequestSkip = { onAction(loop, DoneState.SKIP, null) },
                         onNavigateToDetailPage = onNavigateToDetailPage,
                     )
                 }

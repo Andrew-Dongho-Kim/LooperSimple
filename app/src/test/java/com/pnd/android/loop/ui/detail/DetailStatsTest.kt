@@ -2,13 +2,13 @@ package com.pnd.android.loop.ui.detail
 
 import com.pnd.android.loop.data.LoopDay
 import com.pnd.android.loop.data.LoopDoneVo
-import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.data.common.NO_WEEKLY_GOAL
+import com.pnd.android.loop.state.DoneState
 import com.pnd.android.loop.ui.statisctics.computeLoopStreak
-import org.junit.Assert.assertEquals
-import org.junit.Test
 import java.time.LocalDate
 import java.time.ZoneId
+import org.junit.Assert.assertEquals
+import org.junit.Test
 
 /**
  * 상세 화면이 보여 주는 수치의 규칙을 고정해 둔다.

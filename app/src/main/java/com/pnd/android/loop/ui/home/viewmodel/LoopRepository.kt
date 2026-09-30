@@ -4,7 +4,6 @@ import com.pnd.android.loop.alarm.LoopScheduler
 import com.pnd.android.loop.common.log
 import com.pnd.android.loop.data.AppDatabase
 import com.pnd.android.loop.data.LoopBase
-import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.LoopRetrospectVo
 import com.pnd.android.loop.data.LoopVo
 import com.pnd.android.loop.data.LoopWithDone
@@ -12,12 +11,11 @@ import com.pnd.android.loop.data.history.LoopHistory
 import com.pnd.android.loop.data.history.LoopHistoryRepository
 import com.pnd.android.loop.data.history.LoopMutationStore
 import com.pnd.android.loop.data.history.localDate
-import com.pnd.android.loop.data.isDisabled
 import com.pnd.android.loop.data.isNotRespond
+import com.pnd.android.loop.state.DoneState
 import com.pnd.android.loop.util.isActive
 import com.pnd.android.loop.util.isActiveDay
 import com.pnd.android.loop.util.isOvernight
-import com.pnd.android.loop.util.toLocalDate
 import com.pnd.android.loop.util.toLocalTime
 import com.pnd.android.loop.util.toMs
 import java.time.LocalDate
@@ -95,17 +93,22 @@ class LoopRepository @Inject constructor(
     val loadedLoops: Flow<List<LoopWithDone>> = allLoopsWithDoneStates.filterNotNull()
 
     /**
-     * 어제 날짜 행과 조인한 루프 전체.
+     * 어제 실제로 걸친 occurrence.
      *
      * 자정을 넘기는 루프는 done 기록이 "시작한 날"인 어제 행에 있으므로, 오늘 화면에서 그 몫을
      * 다루려면 오늘 행만으로는 부족하다([com.pnd.android.loop.data.TodayOccurrence] 참고).
+     *
+     * 어제 예정도 기록도 없던 루프는 들어 있지 않다. 모든 루프를 liveLoop 으로 만들어 넣으면
+     * 꺼 둔 루프까지 "어제 미응답"이 되어 어제 카드에 영영 남는다.
      */
     val yesterdayLoops: Flow<List<LoopWithDone>> = combine(
         historyRepository.snapshots, localDate,
-    ) { snapshot, date -> snapshot.timelines.map { it.liveLoop(date.minusDays(1)) } }
+    ) { snapshot, date ->
+        val yesterday = date.minusDays(1)
+        snapshot.timelines.mapNotNull { it.occurrenceOn(yesterday) }
+    }.flowOn(Dispatchers.Default)
         .stateIn(coroutineScope, SharingStarted.WhileSubscribed(5_000L), emptyList())
 
-    // @formatter:off
     /**
      * 어제 미응답 카드에 올릴 루프.
      *
@@ -116,17 +119,15 @@ class LoopRepository @Inject constructor(
      *
      * 자정을 넘기는 루프는 제외한다. 그 어젯밤 몫은 오늘 아침에 끝나 오늘 화면에 그대로 걸치므로,
      * 오늘 목록의 "응답 대기" 항목이 대신 맡는다. 여기까지 넣으면 같은 화면에 두 번 나온다.
+     *
+     * 비활성·비활동요일·생성 이전은 따로 걸러내지 않는다. [yesterdayLoops] 가 이미 어제 실제로
+     * 걸친 몫만 담고 있어서다. 어제는 켜져 있었던 루프를 오늘 껐다면 어제 몫은 그대로 남는다.
+     * 이미 지나간 하루에 답할 길을 오늘의 설정 변경이 막지 않도록 한 것으로, 같은 이유로
+     * 자정 넘김 루프의 어젯밤 몫도 남긴다([com.pnd.android.loop.data.buildTodayOccurrences]).
      */
     val loopsNoResponseYesterday = yesterdayLoops.map { loops ->
-        loops.filter { loop ->
-            !loop.isDisabled &&
-            !loop.isOvernight &&
-            loop.isNotRespond &&
-            loop.created.toLocalDate().isBefore(LocalDate.now()) &&
-            loop.isActiveDay(LocalDate.now().minusDays(1))
-        }
+        loops.filter { loop -> !loop.isOvernight && loop.isNotRespond }
     }
-    // @formatter:on
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val activeLoops = localDateTime.flatMapLatest { now ->
@@ -170,15 +171,8 @@ class LoopRepository @Inject constructor(
         historyRepository.snapshots, localDate,
     ) { snapshot, today ->
         snapshot.timelines.associate { timeline ->
-            val states = mutableMapOf<Long, Int>()
-            var date = timeline.createdDate
-            while (date <= today) {
-                states[date.toMs()] = timeline.responseOn(date)?.done
-                    ?: timeline.day(date)?.response?.done
-                    ?: if (!timeline.settingsOn(date).enabled) LoopDoneVo.DoneState.DISABLED else HISTORY_NOT_SCHEDULED
-                date = date.plusDays(1)
-            }
-            timeline.current.loopId to states
+            timeline.current.loopId to timeline.states(timeline.createdDate, today)
+                .mapKeys { (date, _) -> date.toMs() }
         }
     }.flowOn(Dispatchers.Default)
 
@@ -210,10 +204,10 @@ class LoopRepository @Inject constructor(
     suspend fun changeLoopState(
         loop: LoopBase,
         localDate: LocalDate = LocalDate.now(),
-        @LoopDoneVo.DoneState doneState: Int,
+        @DoneState doneState: Int,
         suppliedTimes: Pair<Long, Long>? = null,
     ) {
-        if (doneState == LoopDoneVo.DoneState.IN_PROGRESS) mutations.start(loop.loopId)
+        if (doneState == DoneState.IN_PROGRESS) mutations.start(loop.loopId, localDate)
         else mutations.setResponse(loop.loopId, localDate, doneState, suppliedTimes)
         refreshAfterResponse(loop.loopId)
     }
@@ -241,5 +235,3 @@ class LoopRepository @Inject constructor(
     suspend fun saveMemo(loopId: Int, localDate: LocalDate, text: String) =
         mutations.saveNote(loopId, localDate, text)
 }
-/** Presentation-only value: never persisted in loop_done. */
-const val HISTORY_NOT_SCHEDULED = -2

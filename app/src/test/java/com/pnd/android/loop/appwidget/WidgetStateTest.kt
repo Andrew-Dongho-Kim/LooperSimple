@@ -3,18 +3,17 @@ package com.pnd.android.loop.appwidget
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.pnd.android.loop.data.LoopDay
 import com.pnd.android.loop.data.LoopDoneVo
-import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.data.LoopVo
 import com.pnd.android.loop.data.TodayOccurrence
 import com.pnd.android.loop.data.buildTodayOccurrences
 import com.pnd.android.loop.data.isRespond
 import com.pnd.android.loop.data.toLoopWithDone
+import com.pnd.android.loop.state.DoneState
 import com.pnd.android.loop.util.toMs
+import java.time.LocalDate
+import java.time.LocalTime
 import org.junit.Assert.*
 import org.junit.Test
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.LocalTime
 
 class WidgetStateTest {
     private val friday = LocalDate.of(2026, 9, 11)
@@ -97,6 +96,21 @@ class WidgetStateTest {
         val occurrence = buildTodayOccurrences(listOf(today), mapOf(2 to yesterday), now).single()
         assertEquals(friday, occurrence.date)
         assertTrue(occurrence.loop.isRespond)
+    }
+
+    @Test fun `overnight occurrence stays answerable after the loop is switched off today`() {
+        val loop = LoopVo.create(
+            id = 2, title = "Sleep", color = 0, created = friday.toMs(),
+            startInDay = time(22), endInDay = time(6), activeDays = LoopDay.FRIDAY,
+        ).copy(enabled = false)
+        // 어젯밤 몫은 어제 켜져 있었기에 생긴 것이다. 오늘 껐다고 답할 자리까지 사라지면 안 된다.
+        val yesterday = loop.toLoopWithDone(LoopDoneVo(2, friday.toMs()))
+        val today = loop.toLoopWithDone(LoopDoneVo(2, saturday.toMs()))
+        val occurrence = buildTodayOccurrences(
+            listOf(today), mapOf(2 to yesterday), saturday.atTime(7, 0),
+        ).single()
+        assertEquals(friday, occurrence.date)
+        assertTrue(occurrence.isCarriedOver)
     }
 
     @Test fun `widget empty state counts survive JSON restoration`() {

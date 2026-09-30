@@ -3,10 +3,10 @@ package com.pnd.android.loop.ui.home
 import androidx.compose.runtime.Immutable
 import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
-import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.data.asLoopVo
 import com.pnd.android.loop.data.history.LoopHistory
 import com.pnd.android.loop.data.history.LoopTimeline
+import com.pnd.android.loop.state.DoneState
 import java.time.LocalDate
 import kotlin.math.roundToInt
 

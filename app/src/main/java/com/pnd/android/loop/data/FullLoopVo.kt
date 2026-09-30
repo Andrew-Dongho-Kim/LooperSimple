@@ -2,6 +2,7 @@ package com.pnd.android.loop.data
 
 import androidx.room.Ignore
 import com.pnd.android.loop.data.common.DEFAULT_WEEKLY_GOAL
+import com.pnd.android.loop.state.DoneState
 
 data class FullLoopVo @JvmOverloads constructor(
     override val loopId: Int,
@@ -16,7 +17,7 @@ data class FullLoopVo @JvmOverloads constructor(
     val actualEndInDay: Long,
     val date: Long,
     val retrospect: String,
-    @LoopDoneVo.DoneState val done: Int,
+    @DoneState val done: Int,
     override val isAnyTime: Boolean = false,
     override val weeklyGoal: Int = DEFAULT_WEEKLY_GOAL,
     @Ignore override val isMock: Boolean = false,

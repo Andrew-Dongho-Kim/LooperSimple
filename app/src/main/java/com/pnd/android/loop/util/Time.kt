@@ -20,11 +20,11 @@ import com.pnd.android.loop.data.LoopDay.Companion.WEDNESDAY
 import com.pnd.android.loop.data.LoopDay.Companion.WEEKDAYS
 import com.pnd.android.loop.data.LoopDay.Companion.WEEKENDS
 import com.pnd.android.loop.data.LoopDay.Companion.isOn
-import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.actualEndInDay
 import com.pnd.android.loop.data.actualStartInDay
 import com.pnd.android.loop.data.doneState
 import com.pnd.android.loop.data.isInProgress
+import com.pnd.android.loop.state.DoneState
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.BlueGreen
 import com.pnd.android.loop.ui.theme.Red300
@@ -311,7 +311,7 @@ fun LoopBase.isPast(localDateTime: LocalDateTime = LocalDateTime.now()): Boolean
 fun LoopBase.isActive(localDateTime: LocalDateTime = LocalDateTime.now()): Boolean {
     if (!enabled) return false
     if (isMock) return false
-    if (isAnyTime) return doneState == LoopDoneVo.DoneState.IN_PROGRESS
+    if (isAnyTime) return doneState == DoneState.IN_PROGRESS
 
     // 시각 창 안에 있고(자정 넘김 포함), 그 occurrence가 시작한 날이 활성 요일이어야 한다.
     if (!isTimeInLoop(localDateTime.toLocalTime().toMs())) return false
@@ -387,7 +387,7 @@ fun LoopBase.elapsedMinutesSinceStart(now: LocalTime = LocalTime.now()): Int? {
 
 fun LoopBase.isActiveTime(localDateTime: LocalDateTime = LocalDateTime.now()): Boolean {
     if (isAnyTime) {
-        return doneState == LoopDoneVo.DoneState.IN_PROGRESS
+        return doneState == DoneState.IN_PROGRESS
     }
     return isTimeInLoop(localDateTime.toLocalTime().toMs())
 }

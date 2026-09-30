@@ -2,15 +2,15 @@ package com.pnd.android.loop.ui.detail
 
 import com.pnd.android.loop.data.LoopDay
 import com.pnd.android.loop.data.LoopDoneVo
-import com.pnd.android.loop.data.LoopDoneVo.DoneState
+import com.pnd.android.loop.state.DoneState
+import java.time.DayOfWeek
+import java.time.LocalDate
+import java.time.ZoneId
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.time.DayOfWeek
-import java.time.LocalDate
-import java.time.ZoneId
 
 class DetailActivityStatsTest {
     private val today = LocalDate.of(2026, 9, 10)

@@ -1,6 +1,7 @@
 package com.pnd.android.loop.data.history
 
 import com.pnd.android.loop.data.*
+import com.pnd.android.loop.state.DoneState
 import com.pnd.android.loop.util.toMs
 import java.time.LocalDate
 
@@ -16,7 +17,7 @@ internal fun revision(id: Long, loop: LoopVo, from: LocalDate = firstDay,
     effectiveFrom = from.toEpochDay(), goalEffectiveFrom = goalFrom.toEpochDay(),
     knownFrom = knownFrom.toEpochDay(), settings = LoopSettings.from(loop),
 )
-internal fun response(date: LocalDate, state: Int = LoopDoneVo.DoneState.DONE, revisionId: Long? = 1) =
+internal fun response(date: LocalDate, state: Int = DoneState.DONE, revisionId: Long? = 1) =
     LoopDoneVo(1, date.toMs(), 9 * 3_600_000L, 10 * 3_600_000L, state,
         revisionId = revisionId, localEpochDay = date.toEpochDay())
 internal fun timeline(loop: LoopVo = testLoop(), revisions: List<LoopRevisionVo> = listOf(revision(1, loop)),

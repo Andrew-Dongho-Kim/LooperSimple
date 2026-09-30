@@ -19,8 +19,8 @@ import com.pnd.android.loop.appwidget.AppWidgetUpdateWorker.Companion.Action.Com
 import com.pnd.android.loop.appwidget.AppWidgetUpdateWorker.Companion.Action.Companion.START_LOOP
 import com.pnd.android.loop.appwidget.AppWidgetUpdateWorker.Companion.Action.Companion.STOP_LOOP
 import com.pnd.android.loop.common.Logger
-import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.data.history.LoopMutationStore
+import com.pnd.android.loop.state.DoneState
 import com.pnd.android.loop.util.toLocalDate
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject

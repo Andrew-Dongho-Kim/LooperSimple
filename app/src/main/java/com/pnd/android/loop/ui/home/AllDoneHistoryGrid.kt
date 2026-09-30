@@ -24,8 +24,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -53,26 +51,28 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
-import androidx.compose.ui.zIndex
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.zIndex
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
-import com.pnd.android.loop.data.LoopDay.Companion.isOn
-import com.pnd.android.loop.data.LoopDoneVo.DoneState
+import com.pnd.android.loop.state.DoneState
+import com.pnd.android.loop.state.NOT_SCHEDULED
+import com.pnd.android.loop.state.stateIcon
+import com.pnd.android.loop.state.stateLabelRes
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.RoundShapes
 import com.pnd.android.loop.ui.theme.compositeOverOnSurface
 import com.pnd.android.loop.ui.theme.onSurface
+import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.ui.theme.surface
 import com.pnd.android.loop.util.ABB_DAYS
 import com.pnd.android.loop.util.color
-import com.pnd.android.loop.util.dayForLoop
 import com.pnd.android.loop.util.toLocalDate
 import com.pnd.android.loop.util.toMs
-import kotlinx.coroutines.delay
 import java.time.LocalDate
+import kotlinx.coroutines.delay
 
 // 그리드 치수. 셀·행·헤더 높이를 상수로 묶어 왼쪽 이름 열과 날짜 열의 높이가 항상 정확히 맞도록 한다.
 private val CellSize = 28.dp          // 실제 상태가 그려지는 정사각 셀
@@ -483,7 +483,7 @@ private fun HistoryCell(
     // 나중에 활성 요일을 바꿔도 그전에 쌓인 기록은 그대로 보여야 하기 때문이다.
     val look = when {
         date.isBefore(createdDate) -> CellLook.BeforeCreated
-        doneState == com.pnd.android.loop.ui.home.viewmodel.HISTORY_NOT_SCHEDULED -> CellLook.InactiveDay
+        doneState == NOT_SCHEDULED -> CellLook.InactiveDay
         doneState != null -> CellLook.Status(doneState)
         else -> CellLook.InactiveDay
     }
@@ -537,7 +537,7 @@ private fun StateSwatch(
  * 완료/건너뜀/비활성화/미응답을 채움색과 빗금으로 그리고, 그 위에 기호([StatusMark])를 겹친다.
  * 미응답은 채움이 없어 아웃라인만 남는다.
  *
- * @param state DONE/SKIP/DISABLED 또는 null(미응답).
+ * @param state 공통 상태 코드. 범례에서만 null을 미응답 견본으로 사용한다.
  * @param markSize 채움 위에 겹칠 기호의 크기.
  */
 @Composable
@@ -570,7 +570,7 @@ private fun StatusFill(
 }
 
 /**
- * 완료·건너뜀 채움 위에 겹치는 기호. 두 상태는 채움 색조만 다르기 때문에,
+ * 완료·건너뜀·진행 중 상태 위에 겹치는 공통 기호. 완료와 건너뜀은 채움 색조만 다르기 때문에,
  * 색을 구분하기 어려운 환경에서도 뜻이 남도록 형태를 함께 준다.
  *
  * 비활성화(빗금)와 미응답(빈 아웃라인)은 채움/패턴만으로 이미 형태가 구분되므로 기호를 두지 않는다.
@@ -578,21 +578,18 @@ private fun StatusFill(
  */
 @Composable
 private fun StatusMark(state: Int?, size: Dp) {
-    when (state) {
-        DoneState.DONE -> Icon(
-            modifier = Modifier.size(size),
-            imageVector = Icons.Rounded.Check,
-            tint = doneMarkColor(),
-            contentDescription = null,
-        )
-
-        DoneState.SKIP -> Icon(
-            modifier = Modifier.size(size),
-            imageVector = Icons.Rounded.Remove,
-            tint = skipMarkColor(),
-            contentDescription = null,
-        )
+    val tint = when (state) {
+        DoneState.DONE -> doneMarkColor()
+        DoneState.SKIP -> skipMarkColor()
+        DoneState.IN_PROGRESS -> AppColor.primary
+        else -> return
     }
+    Icon(
+        modifier = Modifier.size(size),
+        imageVector = state.stateIcon(),
+        tint = tint,
+        contentDescription = null,
+    )
 }
 
 /**
@@ -666,27 +663,27 @@ private fun HistoryHelpDialog(onDismiss: () -> Unit) {
 
             HistoryHelpRow(
                 look = CellLook.Status(DoneState.DONE),
-                name = stringResource(id = R.string.done),
+                name = stringResource(DoneState.DONE.stateLabelRes()),
                 desc = stringResource(id = R.string.all_history_help_done),
             )
             HistoryHelpRow(
                 look = CellLook.Status(DoneState.SKIP),
-                name = stringResource(id = R.string.skip),
+                name = stringResource(DoneState.SKIP.stateLabelRes()),
                 desc = stringResource(id = R.string.all_history_help_skip),
             )
             HistoryHelpRow(
                 look = CellLook.Status(doneState = null),
-                name = stringResource(id = R.string.no_response),
+                name = stringResource(DoneState.NO_RESPONSE.stateLabelRes()),
                 desc = stringResource(id = R.string.all_history_help_no_response),
             )
             HistoryHelpRow(
                 look = CellLook.InactiveDay,
-                name = stringResource(id = R.string.all_history_inactive_day),
+                name = stringResource(NOT_SCHEDULED.stateLabelRes()),
                 desc = stringResource(id = R.string.all_history_help_inactive_day),
             )
             HistoryHelpRow(
                 look = CellLook.Status(DoneState.DISABLED),
-                name = stringResource(id = R.string.loop_disable),
+                name = stringResource(DoneState.DISABLED.stateLabelRes()),
                 desc = stringResource(id = R.string.all_history_help_disabled),
             )
 

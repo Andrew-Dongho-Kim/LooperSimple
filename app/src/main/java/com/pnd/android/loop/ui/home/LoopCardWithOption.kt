@@ -10,12 +10,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.pnd.android.loop.data.LoopBase
-import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.LoopWithDone
-import com.pnd.android.loop.util.toLocalDate
-import java.time.LocalDate
+import com.pnd.android.loop.state.DoneState
 import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
 import com.pnd.android.loop.util.isActive
+import com.pnd.android.loop.util.toLocalDate
+import java.time.LocalDate
 
 @Immutable
 data class LoopCardValues(
@@ -79,7 +79,7 @@ fun LoopCardWithOption(
                 loopViewModel.changeLoopState(
                     loop = loop,
                     localDate = (loop as? LoopWithDone)?.date?.toLocalDate() ?: LocalDate.now(),
-                    doneState = LoopDoneVo.DoneState.DONE,
+                    doneState = DoneState.DONE,
                     suppliedTimes = startInDay to endInDay,
                 )
             },

@@ -1,12 +1,14 @@
 package com.pnd.android.loop.data.history
 
 import com.pnd.android.loop.data.*
-import com.pnd.android.loop.data.LoopDoneVo.DoneState
+import com.pnd.android.loop.state.DoneState
+import com.pnd.android.loop.state.NOT_SCHEDULED
+import com.pnd.android.loop.state.stateExportName
+import com.pnd.android.loop.ui.detail.computeDetailStats
 import com.pnd.android.loop.util.toMs
+import java.util.TimeZone
 import org.junit.Assert.*
 import org.junit.Test
-import java.time.LocalDate
-import java.util.TimeZone
 
 class LoopTimelineTest {
     private val change = firstDay.plusDays(7)
@@ -77,6 +79,33 @@ class LoopTimelineTest {
         assertNotNull(history.day(change.minusDays(1)))
     }
 
+    @Test fun `occurrenceOn skips switched off days that liveLoop still invents a row for`() {
+        val old = testLoop()
+        val history = timeline(old.copy(enabled = false),
+            listOf(revision(1, old), revision(2, old.copy(enabled = false), change)))
+        // liveLoop 은 그날 몫이 없어도 미응답 행을 만들어 낸다. 그대로 쓰면 꺼 둔 루프가 매일 걸린다.
+        assertEquals(DoneState.NO_RESPONSE, history.liveLoop(change).done)
+        assertNull(history.occurrenceOn(change))
+        assertNull(history.occurrenceOn(change.plusDays(30)))
+        assertNotNull(history.occurrenceOn(change.minusDays(1)))
+    }
+
+    @Test fun `occurrenceOn keeps a recorded day after the loop is switched off later`() {
+        val old = testLoop()
+        val history = timeline(old.copy(enabled = false),
+            listOf(revision(1, old), revision(2, old.copy(enabled = false), change.plusDays(1))),
+            listOf(response(change, DoneState.NO_RESPONSE)))
+        assertNotNull(history.occurrenceOn(change))
+    }
+
+    @Test fun `occurrenceOn excludes unscheduled days and dates before creation`() {
+        val monday = testLoop().copy(activeDays = LoopDay.MONDAY)
+        val history = timeline(monday, listOf(revision(1, monday)))
+        assertNull(history.occurrenceOn(change)) // 화요일
+        assertNull(history.occurrenceOn(firstDay.minusDays(1)))
+        assertNotNull(history.occurrenceOn(change.minusDays(1))) // 월요일
+    }
+
     @Test fun `legacy disabled row remains excluded despite current enabled settings`() {
         assertNull(timeline(responses = listOf(response(change, DoneState.DISABLED))).day(change))
     }
@@ -142,6 +171,47 @@ class LoopTimelineTest {
             assertEquals(firstDay, moved.createdDate)
             assertNull(moved.day(firstDay.minusDays(1)))
         } finally { TimeZone.setDefault(previousZone) }
+    }
+
+
+    @Test fun `note alone is unscheduled in home detail and export`() {
+        val loop = testLoop().copy(activeDays = LoopDay.MONDAY)
+        val history = timeline(loop, notes = listOf(LoopRetrospectVo(1, change.toMs(), "Note")))
+        val states = history.states(firstDay, change)
+        val detail = computeDetailStats(history, change)
+        assertEquals(NOT_SCHEDULED, history.stateOn(change))
+        assertEquals(NOT_SCHEDULED, states[change])
+        assertEquals(states, detail.doneStateByDate)
+        assertEquals("not_scheduled", history.stateOn(change).stateExportName())
+        assertFalse(history.day(change)!!.isSettled(change.plusDays(1)))
+    }
+
+    @Test fun `note on a disabled day does not turn it into an unanswered day`() {
+        val loop = testLoop().copy(enabled = false)
+        val history = timeline(loop, notes = listOf(LoopRetrospectVo(1, change.toMs(), "Note")))
+        assertEquals(DoneState.DISABLED, history.stateOn(change))
+        assertEquals(DoneState.DISABLED, computeDetailStats(history, change).doneStateByDate[change])
+        assertEquals(0, computeDetailStats(history, change).totalCount)
+    }
+
+    @Test fun `explicit off schedule response wins over disabled settings`() {
+        val loop = testLoop().copy(enabled = false)
+        val history = timeline(loop, responses = listOf(response(change, DoneState.DONE)))
+        assertEquals(DoneState.DONE, history.stateOn(change))
+        assertEquals(DoneState.DISABLED, history.stateOn(change.minusDays(1)))
+    }
+
+    @Test fun `legacy disabled response wins over enabled schedule`() {
+        val history = timeline(responses = listOf(response(change, DoneState.DISABLED)))
+        assertEquals(DoneState.DISABLED, history.stateOn(change))
+        assertEquals(DoneState.NO_RESPONSE, history.stateOn(change.minusDays(1)))
+    }
+
+    @Test fun `state index never invents records before creation or inside an empty range`() {
+        val history = timeline()
+        assertEquals(NOT_SCHEDULED, history.stateOn(firstDay.minusDays(1)))
+        assertEquals(setOf(firstDay), history.states(firstDay.minusDays(3), firstDay).keys)
+        assertTrue(history.states(change, firstDay).isEmpty())
     }
 
 }

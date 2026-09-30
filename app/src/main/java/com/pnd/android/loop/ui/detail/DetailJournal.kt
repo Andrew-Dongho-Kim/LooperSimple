@@ -24,8 +24,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -47,9 +47,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pnd.android.loop.R
-import com.pnd.android.loop.data.LoopDoneVo.DoneState
 import com.pnd.android.loop.data.LoopRetrospectVo
 import com.pnd.android.loop.data.history.localDate
+import com.pnd.android.loop.state.DoneState
+import com.pnd.android.loop.state.isRespond
+import com.pnd.android.loop.state.stateLabelRes
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.RoundShapes
@@ -59,12 +61,11 @@ import com.pnd.android.loop.util.DAYS_WITH_3CHARS_SUNDAY_FIRST
 import com.pnd.android.loop.util.color
 import com.pnd.android.loop.util.formatMonthDateDay
 import com.pnd.android.loop.util.formatYearMonth
-import com.pnd.android.loop.util.toLocalDate
-import kotlinx.coroutines.CancellationException
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
 import kotlin.math.ceil
+import kotlinx.coroutines.CancellationException
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 기록 · 회고 섹션
@@ -399,11 +400,7 @@ private fun CalendarDayCell(
 
     // 숫자만 읽히면 완료·건너뜀·메모가 색과 점으로만 남는다. 한 문장으로 풀어 준다.
     val dateLabel = date.formatMonthDateDay()
-    val stateLabel = when (state) {
-        DoneState.DONE -> stringResource(id = R.string.done)
-        DoneState.SKIP -> stringResource(id = R.string.skip)
-        else -> stringResource(id = R.string.detail_day_no_record)
-    }
+    val stateLabel = stringResource(state.stateLabelRes())
     val memoLabel = if (hasMemo) stringResource(id = R.string.detail_has_memo) else null
     val todayLabel = if (isToday) stringResource(id = R.string.detail_today) else null
     val cellDescription = listOfNotNull(dateLabel, todayLabel, stateLabel, memoLabel)
@@ -451,7 +448,7 @@ private fun CalendarDayCell(
                     .background(AppColor.onSurface.copy(alpha = 0.55f)),
             )
         }
-        if (state == DoneState.DONE || state == DoneState.SKIP) {
+        if (state.isRespond()) {
             Text(
                 modifier = Modifier.align(Alignment.BottomCenter)
                     .padding(bottom = 1.dp)
@@ -499,11 +496,7 @@ private fun TodayJournalRow(
                 style = AppTypography.bodyMedium.copy(color = AppColor.onSurface),
             )
             Text(
-                text = stringResource(when (state) {
-                    DoneState.DONE -> R.string.done
-                    DoneState.SKIP -> R.string.skip
-                    else -> R.string.detail_day_no_record
-                }),
+                text = stringResource(state.stateLabelRes()),
                 style = AppTypography.bodySmall.copy(color = AppColor.onSurface.copy(alpha = 0.65f)),
             )
         }

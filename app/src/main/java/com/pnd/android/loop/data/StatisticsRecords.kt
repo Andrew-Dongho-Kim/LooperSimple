@@ -1,5 +1,7 @@
 package com.pnd.android.loop.data
 
+import com.pnd.android.loop.state.DoneState
+
 /**
  * 통계 화면 전용 Room 조회 결과(DTO)들을 모아 둔다.
  * (순위용 [LoopWithStatistics] · 월별 투자시간 [MonthlyLoopDuration] 은 LoopWithDone.kt 참고)
@@ -18,7 +20,7 @@ package com.pnd.android.loop.data
  * @param title 루프 제목
  * @param color 루프 색상(ARGB)
  * @param date 응답 날짜(에폭 ms, 자정 기준)
- * @param done 응답 상태([LoopDoneVo.DoneState])
+ * @param done 응답 상태([DoneState])
  * @param startInDay 실제 시작 시각(자정부터의 ms). 기록이 없으면 음수(-1)일 수 있다.
  * @param endInDay 실제 종료 시각(자정부터의 ms).
  * @param plannedStartInDay 루프에 설정된 계획 시작 시각(자정부터의 ms). '언제든지' 루프는 -1.

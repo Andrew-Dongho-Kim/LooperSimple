@@ -73,7 +73,7 @@ class AppWidgetRefresher @Inject constructor(
             }
         }
         if (glanceIds.isEmpty()) return@withLock
-        val yesterdayLoops = snapshot.timelines.map { it.liveLoop(today.minusDays(1)) }
+        val yesterdayLoops = snapshot.timelines.mapNotNull { it.occurrenceOn(today.minusDays(1)) }
         val todayLoops = snapshot.timelines.map { it.liveLoop(today) }
 
         // 홈 오늘 탭과 같은 규칙으로 occurrence 를 만든다. 자정을 넘기는 루프는 어젯밤 몫과

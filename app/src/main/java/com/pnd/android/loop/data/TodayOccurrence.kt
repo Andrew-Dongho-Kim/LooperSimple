@@ -42,8 +42,11 @@ data class TodayOccurrence(
  * 오늘 화면에 올릴 occurrence 목록을 만든다. 홈 오늘 탭과 앱 위젯이 같은 규칙을 쓰도록 한곳에 둔다.
  *
  * @param todayLoops     오늘 날짜 행과 조인한 루프 전체
- * @param yesterdayLoops 어제 날짜 행과 조인한 루프(loopId → 루프). 자정을 넘기는 루프의 어젯밤
- *                       몫을 판단하는 데 쓴다.
+ * @param yesterdayLoops 어제 실제로 걸친 occurrence(loopId → 루프). 자정을 넘기는 루프의 어젯밤
+ *                       몫을 판단하는 데 쓴다. 어제 예정도 기록도 없던 루프는 들어 있지 않아야
+ *                       한다([com.pnd.android.loop.data.history.LoopTimeline.occurrenceOn]).
+ *                       [com.pnd.android.loop.data.history.LoopTimeline.liveLoop] 으로 전부
+ *                       만들어 넣으면 꺼 둔 루프의 어젯밤 몫까지 생긴다.
  */
 fun buildTodayOccurrences(
     todayLoops: List<LoopBase>,
@@ -89,9 +92,13 @@ fun buildTodayOccurrences(
  *
  * 자정을 넘기는 시간제 루프만 해당한다. 시간이 없는 anytime 루프는 종료 시각이 없어 어느
  * 시점에 끝났는지 알 수 없고, 하루 안에서 끝나는 루프는 어젯밤 몫이 오늘로 넘어오지 않는다.
+ *
+ * 어제 켜져 있었는지는 여기서 보지 않는다. [LoopBase.enabled] 는 어제 행에서도 "지금" 값이라
+ * (liveLoop 참고) 오늘 아침에 끈 루프의 어젯밤 몫까지 지워 버린다. 어제 편성 여부는 호출자가
+ * 넘기는 occurrence 목록이 이미 보장한다([buildTodayOccurrences] 의 yesterdayLoops).
  */
 private fun LoopBase.isCarriedOverInto(now: LocalDateTime): Boolean {
-    if (!enabled || isDisabled || isAnyTime || !isOvernight) return false
+    if (isAnyTime || !isOvernight) return false
     // 어제가 활성 요일이 아니었다면 어젯밤에 시작한 occurrence 자체가 없다.
     if (!isActiveDay(now.toLocalDate().minusDays(1))) return false
     // 어제보다 나중에 만든 루프라면 어젯밤에는 아직 존재하지 않았다.
