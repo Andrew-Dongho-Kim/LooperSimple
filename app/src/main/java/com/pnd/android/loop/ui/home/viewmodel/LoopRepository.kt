@@ -10,6 +10,7 @@ import com.pnd.android.loop.data.LoopWithDone
 import com.pnd.android.loop.data.history.LoopHistory
 import com.pnd.android.loop.data.history.LoopHistoryRepository
 import com.pnd.android.loop.data.history.LoopMutationStore
+import com.pnd.android.loop.data.history.RECENT_COMPLETION_DAYS
 import com.pnd.android.loop.data.history.localDate
 import com.pnd.android.loop.data.isNotRespond
 import com.pnd.android.loop.state.DoneState
@@ -32,6 +33,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
@@ -164,7 +166,35 @@ class LoopRepository @Inject constructor(
     val doneDates = settledDays.map { days ->
         days.filter { it.response.isDone() }.map { it.date.toMs() }.distinct()
     }
-    internal val todaySettled = combine(settledDays, localDate) { days, today -> days.filter { it.date == today } }
+    /**
+     * 오늘 탭 헤더의 진행률이 쓰는 "오늘" 창. 오늘 몫이 있는 occurrence 를 응답 여부와 무관하게 담는다.
+     *
+     * 여기만 [settledDays] 를 쓰지 않는다. 확정 판정으로 거르면 분모에 답한 것만 남아 오늘
+     * 완료율이 사실상 늘 100%가 되고, 하루 내내 미응답으로 남는 anytime 루프는 수치에 들어오지
+     * 못한다. 자세한 이유는 [com.pnd.android.loop.data.history.countTodayProgress] 참고.
+     */
+    internal val todayOccurrences = combine(
+        historyRepository.snapshots, localDate,
+    ) { snapshot, today ->
+        snapshot.days(today, today).filter { it.hasOccurrence }
+    }.flowOn(Dispatchers.Default)
+        .shareIn(coroutineScope, SharingStarted.WhileSubscribed(5_000L), replay = 1)
+
+    /**
+     * 전체 탭 헤더가 쓰는 "최근 [RECENT_COMPLETION_DAYS]일" 창. 어제까지만 본다.
+     *
+     * 같은 화면의 루프 카드 칩과 창을 맞춰, 한 화면의 두 완료율이 체계적으로 어긋나지 않게 한다.
+     * 누적 기록은 최장 연속 배지와 통계 화면이 담당하므로 여기서는 최근 추세만 본다.
+     */
+    internal val recentSettledDays = combine(historyRepository.snapshots, localDate) { snapshot, today ->
+        snapshot.settled(today.minusDays(RECENT_COMPLETION_DAYS), today.minusDays(1), today)
+    }.flowOn(Dispatchers.Default)
+        .shareIn(coroutineScope, SharingStarted.WhileSubscribed(5_000L), replay = 1)
+
+    /** 완료율을 보여 주는 화면이 "추정 기록 포함"을 고지할지. */
+    internal val hasEstimatedHistory = historyRepository.snapshots
+        .map { snapshot -> snapshot.hasEstimatedHistory }
+        .distinctUntilChanged()
 
     /** Missing scheduled days and inactive spans use the same timeline as every rate. */
     val allDoneHistory: Flow<Map<Int, Map<Long, Int>>> = combine(

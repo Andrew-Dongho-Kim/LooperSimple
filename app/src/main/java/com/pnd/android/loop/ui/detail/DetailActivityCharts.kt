@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
+import com.pnd.android.loop.data.history.CompletionCounts
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.background
@@ -249,7 +250,7 @@ private fun ActivityColumn(
 /** 완료·건너뜀·미응답의 전체 비중을 실제 개수에 비례해 표시한다. 범례는 줄바꿈을 허용한다. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun ActivityOutcomeChart(counts: ActivityCounts, accent: Color) {
+internal fun ActivityOutcomeChart(counts: CompletionCounts, accent: Color) {
     if (counts.total == 0) return
     val outcomes = listOf(
         OutcomeSegment(stringResource(R.string.detail_rate_done), counts.done, accent),

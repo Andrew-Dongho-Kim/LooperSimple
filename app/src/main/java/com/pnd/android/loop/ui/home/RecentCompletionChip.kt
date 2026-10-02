@@ -31,6 +31,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.pnd.android.loop.R
+import com.pnd.android.loop.data.history.RECENT_COMPLETION_DAYS
 import com.pnd.android.loop.ui.common.AppDialog
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
@@ -47,8 +48,10 @@ import java.time.format.FormatStyle
 internal fun RecentCompletionChip(loopTitle: String, completion: RecentLoopCompletion) {
     var showExplanation by rememberSaveable { mutableStateOf(false) }
     val explanationLabel = stringResource(R.string.recent_completion_explain)
+    // 칩에 창(기간)을 함께 적어, 같은 화면의 헤더 달성률과 기준이 같다는 것이 바로 읽히게 한다.
+    val windowDays = RECENT_COMPLETION_DAYS.toInt()
     val accessibleLabel = stringResource(
-        R.string.recent_completion_accessibility, loopTitle, completion.percent,
+        R.string.recent_completion_accessibility, loopTitle, windowDays, completion.percent,
     )
     // One theme-aware blue; only the background alpha changes with the displayed percentage.
     // Keep text fully opaque so low completion rates remain readable.
@@ -59,7 +62,7 @@ internal fun RecentCompletionChip(loopTitle: String, completion: RecentLoopCompl
     }
     // This click is consumed separately from the parent card's detail-navigation action.
     Text(
-        text = stringResource(R.string.recent_completion_chip, completion.percent),
+        text = stringResource(R.string.recent_completion_chip, windowDays, completion.percent),
         style = AppTypography.labelMedium.copy(
             color = AppColor.onSurface,
             fontWeight = FontWeight.Normal,

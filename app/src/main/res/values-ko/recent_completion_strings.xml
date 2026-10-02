@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="recent_completion_chip">최근 완료 %1$d%%</string>
+    <string name="recent_completion_chip">%1$d일 %2$d%%</string>
     <string name="recent_completion_explain">완료율 계산 방법 보기</string>
-    <string name="recent_completion_accessibility">%1$s, 최근 완료율 %2$d퍼센트</string>
+    <string name="recent_completion_accessibility">%1$s, 최근 %2$d일 완료율 %3$d퍼센트</string>
     <string name="recent_completion_title">최근 완료율 계산 방법</string>
     <string name="recent_completion_period">%1$s – %2$s</string>
     <string name="recent_completion_percent">%1$d%%</string>

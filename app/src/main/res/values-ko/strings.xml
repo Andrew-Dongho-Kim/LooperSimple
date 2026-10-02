@@ -112,9 +112,16 @@
     <string name="header_current_remaining_soon">곧 종료</string>
     <string name="header_current_others">외 %d개</string>
     <string name="header_recent_days">최근 7일</string>
+    <!-- 홈 헤더(전체 탭) 0페이지 — 창(기간)·분모·표본 부족·추정 고지를 수치와 함께 밝힌다 -->
+    <string name="header_overall_done_rate">최근 %d일 달성률</string>
+    <string name="header_overall_denominator">%1$d / %2$d 완료</string>
+    <string name="header_overall_no_percent">–</string>
+    <string name="header_overall_not_enough">기록이 %d회 이상 모이면 보여드려요</string>
+    <string name="header_overall_estimated">추정 기록 포함</string>
     <!-- 홈 헤더(오늘 탭) 추세 페이지: 잘하고 있는/주의가 필요한 루프 -->
     <string name="header_trend_doing_well">최근 잘 지키는 루프</string>
     <string name="header_trend_need_attention">최근 놓치고 있는 루프</string>
+    <string name="header_trend_window">최근 %d회</string>
     <string name="header_trend_missed">%d일째 놓침</string>
     <!-- 추세를 낼 만큼 기록이 쌓인 루프가 하나도 없을 때 -->
     <string name="header_trend_empty">아직 추세를 낼 기록이 부족해요</string>
@@ -502,7 +509,7 @@
     <string name="detail_schedule_management">일정과 루프 관리</string>
     <string name="detail_active_state">루프 활성 상태</string>
     <string name="detail_more_actions">더보기</string>
-    <string name="detail_overall_rate">전체 완료율</string>
+    <string name="detail_overall_rate">전체 기간 완료율</string>
     <string name="detail_done_total">전체 %1$d회 중 %2$d회 완료</string>
     <string name="detail_week_progress_suffix">/ %1$d회 완료</string>
     <string name="detail_week_done_suffix">회 완료</string>

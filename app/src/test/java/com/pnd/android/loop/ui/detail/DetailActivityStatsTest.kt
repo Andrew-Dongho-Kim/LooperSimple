@@ -2,6 +2,8 @@ package com.pnd.android.loop.ui.detail
 
 import com.pnd.android.loop.data.LoopDay
 import com.pnd.android.loop.data.LoopDoneVo
+import com.pnd.android.loop.data.history.CompletionCounts
+import com.pnd.android.loop.data.history.countActivity
 import com.pnd.android.loop.state.DoneState
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -39,7 +41,7 @@ class DetailActivityStatsTest {
         )
         val resolved = resolvedActivityRecords(records, created, today)
         assertEquals(3, resolved.size)
-        assertEquals(ActivityCounts(done = 1, skipped = 1, unanswered = 1), countActivity(resolved.values))
+        assertEquals(CompletionCounts(done = 1, skipped = 1, unanswered = 1), countActivity(resolved.values))
     }
 
     @Test

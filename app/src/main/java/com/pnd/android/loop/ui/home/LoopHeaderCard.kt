@@ -41,6 +41,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopBase
+import com.pnd.android.loop.data.history.MIN_RELIABLE_SAMPLES
+import com.pnd.android.loop.data.history.RECENT_COMPLETION_DAYS
 import com.pnd.android.loop.state.DoneState
 import com.pnd.android.loop.ui.common.AppCard
 import com.pnd.android.loop.ui.home.viewmodel.CurrentLoopInfo
@@ -49,6 +51,7 @@ import com.pnd.android.loop.ui.home.viewmodel.LoopTrend
 import com.pnd.android.loop.ui.home.viewmodel.LoopTrends
 import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.home.viewmodel.NextLoopInfo
+import com.pnd.android.loop.ui.home.viewmodel.TREND_WINDOW
 import com.pnd.android.loop.ui.statisctics.DayOfWeekStat
 import com.pnd.android.loop.ui.statisctics.StreakStat
 import com.pnd.android.loop.ui.theme.AppColor
@@ -63,7 +66,6 @@ import com.pnd.android.loop.ui.theme.secondary
 import java.time.DayOfWeek
 import java.time.format.TextStyle as JavaTextStyle
 import java.util.Locale
-import kotlin.math.roundToInt
 
 /**
  * Summary card shown at the top of Home.
@@ -95,6 +97,7 @@ fun LoopHeaderCard(
     val currentLoop by loopViewModel.currentLoop.collectAsState(initial = null)
     val recentDays by loopViewModel.recentDailyDone.collectAsState(initial = emptyList())
     val loopTrends by loopViewModel.loopTrends.collectAsState(initial = LoopTrends.Empty)
+    val hasEstimatedHistory by loopViewModel.hasEstimatedHistory.collectAsState(initial = false)
     // StateFlow이므로 initial을 주지 않는다. 홈으로 복귀할 때 이미 로딩된 값을 첫 컴포지션에서
     // 읽어, 요약 카드가 한 프레임 동안 빈 상태로 그려지는 것을 막는다.
     val loops by loopViewModel.allLoopsWithDoneStates.collectAsState()
@@ -119,6 +122,7 @@ fun LoopHeaderCard(
                 longestStreak = streak.longest,
                 weekdayStats = weekdayStats,
                 trends = loopTrends,
+                hasEstimatedHistory = hasEstimatedHistory,
                 // 추세의 loopId만 알고 있으므로, 현재 루프 목록에서 해당 루프를 찾아 상세로 넘긴다.
                 onCheckLoop = { loopId ->
                     loops?.firstOrNull { loop -> loop.loopId == loopId }
@@ -187,7 +191,11 @@ private fun TodayHeroStats(
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.Bottom) {
                     Text(
-                        text = "${rates.doneRate.roundToInt()}",
+                        // 오늘 창에는 최소 표본을 적용하지 않는다. 오늘 할 일이 둘뿐이어도
+                        // "2개 중 1개"는 유효한 정보이고, 바로 아래에 분모를 함께 보여 준다.
+                        // 분모는 아직 답하지 않은 몫까지 포함한 "오늘 할 일" 전체이므로
+                        // (countTodayProgress) 하루가 지나며 수치가 채워지는 진행률로 읽힌다.
+                        text = "${rates.donePercent ?: 0}",
                         maxLines = 1,
                         style = AppTypography.displayMedium.copy(
                             color = AppColor.primary,
@@ -425,11 +433,24 @@ private fun LoopTrendPage(
                 tint = accent,
             )
             Text(
-                modifier = Modifier.padding(start = 6.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 6.dp),
                 text = caption,
                 maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 style = AppTypography.bodySmall.copy(
                     color = AppColor.onSurface.copy(alpha = 0.6f),
+                ),
+            )
+            // 이 페이지의 수치가 어느 창을 본 것인지 밝힌다. 캡션에 이어 붙이지 않고 따로 둬서
+            // 글꼴이 커지거나 화면이 좁아도 창 표기가 먼저 잘려 나가지 않게 한다.
+            Text(
+                modifier = Modifier.padding(start = 8.dp),
+                text = stringResource(id = R.string.header_trend_window, TREND_WINDOW),
+                maxLines = 1,
+                style = AppTypography.bodySmall.copy(
+                    color = AppColor.onSurface.copy(alpha = 0.4f),
                 ),
             )
         }
@@ -696,7 +717,8 @@ private fun SegmentRow(
 
 /** 전체 탭 헤더 페이저의 페이지 수와 고정 높이. 높이는 페이지가 바뀌어도 카드가 출렁이지 않게 고정한다. */
 private const val OVERALL_PAGE_COUNT = 3
-private val OverallPagerHeight = 156.dp
+// 0페이지에 분모·추정 고지 줄이 생겨 한 줄만큼 늘렸다.
+private val OverallPagerHeight = 176.dp
 private val TodayHeroContentHeight = 124.dp
 
 /**
@@ -713,6 +735,7 @@ private fun OverallPager(
     longestStreak: Int,
     weekdayStats: List<DayOfWeekStat>,
     trends: LoopTrends,
+    hasEstimatedHistory: Boolean,
     onCheckLoop: (Int) -> Unit,
 ) {
     val pagerState = rememberPagerState { OVERALL_PAGE_COUNT }
@@ -730,6 +753,7 @@ private fun OverallPager(
                     rates = rates,
                     longestStreak = longestStreak,
                     weekdayStats = weekdayStats,
+                    hasEstimatedHistory = hasEstimatedHistory,
                 )
 
                 1 -> LoopTrendPage(
@@ -771,8 +795,12 @@ private fun OverallPager(
 }
 
 /**
- * 전체 기간의 축적을 보여준다. 왼쪽엔 전체 달성률 헤드라인과 최장 연속 배지를, 오른쪽엔
+ * 최근 30일의 축적을 보여준다. 왼쪽엔 달성률 헤드라인·분모·최장 연속 배지를, 오른쪽엔
  * 응답률·스킵률을 두고, 아래에는 요일별 달성 패턴 막대로 "어느 요일에 꾸준한가"를 드러낸다.
+ *
+ * 퍼센트를 혼자 두지 않는 것이 이 페이지의 규칙이다. 라벨이 창(최근 30일)을, 캡션이 분모를
+ * 밝혀, 같은 화면의 루프 카드 칩과 왜 숫자가 다른지 화면 안에서 설명되게 한다. 표본이
+ * 부족하면 퍼센트 대신 안내 문구만 보여 준다(기록 한두 건의 "100%"를 띄우지 않는다).
  */
 @Composable
 private fun OverallStats(
@@ -780,6 +808,7 @@ private fun OverallStats(
     rates: LoopRates,
     longestStreak: Int,
     weekdayStats: List<DayOfWeekStat>,
+    hasEstimatedHistory: Boolean,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
@@ -788,33 +817,80 @@ private fun OverallStats(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 HeadlineStat(
-                    label = stringResource(id = R.string.done_rate),
-                    value = rates.doneRate,
+                    label = stringResource(
+                        id = R.string.header_overall_done_rate,
+                        RECENT_COMPLETION_DAYS.toInt(),
+                    ),
+                    percent = rates.donePercent.takeIf { rates.isReliable },
+                )
+                OverallDenominator(
+                    modifier = Modifier.padding(top = 3.dp),
+                    rates = rates,
+                    hasEstimatedHistory = hasEstimatedHistory,
                 )
                 StreakBadge(
-                    modifier = Modifier.padding(top = 8.dp),
+                    modifier = Modifier.padding(top = 6.dp),
                     label = stringResource(id = R.string.stat_streak_longest),
                     days = longestStreak,
                 )
             }
-            SecondaryStat(
-                label = stringResource(id = R.string.response_rate),
-                value = rates.responseRate,
-            )
-            SecondaryStat(
-                modifier = Modifier.padding(start = 20.dp),
-                label = stringResource(id = R.string.skip_rate),
-                value = rates.skipRate,
-            )
+            // 표본이 부족할 때는 보조 지표도 숨긴다. 한 건으로 "응답 100%"를 띄우면
+            // 헤드라인을 가린 이유가 무의미해진다.
+            if (rates.isReliable) {
+                SecondaryStat(
+                    label = stringResource(id = R.string.response_rate),
+                    percent = rates.responsePercent,
+                )
+                SecondaryStat(
+                    modifier = Modifier.padding(start = 20.dp),
+                    label = stringResource(id = R.string.skip_rate),
+                    percent = rates.skipPercent,
+                )
+            }
         }
 
         if (weekdayStats.size == DayOfWeek.entries.size) {
             WeekdayPattern(
-                modifier = Modifier.padding(top = 16.dp),
+                modifier = Modifier.padding(top = 14.dp),
                 stats = weekdayStats,
             )
         }
     }
+}
+
+/**
+ * 헤드라인 바로 아래 한 줄. 표본이 충분하면 분모("52 / 127 완료")를, 부족하면 왜 퍼센트가
+ * 없는지를 알린다. 추정 구간이 섞여 있으면 뒤에 조용히 덧붙여 수치가 과대평가일 수 있음을 밝힌다.
+ */
+@Composable
+private fun OverallDenominator(
+    modifier: Modifier = Modifier,
+    rates: LoopRates,
+    hasEstimatedHistory: Boolean,
+) {
+    val base = if (rates.isReliable) {
+        stringResource(
+            id = R.string.header_overall_denominator,
+            rates.doneCount,
+            rates.totalCount,
+        )
+    } else {
+        stringResource(id = R.string.header_overall_not_enough, MIN_RELIABLE_SAMPLES)
+    }
+    val text = if (hasEstimatedHistory) {
+        "$base · ${stringResource(id = R.string.header_overall_estimated)}"
+    } else {
+        base
+    }
+    Text(
+        modifier = modifier,
+        text = text,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        style = AppTypography.bodySmall.copy(
+            color = AppColor.onSurface.copy(alpha = 0.55f),
+        ),
+    )
 }
 
 /** 전체 탭의 주인공인 달성률 — 작은 라벨 아래 큰 primary 수치로 시선을 먼저 붙잡는다. */
@@ -822,7 +898,7 @@ private fun OverallStats(
 private fun HeadlineStat(
     modifier: Modifier = Modifier,
     label: String,
-    value: Float,
+    percent: Int?,
 ) {
     Column(modifier = modifier) {
         Text(
@@ -834,7 +910,7 @@ private fun HeadlineStat(
         )
         Text(
             modifier = Modifier.padding(top = 2.dp),
-            text = formatPercent(value),
+            text = formatPercent(percent),
             maxLines = 1,
             style = AppTypography.headlineMedium.copy(
                 color = AppColor.primary,
@@ -849,14 +925,14 @@ private fun HeadlineStat(
 private fun SecondaryStat(
     modifier: Modifier = Modifier,
     label: String,
-    value: Float,
+    percent: Int?,
 ) {
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.End,
     ) {
         Text(
-            text = formatPercent(value),
+            text = formatPercent(percent),
             maxLines = 1,
             style = AppTypography.bodyMedium.copy(
                 color = AppColor.onSurface.copy(alpha = 0.75f),
@@ -960,4 +1036,12 @@ private fun WeekdayPattern(
 
 // endregion
 
-private fun formatPercent(value: Float): String = String.format("%.1f%%", value)
+/**
+ * 완료율 표기의 단일 형식: 정수 퍼센트.
+ *
+ * 분모가 수백이어도 소수점은 의미 없는 정밀도이고, 화면마다 자리수가 갈리면 같은 수치가
+ * 달라 보인다(예전에는 헤더만 "41.3%", 칩은 "41%"였다). 보여 줄 값이 없으면 대시로 비워 둔다.
+ */
+@Composable
+private fun formatPercent(percent: Int?): String =
+    percent?.let { "$it%" } ?: stringResource(id = R.string.header_overall_no_percent)

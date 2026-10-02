@@ -157,6 +157,16 @@ class LoopHistorySnapshot(histories: List<LoopHistory>) {
     val byId = timelines.associateBy { it.current.loopId }
     val firstDate: LocalDate? = timelines.minOfOrNull { it.createdDate }
 
+    /**
+     * 이력 도입 이전 구간이 있어 과거 일정을 초기 설정으로 추정한 루프가 하나라도 있는가.
+     *
+     * 추정 구간에서는 그날 예정이었는지 알 수 없어 놓친 날이 분모에서 누락될 수 있고, 그만큼
+     * 완료율이 실제보다 높게 나온다. 완료율을 보여 주는 화면은 이 값으로 그 사실을 고지한다.
+     */
+    val hasEstimatedHistory: Boolean = timelines.any { timeline ->
+        timeline.history.revisions.any { it.knownFrom > timeline.createdDate.toEpochDay() }
+    }
+
     fun days(from: LocalDate, to: LocalDate): List<ResolvedLoopDay> = timelines
         .flatMap { it.days(from, to) }
         .sortedWith(compareBy<ResolvedLoopDay> { it.date }.thenBy { it.loop.startInDay }.thenBy { it.loop.loopId })

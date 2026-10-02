@@ -1,42 +1,31 @@
 package com.pnd.android.loop.ui.detail
 
-import com.pnd.android.loop.state.DoneState
+import com.pnd.android.loop.data.history.CompletionCounts
+import com.pnd.android.loop.data.history.countActivity
 import com.pnd.android.loop.state.isSettledOn
 import java.time.DayOfWeek
 import java.time.LocalDate
-import kotlin.math.roundToInt
 
 internal const val ACTIVITY_WINDOW_DAYS = 28L
 private const val DAYS_PER_ACTIVITY_GROUP = 7L
-
-/** 일정 이력으로 해석한 집계 대상의 구성. */
-internal data class ActivityCounts(
-    val done: Int = 0,
-    val skipped: Int = 0,
-    val unanswered: Int = 0,
-) {
-    val total: Int get() = done + skipped + unanswered
-    val completionRate: Float? get() = if (total == 0) null else done.toFloat() / total
-    val completionPercent: Int? get() = completionRate?.let { (it * 100).roundToInt() }
-}
 
 /** 최근 28일을 겹치지 않는 7일 구간으로 나눈다. 달력 주나 주간 목표 달성률이 아니다. */
 internal data class ActivityPeriod(
     val start: LocalDate,
     val end: LocalDate,
-    val counts: ActivityCounts,
+    val counts: CompletionCounts,
 )
 
 internal data class WeekdayActivity(
     val day: DayOfWeek,
-    val counts: ActivityCounts,
+    val counts: CompletionCounts,
 )
 
 /** UI에는 표시할 값만 전달한다. 집계와 비교 기준은 이 파일에서 관리한다. */
 internal data class DetailActivityStats(
     val start: LocalDate,
     val end: LocalDate,
-    val counts: ActivityCounts,
+    val counts: CompletionCounts,
     val periods: List<ActivityPeriod>,
     val weekdays: List<WeekdayActivity>,
     /** 직전의 동일한 28일과 비교한다. 두 기간을 비교할 기록이 부족하면 null. */
@@ -46,7 +35,7 @@ internal data class DetailActivityStats(
         fun empty(today: LocalDate) = DetailActivityStats(
             start = today,
             end = today,
-            counts = ActivityCounts(),
+            counts = CompletionCounts(),
             periods = emptyList(),
             weekdays = emptyList(),
             doneDelta = null,
@@ -67,12 +56,6 @@ internal fun resolvedActivityRecords(
 ): Map<LocalDate, Int> = statesByDate.filter { (date, state) ->
     date >= createdDate && state.isSettledOn(date, today)
 }
-
-internal fun countActivity(states: Collection<Int>) = ActivityCounts(
-    done = states.count { it == DoneState.DONE },
-    skipped = states.count { it == DoneState.SKIP },
-    unanswered = states.count { it == DoneState.NO_RESPONSE },
-)
 
 /** [resolvedRecords]는 [resolvedActivityRecords]를 통과한 날짜별 기록이다. */
 internal fun computeDetailActivityStats(

@@ -26,11 +26,7 @@ class StatisticsViewModel @Inject constructor(
     private fun LoopHistorySnapshot.periodDays(period: StatisticsPeriod, today: LocalDate): List<ResolvedLoopDay> =
         settled(maxOf(firstDate ?: today, period.from(today).toLocalDate()), period.to(today).toLocalDate(), today)
 
-    val hasEstimatedHistory = observe { snapshot, _ ->
-        snapshot.timelines.any { timeline ->
-            timeline.history.revisions.any { it.knownFrom > timeline.createdDate.toEpochDay() }
-        }
-    }
+    val hasEstimatedHistory = observe { snapshot, _ -> snapshot.hasEstimatedHistory }
 
     fun flowPeriodStats(period: StatisticsPeriod): Flow<PeriodStats> = observe { snapshot, today ->
         val allDays = snapshot.days(

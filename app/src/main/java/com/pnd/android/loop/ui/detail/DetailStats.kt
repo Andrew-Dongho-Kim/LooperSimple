@@ -5,6 +5,7 @@ import com.pnd.android.loop.data.LoopDay.Companion.isOn
 import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.common.NO_WEEKLY_GOAL
 import com.pnd.android.loop.data.history.LoopTimeline
+import com.pnd.android.loop.data.history.countActivity
 import com.pnd.android.loop.data.history.localDate
 import com.pnd.android.loop.state.DoneState
 import com.pnd.android.loop.ui.statisctics.StreakStat

@@ -113,9 +113,16 @@
     <string name="header_current_remaining_soon">Ending soon</string>
     <string name="header_current_others">+%d more</string>
     <string name="header_recent_days">Last 7 days</string>
+    <!-- 홈 헤더(전체 탭) 0페이지 — 창(기간)·분모·표본 부족·추정 고지를 수치와 함께 밝힌다 -->
+    <string name="header_overall_done_rate">Last %d days</string>
+    <string name="header_overall_denominator">%1$d / %2$d done</string>
+    <string name="header_overall_no_percent">–</string>
+    <string name="header_overall_not_enough">Shown after %d eligible runs</string>
+    <string name="header_overall_estimated">includes estimates</string>
     <!-- 홈 헤더(오늘 탭) 추세 페이지: 잘하고 있는/주의가 필요한 루프 -->
     <string name="header_trend_doing_well">On a good streak</string>
     <string name="header_trend_need_attention">Needs attention</string>
+    <string name="header_trend_window">last %d</string>
     <string name="header_trend_missed">missed %d days</string>
     <!-- 추세를 낼 만큼 기록이 쌓인 루프가 하나도 없을 때 -->
     <string name="header_trend_empty">Not enough history yet</string>
@@ -511,7 +518,7 @@
     <string name="detail_schedule_management">Schedule and settings</string>
     <string name="detail_active_state">Loop status</string>
     <string name="detail_more_actions">More actions</string>
-    <string name="detail_overall_rate">Overall done rate</string>
+    <string name="detail_overall_rate">All-time done rate</string>
     <string name="detail_done_total">%2$d of %1$d completed</string>
     <string name="detail_week_progress_suffix">/ %1$d completed</string>
     <string name="detail_week_done_suffix">completed</string>

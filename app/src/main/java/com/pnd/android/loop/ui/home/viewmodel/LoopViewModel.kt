@@ -11,11 +11,13 @@ import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopVo
 import com.pnd.android.loop.data.LoopWithDone
 import com.pnd.android.loop.data.TodayLoopOrder
+import com.pnd.android.loop.data.history.CompletionCounts
 import com.pnd.android.loop.data.history.LoopTimeline
 import com.pnd.android.loop.data.history.ResolvedLoopDay
+import com.pnd.android.loop.data.history.countActivity
+import com.pnd.android.loop.data.history.countTodayProgress
 import com.pnd.android.loop.data.isRespond
 import com.pnd.android.loop.state.DoneState
-import com.pnd.android.loop.state.isRespond
 import com.pnd.android.loop.ui.home.RecentLoopCompletion
 import com.pnd.android.loop.ui.home.computeRecentLoopCompletion
 import com.pnd.android.loop.ui.statisctics.DayOfWeekStat
@@ -58,7 +60,8 @@ import kotlinx.coroutines.launch
 //  - TREND_MIN_RECORDS: 이 개수 미만이면 표본이 부족하다고 보고 추세에서 제외.
 //  - TREND_MAX_ITEMS: 각 페이지(잘함/주의)에 최대 몇 개까지 노출할지.
 //  - TREND_GOOD_RATE / TREND_BAD_RATE: 잘함/주의로 분류하는 완료율 경계.
-private const val TREND_WINDOW = 7
+// 헤더가 "최근 N회"라고 창을 밝힐 수 있도록 internal 로 둔다.
+internal const val TREND_WINDOW = 7
 private const val TREND_SCAN_DAYS = 90
 private const val TREND_MIN_RECORDS = 3
 private const val TREND_MAX_ITEMS = 3
@@ -144,21 +147,27 @@ class LoopViewModel @Inject constructor(
 
     /**
      * Done / response / skip rates bundled per scope so the header can swap them as the
-     * 오늘 / 전체 tab changes. Rates are percentages (0..100); a scope with no recorded
-     * activity yields 0% across the board rather than a misleading 100%.
+     * 오늘 / 전체 tab changes.
+     *
+     * 두 수치는 모두 [CompletionCounts] 로 수렴하지만, 창이 달라 분모에 넣는 occurrence 가 다르다.
+     *  - [overallRates]: 어제까지 최근 30일(RECENT_COMPLETION_DAYS). 루프 카드 칩과 같은 창이고,
+     *    확정된 날만 센다([countActivity]).
+     *  - [todayRates]: 오늘만. 창이 하루뿐이라 미응답을 빼면 분모에 답한 것만 남으므로, 오늘 몫이
+     *    있는 occurrence 를 아직 답하지 않았어도 모두 센다([countTodayProgress]). 덕분에 시작
+     *    시각이 없는 anytime 루프도 오늘 수치에 들어온다.
      */
-    val overallRates: Flow<LoopRates> = loopRepository.settledDays.map(::ratesFor)
-    val todayRates: Flow<LoopRates> = loopRepository.todaySettled.map(::ratesFor)
-
-    private fun ratesFor(days: List<ResolvedLoopDay>): LoopRates {
-        val done = days.count { it.response.isDone() }
-        return LoopRates(
-            doneRate = percentOf(done, days.size),
-            responseRate = percentOf(days.count { it.response.isRespond() }, days.size),
-            skipRate = percentOf(days.count { it.response.isSkip() }, days.size),
-            doneCount = done, totalCount = days.size,
-        )
+    val overallRates: Flow<LoopRates> = loopRepository.recentSettledDays.map(::ratesFor)
+    val todayRates: Flow<LoopRates> = loopRepository.todayOccurrences.map { days ->
+        LoopRates(countTodayProgress(days.map { it.response.done }))
     }
+
+    /** 완료율을 보여 주는 화면이 "추정 기록 포함"을 고지할지. */
+    val hasEstimatedHistory: Flow<Boolean> = loopRepository.hasEstimatedHistory
+
+    // 최근 30일 창용. 들어오는 목록은 저장소에서 이미 확정 판정(isSettled)을 통과했으므로
+    // 여기서 다시 거르지 않는다.
+    private fun ratesFor(days: List<ResolvedLoopDay>) =
+        LoopRates(countActivity(days.map { it.response.done }))
 
     /**
      * 오늘 아직 시작하지 않은 루프 중 시작이 가장 가까운 하나. 오늘 탭 헤더의 "다음 루프"에 쓰인다.
@@ -291,9 +300,6 @@ class LoopViewModel @Inject constructor(
     /** 전체 탭 하단 기록 그리드: loopId -> (날짜(ms) -> done 상태). */
     val allDoneHistory: Flow<Map<Int, Map<Long, Int>>> = loopRepository.allDoneHistory
 
-    private fun percentOf(count: Int, total: Int): Float =
-        if (total > 0) count.toFloat() / total * 100f else 0f
-
     override fun onCleared() {
         coroutineScope.cancel()
         super.onCleared()
@@ -382,25 +388,21 @@ class LoopViewModel @Inject constructor(
 }
 
 /**
- * The three headline habit rates for a single scope (today or all-time), each a
- * percentage in 0..100. Grouping them lets the home header show one coherent set that
- * flips wholesale when the 오늘 / 전체 tab changes.
+ * 한 창(오늘 / 최근 30일)의 습관 지표. 분모 규칙·반올림은 [CompletionCounts] 가 전부 정하고,
+ * 여기서는 헤더가 읽기 쉬운 이름만 붙인다. 퍼센트는 집계 대상이 없으면 null이다.
  */
-data class LoopRates(
-    val doneRate: Float,
-    val responseRate: Float,
-    val skipRate: Float,
-    val doneCount: Int,
-    val totalCount: Int,
-) {
+data class LoopRates(val counts: CompletionCounts = CompletionCounts()) {
+    val donePercent: Int? get() = counts.completionPercent
+    val responsePercent: Int? get() = counts.responsePercent
+    val skipPercent: Int? get() = counts.skipPercent
+    val doneCount: Int get() = counts.done
+    val totalCount: Int get() = counts.total
+
+    /** 퍼센트를 보여 줄 만큼 표본이 모였는지. 오늘 창은 이 값을 보지 않는다(MIN_RELIABLE_SAMPLES 참고). */
+    val isReliable: Boolean get() = counts.isReliable
+
     companion object {
-        val Empty = LoopRates(
-            doneRate = 0f,
-            responseRate = 0f,
-            skipRate = 0f,
-            doneCount = 0,
-            totalCount = 0,
-        )
+        val Empty = LoopRates()
     }
 }
 
@@ -436,12 +438,13 @@ data class LoopTrend(
     val loopId: Int,
     val title: String,
     val recentStates: List<Int>,
-    val doneCount: Int,
-    val totalCount: Int,
+    val counts: CompletionCounts,
     val currentStreak: Int,
     val currentMiss: Int,
 ) {
-    val doneRate: Float get() = if (totalCount > 0) doneCount.toFloat() / totalCount else 0f
+    val doneCount: Int get() = counts.done
+    val totalCount: Int get() = counts.total
+    val doneRate: Float get() = counts.completionRate ?: 0f
 }
 
 /**
@@ -504,8 +507,7 @@ private fun computeLoopTrend(timeline: LoopTimeline, today: LocalDate): LoopTren
         loopId = loop.loopId,
         title = loop.title,
         recentStates = recentStates,
-        doneCount = recentStates.count { state -> state == DoneState.DONE },
-        totalCount = recentStates.size,
+        counts = countActivity(recentStates),
         currentStreak = recentStates
             .takeWhile { state -> state == DoneState.DONE }
             .size,
