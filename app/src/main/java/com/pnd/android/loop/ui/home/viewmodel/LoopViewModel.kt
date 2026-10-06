@@ -297,8 +297,15 @@ class LoopViewModel @Inject constructor(
         .distinctUntilChanged()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), emptyMap())
 
-    /** 전체 탭 하단 기록 그리드: loopId -> (날짜(ms) -> done 상태). */
-    val allDoneHistory: Flow<Map<Int, Map<Long, Int>>> = loopRepository.allDoneHistory
+    /**
+     * 전체 탭 하단 기록 그리드: loopId -> (날짜(ms) -> done 상태).
+     *
+     * 그리드는 목록 맨 아래의 단일 항목이라 세로 스크롤로 뷰포트를 자주 드나든다. 원본 플로우는
+     * 공유되지 않아 그때마다 구독이 다시 시작되고 (루프 × 일수) 규모의 맵을 처음부터 다시 만들었다.
+     * 같은 파일의 다른 파생 플로우들과 동일한 창으로 캐시해, 재진입 때는 마지막 값을 바로 쓰게 한다.
+     */
+    val allDoneHistory: StateFlow<Map<Int, Map<Long, Int>>> = loopRepository.allDoneHistory
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), emptyMap())
 
     override fun onCleared() {
         coroutineScope.cancel()

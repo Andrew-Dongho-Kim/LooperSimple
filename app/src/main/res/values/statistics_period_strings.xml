@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stat_period_monthly">Monthly</string>
+    <string name="stat_period_all">All time</string>
+    <string name="stat_period_all_description">From your first record through today</string>
+    <string name="stat_choose_month">Choose a month</string>
+    <string name="stat_month_picker_close">Close month selector</string>
+    <string name="stat_this_month">This month</string>
+    <string name="stat_previous_year">Previous year</string>
+    <string name="stat_next_year">Next year</string>
+    <string name="stat_year">%1$d</string>
+    <string name="stat_period_current_range">%1$s 1–%2$d · through today</string>
+    <string name="stat_period_month_range">%1$s 1–%2$d</string>
+    <string name="stat_available_months">Available · %1$s – %2$s</string>
+    <!-- Monthly tab label for a month outside the current year. %1$d = two-digit year, %2$s = month name -->
+    <string name="stat_tab_month_other_year">%2$s ’%1$02d</string>
+    <!-- Screen reader text for the monthly tab. %1$s = selected year and month -->
+    <string name="stat_tab_month_description">Monthly, %1$s</string>
+</resources>

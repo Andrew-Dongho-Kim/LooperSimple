@@ -12,6 +12,28 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class HistoryStatisticsTest {
+    @Test fun `arbitrary historical month isolates statistics and ignores adjacent month responses`() {
+        val lastDay = firstDay.plusMonths(1).minusDays(1)
+        val history = timeline(responses = listOf(response(firstDay), response(lastDay), response(lastDay.plusDays(1))))
+        val snapshot = LoopHistorySnapshot(listOf(history.history))
+        val today = firstDay.plusMonths(8)
+        val period = StatisticsPeriod.Month(YearMonth.from(firstDay))
+        val records = snapshot.settled(period.from(snapshot.firstDate!!), period.to(today), today)
+        val statistics = computePeriodStats(records.map { it.asResponseRecord() })
+        assertEquals(30, records.size)
+        assertEquals(2, statistics.summary.completedCount)
+        assertEquals(2f / 30, statistics.summary.completionRate, 0.0001f)
+        assertEquals(2 * 3_600_000L, statistics.summary.investedTimeMs)
+    }
+
+    @Test fun `a month before creation yields an empty period without invalid date iteration`() {
+        val snapshot = LoopHistorySnapshot(listOf(timeline().history))
+        val period = StatisticsPeriod.Month(YearMonth.from(firstDay).minusMonths(1))
+        val records = snapshot.settled(period.from(snapshot.firstDate!!), period.to(firstDay), firstDay)
+        assertTrue(records.isEmpty())
+        assertTrue(computePeriodStats(records.map { it.asResponseRecord() }).isEmpty)
+    }
+
     @Test fun `detail month statistics and home chip agree after a schedule change`() {
         val before = testLoop()
         val after = before.copy(title = "After", activeDays = LoopDay.MONDAY)

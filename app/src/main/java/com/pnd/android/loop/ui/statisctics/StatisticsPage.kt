@@ -1,5 +1,7 @@
 package com.pnd.android.loop.ui.statisctics
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
@@ -23,6 +25,19 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.semantics.Role
+import com.pnd.android.loop.ui.common.BackdropState
+import com.pnd.android.loop.ui.common.FloatingHeaderShape
+import com.pnd.android.loop.ui.common.FloatingSurface
+import com.pnd.android.loop.ui.common.NavigationBarFadingEdge
+import com.pnd.android.loop.ui.common.isPortrait
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
@@ -33,24 +48,38 @@ import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.SpaceDashboard
 import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.State
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.withFrameNanos
+import androidx.compose.runtime.key
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import com.pnd.android.loop.util.formatYearMonth
+import kotlin.math.abs
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -64,7 +93,6 @@ import com.pnd.android.loop.R
 import com.pnd.android.loop.data.LoopWithStatistics
 import com.pnd.android.loop.ui.common.AppCard
 import com.pnd.android.loop.ui.common.AppEmptyState
-import com.pnd.android.loop.ui.common.AppPageHeader
 import com.pnd.android.loop.ui.common.AppSegmentedControl
 import com.pnd.android.loop.ui.common.HistoryCalculationNote
 import com.pnd.android.loop.ui.common.StatusBarFadingEdge
@@ -90,8 +118,13 @@ import com.pnd.android.loop.util.ABB_MONTHS
 import com.pnd.android.loop.util.DAYS_WITH_3CHARS
 import com.pnd.android.loop.util.MS_1HOUR
 import com.pnd.android.loop.util.MS_1MIN
+import com.pnd.android.loop.util.todayFlow
+import java.time.LocalDate
+import java.time.YearMonth
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withTimeoutOrNull
 
 // 로딩 자리 표시자와 보조 동작도 앱 공통 모서리를 따른다.
 private val CardShape = RoundShapes.large
@@ -107,10 +140,49 @@ fun StatisticsPage(
     onNavigateUp: () -> Unit,
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(StatisticsTab.OVERVIEW) }
+    // 기간 선택(월별/전체, 월)은 헤더 탭·월 선택 시트·본문이 함께 쓰므로 여기서 한 곳에서 관리한다.
+    // 화면 회전·프로세스 사망에도 사용자의 선택이 유지되도록 rememberSaveable을 쓴다.
+    var showTotal by rememberSaveable { mutableStateOf(false) }
+    val today by remember { todayFlow() }.collectAsState(LocalDate.now())
+    val currentMonth = YearMonth.from(today)
+    // null은 이번 달을 뜻한다. 월이 바뀌면 이번 달 표시는 따라가고, 과거 월 선택은 유지한다.
+    var selectedMonthEpoch by rememberSaveable { mutableStateOf<Long?>(null) }
+    val availableMonths = rememberLoadable { statisticsViewModel.availableMonths }
+    val requestedMonth = selectedMonthEpoch?.let { YearMonth.from(LocalDate.ofEpochDay(it)) } ?: currentMonth
+    val firstMonth = availableMonths.valueOrNull?.start ?: minOf(requestedMonth, currentMonth)
+    val selectedMonth = requestedMonth.coerceIn(minOf(firstMonth, currentMonth), currentMonth)
+    val selectedPeriod = if (showTotal) StatisticsPeriod.Total else StatisticsPeriod.Month(selectedMonth)
+    val selectMonth: (YearMonth) -> Unit = { month ->
+        selectedMonthEpoch = if (month == currentMonth) null else month.atDay(1).toEpochDay()
+        showTotal = false
+    }
+    var showMonthSheet by rememberSaveable { mutableStateOf(false) }
+
     val listState = remember(selectedTab) { LazyListState() }
     val backdrop = rememberBackdropState()
+    val headerBackdrop = if (supportsBackdropBlur) backdrop else null
     val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    val headerProgress by rememberListCollapseProgress(listState, Dimens.appBarHeight)
+    // 기간을 쓰는 탭에서만 월간/전체 탭을 헤더에 띄운다. 그 외 탭은 뒤로가기와 제목만 두고, 제목이
+    // 액션바 높이만큼의 스크롤에 걸쳐 사라진다.
+    val showPeriodTabs = selectedTab.usesPeriod
+    val liveHeaderProgress = if (showPeriodTabs) {
+        rememberStatisticsHeaderCollapseProgress(listState)
+    } else {
+        rememberListCollapseProgress(listState, Dimens.appBarHeight)
+    }
+    // 기간 전환 중에는 목록이 잠깐 짧아져 스크롤이 맨 위로 밀리는데, 그 값을 헤더가 그대로 따르면
+    // 헤더가 펼쳐졌다 접히며 깜빡인다. 전환하는 동안은 시작 직전의 진행도로 헤더를 고정한다.
+    // 하단 탭을 바꾸면(= listState 교체) 고정도 함께 풀린다.
+    var frozenHeaderProgress by remember(listState) { mutableStateOf<Float?>(null) }
+    val headerProgress = frozenHeaderProgress ?: liveHeaderProgress.value
+
+    // 플로팅 하단 탭 알약의 측정 높이와, 세로 화면에서 그 아래 깔리는 내비게이션 바 높이.
+    var bottomNavigationHeight by remember { mutableStateOf(0.dp) }
+    val bottomNavigationInset = if (LocalConfiguration.current.isPortrait()) {
+        WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    } else {
+        0.dp
+    }
 
     Scaffold(
         modifier = modifier
@@ -118,12 +190,14 @@ fun StatisticsPage(
             .background(color = AppColor.background),
         containerColor = AppColor.background,
         contentColor = AppColor.onSurface,
-        contentWindowInsets = ScaffoldDefaults.contentWindowInsets.exclude(WindowInsets.statusBars),
-        bottomBar = {
-            StatisticsBottomNavigation(
-                selectedTab = selectedTab,
-                onTabSelected = { selectedTab = it },
-            )
+        // 홈과 같이 세로 화면에서는 내비게이션 바 영역까지 콘텐츠를 그리고, 그 위에 페이딩 엣지와
+        // 플로팅 하단 탭을 얹는다. 가로 화면은 내비게이션 바가 옆에 붙으므로 기존처럼 비켜 둔다.
+        contentWindowInsets = if (LocalConfiguration.current.isPortrait()) {
+            ScaffoldDefaults.contentWindowInsets
+                .exclude(WindowInsets.navigationBars)
+                .exclude(WindowInsets.statusBars)
+        } else {
+            ScaffoldDefaults.contentWindowInsets.exclude(WindowInsets.statusBars)
         },
     ) { contentPadding ->
         Box(modifier = Modifier.padding(contentPadding).fillMaxSize()) {
@@ -134,19 +208,71 @@ fun StatisticsPage(
                     .background(AppColor.background),
                 statisticsViewModel = statisticsViewModel,
                 selectedTab = selectedTab,
+                selectedPeriod = selectedPeriod,
+                today = today,
+                isPeriodLoading = availableMonths.isLoading,
+                // 기간 선택이 헤더로 올라가 본문에서는 좌우로 밀어 한 달씩 넘기는 보조 수단만 둔다.
+                onSwipeMonth = { delta ->
+                    val target = selectedMonth.plusMonths(delta.toLong())
+                    if (target in firstMonth..currentMonth) selectMonth(target)
+                },
+                onPeriodTransitionChanged = { inProgress ->
+                    frozenHeaderProgress = if (inProgress) {
+                        // 연달아 바뀌어 이미 고정 중이면, 처음 고정한 값(밀려나기 전 값)을 유지한다.
+                        frozenHeaderProgress ?: liveHeaderProgress.value
+                    } else {
+                        null
+                    }
+                },
                 listState = listState,
-                topPadding = topInset + Dimens.appBarHeight + Dimens.contentPadding,
+                // 탭 행 높이에는 이미 아래 여백이 들어 있으므로 contentPadding을 더하지 않는다.
+                topPadding = if (showPeriodTabs) {
+                    statisticsHeaderExpandedHeight(topInset)
+                } else {
+                    topInset + Dimens.appBarHeight + Dimens.contentPadding
+                },
+                // 마지막 카드가 플로팅 하단 탭과 내비게이션 바에 가리지 않고 그 위까지 올라오게 한다.
+                bottomPadding = bottomNavigationInset + BottomNavigationMargin +
+                    bottomNavigationHeight + Dimens.sectionSpacing,
                 onNavigateToDetailPage = onNavigateToDetailPage,
             )
             StatusBarFadingEdge(modifier = Modifier.align(Alignment.TopCenter))
-            AppPageHeader(
+            // 내비게이션 바 밑으로 지나가는 콘텐츠가 시스템 버튼/제스처 바와 겹쳐 보이지 않게 흐려 준다.
+            NavigationBarFadingEdge(modifier = Modifier.align(Alignment.BottomCenter))
+            StatisticsBottomNavigation(
+                modifier = Modifier.align(Alignment.BottomCenter),
+                selectedTab = selectedTab,
+                onTabSelected = { selectedTab = it },
+                backdrop = headerBackdrop,
+                onHeightChanged = { bottomNavigationHeight = it },
+            )
+            CollapsingStatisticsHeader(
                 modifier = Modifier.align(Alignment.TopCenter),
-                title = stringResource(R.string.statistics),
-                onNavigateUp = onNavigateUp,
                 progress = headerProgress,
-                backdrop = if (supportsBackdropBlur) backdrop else null,
+                showPeriodTabs = showPeriodTabs,
+                showTotal = showTotal,
+                monthLabel = statisticsMonthTabLabel(month = selectedMonth, today = today),
+                monthDescription = stringResource(
+                    R.string.stat_tab_month_description,
+                    selectedMonth.atDay(1).formatYearMonth(),
+                ),
+                onTotalSelected = { showTotal = it },
+                onMonthMenuClick = { if (!availableMonths.isLoading) showMonthSheet = true },
+                onNavigateUp = onNavigateUp,
+                backdrop = headerBackdrop,
             )
         }
+    }
+
+    if (showMonthSheet && showPeriodTabs && !showTotal) {
+        StatisticsMonthSheet(
+            selectedMonth = selectedMonth,
+            firstMonth = firstMonth,
+            currentMonth = currentMonth,
+            onMonthStepped = selectMonth,
+            onMonthSelected = { selectMonth(it); showMonthSheet = false },
+            onDismiss = { showMonthSheet = false },
+        )
     }
 }
 
@@ -155,20 +281,29 @@ private fun StatisticsPageContent(
     modifier: Modifier = Modifier,
     statisticsViewModel: StatisticsViewModel,
     selectedTab: StatisticsTab,
+    selectedPeriod: StatisticsPeriod,
+    today: LocalDate,
+    isPeriodLoading: Boolean,
+    onSwipeMonth: (delta: Int) -> Unit,
+    onPeriodTransitionChanged: (inProgress: Boolean) -> Unit,
     listState: LazyListState,
     topPadding: Dp,
+    bottomPadding: Dp,
     onNavigateToDetailPage: (Int) -> Unit,
 ) {
-    // 화면 회전·프로세스 사망에도 사용자의 선택이 유지되도록 rememberSaveable을 쓴다.
-    var selectedPeriod by rememberSaveable { mutableStateOf(StatisticsPeriod.THIS_MONTH) }
     var rankingSortOrder by rememberSaveable { mutableStateOf(RankingSortOrder.COMPLETION_RATE) }
     var rankingExpanded by rememberSaveable { mutableStateOf(false) }
 
     val estimated by remember { statisticsViewModel.hasEstimatedHistory }.collectAsState(false)
 
+    // 실제로 데이터를 불러와 그리는 기간. 탭·기간 선택기는 [selectedPeriod]를 곧바로 따르지만, 본문은
+    // 이전 기간의 콘텐츠를 페이드 아웃한 뒤에야 이 값으로 넘어간다([crossfadePeriodContent]).
+    var displayedPeriod by remember { mutableStateOf(selectedPeriod) }
+    val isOverall = displayedPeriod == StatisticsPeriod.Total
+
     // 기간에 따라 달라지는 지표들.
-    val periodStats = rememberLoadable(selectedPeriod) { statisticsViewModel.flowPeriodStats(selectedPeriod) }
-    val ranking = rememberLoadable(selectedPeriod) { statisticsViewModel.flowLoopRanking(selectedPeriod) }
+    val periodStats = rememberLoadable(displayedPeriod) { statisticsViewModel.flowPeriodStats(displayedPeriod) }
+    val ranking = rememberLoadable(displayedPeriod) { statisticsViewModel.flowLoopRanking(displayedPeriod) }
 
     // 기간과 무관하게 항상 전체(또는 최근) 흐름을 보는 지표들.
     val streak = rememberLoadable { statisticsViewModel.flowStreak() }
@@ -190,76 +325,113 @@ private fun StatisticsPageContent(
     val settlingValue = newLoopSettling.valueOrNull ?: emptyList()
     val milestonesValue = milestones.valueOrNull ?: emptyList()
 
-    // 개요에서는 완료율 상위 루프만 보여, 행동에 필요한 정보량을 제한한다.
-    val topRanking = remember(rankingValue) { rankingValue.sortedByDescending { it.doneRate } }
+    // 선택한 기준으로 전체 목록을 정렬한 뒤 순위 섹션에서 상위 항목을 표시한다.
+    val topRanking = remember(rankingValue, rankingSortOrder) {
+        rankingValue.sortedByDescending(rankingSortOrder.selector)
+    }
 
-    LazyColumn(
-        modifier = modifier,
-        state = listState,
-        contentPadding = PaddingValues(
-            start = Dimens.screenHorizontalPadding,
-            end = Dimens.screenHorizontalPadding,
-            top = topPadding,
-            bottom = Dimens.sectionSpacing,
-        ),
-        verticalArrangement = Arrangement.spacedBy(Dimens.sectionSpacing),
-    ) {
-        // 기간에 반응하는 탭에서만 기간 선택기를 노출한다. 그 외 탭에는 스코프를 알리는 안내 문구를 둔다.
-        item(key = "scope") {
+    // 개요 = 기간과 무관한 추세·성취, 리듬 = 기간별 패턴, 기록 = 기간별 요약·순위.
+    val overviewLoading = completionTrend.isLoading || monthlyInvestedTimes.isLoading || projection.isLoading ||
+        habitHealth.isLoading || milestones.isLoading || streak.isLoading || newLoopSettling.isLoading
+    val rhythmLoading = isPeriodLoading || periodStats.isLoading
+    val recordsLoading = isPeriodLoading || periodStats.isLoading || ranking.isLoading
+    val isLoading = when (selectedTab) {
+        StatisticsTab.OVERVIEW -> overviewLoading
+        StatisticsTab.RHYTHM -> rhythmLoading
+        StatisticsTab.RECORDS -> recordsLoading
+    }
+    val settledPeriod = RetainScrollAcrossReload(
+        listState = listState,
+        period = displayedPeriod,
+        isLoading = isLoading,
+    )
+    val contentAlpha = crossfadePeriodContent(
+        targetPeriod = selectedPeriod,
+        settledPeriod = settledPeriod,
+        onSwitchPeriod = { period ->
+            val changed = period != displayedPeriod
+            if (changed) {
+                displayedPeriod = period
+                // 다른 기간의 순위는 길이가 달라 펼침 상태를 이어 갈 이유가 없다.
+                rankingExpanded = false
+            }
+            changed
+        },
+        onTransitionChanged = onPeriodTransitionChanged,
+    )
+    // 월별을 보는 동안에만 좌우로 밀어 한 달씩 넘긴다(헤더의 월 선택을 보조하는 지름길).
+    val swipeModifier = if (selectedTab.usesPeriod && selectedPeriod is StatisticsPeriod.Month) {
+        Modifier.swipeToChangeMonth(onSwipeMonth)
+    } else {
+        Modifier
+    }
+
+    CompositionLocalProvider(LocalStatisticsContentAlpha provides { contentAlpha.value }) {
+        LazyColumn(
+            modifier = modifier.then(swipeModifier),
+            state = listState,
+            contentPadding = PaddingValues(
+                start = Dimens.screenHorizontalPadding,
+                end = Dimens.screenHorizontalPadding,
+                top = topPadding,
+                bottom = bottomPadding,
+            ),
+            verticalArrangement = Arrangement.spacedBy(Dimens.sectionSpacing),
+        ) {
+            // 기간에 반응하는 탭은 지금 보는 기간의 범위를, 그 외 탭은 스코프를 알리는 안내 문구를 둔다.
+            // 범위는 수치와 함께 바뀌어야 하므로 표시 중인 기간을 따르고 함께 페이드된다.
             if (selectedTab.usesPeriod) {
-                StatisticsPeriodSelector(
-                    selectedPeriod = selectedPeriod,
-                    onPeriodSelected = { selectedPeriod = it },
-                )
+                fadingItem(key = "scope") {
+                    StatisticsPeriodCaption(period = displayedPeriod, today = today)
+                }
             } else {
-                StatisticsScopeCaption()
-            }
-        }
-
-        item(key = "calculation") {
-            HistoryCalculationNote(estimated)
-        }
-        when (selectedTab) {
-            StatisticsTab.OVERVIEW -> statefulTab(
-                isLoading = periodStats.isLoading || ranking.isLoading,
-                isEmpty = statsValue.isEmpty && topRanking.isEmpty(),
-                isOverall = false,
-            ) {
-                summaryContent(
-                    stats = statsValue,
-                    projection = projectionValue,
-                    habitHealth = habitHealthValue,
-                    milestones = milestonesValue,
-                    ranking = topRanking,
-                    sortOrder = rankingSortOrder,
-                    onSortSelected = { rankingSortOrder = it },
-                    rankingExpanded = rankingExpanded,
-                    onToggleRanking = { rankingExpanded = !rankingExpanded },
-                    onNavigateToDetailPage = onNavigateToDetailPage,
-                )
+                item(key = "scope") {
+                    StatisticsScopeCaption()
+                }
             }
 
-            StatisticsTab.RHYTHM -> statefulTab(
-                isLoading = periodStats.isLoading,
-                isEmpty = statsValue.isEmpty,
-                isOverall = false,
-            ) {
-                patternContent(stats = statsValue)
+            item(key = "calculation") {
+                HistoryCalculationNote(estimated)
             }
+            when (selectedTab) {
+                StatisticsTab.OVERVIEW -> statefulTab(
+                    isLoading = overviewLoading,
+                    isEmpty = trendValue.size < 2 && monthlyValue.isEmpty() && streakValue.longest == 0 &&
+                        !hasInsights(projectionValue, habitHealthValue, milestonesValue) && settlingValue.isEmpty(),
+                    isOverall = true,
+                ) {
+                    trendContent(completionTrend = trendValue, monthlyInvestedTimes = monthlyValue)
+                    achievementContent(
+                        projection = projectionValue, streak = streakValue, milestones = milestonesValue,
+                        habitHealth = habitHealthValue, newLoopSettling = settlingValue,
+                    )
+                }
 
-            StatisticsTab.RECORDS -> statefulTab(
-                isLoading = completionTrend.isLoading || monthlyInvestedTimes.isLoading || projection.isLoading ||
-                    habitHealth.isLoading || milestones.isLoading || streak.isLoading || newLoopSettling.isLoading,
-                isEmpty = trendValue.size < 2 && monthlyValue.isEmpty(),
-                isOverall = true,
-            ) {
-                trendContent(completionTrend = trendValue, monthlyInvestedTimes = monthlyValue)
-                achievementContent(
-                    projection = projectionValue, streak = streakValue, milestones = milestonesValue,
-                    habitHealth = habitHealthValue, newLoopSettling = settlingValue,
-                )
+                StatisticsTab.RHYTHM -> statefulTab(
+                    isLoading = rhythmLoading,
+                    isEmpty = statsValue.isEmpty,
+                    isOverall = isOverall,
+                ) {
+                    patternContent(stats = statsValue)
+                }
+
+                StatisticsTab.RECORDS -> statefulTab(
+                    isLoading = recordsLoading,
+                    isEmpty = statsValue.isEmpty && topRanking.isEmpty(),
+                    isOverall = isOverall,
+                ) {
+                    summaryContent(
+                        stats = statsValue,
+                        ranking = topRanking,
+                        sortOrder = rankingSortOrder,
+                        onSortSelected = { rankingSortOrder = it },
+                        rankingExpanded = rankingExpanded,
+                        onToggleRanking = { rankingExpanded = !rankingExpanded },
+                        onNavigateToDetailPage = onNavigateToDetailPage,
+                    )
+                }
+
             }
-
         }
     }
 }
@@ -273,39 +445,245 @@ private fun <T> rememberLoadable(
     val loadableFlow = remember(*keys) {
         factory().map<T, Loadable<T>> { Loadable.Loaded(it) }
     }
-    return loadableFlow.collectAsState(initial = Loadable.Loading).value
+    // 새 월을 조회하는 동안 이전 월의 수치가 새 제목 아래 노출되지 않게 수집 상태도 초기화한다.
+    return key(loadableFlow) { loadableFlow.collectAsState(initial = Loadable.Loading).value }
+}
+
+/**
+ * 기간(월간/전체, 월)을 바꿔도 스크롤 위치를 유지한다.
+ *
+ * 기간이 바뀌면 [rememberLoadable]이 이전 수치를 감추려고 [Loadable.Loading]으로 돌아가고, 그동안
+ * 목록은 짧은 스켈레톤 카드로 바뀐다. 목록이 짧아지면서 스크롤이 맨 위로 밀려나고, 데이터가 다시
+ * 채워져도 원래 자리로 돌아오지 않았다. 그래서 콘텐츠가 보이는 동안의 위치를 계속 기억해 두었다가
+ * 로딩이 끝나면 그 위치로 되돌린다.
+ *
+ * 로딩이 시작되면 [isLoading] 키가 바뀌어 기록 코루틴이 레이아웃(= 스크롤이 밀려나는 시점)보다
+ * 먼저 취소되므로, 밀려난 위치가 저장된 값을 덮어쓰지 않는다. 하단 탭을 바꾸면 [listState]가 새로
+ * 만들어지므로 저장된 위치도 함께 초기화된다.
+ *
+ * 돌려주는 값은 스크롤을 마지막으로 제자리에 되돌린 기간이다. [period]의 데이터가 다 들어와 위치를
+ * 되돌린 뒤에야 그 기간이 된다. 기간 전환([crossfadePeriodContent])은 이 값이 새 기간과 같아질 때까지
+ * 기다렸다가 콘텐츠를 드러낸다. (로딩 여부 같은 불리언으로 알리면, 기간을 바꾼 직후 아직 로딩이
+ * 반영되지 않은 프레임에서 이전 기간의 "완료"를 새 기간의 것으로 오인할 수 있다.)
+ */
+@Composable
+private fun RetainScrollAcrossReload(
+    listState: LazyListState,
+    period: StatisticsPeriod,
+    isLoading: Boolean,
+): MutableState<StatisticsPeriod?> {
+    val savedPosition = remember(listState) { intArrayOf(0, 0) }
+    val settledPeriod = remember(listState) { mutableStateOf<StatisticsPeriod?>(null) }
+    LaunchedEffect(listState, period, isLoading) {
+        if (isLoading) return@LaunchedEffect
+        listState.scrollToItem(index = savedPosition[0], scrollOffset = savedPosition[1])
+        settledPeriod.value = period
+        snapshotFlow { listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset }
+            .collect { (index, offset) ->
+                savedPosition[0] = index
+                savedPosition[1] = offset
+            }
+    }
+    return settledPeriod
+}
+
+private const val PERIOD_FADE_OUT_MS = 150
+private const val PERIOD_FADE_IN_MS = 220
+
+/** 새 기간 데이터가 이보다 늦게 오면 기다리지 않고 페이드 인해, 스켈레톤이라도 보여 준다. */
+private const val PERIOD_LOAD_WAIT_MS = 400L
+
+/** 기간에 따라 바뀌는 본문 항목([fadingItem])이 따르는 불투명도. 람다라 읽는 쪽은 그리기 단계에서만 갱신된다. */
+private val LocalStatisticsContentAlpha = compositionLocalOf<() -> Float> { { 1f } }
+
+/**
+ * 월간/전체(또는 월) 전환 시 본문을 페이드 아웃 → 기간 교체 → 페이드 인으로 바꾼다.
+ *
+ * 기간을 바꾸는 즉시 새 기간으로 넘어가면 이전 수치가 스켈레톤으로 툭 바뀌고, 목록이 짧아졌다가
+ * 스크롤이 복원되는 과정까지 그대로 보인다. 그래서 먼저 이전 콘텐츠를 감춘 뒤 [onSwitchPeriod]로
+ * 기간을 넘기고, 새 데이터가 들어와 스크롤이 제자리를 찾은 다음 프레임에 다시 드러낸다.
+ *
+ * 연달아 바꾸면(예: 이전 달 화살표 연타) 진행 중이던 전환은 취소되고 현재 불투명도에서 이어서 시작한다.
+ *
+ * 전환하는 동안 목록이 스켈레톤으로 짧아지면 스크롤이 맨 위로 밀려나는데, 헤더의 접힘 진행도는
+ * 스크롤을 따르므로 그대로 두면 헤더가 잠깐 펼쳐졌다(제목이 보이고 탭·뒤로가기의 플로팅 배경이
+ * 깜빡임). 그래서 전환을 시작할 때 [onTransitionChanged]`(true)`로 헤더를 지금 모습에 고정하고,
+ * 스크롤이 제자리를 찾아 한 번 배치된 뒤에 `(false)`로 풀어 준다.
+ */
+@Composable
+private fun crossfadePeriodContent(
+    targetPeriod: StatisticsPeriod,
+    settledPeriod: MutableState<StatisticsPeriod?>,
+    onSwitchPeriod: (StatisticsPeriod) -> Boolean,
+    onTransitionChanged: (inProgress: Boolean) -> Unit,
+): State<Float> {
+    val alpha = remember { Animatable(1f) }
+    val currentOnSwitchPeriod by rememberUpdatedState(onSwitchPeriod)
+    val currentOnTransitionChanged by rememberUpdatedState(onTransitionChanged)
+    // 첫 컴포지션에서는 이미 targetPeriod를 그리고 있으므로 전환하지 않는다.
+    var isFirstRun by remember { mutableStateOf(true) }
+    LaunchedEffect(targetPeriod) {
+        if (isFirstRun) {
+            isFirstRun = false
+            return@LaunchedEffect
+        }
+        // 연달아 바뀌어 이전 전환이 취소된 경우에도 고정은 이미 걸려 있으므로 그대로 이어 간다.
+        currentOnTransitionChanged(true)
+        alpha.animateTo(0f, tween(PERIOD_FADE_OUT_MS))
+        // 실제로 기간이 바뀌어 다시 불러오게 되면, A→B→A처럼 되돌아왔을 때 예전에 A로 기록된 값이
+        // 남아 있을 수 있으므로 비워 둔다. 페이드 아웃 도중 원래 기간으로 되돌아와 바뀌지 않았다면
+        // 기록을 그대로 두어, 이미 자리 잡았으면 곧바로, 이전 로딩이 진행 중이면 그 끝을 기다린다.
+        // (교체와 비우기 사이에 중단 지점이 없어 그 틈에 새 기록이 끼어들 수 없다.)
+        if (currentOnSwitchPeriod(targetPeriod)) settledPeriod.value = null
+        // 새 기간의 데이터가 들어와 스크롤이 제자리를 찾기를 기다린다.
+        val isSettled = { settledPeriod.value == targetPeriod }
+        val settledInTime = withTimeoutOrNull(PERIOD_LOAD_WAIT_MS) {
+            snapshotFlow(isSettled).first { it }
+        } != null
+        if (!settledInTime) {
+            // 로딩이 길어지면 스켈레톤이라도 먼저 보여 주고, 헤더 고정은 스크롤이 돌아올 때까지 유지한다.
+            alpha.animateTo(1f, tween(PERIOD_FADE_IN_MS))
+            snapshotFlow(isSettled).first { it }
+        }
+        // 되돌린 스크롤 위치로 목록이 한 번 배치되어야 헤더가 읽는 위치도 맞는다.
+        withFrameNanos { }
+        currentOnTransitionChanged(false)
+        alpha.animateTo(1f, tween(PERIOD_FADE_IN_MS))
+    }
+    return alpha.asState()
+}
+
+/** 이만큼 넘게 가로로 밀어야 달이 바뀐다. 세로 스크롤 중 살짝 흔들린 손가락에 반응하지 않도록 넉넉히 둔다. */
+private val MonthSwipeThreshold = 72.dp
+
+/**
+ * 본문을 좌우로 밀어 한 달씩 넘긴다. 왼쪽으로 밀면 다음 달, 오른쪽으로 밀면 이전 달(RTL에서는 반대).
+ * 가로 터치 슬롭을 넘겨야 제스처를 가져가므로 리스트의 세로 스크롤과 다투지 않는다.
+ * [onSwipe]에는 이전 달이면 -1, 다음 달이면 +1을 넘긴다. 범위를 벗어나는지는 호출하는 쪽이 판단한다.
+ */
+@Composable
+private fun Modifier.swipeToChangeMonth(onSwipe: (delta: Int) -> Unit): Modifier {
+    val currentOnSwipe by rememberUpdatedState(onSwipe)
+    val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+    val thresholdPx = with(LocalDensity.current) { MonthSwipeThreshold.toPx() }
+    return pointerInput(isRtl, thresholdPx) {
+        var dragX = 0f
+        detectHorizontalDragGestures(
+            onDragStart = { dragX = 0f },
+            onDragEnd = {
+                if (abs(dragX) >= thresholdPx) {
+                    val towardNext = (dragX < 0) != isRtl
+                    currentOnSwipe(if (towardNext) 1 else -1)
+                }
+            },
+            onHorizontalDrag = { change, amount ->
+                change.consume()
+                dragX += amount
+            },
+        )
+    }
+}
+
+/** 기간 전환 페이드([crossfadePeriodContent])를 따르는 항목. 기간에 따라 바뀌는 본문은 모두 이것으로 추가한다. */
+private fun LazyListScope.fadingItem(
+    key: Any,
+    content: @Composable () -> Unit,
+) {
+    item(key = key) {
+        val alpha = LocalStatisticsContentAlpha.current
+        Box(modifier = Modifier.graphicsLayer { this.alpha = alpha() }) {
+            content()
+        }
+    }
 }
 
 // region Tabs & selectors ----------------------------------------------------
 
+/** 플로팅 하단 탭과 내비게이션 바(또는 화면 아래 끝) 사이 간격. */
+private val BottomNavigationMargin = 12.dp
+
+/** 플로팅 하단 탭 알약과 그 안의 탭 사이 여백. 헤더의 탭 알약과 같은 값이다. */
+private val BottomNavigationRim = 5.dp
+
+/**
+ * 개요/리듬/기록 하단 탭. 화면 아래 가운데에 떠 있는 알약으로, 헤더 알약과 같은 블러 배경
+ * ([FloatingSurface])을 써서 아래로 지나가는 콘텐츠가 비쳐 보인다.
+ *
+ * 세로 화면에서는 콘텐츠가 내비게이션 바 영역까지 그려지므로 그만큼 띄운다. 알약의 실제 높이
+ * (아래 간격 제외)는 [onHeightChanged]로 알려, 목록이 마지막 카드를 이 탭 위까지 올릴 수 있게 한다(큰 글꼴에서도 맞도록
+ * 고정값 대신 측정값을 쓴다).
+ */
 @Composable
 private fun StatisticsBottomNavigation(
     selectedTab: StatisticsTab,
     onTabSelected: (StatisticsTab) -> Unit,
+    backdrop: BackdropState?,
+    onHeightChanged: (Dp) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    NavigationBar(containerColor = AppColor.surfaceElevated, tonalElevation = 0.dp) {
-        StatisticsTab.entries.forEach { tab ->
-            NavigationBarItem(
-                selected = tab == selectedTab,
-                onClick = { onTabSelected(tab) },
-                icon = {
-                    val icon = when (tab) {
-                        StatisticsTab.OVERVIEW -> Icons.Outlined.SpaceDashboard
-                        StatisticsTab.RHYTHM -> Icons.Outlined.BarChart
-                        StatisticsTab.RECORDS -> Icons.Outlined.History
-                    }
-                    Icon(icon, contentDescription = null)
-                },
-                label = { Text(stringResource(tab.titleRes), style = AppTypography.labelLarge) },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = AppColor.primary,
-                    selectedTextColor = AppColor.primary,
-                    indicatorColor = AppColor.primarySurface,
-                    unselectedIconColor = AppColor.onSurfaceVariant,
-                    unselectedTextColor = AppColor.onSurfaceVariant,
-                ),
-            )
+    val density = LocalDensity.current
+    val isPortrait = LocalConfiguration.current.isPortrait()
+    FloatingSurface(
+        modifier = modifier
+            .then(if (isPortrait) Modifier.navigationBarsPadding() else Modifier)
+            .padding(bottom = BottomNavigationMargin)
+            .onSizeChanged { onHeightChanged(with(density) { it.height.toDp() }) },
+        progress = 1f,
+        shape = FloatingHeaderShape,
+        backdrop = backdrop,
+    ) {
+        Row(
+            modifier = Modifier
+                .selectableGroup()
+                .padding(BottomNavigationRim),
+        ) {
+            StatisticsTab.entries.forEach { tab ->
+                StatisticsBottomNavigationItem(
+                    tab = tab,
+                    selected = tab == selectedTab,
+                    onClick = { onTabSelected(tab) },
+                )
+            }
         }
+    }
+}
+
+@Composable
+private fun StatisticsBottomNavigationItem(
+    tab: StatisticsTab,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    val ink by animateColorAsState(
+        if (selected) AppColor.primary else AppColor.onSurfaceVariant,
+        label = "bottomNavInk",
+    )
+    val indicator by animateColorAsState(
+        if (selected) AppColor.primarySurface else AppColor.primarySurface.copy(alpha = 0f),
+        label = "bottomNavIndicator",
+    )
+    Column(
+        modifier = Modifier
+            .clip(FloatingHeaderShape)
+            .background(indicator)
+            .selectable(selected = selected, role = Role.Tab, onClick = onClick)
+            .widthIn(min = 76.dp)
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        val icon = when (tab) {
+            StatisticsTab.OVERVIEW -> Icons.Outlined.SpaceDashboard
+            StatisticsTab.RHYTHM -> Icons.Outlined.BarChart
+            StatisticsTab.RECORDS -> Icons.Outlined.History
+        }
+        Icon(modifier = Modifier.size(22.dp), imageVector = icon, contentDescription = null, tint = ink)
+        Text(
+            modifier = Modifier.padding(top = 2.dp),
+            text = stringResource(tab.titleRes),
+            style = AppTypography.labelMedium,
+            color = ink,
+            maxLines = 1,
+        )
     }
 }
 
@@ -319,21 +697,6 @@ private fun StatisticsScopeCaption(modifier: Modifier = Modifier) {
         text = stringResource(id = R.string.stat_scope_overall),
         textAlign = TextAlign.Center,
         style = AppTypography.bodySmall.copy(color = AppColor.onSurface.copy(alpha = 0.5f)),
-    )
-}
-
-@Composable
-private fun StatisticsPeriodSelector(
-    modifier: Modifier = Modifier,
-    selectedPeriod: StatisticsPeriod,
-    onPeriodSelected: (StatisticsPeriod) -> Unit,
-) {
-    AppSegmentedControl(
-        modifier = modifier,
-        options = StatisticsPeriod.entries,
-        selected = selectedPeriod,
-        onSelected = onPeriodSelected,
-        label = { stringResource(it.titleRes()) },
     )
 }
 
@@ -355,12 +718,12 @@ private fun LazyListScope.statefulTab(
 ) {
     when {
         isLoading -> {
-            item(key = "skeleton_header") { SkeletonCard(height = 44.dp) }
-            item(key = "skeleton_1") { SkeletonCard(height = 120.dp) }
-            item(key = "skeleton_2") { SkeletonCard(height = 120.dp) }
+            fadingItem(key = "skeleton_header") { SkeletonCard(height = 44.dp) }
+            fadingItem(key = "skeleton_1") { SkeletonCard(height = 120.dp) }
+            fadingItem(key = "skeleton_2") { SkeletonCard(height = 120.dp) }
         }
 
-        isEmpty -> item(key = "empty") { EmptyHint(isOverall = isOverall) }
+        isEmpty -> fadingItem(key = "empty") { EmptyHint(isOverall = isOverall) }
 
         else -> content()
     }
@@ -419,9 +782,6 @@ private fun EmptyHint(
 /** 요약 탭(기간 기준): 요약 KPI + 계획대비 실제 + 회고 + 루프 순위. */
 private fun LazyListScope.summaryContent(
     stats: PeriodStats,
-    projection: MonthlyProjection,
-    habitHealth: List<HabitHealth>,
-    milestones: List<Milestone>,
     ranking: List<LoopWithStatistics>,
     sortOrder: RankingSortOrder,
     onSortSelected: (RankingSortOrder) -> Unit,
@@ -429,17 +789,7 @@ private fun LazyListScope.summaryContent(
     onToggleRanking: () -> Unit,
     onNavigateToDetailPage: (Int) -> Unit,
 ) {
-    if (hasInsights(projection, habitHealth, milestones)) {
-        item(key = "insight") {
-            InsightFeedSection(
-                projection = projection,
-                habitHealth = habitHealth,
-                milestones = milestones,
-            )
-        }
-    }
-
-    item(key = "summary") {
+    fadingItem(key = "summary") {
         SummarySection(
             summary = stats.summary,
             perfectDays = stats.perfectDays,
@@ -448,13 +798,13 @@ private fun LazyListScope.summaryContent(
     }
 
     if (stats.planVsActual.hasData) {
-        item(key = "planVsActual") {
+        fadingItem(key = "planVsActual") {
             PlanVsActualSection(stat = stats.planVsActual)
         }
     }
 
     if (stats.retrospect.hasData) {
-        item(key = "retrospect") {
+        fadingItem(key = "retrospect") {
             RetrospectSection(stat = stats.retrospect)
         }
     }
@@ -471,11 +821,11 @@ private fun LazyListScope.summaryContent(
 
 /** 패턴 탭(기간 기준): 시간대 히트맵 + 요일 꾸준함. */
 private fun LazyListScope.patternContent(stats: PeriodStats) {
-    item(key = "hourly") {
+    fadingItem(key = "hourly") {
         HourlyHeatmapSection(hourlyStats = stats.hourlyStats)
     }
 
-    item(key = "weekly") {
+    fadingItem(key = "weekly") {
         WeeklyConsistencySection(stats = stats.dayOfWeekStats)
     }
 }
@@ -486,13 +836,13 @@ private fun LazyListScope.trendContent(
     monthlyInvestedTimes: List<MonthlyInvestedTime>,
 ) {
     if (completionTrend.size >= 2) {
-        item(key = "trend") {
+        fadingItem(key = "trend") {
             CompletionTrendSection(points = completionTrend)
         }
     }
 
     if (monthlyInvestedTimes.isNotEmpty()) {
-        item(key = "monthly") {
+        fadingItem(key = "monthly") {
             MonthlyInvestedSection(monthlyInvestedTimes = monthlyInvestedTimes)
         }
     }
@@ -507,7 +857,7 @@ private fun LazyListScope.achievementContent(
     newLoopSettling: List<NewLoopSettling>,
 ) {
     if (hasInsights(projection, habitHealth, milestones)) {
-        item(key = "insight") {
+        fadingItem(key = "insight") {
             InsightFeedSection(
                 projection = projection,
                 habitHealth = habitHealth,
@@ -517,25 +867,25 @@ private fun LazyListScope.achievementContent(
     }
 
     if (streak.longest > 0) {
-        item(key = "streak") {
+        fadingItem(key = "streak") {
             StreakSection(streak = streak)
         }
     }
 
     if (milestones.isNotEmpty()) {
-        item(key = "milestones") {
+        fadingItem(key = "milestones") {
             MilestonesSection(milestones = milestones)
         }
     }
 
     if (habitHealth.isNotEmpty()) {
-        item(key = "health") {
+        fadingItem(key = "health") {
             HabitHealthSection(items = habitHealth)
         }
     }
 
     if (newLoopSettling.isNotEmpty()) {
-        item(key = "settling") {
+        fadingItem(key = "settling") {
             NewLoopSettlingSection(items = newLoopSettling)
         }
     }
@@ -1025,7 +1375,7 @@ private fun LazyListScope.rankingSection(
     // (개별 행을 LazyColumn 아이템으로 두면 섹션 간격이 행 사이에도 적용돼 여백이 과하게 벌어진다.)
     // 행 사이 간격은 카드 간격(cardSpacing)만 사용해 촘촘하게 유지한다.
     // 기본은 상위 N개만 접어 두고, 나머지는 '전체 보기'로 펼친다(긴 목록을 한 번에 렌더하지 않기 위함).
-    item(key = "ranking") {
+    fadingItem(key = "ranking") {
         Column(modifier = Modifier.fillMaxWidth()) {
             SectionHeader(
                 title = stringResource(id = R.string.stat_ranking),

@@ -86,7 +86,7 @@
     <string name="stat_ranking_sort_rate">Completion</string>
     <string name="stat_ranking_sort_time">Total time</string>
     <string name="stat_ranking_sort_count">Times done</string>
-    <string name="stat_empty">No statistics for this period yet.</string>
+    <string name="stat_empty">No records for this month.</string>
     <string name="stat_unit_count">%d times</string>
     <string name="stat_summary_invested">Total time</string>
     <string name="stat_streak">Streak</string>
@@ -132,7 +132,7 @@
     <!-- 주의가 필요한 루프의 대표 항목에서 상세로 이동하는 버튼 -->
     <string name="header_trend_check">Check</string>
     <string name="stat_monthly_invested">Monthly time</string>
-    <string name="stat_monthly_invested_desc">Time invested in loops each month (hours)</string>
+    <string name="stat_monthly_invested_desc">Time invested over the last 6 months (hours)</string>
     <!-- 투자 시간 표기 형식: 일/시간, 시간/분, 분 단위 -->
     <string name="stat_duration_dh">%1$dd %2$dh</string>
     <string name="stat_duration_hm">%1$dh %2$dm</string>
@@ -180,7 +180,7 @@
 
     <!-- Completion trend -->
     <string name="stat_trend_title">Completion trend</string>
-    <string name="stat_trend_desc">Monthly completion rate</string>
+    <string name="stat_trend_desc">Monthly completion rate over the last 6 months</string>
 
     <!-- Hourly heatmap -->
     <string name="stat_hourly_title">Completion by hour</string>

@@ -96,16 +96,24 @@ fun rememberListCollapseProgress(
 
 /**
  * 정방향 리스트의 접힘 진행도. 기준점은 최상단(인덱스 0)이며, 최상단 항목이 위로 스크롤된
- * 픽셀만큼 접힌다. 다른 항목으로 넘어가면(인덱스 0을 벗어나면) 완전히 접힌 것(1f)으로 본다.
+ * 픽셀만큼 접힌다.
+ *
+ * `firstVisibleItemIndex`만 보면 최상단 항목이 높이 0이거나(예: 평소엔 아무것도 그리지 않는
+ * 홈의 알림 상태 카드) 접힘 거리보다 작을 때, 1px만 스크롤해도 인덱스가 넘어가 곧바로 1f로
+ * 튄다. 그래서 인덱스 0 항목의 실제 위치(offset)로 스크롤된 거리를 잰다. 펼침 상태에서 이
+ * 항목의 offset은 0이고, 위로 스크롤된 만큼 음수가 된다. 상단 contentPadding 영역에 걸친
+ * 항목도 배치되므로 접히는 동안에는 이 항목이 visibleItemsInfo에 남아 있다. 인덱스 0 항목이
+ * 화면에서 완전히 사라지면 완전히 접힌 것(1f)으로 본다.
  */
 private fun forwardCollapseProgress(
     lazyListState: LazyListState,
     collapseDistancePx: Float,
 ): Float {
-    val scrolled = if (lazyListState.firstVisibleItemIndex != 0) {
-        collapseDistancePx
-    } else {
-        lazyListState.firstVisibleItemScrollOffset.toFloat()
+    val firstItem = lazyListState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == 0 }
+    val scrolled = when {
+        firstItem != null -> -firstItem.offset.toFloat()
+        lazyListState.firstVisibleItemIndex != 0 -> collapseDistancePx
+        else -> lazyListState.firstVisibleItemScrollOffset.toFloat()
     }
     return (scrolled / collapseDistancePx).coerceIn(0f, 1f)
 }

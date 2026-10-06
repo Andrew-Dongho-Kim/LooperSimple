@@ -5,7 +5,6 @@ import com.pnd.android.loop.data.*
 import com.pnd.android.loop.data.history.LoopHistoryRepository
 import com.pnd.android.loop.data.history.LoopHistorySnapshot
 import com.pnd.android.loop.data.history.ResolvedLoopDay
-import com.pnd.android.loop.util.toLocalDate
 import com.pnd.android.loop.util.todayFlow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDate
@@ -15,23 +14,28 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 
 @HiltViewModel
 class StatisticsViewModel @Inject constructor(
     private val histories: LoopHistoryRepository,
 ) : ViewModel() {
+    private val enabledHistories = histories.snapshots.map { it.forStatistics() }
+
     private fun <T> observe(calculate: (LoopHistorySnapshot, LocalDate) -> T): Flow<T> =
-        combine(histories.snapshots, todayFlow(), calculate).flowOn(Dispatchers.Default)
+        combine(enabledHistories, todayFlow(), calculate).flowOn(Dispatchers.Default)
 
     private fun LoopHistorySnapshot.periodDays(period: StatisticsPeriod, today: LocalDate): List<ResolvedLoopDay> =
-        settled(maxOf(firstDate ?: today, period.from(today).toLocalDate()), period.to(today).toLocalDate(), today)
+        settled(period.from(firstDate ?: today), period.to(today), today)
 
     val hasEstimatedHistory = observe { snapshot, _ -> snapshot.hasEstimatedHistory }
 
+    val availableMonths = observe { snapshot, today -> statisticsMonthRange(snapshot.firstDate, today) }
+
     fun flowPeriodStats(period: StatisticsPeriod): Flow<PeriodStats> = observe { snapshot, today ->
         val allDays = snapshot.days(
-            maxOf(snapshot.firstDate ?: today, period.from(today).toLocalDate()),
-            minOf(today, period.to(today).toLocalDate()),
+            period.from(snapshot.firstDate ?: today),
+            period.to(today),
         )
         computePeriodStats(allDays.filter { it.isSettled(today) }.map { it.asResponseRecord() })
             .copy(perfectDays = allDays.filter { it.hasOccurrence }.groupBy { it.date }
@@ -106,3 +110,7 @@ class StatisticsViewModel @Inject constructor(
         computeStreak(dates, today)
     }
 }
+
+/** 통계 화면에서는 현재 활성화된 루프의 기록만 집계한다. */
+internal fun LoopHistorySnapshot.forStatistics(): LoopHistorySnapshot =
+    LoopHistorySnapshot(timelines.filter { it.current.enabled }.map { it.history })

@@ -10,7 +10,6 @@ import com.pnd.android.loop.data.MonthlyCompletionCount
 import com.pnd.android.loop.data.NewLoopRecord
 import com.pnd.android.loop.state.isDone
 import com.pnd.android.loop.state.isSkip
-import com.pnd.android.loop.util.ABB_MONTHS
 import com.pnd.android.loop.util.MS_1DAY
 import com.pnd.android.loop.util.MS_1HOUR
 import com.pnd.android.loop.util.dayForLoop
@@ -22,39 +21,24 @@ import java.time.YearMonth
 import java.time.temporal.ChronoUnit
 import kotlin.math.roundToInt
 
-/**
- * Time range that every section of the statistics screen is scoped to.
- *
- * Each entry knows how to label itself ([titleRes]) and how to resolve its
- * inclusive [from]..[to] millisecond range against "today", so the UI only ever
- * deals with the high-level concept and never recomputes month boundaries.
- */
-enum class StatisticsPeriod(
-    @StringRes private val titleRes: Int? = null,
-    private val monthOffset: Int? = null,
-) {
-    TOTAL(titleRes = R.string.total),
-    THIS_MONTH(monthOffset = 0),
-    LAST_MONTH(monthOffset = 1),
-    TWO_MONTHS_AGO(monthOffset = 2);
+/** 개요·리듬의 조회 기간. 월은 상대 오프셋 대신 연·월로 저장한다. */
+sealed interface StatisticsPeriod {
+    data object Total : StatisticsPeriod
+    data class Month(val yearMonth: YearMonth) : StatisticsPeriod
 
-    @StringRes
-    fun titleRes(today: LocalDate = LocalDate.now()): Int =
-        titleRes ?: ABB_MONTHS[today.minusMonths(monthOffset!!.toLong()).monthValue - 1]
-
-    fun from(today: LocalDate = LocalDate.now()): Long = when (monthOffset) {
-        null -> 0L
-        else -> today.minusMonths(monthOffset.toLong()).withDayOfMonth(1).toMs()
+    fun from(firstDate: LocalDate): LocalDate = when (this) {
+        Total -> firstDate
+        is Month -> maxOf(firstDate, yearMonth.atDay(1))
     }
 
-    fun to(today: LocalDate = LocalDate.now()): Long = when (monthOffset) {
-        null, 0 -> today.toMs()
-        else -> {
-            val month = today.minusMonths(monthOffset.toLong())
-            month.withDayOfMonth(month.lengthOfMonth()).toMs()
-        }
+    fun to(today: LocalDate): LocalDate = when (this) {
+        Total -> today
+        is Month -> minOf(today, yearMonth.atEndOfMonth())
     }
 }
+
+internal fun statisticsMonthRange(firstDate: LocalDate?, today: LocalDate): ClosedRange<YearMonth> =
+    YearMonth.from(minOf(firstDate ?: today, today))..YearMonth.from(today)
 
 /**
  * Headline numbers shown in the KPI cards at the top of the screen.
@@ -134,17 +118,17 @@ data class DayOfWeekStat(
  * 통계 화면 상단 탭. 지표가 많아 한 화면에 다 담으면 스크롤이 과해지므로 목적별로 나눈다.
  *
  * 탭은 "기간 선택에 반응하는가([usesPeriod])"를 기준으로 두 묶음으로 배치한다.
- * - 앞의 두 탭(요약·패턴)은 상단 기간 선택기의 영향을 받는 지표만 담는다.
- * - 뒤의 두 탭(추세·성취)은 기간과 무관하게 전체·최근 흐름을 보는 지표만 담는다.
+ * - 개요는 기간과 무관하게 전체·최근 흐름(추세·인사이트·성취)을 보는 지표만 담는다.
+ * - 리듬·기록은 상단 기간 선택기의 영향을 받는 지표만 담는다(기록 = 요약 KPI와 루프 순위).
  * 이렇게 스코프가 섞이지 않게 해, 사용자가 "지금 보는 값이 어떤 기간인지" 헷갈리지 않게 한다.
  */
 enum class StatisticsTab(
     @StringRes val titleRes: Int,
     val usesPeriod: Boolean,
 ) {
-    OVERVIEW(R.string.stat_tab_overview, usesPeriod = true),
+    OVERVIEW(R.string.stat_tab_overview, usesPeriod = false),
     RHYTHM(R.string.stat_tab_rhythm, usesPeriod = true),
-    RECORDS(R.string.stat_tab_records, usesPeriod = false),
+    RECORDS(R.string.stat_tab_records, usesPeriod = true),
 }
 
 /**

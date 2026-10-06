@@ -85,7 +85,7 @@
     <string name="stat_ranking_sort_rate">완료율</string>
     <string name="stat_ranking_sort_time">누적 시간</string>
     <string name="stat_ranking_sort_count">완료 횟수</string>
-    <string name="stat_empty">아직 이 기간의 통계가 없습니다.</string>
+    <string name="stat_empty">이 달에는 기록이 없어요.</string>
     <string name="stat_unit_count">%d회</string>
     <string name="stat_summary_invested">투자 시간</string>
     <string name="stat_streak">연속 달성</string>
@@ -131,7 +131,7 @@
     <!-- 주의가 필요한 루프의 대표 항목에서 상세로 이동하는 버튼 -->
     <string name="header_trend_check">확인하기</string>
     <string name="stat_monthly_invested">월별 투자 시간</string>
-    <string name="stat_monthly_invested_desc">월별로 루프에 투자한 시간 (시간 단위)</string>
+    <string name="stat_monthly_invested_desc">최근 6개월 동안 루프에 투자한 시간 (시간 단위)</string>
     <!-- 투자 시간 표기 형식: 일/시간, 시간/분, 분 단위 -->
     <string name="stat_duration_dh">%1$d일 %2$d시간</string>
     <string name="stat_duration_hm">%1$d시간 %2$d분</string>
@@ -179,7 +179,7 @@
 
     <!-- 완료율 추세 -->
     <string name="stat_trend_title">완료율 추세</string>
-    <string name="stat_trend_desc">월별 완료율 변화</string>
+    <string name="stat_trend_desc">최근 6개월의 월별 완료율 변화</string>
 
     <!-- 시간대별 완료 -->
     <string name="stat_hourly_title">시간대별 완료</string>

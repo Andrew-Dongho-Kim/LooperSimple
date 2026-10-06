@@ -797,7 +797,7 @@ private fun LazyListScope.sectionAll(
         ) {
             var isExpanded by section.isExpanded
             // "언제부터 비활성인지"는 done 이력에서 유도하므로 함께 전달한다.
-            val doneHistory by loopViewModel.allDoneHistory.collectAsState(initial = emptyMap())
+            val doneHistory by loopViewModel.allDoneHistory.collectAsState()
             DisabledLoopsCard(
                 modifier = Modifier.padding(
                     horizontal = Dimens.screenHorizontalPadding,
@@ -834,7 +834,7 @@ private fun LazyListScope.sectionAllHistoryGrid(
         key = section.key,
     ) {
         val loops by section.items
-        val doneHistory by loopViewModel.allDoneHistory.collectAsState(initial = emptyMap())
+        val doneHistory by loopViewModel.allDoneHistory.collectAsState()
         AllDoneHistoryGrid(
             modifier = Modifier.padding(
                 horizontal = Dimens.screenHorizontalPadding,

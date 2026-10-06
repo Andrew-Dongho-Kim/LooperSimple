@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stat_period_monthly">월별</string>
+    <string name="stat_period_all">전체 기간</string>
+    <string name="stat_period_all_description">첫 기록부터 오늘까지</string>
+    <string name="stat_choose_month">조회할 월</string>
+    <string name="stat_month_picker_close">월 선택 닫기</string>
+    <string name="stat_this_month">이번 달</string>
+    <string name="stat_previous_year">이전 연도</string>
+    <string name="stat_next_year">다음 연도</string>
+    <string name="stat_year">%1$d년</string>
+    <string name="stat_period_current_range">%1$s 1일~%2$d일 · 오늘까지</string>
+    <string name="stat_period_month_range">%1$s 1일~%2$d일</string>
+    <string name="stat_available_months">조회 가능 · %1$s ~ %2$s</string>
+    <!-- 월별 탭 라벨: 올해가 아닌 월. %1$d = 두 자리 연도, %2$s = 월 이름 -->
+    <string name="stat_tab_month_other_year">%1$02d년 %2$s</string>
+    <!-- 월별 탭의 낭독 문구. %1$s = 선택한 연월 -->
+    <string name="stat_tab_month_description">월별, %1$s</string>
+</resources>
