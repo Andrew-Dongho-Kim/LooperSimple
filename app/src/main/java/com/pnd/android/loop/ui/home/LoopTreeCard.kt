@@ -1,7 +1,5 @@
 package com.pnd.android.loop.ui.home
 
-import android.graphics.BitmapFactory
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -12,21 +10,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -34,8 +27,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -45,13 +36,13 @@ import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.onSurface
 
-private val treeArt = listOf(
+internal val treeArt = listOf(
     R.drawable.loop_tree_01, R.drawable.loop_tree_02, R.drawable.loop_tree_03,
     R.drawable.loop_tree_04, R.drawable.loop_tree_05, R.drawable.loop_tree_06,
     R.drawable.loop_tree_07, R.drawable.loop_tree_08, R.drawable.loop_tree_09,
     R.drawable.loop_tree_10,
 )
-private val rewardNames = listOf(
+internal val rewardNames = listOf(
     R.string.tree_reward_light, R.string.tree_reward_fireflies, R.string.tree_reward_flowers,
     R.string.tree_reward_butterflies, R.string.tree_reward_aurora,
 )
@@ -113,51 +104,5 @@ fun LoopTreeCard(
                 Modifier.size(20.dp), tint = subtle)
         }
     }
-    if (showGuide) TreeGuide { showGuide = false }
-}
-
-@Composable
-private fun TreeGuide(onDismiss: () -> Unit) {
-    AlertDialog(onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.tree_guide_title)) },
-        text = {
-            Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(stringResource(R.string.tree_guide_growth))
-                repeat(2) { row ->
-                    Row(Modifier.fillMaxWidth()) {
-                        repeat(5) { column ->
-                            val index = row * 5 + column
-                            Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                                TreeThumbnail(index)
-                                Text("${index + 1}", style = AppTypography.labelSmall)
-                                Text(if (index == 9) "90–100%" else "${index * 10}–${index * 10 + 9}%",
-                                    style = AppTypography.labelSmall)
-                            }
-                        }
-                    }
-                }
-                Text(stringResource(R.string.tree_guide_rewards))
-                treeRewards.forEach { reward ->
-                    Text(stringResource(R.string.tree_reward_requirement, reward.level,
-                        stringResource(rewardNames[reward.level - 1]), reward.minimumPercent, reward.days),
-                        style = AppTypography.bodySmall)
-                }
-                Text(stringResource(R.string.tree_guide_rules), style = AppTypography.bodySmall)
-            }
-        },
-        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.tree_guide_close)) } },
-    )
-}
-
-/** The guide needs tiny previews, not ten full-resolution decoded bitmaps in memory. */
-@Composable
-private fun TreeThumbnail(index: Int) {
-    val resources = LocalContext.current.resources
-    val bitmap = remember(index, resources) {
-        BitmapFactory.decodeResource(resources, treeArt[index], BitmapFactory.Options().apply {
-            inSampleSize = 8
-        }).asImageBitmap()
-    }
-    Image(bitmap, null, Modifier.height(52.dp).fillMaxWidth())
+    if (showGuide) TreeGuide(stage, vitality) { showGuide = false }
 }

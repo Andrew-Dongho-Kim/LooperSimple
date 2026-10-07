@@ -600,4 +600,24 @@
     <string name="water_title">Today’s water tank</string>
     <string name="water_completed">%1$d / %2$d completed</string>
     <string name="water_tree_connection">Today’s effort helps your tree grow in All.</string>
+    <string name="tree_preview_hint">Browse all 10 trees and 5 animated effects, including effects you have not earned. These preview choices do not change your records.</string>
+    <string name="tree_preview_combination">Stage %1$d · %2$s</string>
+    <string name="tree_preview_no_effect">No special effects</string>
+    <string name="tree_preview_current">My current tree</string>
+    <string name="tree_preview_growth_tab">Tree growth</string>
+    <string name="tree_preview_effect_tab">Special effects</string>
+    <string name="tree_preview_range">%1$d–%2$d%% completion</string>
+    <string name="tree_preview_formula">Completion rate = completed tasks ÷ all scheduled tasks in the period. Skipped and unanswered tasks lower the rate. Finish tasks and mark them complete to help the tree grow.</string>
+    <string name="tree_preview_effect_help">Effects build on earlier levels. Tree growth and sustained days are calculated separately, so you can preview any combination.</string>
+    <string name="tree_preview_earned">Earned · included in your current effects</string>
+    <string name="tree_preview_progress">Maintained %1$d / %2$d active days · %3$d more needed</string>
+    <string name="tree_preview_how_to">How to earn the effects</string>
+    <string name="tree_preview_actions">Complete and record your scheduled tasks consistently. For example, the first effect requires a rolling completion rate of at least 60% on 7 active days. The 7 days are days with scheduled tasks, not calendar days. Higher effects require the rate and active days listed above.</string>
+    <string name="tree_preview_light">Sunlight sweeps gently while pollen drifts through the air.</string>
+    <string name="tree_preview_fireflies">Fireflies weave along different paths and glow at their own pace.</string>
+    <string name="tree_preview_flowers">Flowers sway in the breeze and petals flutter above the garden.</string>
+    <string name="tree_preview_butterflies">Butterflies flap, fly short curves, and linger near the tree.</string>
+    <string name="tree_preview_aurora">Layers of aurora flow and ripple behind the crown.</string>
+    <string name="tree_preview_previous">Previous tree</string>
+    <string name="tree_preview_next">Next tree</string>
 </resources>

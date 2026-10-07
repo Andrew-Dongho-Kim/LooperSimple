@@ -591,4 +591,24 @@
     <string name="water_title">오늘의 물탱크</string>
     <string name="water_completed">%1$d / %2$d 완료</string>
     <string name="water_tree_connection">오늘의 실천이 전체 탭의 나무를 키워요</string>
+    <string name="tree_preview_hint">10단계 나무와 5단계 애니메이션 효과를 모두 미리 볼 수 있어요. 아직 달성하지 않은 효과도 선택할 수 있으며, 미리보기는 실제 기록에 영향을 주지 않아요.</string>
+    <string name="tree_preview_combination">나무 %1$d단계 · %2$s</string>
+    <string name="tree_preview_no_effect">특별 효과 없음</string>
+    <string name="tree_preview_current">현재 상태로 보기</string>
+    <string name="tree_preview_growth_tab">나무 성장</string>
+    <string name="tree_preview_effect_tab">특별 효과</string>
+    <string name="tree_preview_range">달성률 %1$d–%2$d%%</string>
+    <string name="tree_preview_formula">달성률은 기간 내 완료한 할 일 ÷ 예정된 전체 할 일이에요. 건너뛰거나 응답하지 않은 할 일은 달성률을 낮춰요. 할 일을 마치고 완료로 기록하면 나무가 자라요.</string>
+    <string name="tree_preview_effect_help">효과는 이전 단계와 함께 누적돼요. 나무 성장과 유지 일수는 따로 계산되므로 원하는 나무와 효과를 자유롭게 조합해 볼 수 있어요.</string>
+    <string name="tree_preview_earned">달성 완료 · 현재 효과에 포함돼요</string>
+    <string name="tree_preview_progress">현재 유지 %1$d / %2$d활동일 · 앞으로 %3$d활동일</string>
+    <string name="tree_preview_how_to">어떻게 달성하나요?</string>
+    <string name="tree_preview_actions">예정된 할 일을 꾸준히 완료하고 기록하세요. 첫 효과는 최근 30일 달성률을 60% 이상으로 7활동일 유지하면 나타나요. 여기서 7일은 달력의 7일이 아니라 할 일이 예정된 날 7일이에요. 상위 효과는 위에 표시된 달성률과 활동일을 유지하면 얻을 수 있어요.</string>
+    <string name="tree_preview_light">햇살이 부드럽게 움직이고 꽃가루가 빛을 따라 흘러요.</string>
+    <string name="tree_preview_fireflies">반딧불이 서로 다른 경로로 날아다니며 반짝여요.</string>
+    <string name="tree_preview_flowers">꽃대가 바람에 흔들리고 꽃잎이 정원 위로 날려요.</string>
+    <string name="tree_preview_butterflies">나비가 날갯짓하며 곡선을 따라 날고 나무 곁에 잠시 머물러요.</string>
+    <string name="tree_preview_aurora">나무 뒤에서 오로라의 빛결이 겹쳐 흐르고 물결쳐요.</string>
+    <string name="tree_preview_previous">이전 나무</string>
+    <string name="tree_preview_next">다음 나무</string>
 </resources>
