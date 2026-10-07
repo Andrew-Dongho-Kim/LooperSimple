@@ -177,8 +177,8 @@ fun AllDoneHistoryGrid(
     loops: List<LoopBase>,
     doneHistory: Map<Int, Map<Long, Int>>,
 ) {
-    // 입력 중인 임시(mock) 루프는 기록이 없으므로 그리드에서 제외한다.
-    val gridLoops = remember(loops) { loops.filter { !it.isMock } }
+    // 비활성화된 루프와 기록이 없는 입력 중인 임시(mock) 루프는 그리드에서 제외한다.
+    val gridLoops = remember(loops) { loops.filter { it.enabled && !it.isMock } }
     if (gridLoops.isEmpty()) {
         AllHistoryEmpty(modifier = modifier)
         return

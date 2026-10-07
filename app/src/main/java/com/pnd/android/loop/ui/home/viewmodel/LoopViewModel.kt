@@ -20,6 +20,8 @@ import com.pnd.android.loop.data.isRespond
 import com.pnd.android.loop.state.DoneState
 import com.pnd.android.loop.ui.home.RecentLoopCompletion
 import com.pnd.android.loop.ui.home.computeRecentLoopCompletion
+import com.pnd.android.loop.ui.home.TreeVitality
+import com.pnd.android.loop.ui.home.computeTreeVitality
 import com.pnd.android.loop.ui.statisctics.DayOfWeekStat
 import com.pnd.android.loop.ui.statisctics.StreakStat
 import com.pnd.android.loop.ui.statisctics.computeStreak
@@ -156,10 +158,17 @@ class LoopViewModel @Inject constructor(
      *    있는 occurrence 를 아직 답하지 않았어도 모두 센다([countTodayProgress]). 덕분에 시작
      *    시각이 없는 anytime 루프도 오늘 수치에 들어온다.
      */
-    val overallRates: Flow<LoopRates> = loopRepository.recentSettledDays.map(::ratesFor)
-    val todayRates: Flow<LoopRates> = loopRepository.todayOccurrences.map { days ->
+    val overallRates: StateFlow<LoopRates> = loopRepository.recentSettledDays.map(::ratesFor)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), LoopRates.Empty)
+    val treeVitality: StateFlow<TreeVitality> = combine(
+        loopRepository.historyRepository.snapshots, localDate,
+    ) { snapshot, today -> computeTreeVitality(snapshot, today) }
+        .flowOn(Dispatchers.Default)
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), TreeVitality())
+    val todayRates: StateFlow<LoopRates> = loopRepository.todayOccurrences.map { days ->
         LoopRates(countTodayProgress(days.map { it.response.done }))
-    }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), LoopRates.Empty)
 
     /** 완료율을 보여 주는 화면이 "추정 기록 포함"을 고지할지. */
     val hasEstimatedHistory: Flow<Boolean> = loopRepository.hasEstimatedHistory

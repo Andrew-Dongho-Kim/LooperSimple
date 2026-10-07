@@ -182,7 +182,7 @@ private fun LazyListScope.sectionHeader(
         LoopHeaderCard(
             modifier = Modifier.padding(
                 horizontal = Dimens.screenHorizontalPadding,
-                vertical = Dimens.contentPadding,
+                vertical = if (selectedTab == HomeTab.TODAY) 8.dp else Dimens.contentPadding,
             ),
             loopViewModel = loopViewModel,
             selectedTab = selectedTab,
