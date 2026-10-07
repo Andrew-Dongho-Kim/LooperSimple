@@ -35,7 +35,6 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.rotate
@@ -61,24 +60,34 @@ internal fun LoopTreeScene(tree: Int, rewardLevel: Int, description: String, mod
     val level = rewardLevel.coerceIn(0, 5)
     val time = rememberGardenTime(level > 0)
     // Load only unlocked art. Downsample effect overlays rather than decoding four full-size PNGs.
-    val sunlight = if (level >= 1) effectBitmap(R.drawable.loop_effect_sunlight) else null
-    val flowers = if (level >= 3) effectBitmap(R.drawable.loop_effect_flowers) else null
-    val butterfly = if (level >= 4) effectBitmap(R.drawable.loop_effect_butterfly) else null
-    val aurora = if (level >= 5) effectBitmap(R.drawable.loop_effect_aurora) else null
+    val sunlight = if (level >= 1) effectBitmap(R.drawable.loop_toy_effect_sunlight) else null
+    val firefly = if (level >= 2) effectBitmap(R.drawable.loop_toy_effect_firefly) else null
+    val flowers = if (level >= 3) effectBitmap(R.drawable.loop_toy_effect_flowers) else null
+    val petal = if (level >= 3) effectBitmap(R.drawable.loop_toy_effect_petal) else null
+    val butterfly = if (level >= 4) effectBitmap(R.drawable.loop_toy_effect_butterfly) else null
+    val aurora = if (level >= 5) effectBitmap(R.drawable.loop_toy_effect_aurora) else null
     val mesh = remember { FloatArray((16 + 1) * (8 + 1) * 2) }
     val meshPaint = remember { Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG) }
+    val sunlightMask = remember {
+        Brush.radialGradient(0f to Color.Black, 0.50f to Color.Black, 1f to Color.Transparent)
+    }
     BoxWithConstraints(modifier.clipToBounds(), contentAlignment = Alignment.Center) {
         val side = minOf(maxWidth, maxHeight)
         androidx.compose.foundation.layout.Box(Modifier.size(side)) {
             Canvas(Modifier.fillMaxSize().softAtmosphereEdges()) {
                 val seconds = time.value
                 sunlight?.let {
+                    // Feather only the sunbeams. Aurora must remain visible around the outer crown.
+                    val canvas = drawContext.canvas.nativeCanvas
+                    val layer = canvas.saveLayer(0f, 0f, size.width, size.height, null)
                     rotate(wave(seconds, 8f) * 5f, Offset.Zero) {
                         translate(wave(seconds, 12f) * size.width * 0.045f,
                             wave(seconds + 2f, 8f) * size.height * 0.025f) {
                             drawArt(it, alpha = (if (level >= 5) 0.30f else 0.54f) + wave(seconds, 6f) * 0.20f)
                         }
                     }
+                    drawRect(sunlightMask, blendMode = BlendMode.DstIn)
+                    canvas.restoreToCount(layer)
                     drawPollen(seconds)
                 }
                 aurora?.let {
@@ -91,20 +100,20 @@ internal fun LoopTreeScene(tree: Int, rewardLevel: Int, description: String, mod
                             alpha = 0.22f - drift * 0.08f)
                     }
                 }
-                if (level >= 2) drawFireflies(seconds, level, behind = true)
+                firefly?.let { drawFireflies(it, seconds, level, behind = true) }
             }
             Image(painterResource(tree), description, Modifier.fillMaxSize())
             Canvas(Modifier.fillMaxSize()) {
                 val seconds = time.value
                 flowers?.let {
                     // Anchor the breeze at the soil, so the flower bed never floats off the mound.
-                    val width = size.width * 0.82f
-                    translate((size.width - width) / 2, size.height - width) {
-                        drawLivingArt(it, seconds, mesh, meshPaint, flowers = true, side = width)
+                    val side = size.width * 0.82f
+                    translate((size.width - side) / 2, size.height - side) {
+                        drawLivingArt(it, seconds, mesh, meshPaint, flowers = true, side = side)
                     }
-                    drawPetals(seconds)
+                    petal?.let { sprite -> drawPetals(sprite, seconds) }
                 }
-                if (level >= 2) drawFireflies(seconds, level, behind = false)
+                firefly?.let { drawFireflies(it, seconds, level, behind = false) }
                 butterfly?.let { drawButterflies(it, seconds) }
             }
         }
@@ -162,7 +171,7 @@ private fun rememberGardenTime(hasReward: Boolean): State<Float> {
 
 private fun wave(seconds: Float, period: Float): Float = sin(seconds * (2 * PI).toFloat() / period)
 
-/** Deform the original painted texture, rather than replacing it with flat animated shapes. */
+/** Keep sculpted flowers grounded; only the translucent aurora uses a wider travelling wave. */
 private fun DrawScope.drawLivingArt(
     bitmap: ImageBitmap, seconds: Float, vertices: FloatArray, paint: Paint,
     flowers: Boolean, side: Float = size.width, alpha: Float = 1f,
@@ -174,9 +183,9 @@ private fun DrawScope.drawLivingArt(
         // Root pixels stay planted; each stem bends with a different travelling breeze.
         val weight = if (flowers) ((0.94f - v) / 0.32f).coerceIn(0f, 1f) else 1f
         val phase = seconds + u * (if (flowers) 3f else 5f)
-        val dx = if (flowers) wave(phase, 4f) * 0.028f else
+        val dx = if (flowers) wave(phase, 4f) * 0.018f else
             wave(phase + v * 2f, 8f) * 0.055f
-        val dy = if (flowers) wave(phase, 6f) * 0.008f else
+        val dy = if (flowers) wave(phase, 6f) * 0.005f else
             wave(phase + v * 3f, 12f) * 0.045f
         vertices[index++] = side * (u + dx * weight)
         vertices[index++] = side * (v + dy * weight)
@@ -196,13 +205,7 @@ private fun DrawScope.drawPollen(seconds: Float) {
     }
 }
 
-private fun DrawScope.drawPetals(seconds: Float) {
-    val petal = Path().apply {
-        moveTo(0f, -1f)
-        cubicTo(1.1f, -0.5f, 0.8f, 0.8f, 0f, 1f)
-        cubicTo(-0.8f, 0.5f, -0.6f, -0.7f, 0f, -1f)
-        close()
-    }
+private fun DrawScope.drawPetals(bitmap: ImageBitmap, seconds: Float) {
     repeat(6) { i ->
         val period = if (i % 2 == 0) 8f else 12f
         val progress = ((seconds + i * 2.3f) % period) / period
@@ -211,11 +214,9 @@ private fun DrawScope.drawPetals(seconds: Float) {
         val alpha = sin(progress * PI).toFloat() * 0.78f
         translate(center.x, center.y) {
             rotate(progress * 270f + i * 35f, Offset.Zero) {
-                scale(size.width * 0.009f * (0.6f + abs(wave(seconds + i, 2f)) * 0.4f),
-                    size.width * 0.014f, Offset.Zero) {
-                    drawPath(petal, Brush.linearGradient(listOf(
-                        Color(0xFFFFF3DE).copy(alpha = alpha), Color(0xFFF1B7AB).copy(alpha = alpha)),
-                        Offset(-1f, -1f), Offset(1f, 1f)))
+                scale(0.65f + abs(wave(seconds + i, 2f)) * 0.35f, 1f, Offset.Zero) {
+                    val side = size.width * 0.045f
+                    drawArt(bitmap, side, Offset(-side / 2, -side / 2), alpha)
                 }
             }
         }
@@ -235,7 +236,7 @@ private fun DrawScope.drawArt(
     }
 }
 
-private fun DrawScope.drawFireflies(seconds: Float, level: Int, behind: Boolean) {
+private fun DrawScope.drawFireflies(bitmap: ImageBitmap, seconds: Float, level: Int, behind: Boolean) {
     // Sparse, asynchronous paths and soft light cores; higher rewards retain a quieter lower layer.
     val count = if (level >= 4) 5 else 7
     repeat(count) { index ->
@@ -247,13 +248,15 @@ private fun DrawScope.drawFireflies(seconds: Float, level: Int, behind: Boolean)
         val y = size.height * (0.24f + (index * 19 % 55) / 100f + wave(t + 3f, period) * 0.09f)
         val center = Offset(x, y)
         val glow = 0.32f + (wave(t, if (index % 2 == 0) 6f else 8f) + 1f) * 0.28f
-        val radius = size.width * 0.026f
+        val radius = size.width * 0.045f
         drawCircle(Brush.radialGradient(listOf(
             Color(0xFFFFE6A0).copy(alpha = glow * 0.60f),
             Color(0xFFFFD46C).copy(alpha = glow * 0.12f), Color.Transparent), center, radius),
             radius, center)
-        drawCircle(Color(0xFFFFF5CD).copy(alpha = glow), size.width * 0.005f, center)
-        drawCircle(Color.White.copy(alpha = glow * 0.70f), size.width * 0.002f, center)
+        val side = size.width * 0.065f
+        rotate(wave(t + 1f, period) * 18f, center) {
+            drawArt(bitmap, side, center - Offset(side / 2, side / 2), 0.65f + glow * 0.35f)
+        }
     }
 }
 
@@ -267,13 +270,29 @@ private fun DrawScope.drawButterflies(bitmap: ImageBitmap, seconds: Float) {
             size.width * (if (index == 0) 0.25f else 0.76f) + wave(t, period) * size.width * 0.065f * flight,
             size.height * (if (index == 0) 0.61f else 0.40f) - flight * size.height * 0.10f,
         )
-        val side = size.width * (if (index == 0) 0.135f else 0.115f)
+        val side = size.width * (if (index == 0) 0.16f else 0.14f)
         val flap = abs(wave(t, 0.8f))
-        val wingWidth = 0.38f + 0.62f * (if (flight < 0.08f) 0.85f else flap)
+        val wingWidth = 0.40f + 0.60f * (if (flight < 0.08f) 0.85f else flap)
         rotate(wave(t + 2f, period) * 14f, center) {
-            scale(wingWidth, 1f, pivot = center) {
-                drawArt(bitmap, side, center - Offset(side / 2, side / 2))
-            }
+            // Pin the body: each wing hinges at its inner edge, preserving the toy's proportions.
+            drawButterflyWings(bitmap, side, center, wingWidth)
         }
     }
+}
+
+private fun DrawScope.drawButterflyWings(bitmap: ImageBitmap, side: Float, center: Offset, flap: Float) {
+    val bodyLeft = (bitmap.width * 0.42f).roundToInt()
+    val bodyRight = (bitmap.width * 0.58f).roundToInt()
+    fun part(left: Int, right: Int, x: Float, width: Float) {
+        translate(x, center.y - side / 2) {
+            drawImage(bitmap, srcOffset = IntOffset(left, 0), srcSize = IntSize(right - left, bitmap.height),
+                dstOffset = IntOffset.Zero, dstSize = IntSize(width.roundToInt().coerceAtLeast(1), side.roundToInt()),
+                filterQuality = FilterQuality.High)
+        }
+    }
+    val leftWidth = side * bodyLeft / bitmap.width * flap
+    val rightWidth = side * (bitmap.width - bodyRight) / bitmap.width * flap
+    part(0, bodyLeft, center.x - side * 0.08f - leftWidth, leftWidth)
+    part(bodyRight, bitmap.width, center.x + side * 0.08f, rightWidth)
+    part(bodyLeft, bodyRight, center.x - side * 0.08f, side * 0.16f)
 }

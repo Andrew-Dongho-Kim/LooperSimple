@@ -37,10 +37,10 @@ import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.onSurface
 
 internal val treeArt = listOf(
-    R.drawable.loop_tree_01, R.drawable.loop_tree_02, R.drawable.loop_tree_03,
-    R.drawable.loop_tree_04, R.drawable.loop_tree_05, R.drawable.loop_tree_06,
-    R.drawable.loop_tree_07, R.drawable.loop_tree_08, R.drawable.loop_tree_09,
-    R.drawable.loop_tree_10,
+    R.drawable.loop_toy_tree_01, R.drawable.loop_toy_tree_02, R.drawable.loop_toy_tree_03,
+    R.drawable.loop_toy_tree_04, R.drawable.loop_toy_tree_05, R.drawable.loop_toy_tree_06,
+    R.drawable.loop_toy_tree_07, R.drawable.loop_toy_tree_08, R.drawable.loop_toy_tree_09,
+    R.drawable.loop_toy_tree_10,
 )
 internal val rewardNames = listOf(
     R.string.tree_reward_light, R.string.tree_reward_fireflies, R.string.tree_reward_flowers,
