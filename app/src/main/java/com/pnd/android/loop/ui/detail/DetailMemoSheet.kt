@@ -2,9 +2,7 @@ package com.pnd.android.loop.ui.detail
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,8 +10,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -37,24 +33,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pnd.android.loop.R
-import com.pnd.android.loop.state.DoneState
-import com.pnd.android.loop.state.isWritableResponse
-import com.pnd.android.loop.state.stateLabelRes
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.AppTypography
 import com.pnd.android.loop.ui.theme.Dimens
@@ -69,30 +57,26 @@ import java.time.LocalDate
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
-/** 날짜 선택으로 여는 편집창. 처음에는 메모를 읽고, 수정할 때만 입력창과 저장 버튼을 표시한다. */
+/** 메모 작성·수정 전용 편집창. 기록의 상태와 시각을 변경하는 기능은 제공하지 않는다. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun JournalDaySheet(
+internal fun JournalMemoSheet(
     date: LocalDate,
-    doneState: Int?,
     editable: Boolean,
     memo: String,
     memoLoaded: Boolean,
     memoLoadFailed: Boolean,
     memoDirty: Boolean,
-    accent: Color,
     onRetryLoad: () -> Unit,
     onMemoChange: (String) -> Unit,
     onSaveMemo: suspend () -> Unit,
-    onSetDoneState: suspend (Int) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var editingMemo by rememberSaveable(date) { mutableStateOf(false) }
+    var editingMemo by rememberSaveable(date) { mutableStateOf(true) }
     var savingMemo by remember { mutableStateOf(false) }
-    var savingState by remember { mutableStateOf(false) }
     var messageRes by remember(date) { mutableStateOf<Int?>(null) }
     var saveFailed by remember(date) { mutableStateOf(false) }
-    val busy = savingMemo || savingState
+    val busy = savingMemo
     val scope = rememberCoroutineScope()
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
@@ -100,7 +84,7 @@ internal fun JournalDaySheet(
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true,
         // 저장 도중에는 닫지 않는다. 일반적인 닫기에서는 부모가 작성 중인 메모를 보존한다.
-        confirmValueChange = { !savingMemo && !savingState },
+        confirmValueChange = { !savingMemo },
     )
 
     LaunchedEffect(editingMemo, memoLoaded, editable) {
@@ -137,43 +121,10 @@ internal fun JournalDaySheet(
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Close,
-                        contentDescription = stringResource(R.string.detail_journal_close),
+                        contentDescription = stringResource(R.string.detail_memo_close),
                         tint = AppColor.onSurface,
                     )
                 }
-            }
-
-            if (editable) {
-                DayStateSelector(
-                    modifier = Modifier.padding(top = DetailSpacing.headerToContent),
-                    doneState = doneState,
-                    accent = accent,
-                    enabled = !busy,
-                    onSelect = { state ->
-                        savingState = true
-                        messageRes = null
-                        saveFailed = false
-                        scope.launch {
-                            try {
-                                onSetDoneState(state)
-                                messageRes = R.string.detail_saved_day_state
-                            } catch (cancelled: CancellationException) {
-                                throw cancelled
-                            } catch (_: Exception) {
-                                saveFailed = true
-                                messageRes = R.string.detail_journal_save_failed
-                            } finally {
-                                savingState = false
-                            }
-                        }
-                    },
-                )
-            } else {
-                Text(
-                    modifier = Modifier.padding(top = DetailSpacing.headerToContent),
-                    text = stringResource(R.string.detail_day_not_editable),
-                    style = AppTypography.bodySmall.copy(color = AppColor.onSurface.copy(alpha = 0.6f)),
-                )
             }
 
             when {
@@ -275,88 +226,6 @@ internal fun JournalDaySheet(
                 )
             }
         }
-    }
-}
-
-/**
- * 선택한 날의 상태를 고르는 세 칸(완료 · 건너뜀 · 기록 없음).
- * 이미 골라 둔 칸을 다시 눌러도 같은 값을 저장하지 않는다.
- */
-@Composable
-private fun DayStateSelector(
-    modifier: Modifier = Modifier,
-    doneState: Int?,
-    accent: Color,
-    enabled: Boolean,
-    onSelect: (Int) -> Unit,
-) {
-    val current = doneState?.takeIf { it.isWritableResponse() } ?: DoneState.NO_RESPONSE
-
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(CircleShape)
-            .background(AppColor.surfaceContainer)
-            .padding(4.dp)
-            .selectableGroup(),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        DayStateChip(
-            modifier = Modifier.weight(1f),
-            enabled = enabled,
-            label = stringResource(DoneState.DONE.stateLabelRes()),
-            selected = current == DoneState.DONE,
-            selectedColor = accent,
-            onClick = { onSelect(DoneState.DONE) },
-        )
-        DayStateChip(
-            modifier = Modifier.weight(1f),
-            enabled = enabled,
-            label = stringResource(DoneState.SKIP.stateLabelRes()),
-            selected = current == DoneState.SKIP,
-            selectedColor = AppColor.onSurface.copy(alpha = 0.6f),
-            onClick = { onSelect(DoneState.SKIP) },
-        )
-        DayStateChip(
-            modifier = Modifier.weight(1f),
-            enabled = enabled,
-            label = stringResource(id = R.string.detail_day_no_record),
-            selected = current == DoneState.NO_RESPONSE,
-            selectedColor = AppColor.onSurface.copy(alpha = 0.45f),
-            onClick = { onSelect(DoneState.NO_RESPONSE) },
-        )
-    }
-}
-
-@Composable
-private fun DayStateChip(
-    modifier: Modifier = Modifier,
-    label: String,
-    selected: Boolean,
-    selectedColor: Color,
-    enabled: Boolean,
-    onClick: () -> Unit,
-) {
-    val isSelected = selected
-    Box(
-        modifier = modifier
-            .heightIn(min = MinTouchTarget)
-            .clip(CircleShape)
-            .background(
-                if (selected) AppColor.surfaceElevated else Color.Transparent
-            )
-            .clickable(enabled = enabled && !selected, role = Role.RadioButton, onClick = onClick)
-            .semantics(mergeDescendants = true) { this.selected = isSelected },
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = label,
-            textAlign = TextAlign.Center,
-            style = AppTypography.labelMedium.copy(
-                color = if (selected) selectedColor else AppColor.onSurface.copy(alpha = 0.55f),
-                fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-            ),
-        )
     }
 }
 

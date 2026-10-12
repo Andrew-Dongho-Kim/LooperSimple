@@ -3,6 +3,7 @@ package com.pnd.android.loop.ui.home
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,6 +49,7 @@ fun LoopCardWithOption(
     onDelete: (LoopBase) -> Unit,
     onStateChanged: (LoopBase, Int) -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
+    onQuickDone: ((LoopBase) -> Unit)? = null,
 ) {
     var isActive by remember { mutableStateOf(false) }
     LaunchedEffect(loop, loopViewModel) {
@@ -69,24 +71,23 @@ fun LoopCardWithOption(
         )
     }
 
-    // '완료로 기록' 다이얼로그는 배경 블러가 필요하므로, blurState 를 가진 이 자리에서
-    // 관리한다(삭제 다이얼로그와 동일한 패턴). LoopCard 는 트리거 콜백만 올려 준다.
-    var showRecordDoneDialog by rememberSaveable { mutableStateOf(false) }
-    if (showRecordDoneDialog) {
-        RecordDoneDialog(
+    // '완료로 기록' 시트. 시트는 자체 스크림이 있어 배경 블러는 쓰지 않는다. LoopCard 는 트리거 콜백만 올려 준다.
+    var showRecordDoneSheet by rememberSaveable { mutableStateOf(false) }
+    if (showRecordDoneSheet) {
+        val usualDurations by loopViewModel.usualDurationByLoop.collectAsState()
+        RecordDoneSheet(
             loop = loop,
-            onConfirm = { startInDay, endInDay ->
+            usualMinutes = usualDurations[loop.loopId],
+            onRecord = { times ->
                 loopViewModel.changeLoopState(
                     loop = loop,
                     localDate = (loop as? LoopWithDone)?.date?.toLocalDate() ?: LocalDate.now(),
                     doneState = DoneState.DONE,
-                    suppliedTimes = startInDay to endInDay,
+                    suppliedTimes = times,
+                    clearTimes = times == null,
                 )
             },
-            onDismiss = {
-                showRecordDoneDialog = false
-                blurState.off()
-            },
+            onDismiss = { showRecordDoneSheet = false },
         )
     }
 
@@ -98,15 +99,13 @@ fun LoopCardWithOption(
             loopViewModel.setEnabled(loop.loopId, enabled)
         },
         onStateChanged = onStateChanged,
-        onRecordDone = {
-            showRecordDoneDialog = true
-            blurState.on()
-        },
+        onRecordDone = { showRecordDoneSheet = true },
         onEdit = onEdit,
         onDelete = {
             showDeleteDialog = true
             blurState.on()
         },
-        onNavigateToDetailPage = onNavigateToDetailPage
+        onNavigateToDetailPage = onNavigateToDetailPage,
+        onQuickDone = onQuickDone,
     )
 }

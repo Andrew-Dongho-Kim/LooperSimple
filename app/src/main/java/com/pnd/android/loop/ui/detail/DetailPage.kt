@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.exclude
@@ -44,6 +45,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -146,7 +148,6 @@ fun DetailPage(
             modifier = modifier,
             detailViewModel = detailViewModel,
             loop = loop,
-            feedback = feedback,
             snackBarHostState = snackBarHostState,
             scrollState = scrollState,
             onEdit = { isEditing = true },
@@ -164,7 +165,6 @@ private fun DetailScreen(
     modifier: Modifier = Modifier,
     detailViewModel: LoopDetailViewModel,
     loop: LoopBase,
-    feedback: DetailFeedback,
     snackBarHostState: SnackbarHostState,
     scrollState: ScrollState,
     onEdit: () -> Unit,
@@ -254,7 +254,6 @@ private fun DetailScreen(
                         .backdropSource(backdrop),
                     detailViewModel = detailViewModel,
                     loop = loop,
-                    feedback = feedback,
                     scrollState = scrollState,
                     contentPadding = contentPadding,
                 )
@@ -303,6 +302,7 @@ private fun DetailAppBar(
     AppPageHeader(
         modifier = modifier,
         title = title,
+        showTitle = progress > 0.5f,
         onNavigateUp = onNavigateUp,
         progress = progress,
         backdrop = backdrop,
@@ -392,12 +392,12 @@ private fun DetailPageContent(
     modifier: Modifier = Modifier,
     detailViewModel: LoopDetailViewModel,
     loop: LoopBase,
-    feedback: DetailFeedback,
     scrollState: ScrollState,
     contentPadding: PaddingValues,
 ) {
     val stats by detailViewModel.stats.collectAsState()
     val memos by detailViewModel.memos.collectAsState()
+    val responses by detailViewModel.recordedResponses.collectAsState()
 
     Column(
         modifier = modifier
@@ -407,9 +407,10 @@ private fun DetailPageContent(
             .padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(DetailSpacing.group),
     ) {
-        SummaryHeader(
+        TimelineSummaryHeader(
             loop = loop,
             stats = stats,
+            responses = responses,
         )
 
         SectionList(
@@ -417,7 +418,6 @@ private fun DetailPageContent(
             loop = loop,
             stats = stats,
             memos = memos,
-            feedback = feedback,
         )
 
         SimpleAd(adId = adId)
@@ -425,7 +425,7 @@ private fun DetailPageContent(
 
 }
 
-/** 기록과 메모 → 자세한 통계 → 수정 이력. 각 섹션은 접힌 상태로 시작한다. */
+/** 기록·메모는 항상 펼치고, 보조 통계와 수정 이력은 접어서 둔다. */
 @Composable
 private fun SectionList(
     modifier: Modifier = Modifier,
@@ -433,50 +433,48 @@ private fun SectionList(
     loop: LoopBase,
     stats: DetailStats,
     memos: List<LoopRetrospectVo>,
-    feedback: DetailFeedback,
 ) {
     val accent = Color(loop.color).compositeOverOnSurface()
 
     var statsExpanded by rememberSaveable(loop.loopId) { mutableStateOf(false) }
-    var journalExpanded by rememberSaveable(loop.loopId) { mutableStateOf(false) }
     var historyExpanded by rememberSaveable(loop.loopId) { mutableStateOf(false) }
     val revisionHistory by detailViewModel.revisionHistory.collectAsState()
+    val responses by detailViewModel.recordedResponses.collectAsState()
 
     Column(modifier = modifier.fillMaxWidth()) {
-        HairlineDivider()
-        JournalSection(
-            stats = stats,
-            memos = memos,
-            accent = accent,
-            feedback = feedback,
-            expanded = journalExpanded,
-            onExpandedChange = { journalExpanded = it },
-            onLoadMemo = { date -> detailViewModel.retrospectOf(date) },
-            onSaveMemo = { date, text -> detailViewModel.saveRetrospect(date, text) },
-            onSaveMemoInBackground = { date, text ->
-                // 화면이 사라지는 중일 수 있으므로, 컴포지션과 함께 취소되지 않는 곳에서 저장한다.
-                detailViewModel.saveRetrospectInBackground(date, text)
-            },
-            onSetDoneState = { date, state ->
-                detailViewModel.setDoneState(localDate = date, doneState = state)
-            },
-        )
+        key(loop.loopId) {
+            TimelineJournalSection(
+                stats = stats,
+                memos = memos,
+                responses = responses,
+                accent = accent,
+                onLoadMemo = { date -> detailViewModel.retrospectOf(date) },
+                onSaveMemo = { date, text -> detailViewModel.saveRetrospect(date, text) },
+                onSaveMemoInBackground = { date, text ->
+                    detailViewModel.saveRetrospectInBackground(date, text)
+                },
+            )
+        }
 
-        HairlineDivider()
-        StatsSection(
-            stats = stats,
-            accent = accent,
-            expanded = statsExpanded,
-            onExpandedChange = { statsExpanded = it },
-        )
+        Spacer(Modifier.size(24.dp))
+        DetailCard(contentPadding = PaddingValues(horizontal = 16.dp)) {
+            StatsSection(
+                stats = stats,
+                accent = accent,
+                expanded = statsExpanded,
+                onExpandedChange = { statsExpanded = it },
+            )
+        }
 
-        HairlineDivider()
-        RevisionHistorySection(
-            loopId = loop.loopId,
-            entries = revisionHistory,
-            expanded = historyExpanded,
-            onExpandedChange = { historyExpanded = it },
-        )
+        Spacer(Modifier.size(12.dp))
+        DetailCard(contentPadding = PaddingValues(horizontal = 16.dp)) {
+            RevisionHistorySection(
+                loopId = loop.loopId,
+                entries = revisionHistory,
+                expanded = historyExpanded,
+                onExpandedChange = { historyExpanded = it },
+            )
+        }
 
     }
 }

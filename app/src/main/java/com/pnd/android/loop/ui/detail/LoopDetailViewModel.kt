@@ -12,7 +12,6 @@ import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.asLoopVo
 import com.pnd.android.loop.data.history.LoopHistory
 import com.pnd.android.loop.data.history.localDate
-import com.pnd.android.loop.state.DoneState
 import com.pnd.android.loop.state.stateExportName
 import com.pnd.android.loop.ui.home.viewmodel.LoopRepository
 import com.pnd.android.loop.util.todayFlow
@@ -104,6 +103,13 @@ class LoopDetailViewModel @Inject constructor(
     }.flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DetailStats.empty())
 
+    /** Recorded intervals, including running timers; shared with the journal and monthly summary. */
+    internal val recordedResponses = loopRepository.historyRepository.snapshots
+        .map { snapshot -> snapshot.byId[loopId]?.history?.responses.orEmpty().associateBy { it.localDate() } }
+        .distinctUntilChanged()
+        .flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
+
     /** Null means loading; an empty list means no stored history. */
     internal val revisionHistory = loopRepository.historyRepository.snapshots
         .map { snapshot -> buildLoopRevisionEntries(snapshot.byId[loopId]?.history?.revisions.orEmpty()) }
@@ -131,23 +137,6 @@ class LoopDetailViewModel @Inject constructor(
      */
     fun saveRetrospectInBackground(date: LocalDate, text: String) {
         coroutineScope.launch { saveRetrospect(date, text) }
-    }
-
-    /**
-     * 특정 날짜의 완료/건너뜀 상태를 고친다. 달력에서 지난 기록을 바로잡는 데 쓴다.
-     *
-     * '언제든지' 루프는 그날 실제로 시작·정지한 시각이 응답 행에만 남는다(루프 자체의 시각은
-     * ANY_TIME 이다). 지난 기록의 상태만 바꾸려다 그 값을 잃지 않도록, 이미 행이 있으면 그
-     * 시각을 그대로 실어 보낸다. '기록 없음'으로 되돌릴 때는 원래 규칙대로 시각도 함께 비운다.
-     *
-     * 저장은 저장소를 거친다 — 오늘 몫을 고치면 상시 알림과 대기 중인 알림도 함께 정리돼야 한다.
-     */
-    suspend fun setDoneState(
-        localDate: LocalDate,
-        @DoneState doneState: Int,
-    ) {
-        loopRepository.setRecordedState(loopId, localDate, doneState)
-        AppWidgetUpdateWorker.updateWidget(app)
     }
 
     suspend fun setLoopEnabled(

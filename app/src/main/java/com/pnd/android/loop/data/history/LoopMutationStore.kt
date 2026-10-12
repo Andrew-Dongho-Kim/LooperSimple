@@ -96,6 +96,7 @@ class LoopMutationStore @Inject constructor(private val db: AppDatabase) {
         @DoneState state: Int,
         suppliedTimes: Pair<Long, Long>? = null,
         clock: Clock = Clock.systemDefaultZone(),
+        clearTimes: Boolean = false,
     ) = db.withTransaction {
         require(state.isWritableResponse()) { "Disabling a loop must change settings, not its response" }
         val saved = history.get(loopId) ?: return@withTransaction
@@ -110,7 +111,33 @@ class LoopMutationStore @Inject constructor(private val db: AppDatabase) {
         }
         val revisionId = existing?.revisionId ?: timeline.revisionOn(date)?.revisionId
         val initial = existing ?: plannedRecord(plan, date, revisionId)
-        records.addOrUpdate(updatedResponse(initial, plan, state, suppliedTimes, clock))
+        records.addOrUpdate(updatedResponse(initial, plan, state, suppliedTimes, clock, clearTimes))
+    }
+
+    /**
+     * [setResponse] 와 같지만 바꾸기 전 행을 돌려준다. ✓ 한 번으로 바로 저장하는 대신 실행취소를
+     * 주므로, 되돌릴 값을 같은 트랜잭션 안에서 읽어 둔다. 행이 없었으면 null.
+     */
+    suspend fun setResponseReturningPrevious(
+        loopId: Int,
+        date: LocalDate,
+        @DoneState state: Int,
+        suppliedTimes: Pair<Long, Long>? = null,
+        clock: Clock = Clock.systemDefaultZone(),
+    ): LoopDoneVo? = db.withTransaction {
+        val previous = history.get(loopId)?.let { LoopTimeline(it).responseOn(date) }
+        setResponse(loopId, date, state, suppliedTimes, clock)
+        previous
+    }
+
+    /** [setResponseReturningPrevious] 가 돌려준 행으로 되돌린다. null 이면 그날 행을 지운다. */
+    suspend fun restoreResponse(loopId: Int, date: LocalDate, previous: LoopDoneVo?) = db.withTransaction {
+        if (previous != null) {
+            records.addOrUpdate(previous)
+        } else {
+            history.get(loopId)?.let { LoopTimeline(it).responseOn(date) }
+                ?.let { records.delete(loopId, it.date) }
+        }
     }
 
     suspend fun respondIfUnanswered(

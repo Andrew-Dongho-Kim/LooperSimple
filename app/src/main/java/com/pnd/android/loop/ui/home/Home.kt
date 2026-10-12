@@ -59,6 +59,7 @@ import com.pnd.android.loop.data.asLoopVo
 import com.pnd.android.loop.data.buildTodayOccurrences
 import com.pnd.android.loop.data.common.MAX_LOOPS_TOGETHER
 import com.pnd.android.loop.data.isRespond
+import com.pnd.android.loop.state.DoneState
 import com.pnd.android.loop.ui.common.BackdropState
 import com.pnd.android.loop.ui.common.NavigationBarFadingEdge
 import com.pnd.android.loop.ui.common.StatusBarFadingEdge
@@ -73,6 +74,7 @@ import com.pnd.android.loop.ui.home.input.selector.isLoopDurationTooShort
 import com.pnd.android.loop.ui.home.input.loopInputPanelBackgroundColor
 import com.pnd.android.loop.ui.home.input.rememberUserInputState
 import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
+import com.pnd.android.loop.ui.home.viewmodel.QuickDoneReceipt
 import com.pnd.android.loop.ui.theme.AppColor
 import com.pnd.android.loop.ui.theme.Dimens
 import com.pnd.android.loop.ui.theme.background
@@ -87,6 +89,7 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 
@@ -153,7 +156,8 @@ fun Home(
                             0.dp
                         }
                     ),
-                hostState = snackBarHostState
+                hostState = snackBarHostState,
+                snackbar = { data -> HomeSnackbar(data) },
             )
         },
         containerColor = Color.Transparent,
@@ -395,6 +399,48 @@ private fun HomeBody(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
+    // ✓ 한 번 완료: 바로 저장하고, 스낵바로 무엇을 남겼는지 알리며 '시간 수정'·'실행취소'를 준다.
+    // '시간 수정'을 누르면 그 기록을 대상으로 완료 기록 시트를 연다.
+    var timeEditReceipt by remember { mutableStateOf<QuickDoneReceipt?>(null) }
+    val onQuickDone: (LoopBase, LocalDate) -> Unit = { loop, date ->
+        scope.launch {
+            val receipt = loopViewModel.quickDone(loop, date)
+            snackBarHostState.currentSnackbarData?.dismiss()
+            val result = snackBarHostState.showSnackbar(
+                QuickDoneSnackbarVisuals(
+                    message = context.quickDoneMessage(receipt),
+                    actionLabel = context.getString(R.string.action_undo),
+                    editLabel = context.getString(R.string.quick_done_edit_time),
+                    onEdit = { timeEditReceipt = receipt },
+                )
+            )
+            if (result == SnackbarResult.ActionPerformed) loopViewModel.undoQuickDone(receipt)
+        }
+    }
+    timeEditReceipt?.let { receipt ->
+        val usualDurations by loopViewModel.usualDurationByLoop.collectAsState()
+        RecordDoneSheet(
+            loop = receipt.loop,
+            usualMinutes = usualDurations[receipt.loop.loopId],
+            onRecord = { times ->
+                loopViewModel.changeLoopState(
+                    loop = receipt.loop,
+                    localDate = receipt.date,
+                    doneState = DoneState.DONE,
+                    suppliedTimes = times,
+                    clearTimes = times == null,
+                )
+                scope.launch {
+                    snackBarHostState.currentSnackbarData?.dismiss()
+                    snackBarHostState.showSnackbar(
+                        context.getString(R.string.quick_done_snack_edited, receipt.loop.title)
+                    )
+                }
+            },
+            onDismiss = { timeEditReceipt = null },
+        )
+    }
+
     // 하단 패널에서 수정 중인 루프 id. 목록의 해당 카드를 스포트라이트(강조 테두리 + "수정 중" 배지)
     // 하고 나머지 카드는 흐리게 물러나게 하는 데 쓴다.
     val editingLoopId = if (inputState.mode == UserInputState.Mode.Edit) {
@@ -497,6 +543,7 @@ private fun HomeBody(
                         onStateChanged = onStateChanged,
                         onNavigateToDetailPage = onNavigateToDetailPage,
                         onNavigateToHistoryPage = onNavigateToHistoryPage,
+                        onQuickDone = onQuickDone,
                     )
                 }
                 item {

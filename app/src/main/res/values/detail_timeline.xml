@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="detail_routine_eyebrow">MY ROUTINE</string>
+    <string name="detail_routine_caption">Small moments, a rhythm of your own.</string>
+    <string name="detail_month_recorded_time">Recorded this month</string>
+    <string name="detail_month_recorded_days">Days completed</string>
+    <string name="detail_calendar_week">Week</string>
+    <string name="detail_calendar_month">Month</string>
+    <string name="detail_prev_week">Previous week</string>
+    <string name="detail_next_week">Next week</string>
+    <string name="detail_day_timeline">Daily timeline</string>
+    <string name="detail_day_note">Note</string>
+    <string name="detail_edit_note">Edit note</string>
+    <string name="detail_write_note">Write a note</string>
+    <string name="detail_note_empty">No note for this day yet.</string>
+    <string name="detail_day_empty">No activity recorded for this day.</string>
+    <string name="detail_time_running">In progress</string>
+    <string name="detail_time_end_unknown">End time unknown</string>
+    <string name="detail_time_day_offset">+%1$d day · %2$s</string>
+    <string name="detail_time_next_day">Next day · %1$s</string>
+    <string name="detail_time_measured">Measured time</string>
+    <string name="detail_time_entered">Time you entered</string>
+    <string name="detail_time_planned">Scheduled time · not measured</string>
+    <string name="detail_time_legacy">Saved time · source unknown</string>
+    <string name="detail_time_unknown">No start or end time saved.</string>
+    <string name="detail_time_under_minute">Less than a minute</string>
+</resources>

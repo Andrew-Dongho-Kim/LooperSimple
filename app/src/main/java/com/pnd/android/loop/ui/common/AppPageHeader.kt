@@ -56,6 +56,7 @@ fun AppPageHeader(
     modifier: Modifier = Modifier,
     titleLeading: @Composable () -> Unit = {},
     actions: (@Composable RowScope.() -> Unit)? = null,
+    showTitle: Boolean = true,
 ) {
     val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     // 세 알약이 같은 타이밍에 함께 떠오르도록 진행도는 한 번만 계산해 나눠 쓴다.
@@ -96,25 +97,27 @@ fun AppPageHeader(
             modifier = Modifier.weight(1f),
             contentAlignment = Alignment.CenterStart,
         ) {
-            FloatingSurface(
-                progress = surfaceProgress,
-                shape = FloatingHeaderShape,
-                backdrop = backdrop,
-            ) {
-                Row(
-                    modifier = Modifier
-                        .height(FloatingPillHeight)
-                        .padding(horizontal = TitlePillPadding),
-                    verticalAlignment = Alignment.CenterVertically,
+            if (showTitle) {
+                FloatingSurface(
+                    progress = surfaceProgress,
+                    shape = FloatingHeaderShape,
+                    backdrop = backdrop,
                 ) {
-                    titleLeading()
-                    Text(
-                        text = title,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        style = AppTypography.titleLarge,
-                        color = AppColor.onSurface,
-                    )
+                    Row(
+                        modifier = Modifier
+                            .height(FloatingPillHeight)
+                            .padding(horizontal = TitlePillPadding),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        titleLeading()
+                        Text(
+                            text = title,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            style = AppTypography.titleLarge,
+                            color = AppColor.onSurface,
+                        )
+                    }
                 }
             }
         }

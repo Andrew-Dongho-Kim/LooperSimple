@@ -4,6 +4,7 @@ import com.pnd.android.loop.alarm.LoopScheduler
 import com.pnd.android.loop.common.log
 import com.pnd.android.loop.data.AppDatabase
 import com.pnd.android.loop.data.LoopBase
+import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.LoopRetrospectVo
 import com.pnd.android.loop.data.LoopVo
 import com.pnd.android.loop.data.LoopWithDone
@@ -14,6 +15,7 @@ import com.pnd.android.loop.data.history.RECENT_COMPLETION_DAYS
 import com.pnd.android.loop.data.history.localDate
 import com.pnd.android.loop.data.isNotRespond
 import com.pnd.android.loop.state.DoneState
+import com.pnd.android.loop.state.QuickDone
 import com.pnd.android.loop.util.isActive
 import com.pnd.android.loop.util.isActiveDay
 import com.pnd.android.loop.util.isOvernight
@@ -236,10 +238,28 @@ class LoopRepository @Inject constructor(
         localDate: LocalDate = LocalDate.now(),
         @DoneState doneState: Int,
         suppliedTimes: Pair<Long, Long>? = null,
+        clearTimes: Boolean = false,
     ) {
         if (doneState == DoneState.IN_PROGRESS) mutations.start(loop.loopId, localDate)
-        else mutations.setResponse(loop.loopId, localDate, doneState, suppliedTimes)
+        else mutations.setResponse(loop.loopId, localDate, doneState, suppliedTimes, clearTimes = clearTimes)
         refreshAfterResponse(loop.loopId)
+    }
+
+    /** ✓ 한 번으로 완료한다. 실행취소를 위해 바꾸기 전 행을 돌려준다. */
+    suspend fun quickDone(loopId: Int, localDate: LocalDate, quickDone: QuickDone): LoopDoneVo? {
+        val previous = mutations.setResponseReturningPrevious(
+            loopId = loopId,
+            date = localDate,
+            state = DoneState.DONE,
+            suppliedTimes = quickDone.times,
+        )
+        refreshAfterResponse(loopId)
+        return previous
+    }
+
+    suspend fun restoreResponse(loopId: Int, localDate: LocalDate, previous: LoopDoneVo?) {
+        mutations.restoreResponse(loopId, localDate, previous)
+        refreshAfterResponse(loopId)
     }
 
     suspend fun setRecordedState(loopId: Int, date: LocalDate, state: Int) {

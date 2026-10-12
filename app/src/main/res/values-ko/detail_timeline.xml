@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="detail_routine_eyebrow">나의 루틴</string>
+    <string name="detail_routine_caption">작은 기록이 쌓여 나만의 리듬이 됩니다.</string>
+    <string name="detail_month_recorded_time">이번 달 기록 시간</string>
+    <string name="detail_month_recorded_days">완료한 날</string>
+    <string name="detail_calendar_week">주</string>
+    <string name="detail_calendar_month">월</string>
+    <string name="detail_prev_week">이전 주</string>
+    <string name="detail_next_week">다음 주</string>
+    <string name="detail_day_timeline">하루 타임라인</string>
+    <string name="detail_day_note">메모</string>
+    <string name="detail_edit_note">메모 수정</string>
+    <string name="detail_write_note">메모 작성</string>
+    <string name="detail_note_empty">이 날에는 작성한 메모가 없어요.</string>
+    <string name="detail_day_empty">이 날에는 아직 활동 기록이 없어요.</string>
+    <string name="detail_time_running">진행 중</string>
+    <string name="detail_time_end_unknown">종료 시각 미기록</string>
+    <string name="detail_time_day_offset">%1$d일 뒤 · %2$s</string>
+    <string name="detail_time_next_day">다음 날 · %1$s</string>
+    <string name="detail_time_measured">실측 시간</string>
+    <string name="detail_time_entered">직접 입력한 시간</string>
+    <string name="detail_time_planned">예정 시간 · 실측 기록 없음</string>
+    <string name="detail_time_legacy">저장된 시간 · 기록 방식 미확인</string>
+    <string name="detail_time_unknown">저장된 시작·종료 시각이 없어요.</string>
+    <string name="detail_time_under_minute">1분 미만</string>
+</resources>

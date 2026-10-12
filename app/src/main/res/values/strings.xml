@@ -244,6 +244,24 @@
     <string name="loop_record_skip">Log as skipped</string>
     <string name="loop_record_done_title">Log completion</string>
     <string name="loop_record_done_invalid_time">End time must be after the start time.</string>
+    <!-- One-tap done on a timed loop card, shown inside its window. -->
+    <string name="quick_done_early">Finished early</string>
+    <string name="quick_done_edit_time">Edit time</string>
+    <string name="quick_done_snack_early">Logged %1$s · %2$s</string>
+    <string name="quick_done_snack_planned">%1$s done as planned</string>
+    <string name="quick_done_snack_edited">Updated time for %1$s</string>
+    <!-- Log completion sheet -->
+    <string name="record_sheet_title">When did you do %1$s?</string>
+    <string name="record_sheet_title_anytime">How long did %1$s take?</string>
+    <string name="record_sheet_hint_anytime">Logged as finished now (%1$s)</string>
+    <string name="record_option_usual">Usual %1$s</string>
+    <string name="record_option_as_planned">As planned %1$s</string>
+    <string name="record_option_finished_now">Ended now %1$s</string>
+    <string name="record_option_no_time">No time</string>
+    <string name="record_sheet_manual">Enter times</string>
+    <string name="duration_minutes">%1$d min</string>
+    <string name="duration_hours">%1$d h</string>
+    <string name="duration_hours_minutes">%1$d h %2$d min</string>
     <string name="all_history_title">History</string>
     <string name="all_history_empty">No loops to show yet.</string>
     <string name="all_history_inactive_day">Not scheduled</string>
@@ -479,10 +497,8 @@
     <!-- 상세 페이지 · 저장 확인 -->
     <string name="detail_saved_loop">Changes saved</string>
     <string name="detail_saved_memo">Note saved</string>
-    <string name="detail_saved_day_state">Record updated</string>
 
     <!-- 상세 페이지 · 기록 고치기·메모 모아보기 -->
-    <string name="detail_day_not_editable">Days before this loop started can\'t be edited</string>
     <string name="detail_show_all_memos">See all %1$d notes</string>
     <string name="detail_hide_all_memos">Hide notes</string>
     <string name="detail_prev_month">Previous month</string>
@@ -522,10 +538,8 @@
     <string name="detail_done_total">%2$d of %1$d completed</string>
     <string name="detail_week_progress_suffix">/ %1$d completed</string>
     <string name="detail_week_done_suffix">completed</string>
-    <string name="detail_record_today">Edit today’s record</string>
-    <string name="detail_calendar_edit_hint">Tap a date to edit its record</string>
     <string name="detail_calendar_legend">✓ Done　− Skipped　• Note</string>
-    <string name="detail_journal_close">Close day editor</string>
+    <string name="detail_memo_close">Close note editor</string>
     <string name="detail_journal_add_memo">Add a note</string>
     <string name="detail_journal_edit_memo">Edit note</string>
     <string name="detail_journal_loading">Loading note…</string>

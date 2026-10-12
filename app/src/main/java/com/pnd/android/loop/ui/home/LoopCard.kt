@@ -175,6 +175,9 @@ fun LoopCard(
     onEnabled: (Boolean) -> Unit,
     onDelete: () -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
+    // ✓ 한 번 완료. 오늘 목록처럼 스낵바로 결과를 알릴 수 있는 곳에서만 넘긴다. null 이면 ✓ 를 따로 두지
+    // 않고, 응답 대기 카드의 ✓ 는 예전처럼 상태만 바꾼다.
+    onQuickDone: ((LoopBase) -> Unit)? = null,
 ) {
     // 편집 중인 카드는 깜빡임(mock 펄스) 대신 안정적으로 강조한다. 그 외 mock(신규 작성) 카드만
     // 기존처럼 펄스한다. 편집 중인 다른 카드가 있으면 이 카드는 흐리게 물러난다.
@@ -245,6 +248,7 @@ fun LoopCard(
                 loop = loop,
                 isCarriedOver = cardValues.isCarriedOver,
                 onStateChanged = onStateChanged,
+                onQuickDone = onQuickDone,
             )
         } else {
             ActiveCardContent(
@@ -259,6 +263,7 @@ fun LoopCard(
                 onEdit = onEdit,
                 onEnabled = onEnabled,
                 onDelete = onDelete,
+                onQuickDone = onQuickDone,
             )
         }
     }
@@ -282,6 +287,7 @@ private fun RowScope.ActiveCardContent(
     onEdit: (LoopBase) -> Unit,
     onEnabled: (Boolean) -> Unit,
     onDelete: () -> Unit,
+    onQuickDone: ((LoopBase) -> Unit)?,
 ) {
     LoopColorDot(
         modifier = Modifier.alpha(contentAlpha),
@@ -337,9 +343,19 @@ private fun RowScope.ActiveCardContent(
             loop = loop,
         )
     }
-    if (syncWithTime && loop.enabled &&
+    val showsAnyTimeControl = syncWithTime && loop.enabled &&
         loop.isAnyTime && (loop.startInDay < 0 || loop.endInDay < 0)
-    ) {
+    // ✓ 는 시간창 안의 시간제 루프를 "지금 끝냈다"로 한 번에 남기는 버튼이다. anytime 은 계획 시각이
+    // 없어 추정할 근거가 없으므로 ✓ 를 두지 않고, 메뉴의 '완료로 기록'에서 시각을 직접 입력한다.
+    val showsQuickDone = onQuickDone != null && syncWithTime && loop.enabled && !loop.isMock &&
+        !loop.isAnyTime && isInProgress
+    if (showsQuickDone) {
+        QuickDoneButton(
+            modifier = Modifier.padding(start = 8.dp),
+            onClick = { onQuickDone?.invoke(loop) },
+        )
+    }
+    if (showsAnyTimeControl) {
         AnyTimeLoopStartOrStop(
             modifier = Modifier.padding(start = 8.dp),
             loop = loop,
@@ -350,7 +366,10 @@ private fun RowScope.ActiveCardContent(
         LoopCardMenu(
             modifier = Modifier.align(Alignment.CenterVertically).padding(start = 4.dp),
             loop = loop,
-            showRecordActions = cardValues.showRecordActions,
+            // 카드에 ✓ 가 있으면 메뉴의 '완료로 기록'은 같은 일을 하므로 뺀다. 시간을 고치는 길은
+            // ✓ 뒤 스낵바의 '시간 수정'이 맡는다.
+            showRecordDone = cardValues.showRecordActions && !showsQuickDone,
+            showRecordSkip = cardValues.showRecordActions,
             onStateChanged = onStateChanged,
             onRecordDone = onRecordDone,
             onEdit = onEdit,
@@ -370,10 +389,14 @@ private fun RowScope.FinishedCardContent(
     loop: LoopBase,
     isCarriedOver: Boolean,
     onStateChanged: (loop: LoopBase, doneState: Int) -> Unit,
+    onQuickDone: ((LoopBase) -> Unit)?,
 ) {
     LoopDoneOrSkip(
         loop = loop,
         onStateChanged = onStateChanged,
+        // 응답 대기의 ✓ 도 계획대로 완료라 저장 내용은 같다. 다만 ✓ 경로로 보내 스낵바(시간 수정·실행취소)를 띄운다.
+        // anytime 은 ✓ 경로가 없으므로 예전처럼 상태만 바꾼다.
+        onDone = onQuickDone?.takeIf { !loop.isAnyTime }?.let { quickDone -> { quickDone(loop) } },
     )
     LoopCardTitle(
         modifier = Modifier
@@ -614,7 +637,8 @@ private fun FinishedTimeLabel(
 private fun LoopCardMenu(
     modifier: Modifier = Modifier,
     loop: LoopBase,
-    showRecordActions: Boolean,
+    showRecordDone: Boolean,
+    showRecordSkip: Boolean,
     onStateChanged: (loop: LoopBase, doneState: Int) -> Unit,
     onRecordDone: (LoopBase) -> Unit,
     onEdit: (LoopBase) -> Unit,
@@ -646,18 +670,22 @@ private fun LoopCardMenu(
         onDismiss = { isPopupMenuOpen = false },
     ) {
         // 예정된 시간창이 아직 오지 않았거나(시작 전) 진행 중이어도, 지금 바로 완료/건너뜀으로
-        // 남길 수 있게 한다. 완료는 시각을 직접 입력받도록 다이얼로그를 띄우고, 건너뜀은 즉시
-        // 처리한다. 비활성 루프는 응답 대상이 아니고, 전체 탭처럼 응답이 목적이 아닌 화면
-        // (showRecordActions=false)에서도 숨긴다.
-        if (loop.enabled && showRecordActions) {
-            LoopCardPopupMenuItem(
-                text = stringResource(id = R.string.loop_record_done),
-                onClick = { closeAfter { onRecordDone(loop) } },
-            )
-            LoopCardPopupMenuItem(
-                text = stringResource(id = R.string.loop_record_skip),
-                onClick = { closeAfter { onStateChanged(loop, DoneState.SKIP) } },
-            )
+        // 남길 수 있게 한다. 완료는 시각을 고르는 시트를 띄우고, 건너뜀은 즉시 처리한다. 비활성
+        // 루프는 응답 대상이 아니고, 전체 탭처럼 응답이 목적이 아닌 화면에서도 숨긴다. 카드에 ✓ 가
+        // 있으면 '완료로 기록'은 같은 일을 하므로 빠진다(showRecordDone=false).
+        if (loop.enabled && (showRecordDone || showRecordSkip)) {
+            if (showRecordDone) {
+                LoopCardPopupMenuItem(
+                    text = stringResource(id = R.string.loop_record_done),
+                    onClick = { closeAfter { onRecordDone(loop) } },
+                )
+            }
+            if (showRecordSkip) {
+                LoopCardPopupMenuItem(
+                    text = stringResource(id = R.string.loop_record_skip),
+                    onClick = { closeAfter { onStateChanged(loop, DoneState.SKIP) } },
+                )
+            }
             HorizontalDivider(
                 modifier = Modifier.padding(vertical = 4.dp),
                 color = AppColor.onSurface.copy(alpha = 0.08f),
@@ -800,11 +828,31 @@ fun AnyTimeLoopStartOrStop(
     }
 }
 
+/**
+ * "일찍 끝냈어요" ✓. 시간제 루프의 시간창 안에서 카드에 붙는다. 무엇을 기록할지는
+ * [com.pnd.android.loop.state.quickDoneFor] 가 정하고, 결과는 스낵바로 알려 바로 고치거나 되돌릴 수 있다.
+ */
+@Composable
+private fun QuickDoneButton(
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    ResponseButton(
+        modifier = modifier,
+        imageVector = Icons.Filled.Done,
+        contentDescription = stringResource(id = R.string.quick_done_early),
+        containerColor = AppColor.primary.copy(alpha = LoopCardDefaults.ResponseTintAlpha),
+        tint = AppColor.primary,
+        onClick = onClick,
+    )
+}
+
 @Composable
 fun LoopDoneOrSkip(
     modifier: Modifier = Modifier,
     loop: LoopBase,
     onStateChanged: (loop: LoopBase, doneState: @DoneState Int) -> Unit,
+    onDone: (() -> Unit)? = null,
 ) {
     Row(
         modifier = modifier,
@@ -817,7 +865,7 @@ fun LoopDoneOrSkip(
             contentDescription = stringResource(id = R.string.done),
             containerColor = AppColor.primary.copy(alpha = LoopCardDefaults.ResponseTintAlpha),
             tint = AppColor.primary,
-            onClick = { onStateChanged(loop, DoneState.DONE) },
+            onClick = { if (onDone != null) onDone() else onStateChanged(loop, DoneState.DONE) },
         )
         ResponseButton(
             imageVector = Icons.Filled.Close,

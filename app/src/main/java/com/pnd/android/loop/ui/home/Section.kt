@@ -75,6 +75,7 @@ import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.ui.theme.surfaceContainer
 import com.pnd.android.loop.util.isActive
 import com.pnd.android.loop.util.toMs
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 /** 홈 리스트에서 카드 사이 간격(카드당 상하 패딩). 다른 화면과 별개로 홈만 살짝 촘촘하게 둔다. */
@@ -100,6 +101,8 @@ fun LazyListScope.section(
     onStateChanged: (LoopBase, Int) -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
     onNavigateToHistoryPage: () -> Unit,
+    // ✓ 한 번 완료. occurrence 날짜를 함께 받아야 자정을 넘긴 몫을 제 날짜에 기록한다.
+    onQuickDone: (LoopBase, LocalDate) -> Unit,
 ) {
     when (section) {
         is Section.HeaderCard -> sectionHeader(
@@ -119,6 +122,7 @@ fun LazyListScope.section(
             onEdit = onEdit,
             onDelete = onDelete,
             onNavigateToDetailPage = onNavigateToDetailPage,
+            onQuickDone = onQuickDone,
         )
 
         is Section.Yesterday -> sectionYesterday(
@@ -227,6 +231,7 @@ private fun LazyListScope.sectionToday(
     onEdit: (LoopBase) -> Unit,
     onDelete: (LoopBase) -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
+    onQuickDone: (LoopBase, LocalDate) -> Unit,
 ) {
     val loops by section.items
     val groups by section.groups
@@ -244,6 +249,7 @@ private fun LazyListScope.sectionToday(
             onEdit = onEdit,
             onDelete = onDelete,
             onNavigateToDetailPage = onNavigateToDetailPage,
+            onQuickDone = onQuickDone,
         )
         return
     }
@@ -259,6 +265,7 @@ private fun LazyListScope.sectionToday(
         onEdit = onEdit,
         onDelete = onDelete,
         onNavigateToDetailPage = onNavigateToDetailPage,
+        onQuickDone = onQuickDone,
     )
 }
 
@@ -296,6 +303,7 @@ private fun LazyListScope.sectionTodayContent(
     onEdit: (LoopBase) -> Unit,
     onDelete: (LoopBase) -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
+    onQuickDone: (LoopBase, LocalDate) -> Unit,
 ) {
     // 목록 뷰에 그릴 그룹(지금 진행 중 / 다음 예정 / 응답 대기). 응답을 마친 몫은 이미 빠져 있다.
     val groups by section.groups
@@ -318,6 +326,7 @@ private fun LazyListScope.sectionTodayContent(
         onEdit = onEdit,
         onDelete = onDelete,
         onNavigateToDetailPage = onNavigateToDetailPage,
+        onQuickDone = onQuickDone,
     )
 
     when (section.viewMode.value) {
@@ -351,6 +360,7 @@ private fun LazyListScope.sectionTodayContent(
                 onEdit = onEdit,
                 onDelete = onDelete,
                 onNavigateToDetailPage = onNavigateToDetailPage,
+                onQuickDone = onQuickDone,
             )
         }
     }
@@ -410,6 +420,7 @@ private fun LazyListScope.sectionTodayList(
     onEdit: (LoopBase) -> Unit,
     onDelete: (LoopBase) -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
+    onQuickDone: (LoopBase, LocalDate) -> Unit,
 ) {
     // 그룹이 하나뿐이면 구분할 대상이 없다. 이때 캡션은 정보 없이 높이만 차지하므로 생략한다.
     val showCaptions = groups.size > 1
@@ -424,6 +435,7 @@ private fun LazyListScope.sectionTodayList(
             onEdit = onEdit,
             onDelete = onDelete,
             onNavigateToDetailPage = onNavigateToDetailPage,
+            onQuickDone = onQuickDone,
         )
     }
 }
@@ -443,6 +455,7 @@ private fun LazyListScope.sectionTodayCarriedOver(
     onEdit: (LoopBase) -> Unit,
     onDelete: (LoopBase) -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
+    onQuickDone: (LoopBase, LocalDate) -> Unit,
 ) {
     val carriedOver = groups
         .flatMap { group -> group.occurrences }
@@ -458,6 +471,7 @@ private fun LazyListScope.sectionTodayCarriedOver(
         onEdit = onEdit,
         onDelete = onDelete,
         onNavigateToDetailPage = onNavigateToDetailPage,
+        onQuickDone = onQuickDone,
     )
 }
 
@@ -471,6 +485,7 @@ private fun LazyListScope.todayGroupItems(
     onEdit: (LoopBase) -> Unit,
     onDelete: (LoopBase) -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
+    onQuickDone: (LoopBase, LocalDate) -> Unit,
 ) {
     val occurrences = group.occurrences
     if (showCaption) {
@@ -529,6 +544,7 @@ private fun LazyListScope.todayGroupItems(
             onDelete = onDelete,
             onStateChanged = onStateChanged,
             onNavigateToDetailPage = onNavigateToDetailPage,
+            onQuickDone = { quickDoneLoop -> onQuickDone(quickDoneLoop, occurrence.date) },
         )
     }
 }

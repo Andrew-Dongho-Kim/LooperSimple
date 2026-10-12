@@ -8,6 +8,7 @@ import com.pnd.android.loop.appwidget.AppWidgetUpdateWorker
 import com.pnd.android.loop.common.NavigatePage
 import com.pnd.android.loop.common.log
 import com.pnd.android.loop.data.LoopBase
+import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.data.LoopVo
 import com.pnd.android.loop.data.LoopWithDone
 import com.pnd.android.loop.data.TodayLoopOrder
@@ -16,8 +17,11 @@ import com.pnd.android.loop.data.history.LoopTimeline
 import com.pnd.android.loop.data.history.ResolvedLoopDay
 import com.pnd.android.loop.data.history.countActivity
 import com.pnd.android.loop.data.history.countTodayProgress
+import com.pnd.android.loop.data.history.usualDurationMinutes
 import com.pnd.android.loop.data.isRespond
 import com.pnd.android.loop.state.DoneState
+import com.pnd.android.loop.state.QuickDone
+import com.pnd.android.loop.state.quickDoneFor
 import com.pnd.android.loop.ui.home.RecentLoopCompletion
 import com.pnd.android.loop.ui.home.computeRecentLoopCompletion
 import com.pnd.android.loop.ui.home.TreeVitality
@@ -34,6 +38,7 @@ import com.pnd.android.loop.util.toLocalDate
 import com.pnd.android.loop.util.toMs
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDate
+import java.time.LocalDateTime
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -307,6 +312,20 @@ class LoopViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), emptyMap())
 
     /**
+     * loopId -> 평소 소요시간(분). 표본이 부족한 루프는 빠진다. 완료 기록 시트의 "평소 25분" 칩과
+     * 직접 입력의 기본값을 채우는 데 쓴다.
+     */
+    val usualDurationByLoop: StateFlow<Map<Int, Int>> = combine(
+        loopRepository.historyRepository.snapshots, localDate,
+    ) { snapshot, today ->
+        snapshot.timelines.mapNotNull { timeline ->
+            timeline.usualDurationMinutes(today)?.let { timeline.current.loopId to it }
+        }.toMap()
+    }.flowOn(Dispatchers.Default)
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
+
+    /**
      * 전체 탭 하단 기록 그리드: loopId -> (날짜(ms) -> done 상태).
      *
      * 그리드는 목록 맨 아래의 단일 항목이라 세로 스크롤로 뷰포트를 자주 드나든다. 원본 플로우는
@@ -363,6 +382,7 @@ class LoopViewModel @Inject constructor(
         localDate: LocalDate = LocalDate.now(),
         @DoneState doneState: Int,
         suppliedTimes: Pair<Long, Long>? = null,
+        clearTimes: Boolean = false,
     ) {
         coroutineScope.launch {
             loopRepository.changeLoopState(
@@ -370,7 +390,36 @@ class LoopViewModel @Inject constructor(
                 localDate = localDate,
                 doneState = doneState,
                 suppliedTimes = suppliedTimes,
+                clearTimes = clearTimes,
             )
+            AppWidgetUpdateWorker.updateWidget(application)
+        }
+    }
+
+    /**
+     * 카드의 ✓ 한 번으로 완료한다. 무엇을 기록했는지와 되돌릴 값을 담은 [QuickDoneReceipt] 를
+     * 돌려주므로, 화면은 이것으로 스낵바 문구와 실행취소를 만든다.
+     *
+     * 기록은 뷰모델 스코프에서 하므로 스낵바를 띄우던 화면 코루틴이 취소돼도 유실되지 않는다.
+     *
+     * @param date 이 카드가 대표하는 occurrence 의 날짜. 자정을 넘기는 루프의 어젯밤 몫은 어제다.
+     */
+    suspend fun quickDone(loop: LoopBase, date: LocalDate): QuickDoneReceipt = coroutineScope.async {
+        val now = LocalDateTime.now()
+        val result = quickDoneFor(
+            loop = loop,
+            nowInDay = now.toLocalTime().toMs(),
+            isInWindow = loop.isActive(now),
+        )
+        val previous = loopRepository.quickDone(loop.loopId, date, result)
+        AppWidgetUpdateWorker.updateWidget(application)
+        QuickDoneReceipt(loop = loop, date = date, result = result, previous = previous)
+    }.await()
+
+    /** [quickDone] 이전으로 되돌린다. */
+    fun undoQuickDone(receipt: QuickDoneReceipt) {
+        coroutineScope.launch {
+            loopRepository.restoreResponse(receipt.loop.loopId, receipt.date, receipt.previous)
             AppWidgetUpdateWorker.updateWidget(application)
         }
     }
@@ -421,6 +470,16 @@ data class LoopRates(val counts: CompletionCounts = CompletionCounts()) {
         val Empty = LoopRates()
     }
 }
+
+/**
+ * ✓ 한 번으로 남긴 기록. [previous] 는 바꾸기 전 행(없었으면 null)으로, 실행취소가 그대로 되돌려 쓴다.
+ */
+data class QuickDoneReceipt(
+    val loop: LoopBase,
+    val date: LocalDate,
+    val result: QuickDone,
+    val previous: LoopDoneVo?,
+)
 
 /**
  * 오늘 탭 헤더의 "다음 루프" 표시용. [remainingMinutes]가 0이면 1분 미만 남은 "곧 시작"을 뜻한다.

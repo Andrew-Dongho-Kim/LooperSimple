@@ -26,6 +26,8 @@ internal fun plannedRecord(loop: LoopVo, date: LocalDate, revisionId: Long?): Lo
 /**
  * Pure response transition. Database transactions and scheduling stay with the caller.
  * State-only edits keep recorded times, except starting/resetting a timer or ending a running one.
+ *
+ * [clearTimes] records an anytime completion without any times ("no time" in the log sheet).
  */
 internal fun updatedResponse(
     existing: LoopDoneVo,
@@ -33,12 +35,17 @@ internal fun updatedResponse(
     @DoneState state: Int,
     suppliedTimes: Pair<Long, Long>?,
     clock: Clock,
+    clearTimes: Boolean = false,
 ): LoopDoneVo {
     require(state.isWritableResponse()) { "Invalid response state: $state" }
+    require(!clearTimes || (state.isDone() && suppliedTimes == null && plan.isAnyTime)) {
+        "Only an anytime completion without supplied times can clear its times"
+    }
     val base = existing.copy(done = state, localEpochDay = existing.localDate().toEpochDay())
     return when {
         state.isInProgress() -> base.startRecording(clock)
         state.isNoResponse() && plan.isAnyTime -> base.clearRecording()
+        clearTimes -> base.clearRecording()
         state.isDone() && suppliedTimes != null -> base.withEnteredTimes(suppliedTimes)
         state.isRespond() && existing.done.isInProgress() -> base.finishRecording(clock)
         else -> base
