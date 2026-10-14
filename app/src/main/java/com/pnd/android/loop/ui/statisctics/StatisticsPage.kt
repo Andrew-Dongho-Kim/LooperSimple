@@ -382,17 +382,20 @@ private fun StatisticsPageContent(
             // 범위는 수치와 함께 바뀌어야 하므로 표시 중인 기간을 따르고 함께 페이드된다.
             if (selectedTab.usesPeriod) {
                 fadingItem(key = "scope") {
-                    StatisticsPeriodCaption(period = displayedPeriod, today = today)
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        StatisticsPeriodCaption(period = displayedPeriod, today = today, modifier = Modifier.weight(1f))
+                        HistoryCalculationNote(estimated)
+                    }
                 }
             } else {
                 item(key = "scope") {
-                    StatisticsScopeCaption()
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        StatisticsScopeCaption(Modifier.weight(1f))
+                        HistoryCalculationNote(estimated)
+                    }
                 }
             }
 
-            item(key = "calculation") {
-                HistoryCalculationNote(estimated)
-            }
             when (selectedTab) {
                 StatisticsTab.OVERVIEW -> statefulTab(
                     isLoading = overviewLoading,

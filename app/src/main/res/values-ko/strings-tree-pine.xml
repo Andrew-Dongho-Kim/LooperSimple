@@ -1,0 +1,14 @@
+<resources>
+    <string name="tree_skin_pine">늘푸른 소나무</string>
+    <string name="tree_skin_pine_description">층층이 뻗은 솔잎과 붉은 수피, 솔방울·아침 이슬·송홧가루가 어우러져요.</string>
+    <string name="tree_pine_reward_light">솔숲 햇살</string>
+    <string name="tree_pine_reward_dew">반짝이는 아침 이슬</string>
+    <string name="tree_pine_reward_cones">솔방울 정원</string>
+    <string name="tree_pine_reward_pollen">바람에 실린 송홧가루</string>
+    <string name="tree_pine_reward_halo">늘푸른 숲의 빛</string>
+    <string name="tree_pine_motion_light">가지 사이로 부드러운 솔숲 햇살이 숨 쉬어요.</string>
+    <string name="tree_pine_motion_dew">솔잎 끝에 맺힌 이슬이 은은하게 반짝여요.</string>
+    <string name="tree_pine_motion_cones">뿌리와 이끼 사이에 작은 솔방울이 놓여요.</string>
+    <string name="tree_pine_motion_pollen">고운 황금빛 송홧가루가 바람을 따라 천천히 흘러요.</string>
+    <string name="tree_pine_motion_halo">차분한 초록빛이 소나무 뒤에서 천천히 숨 쉬어요.</string>
+</resources>

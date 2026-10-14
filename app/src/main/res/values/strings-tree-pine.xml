@@ -1,0 +1,14 @@
+<resources>
+    <string name="tree_skin_pine">Evergreen pine</string>
+    <string name="tree_skin_pine_description">Layered needle branches, reddish bark, pinecones, dew and golden pollen.</string>
+    <string name="tree_pine_reward_light">Forest sunlight</string>
+    <string name="tree_pine_reward_dew">Sparkling morning dew</string>
+    <string name="tree_pine_reward_cones">Pinecone grove</string>
+    <string name="tree_pine_reward_pollen">Drifting pine pollen</string>
+    <string name="tree_pine_reward_halo">Evergreen forest glow</string>
+    <string name="tree_pine_motion_light">Soft sunlight breathes between the pine branches.</string>
+    <string name="tree_pine_motion_dew">Dew glints gently at the tips of the needles.</string>
+    <string name="tree_pine_motion_cones">Small pinecones rest among the moss and roots.</string>
+    <string name="tree_pine_motion_pollen">Fine golden pine pollen drifts slowly on the breeze.</string>
+    <string name="tree_pine_motion_halo">A calm green forest glow breathes behind the pine.</string>
+</resources>

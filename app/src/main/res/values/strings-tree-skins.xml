@@ -1,0 +1,30 @@
+<resources>
+    <string name="tree_skin_shop">Skin shop</string>
+    <string name="tree_skin_garden">Green garden</string>
+    <string name="tree_skin_garden_description">The original tree with green leaves, butterflies and fireflies.</string>
+    <string name="tree_skin_maple">Autumn maple</string>
+    <string name="tree_skin_maple_description">Scarlet maple leaves, golden motes, autumn mushrooms and winged seeds.</string>
+    <string name="tree_skin_points">%1$d total practice points</string>
+    <string name="tree_skin_unlock_help">Reach the practice point milestone to unlock a skin. Points are never spent, and unlocked skins stay yours.</string>
+    <string name="tree_skin_preview">%1$s · Fully grown preview</string>
+    <string name="tree_skin_preview_help">Previews do not change growth or rewards. Applying a skin keeps your current growth stage and condition.</string>
+    <string name="tree_skin_unlocked">Unlocked</string>
+    <string name="tree_skin_requires_points">Unlocks at %1$d total points</string>
+    <string name="tree_skin_preview_action">Preview</string>
+    <string name="tree_skin_preview_button">Preview %1$s</string>
+    <string name="tree_skin_apply_button">Apply %1$s</string>
+    <string name="tree_skin_equipped">In use</string>
+    <string name="tree_skin_equip">Apply</string>
+    <string name="tree_skin_locked">Locked</string>
+    <string name="tree_skin_close">Close</string>
+    <string name="tree_maple_reward_light">Autumn sunlight</string>
+    <string name="tree_maple_reward_motes">Golden motes</string>
+    <string name="tree_maple_reward_mushrooms">Autumn mushrooms and leaves</string>
+    <string name="tree_maple_reward_samara">Winged maple seeds</string>
+    <string name="tree_maple_reward_halo">Amber halo</string>
+    <string name="tree_maple_motion_light">Warm autumn sunlight breathes softly behind the tree.</string>
+    <string name="tree_maple_motion_motes">Golden motes shimmer slowly around the foliage.</string>
+    <string name="tree_maple_motion_mushrooms">Autumn mushrooms appear on the ground as maple leaves catch the breeze.</string>
+    <string name="tree_maple_motion_samara">Winged maple seeds circle gently around the tree.</string>
+    <string name="tree_maple_motion_halo">A large amber ring undulates slowly behind the maple tree.</string>
+</resources>

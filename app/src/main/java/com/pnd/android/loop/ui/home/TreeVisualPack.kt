@@ -17,6 +17,7 @@ internal data class TreeRiveDefinition(
     val artboard: String,
     val stateMachine: String,
     val stagePaths: List<String> = emptyList(),
+    val imageSlots: List<String> = listOf("tree") + TreePackDefinition.effectKeys,
 ) {
     fun pathForStage(stage: Int): String = stagePaths.getOrNull(stage.coerceIn(1, 10) - 1) ?: path
 }
@@ -45,8 +46,12 @@ internal data class TreePackDefinition(
             }
             val trees = root.path("trees").map { row -> row.map { it.asText() } }
             require(trees.size == 10 && trees.all { it.size == 4 }) { "Expected 10 stages and 4 conditions" }
-            require((trees.flatten() + effectKeys).all { it in images }) { "Missing tree pack image" }
             val rive = root.path("rive")
+            val slots = if (rive.has("imageSlots")) rive.path("imageSlots").map { it.asText() }
+                else listOf("tree") + effectKeys
+            require(slots.isNotEmpty() && slots.first() == "tree" && slots.distinct().size == slots.size &&
+                slots.drop(1).all { it in effectKeys }) { "Invalid Rive image slots" }
+            require((trees.flatten() + slots.drop(1)).all { it in images }) { "Missing tree pack image" }
             val stagePaths = rive.path("stagePaths").map { safePath(it.asText()) }
             require(stagePaths.isEmpty() || stagePaths.size == 10) { "Expected 10 Rive stage files" }
             return TreePackDefinition(images, trees, TreeRiveDefinition(
@@ -54,6 +59,7 @@ internal data class TreePackDefinition(
                 rive.path("artboard").asText().also { require(it.isNotBlank()) },
                 rive.path("stateMachine").asText().also { require(it.isNotBlank()) },
                 stagePaths,
+                slots,
             ))
         }
 
@@ -68,8 +74,9 @@ internal data class TreePackDefinition(
 }
 
 /** A pack may override individual PNGs; absent overrides use the original bundled artwork. */
-internal class TreeVisualPack(private val context: Context, val definition: TreePackDefinition) {
-    private val directory = "tree-packs/default"
+internal class TreeVisualPack(private val context: Context, val definition: TreePackDefinition,
+    val skin: TreeSkin = TreeSkin.GARDEN) {
+    private val directory = "tree-packs/${skin.packId}"
 
     fun openImage(key: String): InputStream {
         val image = definition.images.getValue(key)
@@ -94,19 +101,21 @@ internal class TreeVisualPack(private val context: Context, val definition: Tree
     }
 
     companion object {
-        fun load(context: Context): TreeVisualPack {
+        fun load(context: Context, skin: TreeSkin = TreeSkin.GARDEN): TreeVisualPack {
             val appContext = context.applicationContext
-            val json = appContext.assets.open("tree-packs/default/pack.json")
+            val json = appContext.assets.open("tree-packs/${skin.packId}/pack.json")
                 .bufferedReader().use { it.readText() }
-            return TreeVisualPack(appContext, TreePackDefinition.parse(json))
+            return TreeVisualPack(appContext, TreePackDefinition.parse(json), skin)
         }
     }
 }
 
 @Composable
-internal fun rememberTreeVisualPack(): TreeVisualPack {
+internal fun rememberTreeVisualPack(skin: TreeSkin? = null): TreeVisualPack {
     val context = LocalContext.current.applicationContext
-    return remember(context) { TreeVisualPack.load(context) }
+    val selection = rememberTreeSkinInventory().selected
+    val selected = skin ?: selection
+    return remember(context, selected) { TreeVisualPack.load(context, selected) }
 }
 
 @Composable

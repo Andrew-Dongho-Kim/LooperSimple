@@ -17,7 +17,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -44,8 +46,14 @@ internal val gardenHealthNames = listOf(R.string.garden_health_0, R.string.garde
     R.string.garden_health_2, R.string.garden_health_3)
 
 @Composable
-internal fun treeCardColor(): Color = if (MaterialTheme.colorScheme.background.luminance() < 0.5f)
-    Color(0xFF1B2923) else Color(0xFFF0F6E8)
+internal fun treeCardColor(): Color {
+    val skin = rememberTreeSkinInventory().selected
+    val maple = skin == TreeSkin.MAPLE
+    val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    return if (skin == TreeSkin.PINE) { if (dark) Color(0xFF1C2B2A) else Color(0xFFEBF4EF) }
+        else if (maple) { if (dark) Color(0xFF30251E) else Color(0xFFFFF3E3) }
+        else { if (dark) Color(0xFF1B2923) else Color(0xFFF0F6E8) }
+}
 
 @Composable
 fun LoopTreeCard(
@@ -55,13 +63,20 @@ fun LoopTreeCard(
 ) {
     val stage = vitality.earnedStage
     var showGuide by rememberSaveable { mutableStateOf(false) }
+    var showShop by rememberSaveable { mutableStateOf(false) }
+    val skinStore = rememberTreeSkinStore()
+    val skin = rememberTreeSkinInventory().selected
+    val rewardNames = treeSkinRewardNames(skin)
+    LaunchedEffect(vitality.growthPoints) { skinStore.earn(vitality.growthPoints) }
     val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
-    val treeGreen = if (dark) Color(0xFFB4D99B) else Color(0xFF3D7147)
+    val treeGreen = if (skin == TreeSkin.MAPLE) { if (dark) Color(0xFFF0BE86) else Color(0xFF97532D) }
+        else { if (dark) Color(0xFFB4D99B) else Color(0xFF3D7147) }
     val subtle = AppColor.onSurface.copy(alpha = 0.68f)
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(stringResource(R.string.tree_title), Modifier.weight(1f),
                 style = AppTypography.titleMedium.copy(color = AppColor.onSurface, fontWeight = FontWeight.Bold))
+            TextButton(onClick = { showShop = true }) { Text(stringResource(R.string.tree_skin_shop)) }
             Text(stringResource(R.string.tree_stage, stage),
                 Modifier.clip(RoundedCornerShape(20.dp)).background(treeGreen.copy(alpha = 0.12f))
                     .padding(horizontal = 10.dp, vertical = 5.dp),
@@ -113,4 +128,5 @@ fun LoopTreeCard(
         }
     }
     if (showGuide) TreeGuide(stage, vitality) { showGuide = false }
+    if (showShop) TreeSkinShop(vitality) { showShop = false }
 }

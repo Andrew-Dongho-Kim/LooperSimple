@@ -48,7 +48,7 @@ import com.pnd.android.loop.ui.theme.primary
 import com.pnd.android.loop.ui.theme.surfaceContainer
 import kotlinx.coroutines.launch
 
-private val rewardMotionDescriptions = listOf(
+private val gardenRewardMotionDescriptions = listOf(
     R.string.tree_preview_light, R.string.tree_preview_fireflies, R.string.tree_preview_flowers,
     R.string.tree_preview_butterflies, R.string.tree_preview_aurora,
 )
@@ -56,6 +56,15 @@ private val rewardMotionDescriptions = listOf(
 /** A freely browsable gallery. Preview choices never change the user's earned growth or rewards. */
 @Composable
 internal fun TreeGuide(currentStage: Int, vitality: TreeVitality, onDismiss: () -> Unit) {
+    val skin = rememberTreeSkinInventory().selected
+    val rewardNames = treeSkinRewardNames(skin)
+    val rewardMotionDescriptions = if (skin == TreeSkin.PINE) listOf(
+        R.string.tree_pine_motion_light, R.string.tree_pine_motion_dew, R.string.tree_pine_motion_cones,
+        R.string.tree_pine_motion_pollen, R.string.tree_pine_motion_halo,
+    ) else if (skin == TreeSkin.MAPLE) listOf(
+        R.string.tree_maple_motion_light, R.string.tree_maple_motion_motes, R.string.tree_maple_motion_mushrooms,
+        R.string.tree_maple_motion_samara, R.string.tree_maple_motion_halo,
+    ) else gardenRewardMotionDescriptions
     var stage by rememberSaveable { mutableIntStateOf(currentStage.coerceIn(1, 10)) }
     var effect by rememberSaveable { mutableIntStateOf(vitality.rewardLevel) }
     var tab by rememberSaveable { mutableIntStateOf(0) }

@@ -8,6 +8,39 @@ import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class TreePackDefinitionTest {
+    @Test fun mapleUsesFortyImagesAndOnlyOneExternalRiveSlot() {
+        val relative = "src/main/assets/tree-packs/maple/pack.json"
+        val file = listOf(File(relative), File("app/$relative")).first { it.isFile }
+        val maple = TreePackDefinition.parse(file.readText())
+        assertEquals(40, maple.images.size)
+        assertEquals(listOf("tree"), maple.rive.imageSlots)
+        for (stage in 1..10) for (wilt in 0..3) {
+            val name = "tree_%02d".format(stage) + if (wilt == 0) "" else "_wilt_$wilt"
+            assertEquals("loop_maple_$name", maple.images.getValue(maple.treeKey(stage,wilt)).resource)
+        }
+    }
+
+    @Test fun pineUsesFortyImagesAndOnlyOneExternalRiveSlot() {
+        val relative = "src/main/assets/tree-packs/pine/pack.json"
+        val file = listOf(File(relative), File("app/$relative")).first { it.isFile }
+        val pine = TreePackDefinition.parse(file.readText())
+        assertEquals(40, pine.images.size)
+        assertEquals(listOf("tree"), pine.rive.imageSlots)
+        for (stage in 1..10) for (wilt in 0..3) {
+            val name = "tree_%02d".format(stage) + if (wilt == 0) "" else "_wilt_$wilt"
+            assertEquals("loop_pine_$name", pine.images.getValue(pine.treeKey(stage,wilt)).resource)
+        }
+    }
+
+    @Test fun rejectsUnsupportedAndDuplicateRiveSlots() {
+        for (slots in listOf(listOf("tree","other"),listOf("tree","tree"),listOf("butterfly"),emptyList())) {
+            val root = manifest()
+            val array = (root["rive"] as ObjectNode).putArray("imageSlots")
+            slots.forEach { array.add(it) }
+            assertThrows(IllegalArgumentException::class.java) { TreePackDefinition.parse(root.toString()) }
+        }
+    }
+
     private fun manifest(): ObjectNode {
         val relative = "src/main/assets/tree-packs/default/pack.json"
         val file = listOf(File(relative), File("app/$relative")).first { it.isFile }

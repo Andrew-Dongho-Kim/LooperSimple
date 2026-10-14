@@ -21,3 +21,8 @@
 *.idea
 *.gradle
 *build
+
+# Folder
+design/*
+tools/*
+docs/*

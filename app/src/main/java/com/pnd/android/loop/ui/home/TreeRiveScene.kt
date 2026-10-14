@@ -48,8 +48,8 @@ private sealed interface TreeRivePreparation {
 /** Both the live card and guide use this renderer and the same image pack. */
 @Composable
 internal fun LoopTreeScene(stage: Int, rewardLevel: Int, description: String,
-    modifier: Modifier, wiltLevel: Int = 0) {
-    val pack = rememberTreeVisualPack()
+    modifier: Modifier, wiltLevel: Int = 0, skin: TreeSkin? = null) {
+    val pack = rememberTreeVisualPack(skin)
     val selectedTree = pack.treeImageKey(stage, wiltLevel)
     val owner = LocalLifecycleOwner.current
     var active by remember(owner) {
@@ -74,8 +74,9 @@ internal fun LoopTreeScene(stage: Int, rewardLevel: Int, description: String,
             val data = withContext(Dispatchers.IO) {
                 try {
                     val scene = pack.riveBytesOrNull(stage) ?: return@withContext null
-                    val slots = mapOf("tree" to selectedTree) +
-                        TreePackDefinition.effectKeys.associateWith { it }
+                    val slots = pack.definition.rive.imageSlots.associateWith {
+                        if (it == "tree") selectedTree else it
+                    }
                     PreparedTreeRive(scene, slots.mapValues { (_, image) ->
                         pack.openImage(image).use { it.readBytes() }
                     })

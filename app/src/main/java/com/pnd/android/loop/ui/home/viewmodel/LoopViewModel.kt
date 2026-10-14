@@ -25,7 +25,7 @@ import com.pnd.android.loop.state.quickDoneFor
 import com.pnd.android.loop.ui.home.RecentLoopCompletion
 import com.pnd.android.loop.ui.home.computeRecentLoopCompletion
 import com.pnd.android.loop.ui.home.TreeVitality
-import com.pnd.android.loop.ui.home.computeTreeVitality
+import com.pnd.android.loop.ui.home.TreeGardenStore
 import com.pnd.android.loop.ui.statisctics.DayOfWeekStat
 import com.pnd.android.loop.ui.statisctics.StreakStat
 import com.pnd.android.loop.ui.statisctics.computeStreak
@@ -83,6 +83,7 @@ private const val RECENT_DAYS = 7
 class LoopViewModel @Inject constructor(
     private val application: Application,
     private val loopRepository: LoopRepository,
+    private val treeGardenStore: TreeGardenStore,
 ) : ViewModel() {
     private val logger = log("LoopViewModel")
 
@@ -167,7 +168,7 @@ class LoopViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), LoopRates.Empty)
     val treeVitality: StateFlow<TreeVitality> = combine(
         loopRepository.historyRepository.snapshots, localDate,
-    ) { snapshot, today -> computeTreeVitality(snapshot, today) }
+    ) { snapshot, today -> treeGardenStore.evaluate(snapshot, today) }
         .flowOn(Dispatchers.Default)
         .distinctUntilChanged()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), TreeVitality())
