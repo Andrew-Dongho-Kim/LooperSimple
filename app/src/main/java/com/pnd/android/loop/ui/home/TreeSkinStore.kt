@@ -24,7 +24,12 @@ internal enum class TreeSkin(val packId: String, val unlockPoints: Int, val titl
 internal data class TreeSkinInventory(
     val selected: TreeSkin = TreeSkin.GARDEN,
     val unlocked: Set<TreeSkin> = setOf(TreeSkin.GARDEN),
+    val effectMasks: Map<TreeSkin, Int> = TreeSkin.entries.associateWith { TreeEffect.ALL },
 ) {
+    fun effectsFor(skin: TreeSkin): Int = effectMasks[skin] ?: TreeEffect.ALL
+    fun setEffects(skin: TreeSkin, mask: Int) = if (skin in unlocked)
+        copy(effectMasks = effectMasks + (skin to (mask and TreeEffect.ALL))) else this
+
     fun earn(points: Int) = copy(unlocked = unlocked + TreeSkin.entries.filter { points >= it.unlockPoints })
     fun select(skin: TreeSkin) = if (skin in unlocked) copy(selected = skin) else this
 }
@@ -38,16 +43,21 @@ internal class TreeSkinStore(context: Context) {
             TreeSkin.entries.firstOrNull { it.packId == id }
         }.toSet() + TreeSkin.GARDEN
         val selection = TreeSkin.fromId(preferences.getString("selected", null)).takeIf { it in owned } ?: TreeSkin.GARDEN
-        return TreeSkinInventory(selection, owned)
+        return TreeSkinInventory(selection, owned, TreeSkin.entries.associateWith {
+            preferences.getInt("effects_" + it.packId, TreeEffect.ALL) and TreeEffect.ALL
+        })
     }
 
     fun earn(points: Int) = save(read().earn(points))
     fun select(skin: TreeSkin) = save(read().select(skin))
+    fun apply(skin: TreeSkin, effects: Int) = save(read().select(skin).setEffects(skin, effects))
 
     private fun save(inventory: TreeSkinInventory) {
         if (inventory == read()) return
         preferences.edit().putStringSet("unlocked", inventory.unlocked.map { it.packId }.toSet())
-            .putString("selected", inventory.selected.packId).apply()
+            .putString("selected", inventory.selected.packId).also { editor ->
+                inventory.effectMasks.forEach { (skin, mask) -> editor.putInt("effects_" + skin.packId, mask) }
+            }.apply()
     }
 }
 

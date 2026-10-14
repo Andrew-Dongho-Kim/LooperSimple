@@ -60,12 +60,14 @@ fun LoopTreeCard(
     overallRates: LoopRates,
     vitality: TreeVitality,
     hasEstimatedHistory: Boolean,
+    onNavigateToTreeShop: () -> Unit = {},
+    animationsRunning: () -> Boolean = { true },
 ) {
     val stage = vitality.earnedStage
     var showGuide by rememberSaveable { mutableStateOf(false) }
-    var showShop by rememberSaveable { mutableStateOf(false) }
     val skinStore = rememberTreeSkinStore()
-    val skin = rememberTreeSkinInventory().selected
+    val inventory = rememberTreeSkinInventory()
+    val skin = inventory.selected
     val rewardNames = treeSkinRewardNames(skin)
     LaunchedEffect(vitality.growthPoints) { skinStore.earn(vitality.growthPoints) }
     val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
@@ -76,7 +78,7 @@ fun LoopTreeCard(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(stringResource(R.string.tree_title), Modifier.weight(1f),
                 style = AppTypography.titleMedium.copy(color = AppColor.onSurface, fontWeight = FontWeight.Bold))
-            TextButton(onClick = { showShop = true }) { Text(stringResource(R.string.tree_skin_shop)) }
+            TextButton(onClick = onNavigateToTreeShop) { Text(stringResource(R.string.tree_skin_shop)) }
             Text(stringResource(R.string.tree_stage, stage),
                 Modifier.clip(RoundedCornerShape(20.dp)).background(treeGreen.copy(alpha = 0.12f))
                     .padding(horizontal = 10.dp, vertical = 5.dp),
@@ -84,7 +86,8 @@ fun LoopTreeCard(
         }
         LoopTreeScene(stage, vitality.rewardLevel,
             stringResource(R.string.tree_image_description, stage),
-            Modifier.fillMaxWidth().height(210.dp), vitality.wiltLevel)
+            Modifier.fillMaxWidth().height(210.dp), vitality.wiltLevel,
+            effects = inventory.effectsFor(skin), animationsRunning = animationsRunning)
         Text(stringResource(gardenHealthNames[vitality.wiltLevel]),
             style = AppTypography.titleSmall.copy(color = treeGreen, fontWeight = FontWeight.Bold))
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -128,5 +131,4 @@ fun LoopTreeCard(
         }
     }
     if (showGuide) TreeGuide(stage, vitality) { showGuide = false }
-    if (showShop) TreeSkinShop(vitality) { showShop = false }
 }

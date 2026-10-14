@@ -22,6 +22,8 @@ fun LoopHeaderCard(
     loopViewModel: LoopViewModel,
     @HomeTab.Type selectedTab: Int,
     onNavigateToDetailPage: (LoopBase) -> Unit,
+    onNavigateToTreeShop: () -> Unit,
+    treeAnimationsRunning: () -> Boolean = { true },
 ) {
     val isToday = selectedTab == HomeTab.TODAY
     AppCard(
@@ -40,6 +42,8 @@ fun LoopHeaderCard(
                 overallRates = rates,
                 vitality = vitality,
                 hasEstimatedHistory = estimated,
+                onNavigateToTreeShop = onNavigateToTreeShop,
+                animationsRunning = treeAnimationsRunning,
             )
         }
     }

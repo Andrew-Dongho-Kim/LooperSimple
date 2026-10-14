@@ -99,6 +99,7 @@ fun Home(
     loopViewModel: LoopViewModel,
     onNavigateToDetailPage: (LoopBase) -> Unit,
     onNavigateToHistoryPage: () -> Unit,
+    onNavigateToTreeShop: () -> Unit,
     onNavigateToStatisticsPage: () -> Unit,
     onNavigateToSettingsPage: () -> Unit,
 ) {
@@ -178,6 +179,7 @@ fun Home(
             onNavigateToDetailPage = onNavigateToDetailPage,
             onNavigateToStatisticsPage = onNavigateToStatisticsPage,
             onNavigateToHistoryPage = onNavigateToHistoryPage,
+            onNavigateToTreeShop = onNavigateToTreeShop,
             onNavigateToSettingsPage = onNavigateToSettingsPage,
         )
     }
@@ -196,6 +198,7 @@ private fun HomeScaffoldContent(
     onNavigateToDetailPage: (LoopBase) -> Unit,
     onNavigateToStatisticsPage: () -> Unit,
     onNavigateToHistoryPage: () -> Unit,
+    onNavigateToTreeShop: () -> Unit,
     onNavigateToSettingsPage: () -> Unit,
 ) {
     Box(modifier = modifier) {
@@ -230,6 +233,7 @@ private fun HomeScaffoldContent(
             onTabSelected = onTabSelected,
             onNavigateToDetailPage = onNavigateToDetailPage,
             onNavigateToHistoryPage = onNavigateToHistoryPage,
+            onNavigateToTreeShop = onNavigateToTreeShop,
         )
 
         // 상태바 영역의 페이딩 엣지: 스크롤되는 리스트 위, 떠 있는 헤더 알약(pill) 아래에 그려서
@@ -251,10 +255,10 @@ private fun HomeScaffoldContent(
 
         // The collapsing action bar: a plain app bar at rest that, as the list scrolls, fades out
         // the title and floats the icons (in place) and the 오늘/전체 tabs (slid up to the left).
-        val collapseProgress by rememberHomeHeaderCollapseProgress(lazyListState)
+        val collapseProgress = rememberHomeHeaderCollapseProgress(lazyListState)
         CollapsingHomeHeader(
             modifier = Modifier.align(Alignment.TopCenter),
-            progress = collapseProgress,
+            progressState = collapseProgress,
             loopViewModel = loopViewModel,
             selectedTab = selectedTab,
             onTabSelected = onTabSelected,
@@ -361,6 +365,7 @@ private fun HomeBody(
     onTabSelected: (Int) -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
     onNavigateToHistoryPage: () -> Unit,
+    onNavigateToTreeShop: () -> Unit,
 ) {
     val sections by loopViewModel.observeSectionsAsState(
         inputState = inputState,
@@ -532,6 +537,7 @@ private fun HomeBody(
                 currentSections.forEach { section ->
                     section(
                         section = section,
+                        treeAnimationsRunning = { !lazyListState.isScrollInProgress },
                         recentCompletionByLoop = recentCompletionByLoop,
                         blurState = blurState,
                         loopViewModel = loopViewModel,
@@ -543,6 +549,7 @@ private fun HomeBody(
                         onStateChanged = onStateChanged,
                         onNavigateToDetailPage = onNavigateToDetailPage,
                         onNavigateToHistoryPage = onNavigateToHistoryPage,
+                        onNavigateToTreeShop = onNavigateToTreeShop,
                         onQuickDone = onQuickDone,
                     )
                 }

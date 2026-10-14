@@ -1,13 +1,21 @@
 <resources>
-    <string name="tree_skin_shop">Skin shop</string>
+    <string name="tree_skin_shop">Tree shop</string>
+    <string name="tree_shop_count">%1$d trees</string>
+    <string name="tree_shop_all">All trees</string>
+    <string name="tree_shop_default">Included</string>
+    <string name="tree_shop_milestone">%1$d total points</string>
+    <string name="tree_shop_growth">Growth preview</string>
+    <string name="tree_shop_stage">Stage %1$d / 10</string>
+    <string name="tree_shop_preview_stage">%1$s · Growth stage %2$d preview</string>
+    <string name="tree_shop_remaining">%1$d more points to unlock</string>
     <string name="tree_skin_garden">Green garden</string>
     <string name="tree_skin_garden_description">The original tree with green leaves, butterflies and fireflies.</string>
     <string name="tree_skin_maple">Autumn maple</string>
     <string name="tree_skin_maple_description">Scarlet maple leaves, golden motes, autumn mushrooms and winged seeds.</string>
     <string name="tree_skin_points">%1$d total practice points</string>
-    <string name="tree_skin_unlock_help">Reach the practice point milestone to unlock a skin. Points are never spent, and unlocked skins stay yours.</string>
+    <string name="tree_skin_unlock_help">Reach the practice point milestone to unlock a tree. Points are never spent, and unlocked trees stay yours.</string>
     <string name="tree_skin_preview">%1$s · Fully grown preview</string>
-    <string name="tree_skin_preview_help">Previews do not change growth or rewards. Applying a skin keeps your current growth stage and condition.</string>
+    <string name="tree_skin_preview_help">Previews do not change growth or rewards. Applying a tree keeps your current growth stage and condition.</string>
     <string name="tree_skin_unlocked">Unlocked</string>
     <string name="tree_skin_requires_points">Unlocks at %1$d total points</string>
     <string name="tree_skin_preview_action">Preview</string>
@@ -27,4 +35,14 @@
     <string name="tree_maple_motion_mushrooms">Autumn mushrooms appear on the ground as maple leaves catch the breeze.</string>
     <string name="tree_maple_motion_samara">Winged maple seeds circle gently around the tree.</string>
     <string name="tree_maple_motion_halo">A large amber ring undulates slowly behind the maple tree.</string>
+    <string name="tree_shop_trees_tab">Trees</string>
+    <string name="tree_shop_effects_tab">Effects</string>
+    <string name="tree_shop_customize_effects">Customize effects</string>
+    <string name="tree_shop_effects_help">Toggle individual effects to preview them, including effects you have yet to unlock.</string>
+    <string name="tree_shop_effects_healthy">View effects on a healthy tree</string>
+    <string name="tree_shop_effect_unlock">Preview · Keep %1$d%% practice rate for %2$d days to unlock</string>
+    <string name="tree_shop_effect_toggle">Toggle %1$s preview</string>
+    <string name="tree_shop_apply_settings">Apply tree and effects</string>
+    <string name="tree_shop_applied">Applied</string>
+    <string name="tree_shop_effects_apply_help">Applied settings stay on your home tree. Only earned effects appear, and effects are hidden while the tree is wilted.</string>
 </resources>

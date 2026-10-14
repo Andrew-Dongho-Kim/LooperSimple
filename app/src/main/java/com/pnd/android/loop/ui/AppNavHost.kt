@@ -16,6 +16,8 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.util.Consumer
@@ -33,6 +35,7 @@ import com.pnd.android.loop.common.NavigatePage
 import com.pnd.android.loop.ui.detail.DetailPage
 import com.pnd.android.loop.ui.history.DailyAchievementPage
 import com.pnd.android.loop.ui.home.Home
+import com.pnd.android.loop.ui.home.TreeShopPage
 import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
 import com.pnd.android.loop.ui.settings.SettingsPage
 import com.pnd.android.loop.ui.statisctics.StatisticsPage
@@ -125,6 +128,7 @@ fun AppNavHost(
                 onNavigateToStatisticsPage = {
                     NavigatePage.StatisticsPage.navigate(navController)
                 },
+                onNavigateToTreeShop = { NavigatePage.TreeShop.navigate(navController) },
                 onNavigateToSettingsPage = {
                     NavigatePage.SettingsPage.navigate(navController)
                 }
@@ -157,6 +161,11 @@ fun AppNavHost(
                 },
                 onNavigateUp = onNavigateUp
             )
+        }
+
+        page(page = NavigatePage.TreeShop) {
+            val vitality by loopViewModel.treeVitality.collectAsState()
+            TreeShopPage(vitality, onNavigateUp)
         }
 
         page(page = NavigatePage.SettingsPage) {

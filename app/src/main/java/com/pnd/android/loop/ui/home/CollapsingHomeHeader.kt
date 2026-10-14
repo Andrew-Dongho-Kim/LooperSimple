@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -93,7 +94,7 @@ fun rememberHomeHeaderCollapseProgress(lazyListState: LazyListState): State<Floa
  */
 @Composable
 fun CollapsingHomeHeader(
-    progress: Float,
+    progressState: State<Float>,
     loopViewModel: LoopViewModel,
     @HomeTab.Type selectedTab: Int,
     onTabSelected: (Int) -> Unit,
@@ -104,6 +105,8 @@ fun CollapsingHomeHeader(
     modifier: Modifier = Modifier,
     showTabs: Boolean = true,
 ) {
+    // Read scroll progress here so pixel changes invalidate only the overlay, not HomeBody.
+    val progress by progressState
     val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val screenPadding = Dimens.screenHorizontalPadding
     // Backgrounds/shadows appear only near the end of the collapse; the tabs still move smoothly

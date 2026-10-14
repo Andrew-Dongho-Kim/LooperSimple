@@ -2,12 +2,6 @@ package com.pnd.android.loop.ui.home
 
 import android.animation.ValueAnimator
 import android.graphics.Paint
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -15,11 +9,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -54,13 +50,13 @@ import kotlin.math.sin
 /** Every layer shares the tree's square, including on wide cards and small screens. */
 @Composable
 internal fun NativeTreeScene(stage: Int, rewardLevel: Int, description: String, modifier: Modifier,
-    wiltLevel: Int, pack: TreeVisualPack) {
+    wiltLevel: Int, pack: TreeVisualPack, animationsRunning: Boolean = true, effects: Int = TreeEffect.ALL) {
     val wilt = wiltLevel.coerceIn(0, 3)
     val maple = pack.skin == TreeSkin.MAPLE
     val pine = pack.skin == TreeSkin.PINE
     val level = if (wilt == 0) rewardLevel.coerceIn(0, 5) else 0
     val effectAlpha = 1f - wilt * 0.22f
-    val time = rememberGardenTime(true)
+    val time = rememberGardenTime(animationsRunning)
     val leafPath = remember(maple, pine) {
         Path().apply {
             if (pine) {
@@ -80,12 +76,12 @@ internal fun NativeTreeScene(stage: Int, rewardLevel: Int, description: String, 
         }
     }
     // Load only unlocked art. Downsample effect overlays rather than decoding four full-size PNGs.
-    val sunlight = if (level >= 1 && !maple && !pine) rememberTreePackBitmap(pack, "sunlight", 2) else null
-    val firefly = if (level >= 2 && !maple && !pine) rememberTreePackBitmap(pack, "firefly", 2) else null
-    val flowers = if (level >= 3 && !maple && !pine) rememberTreePackBitmap(pack, "flowers", 2) else null
-    val petal = if (level >= 3 && !maple && !pine) rememberTreePackBitmap(pack, "petal", 2) else null
-    val butterfly = if (level >= 4 && !maple && !pine) rememberTreePackBitmap(pack, "butterfly", 2) else null
-    val aurora = if (level >= 5 && !maple && !pine) rememberTreePackBitmap(pack, "aurora", 2) else null
+    val sunlight = if (TreeEffect.SUNLIGHT.visible(effects, level) && !maple && !pine) rememberTreePackBitmap(pack, "sunlight", 2) else null
+    val firefly = if (TreeEffect.FIREFLIES.visible(effects, level) && !maple && !pine) rememberTreePackBitmap(pack, "firefly", 2) else null
+    val flowers = if (TreeEffect.FLOWERS.visible(effects, level) && !maple && !pine) rememberTreePackBitmap(pack, "flowers", 2) else null
+    val petal = if (TreeEffect.FLOWERS.visible(effects, level) && !maple && !pine) rememberTreePackBitmap(pack, "petal", 2) else null
+    val butterfly = if (TreeEffect.BUTTERFLIES.visible(effects, level) && !maple && !pine) rememberTreePackBitmap(pack, "butterfly", 2) else null
+    val aurora = if (TreeEffect.AURORA.visible(effects, level) && !maple && !pine) rememberTreePackBitmap(pack, "aurora", 2) else null
     val mesh = remember { FloatArray((16 + 1) * (8 + 1) * 2) }
     val meshPaint = remember { Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG) }
     val sunlightMask = remember {
@@ -96,8 +92,8 @@ internal fun NativeTreeScene(stage: Int, rewardLevel: Int, description: String, 
         androidx.compose.foundation.layout.Box(Modifier.size(side)) {
             Canvas(Modifier.fillMaxSize().graphicsLayer { alpha = effectAlpha }.softAtmosphereEdges()) {
                 val seconds = time.value
-                if (maple) drawMapleAtmosphere(level, seconds)
-                if (pine) drawPineAtmosphere(level, seconds)
+                if (maple) drawMapleAtmosphere(level, seconds, effects)
+                if (pine) drawPineAtmosphere(level, seconds, effects)
                 sunlight?.let {
                     // Feather only the sunbeams. Aurora must remain visible around the outer crown.
                     val canvas = drawContext.canvas.nativeCanvas
@@ -105,7 +101,7 @@ internal fun NativeTreeScene(stage: Int, rewardLevel: Int, description: String, 
                     rotate(wave(seconds, 8f) * 5f, Offset.Zero) {
                         translate(wave(seconds, 12f) * size.width * 0.045f,
                             wave(seconds + 2f, 8f) * size.height * 0.025f) {
-                            drawArt(it, alpha = (if (level >= 5) 0.30f else 0.54f) + wave(seconds, 6f) * 0.20f)
+                            drawArt(it, alpha = (if (TreeEffect.AURORA.visible(effects, level)) 0.30f else 0.54f) + wave(seconds, 6f) * 0.20f)
                         }
                     }
                     drawRect(sunlightMask, blendMode = BlendMode.DstIn)
@@ -127,8 +123,8 @@ internal fun NativeTreeScene(stage: Int, rewardLevel: Int, description: String, 
             Image(rememberTreePackBitmap(pack, pack.treeImageKey(stage, wilt)), description, Modifier.fillMaxSize())
             Canvas(Modifier.fillMaxSize().graphicsLayer { alpha = effectAlpha }) {
                 val seconds = time.value
-                if (maple) drawMapleForeground(level, seconds, leafPath)
-                if (pine) drawPineForeground(level, seconds, stage)
+                if (maple) drawMapleForeground(level, seconds, leafPath, effects)
+                if (pine) drawPineForeground(level, seconds, stage, effects)
                 flowers?.let {
                     // Anchor the breeze at the soil, so the flower bed never floats off the mound.
                     val side = size.width * 0.82f
@@ -165,7 +161,7 @@ private fun Modifier.softAtmosphereEdges(): Modifier = graphicsLayer {
 
 /** Stop clocks off screen, and provide a composed static scene when system animations are disabled. */
 @Composable
-private fun rememberGardenTime(hasReward: Boolean): State<Float> {
+private fun rememberGardenTime(running: Boolean): State<Float> {
     val owner = LocalLifecycleOwner.current
     var active by remember(owner) {
         mutableStateOf(owner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED))
@@ -179,12 +175,19 @@ private fun rememberGardenTime(hasReward: Boolean): State<Float> {
         owner.lifecycle.addObserver(observer)
         onDispose { owner.lifecycle.removeObserver(observer) }
     }
-    if (!hasReward || !active || !animationsEnabled) return remember { mutableStateOf(3f) }
-    val transition = rememberInfiniteTransition(label = "garden atmosphere")
-    // 48 seconds is a whole number of all motion periods, keeping the loop seam invisible.
-    return transition.animateFloat(0f, 48f,
-        infiniteRepeatable(tween(48000, easing = LinearEasing), RepeatMode.Restart),
-        label = "garden time")
+    val time = remember { mutableStateOf(3f) }
+    LaunchedEffect(running, active, animationsEnabled) {
+        if (!running || !active || !animationsEnabled) return@LaunchedEffect
+        var previous = withFrameNanos { it }
+        while (true) {
+            withFrameNanos { frame ->
+                // Keep the last drawn frame when paused; exclude the pause from elapsed time.
+                time.value = (time.value + (frame - previous) / 1_000_000_000f) % 48f
+                previous = frame
+            }
+        }
+    }
+    return time
 }
 
 private fun wave(seconds: Float, period: Float): Float = sin(seconds * (2 * PI).toFloat() / period)
@@ -223,17 +226,17 @@ private fun DrawScope.drawConditionLeaves(path: Path, seconds: Float, stage: Int
     }
 }
 
-private fun DrawScope.drawMapleAtmosphere(level: Int, seconds: Float) {
-    if (level >= 1) drawCircle(Brush.radialGradient(listOf(Color(0xFFFFCC7A).copy(alpha = 0.08f + wave(seconds,6f)*0.02f),
+private fun DrawScope.drawMapleAtmosphere(level: Int, seconds: Float, effects: Int) {
+    if (TreeEffect.SUNLIGHT.visible(effects, level)) drawCircle(Brush.radialGradient(listOf(Color(0xFFFFCC7A).copy(alpha = 0.08f + wave(seconds,6f)*0.02f),
         Color.Transparent), Offset(size.width*0.5f,size.height*0.3f), size.width*0.65f), size.width*0.65f,
         Offset(size.width*0.5f,size.height*0.3f))
-    if (level >= 2) repeat(6) { i ->
+    if (TreeEffect.FIREFLIES.visible(effects, level)) repeat(6) { i ->
         val t = seconds + i*2.17f
         drawCircle(Color(0xFFFFD57F).copy(alpha = 0.5f + wave(t,6f)*0.3f), size.width*0.0035f,
             Offset(size.width*(0.18f+(i*37%64)/100f+wave(t,8f)*0.06f),
                 size.height*(0.24f+(i*19%55)/100f+wave(t+3f,12f)*0.08f)))
     }
-    if (level >= 5) repeat(3) { i ->
+    if (TreeEffect.AURORA.visible(effects, level)) repeat(3) { i ->
         val width=size.width*(0.855f+i*0.029f)*(1+wave(seconds,8f)*0.035f)
         val height=size.height*(0.781f+i*0.029f)*(1+wave(seconds,12f)*0.025f)
         drawOval(Color(0xFFFFC965).copy(alpha = listOf(0.3f,0.15f,0.06f)[i]),
@@ -242,9 +245,9 @@ private fun DrawScope.drawMapleAtmosphere(level: Int, seconds: Float) {
     }
 }
 
-private fun DrawScope.drawMapleForeground(level: Int, seconds: Float, leaf: Path) {
+private fun DrawScope.drawMapleForeground(level: Int, seconds: Float, leaf: Path, effects: Int) {
     val unit=size.width/512f
-    if (level >= 3) {
+    if (TreeEffect.FLOWERS.visible(effects, level)) {
         repeat(5) { i ->
             translate(size.width*(0.24f+i*0.13f),size.height*(0.89f-(i%2)*0.025f)) {
                 drawRect(Color(0xFFF2D5A4),Offset(-2*unit,-2*unit),androidx.compose.ui.geometry.Size(4*unit,9*unit))
@@ -261,7 +264,7 @@ private fun DrawScope.drawMapleForeground(level: Int, seconds: Float, leaf: Path
             }
         }
     }
-    if (level >= 4) repeat(2) { i ->
+    if (TreeEffect.BUTTERFLIES.visible(effects, level)) repeat(2) { i ->
         val period=if(i==0) 12f else 16f
         val t=seconds+i*8f
         translate(size.width*((if(i==0)0.25f else 0.76f)+wave(t,period)*0.05f),
@@ -403,11 +406,11 @@ private fun DrawScope.drawButterflyWings(bitmap: ImageBitmap, side: Float, cente
 }
 
 
-private fun DrawScope.drawPineAtmosphere(level: Int, seconds: Float) {
-    if (level >= 1) drawCircle(Brush.radialGradient(listOf(Color(0xFFE5EDB1).copy(alpha=0.08f+wave(seconds,6f)*0.02f),
+private fun DrawScope.drawPineAtmosphere(level: Int, seconds: Float, effects: Int) {
+    if (TreeEffect.SUNLIGHT.visible(effects, level)) drawCircle(Brush.radialGradient(listOf(Color(0xFFE5EDB1).copy(alpha=0.08f+wave(seconds,6f)*0.02f),
         Color.Transparent),Offset(size.width*0.5f,size.height*0.3f),size.width*0.65f),
         size.width*0.65f,Offset(size.width*0.5f,size.height*0.3f))
-    if (level >= 5) repeat(3) { i ->
+    if (TreeEffect.AURORA.visible(effects, level)) repeat(3) { i ->
         val width=size.width*(0.85f+i*0.028f)*(1+wave(seconds,8f)*0.03f)
         val height=size.height*(0.80f+i*0.024f)*(1+wave(seconds,12f)*0.02f)
         drawOval(Color(0xFFA1D6AA).copy(alpha=listOf(0.25f,0.12f,0.05f)[i]),
@@ -416,11 +419,11 @@ private fun DrawScope.drawPineAtmosphere(level: Int, seconds: Float) {
     }
 }
 
-private fun DrawScope.drawPineForeground(level: Int, seconds: Float, stage: Int) {
+private fun DrawScope.drawPineForeground(level: Int, seconds: Float, stage: Int, effects: Int) {
     val unit=size.width/512f
     val spread=minOf(0.28f,0.04f+stage*0.026f)
     val crown=listOf(0.75f,0.64f,0.53f,0.46f,0.40f,0.36f,0.34f,0.32f,0.30f,0.29f)[stage.coerceIn(1,10)-1]
-    if (level >= 2) repeat(6) { i ->
+    if (TreeEffect.FIREFLIES.visible(effects, level)) repeat(6) { i ->
         val center=Offset(size.width*(0.5f+spread*((i*37%101)/50f-1f)+wave(seconds,8f)*0.006f),
             size.height*(crown+0.07f*(i%3)+wave(seconds,12f)*0.004f))
         val color=Color(0xFFE2FFF0).copy(alpha=0.55f+wave(seconds+i,6f)*0.35f)
@@ -428,7 +431,7 @@ private fun DrawScope.drawPineForeground(level: Int, seconds: Float, stage: Int)
         drawLine(color,center-Offset(0f,4*unit),center+Offset(0f,4*unit),0.7f*unit)
         drawLine(color,center-Offset(3*unit,0f),center+Offset(3*unit,0f),0.7f*unit)
     }
-    if (level >= 3) repeat(3) { i ->
+    if (TreeEffect.FLOWERS.visible(effects, level)) repeat(3) { i ->
         translate(size.width*(0.30f+i*0.20f),size.height*(0.90f-(i%2)*0.02f)) {
             drawOval(Color(0xFF845537),Offset(-7*unit,-11*unit),androidx.compose.ui.geometry.Size(14*unit,22*unit))
             repeat(4) { row -> for (side in -1..1) {
@@ -438,7 +441,7 @@ private fun DrawScope.drawPineForeground(level: Int, seconds: Float, stage: Int)
             } }
         }
     }
-    if (level >= 4) repeat(8) { i ->
+    if (TreeEffect.BUTTERFLIES.visible(effects, level)) repeat(8) { i ->
         drawCircle(Color(0xFFFFDA82).copy(alpha=0.4f+wave(seconds+i,8f)*0.3f),1.1f*unit,
             Offset(size.width*(0.5f+spread*wave(seconds+i*2,12f)),
                 size.height*(crown+0.13f+0.09f*wave(seconds+i*2,16f))))

@@ -38,6 +38,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 private data class PreparedTreeRive(val scene: ByteArray, val images: Map<String, ByteArray>)
+private data class TreeRiveInputs(val stage: Int, val reward: Int, val wilt: Int, val active: Boolean, val effects: Int)
 
 private sealed interface TreeRivePreparation {
     data object Loading : TreeRivePreparation
@@ -48,7 +49,8 @@ private sealed interface TreeRivePreparation {
 /** Both the live card and guide use this renderer and the same image pack. */
 @Composable
 internal fun LoopTreeScene(stage: Int, rewardLevel: Int, description: String,
-    modifier: Modifier, wiltLevel: Int = 0, skin: TreeSkin? = null) {
+    modifier: Modifier, wiltLevel: Int = 0, skin: TreeSkin? = null,
+    effects: Int = TreeEffect.ALL, animationsRunning: () -> Boolean = { true }) {
     val pack = rememberTreeVisualPack(skin)
     val selectedTree = pack.treeImageKey(stage, wiltLevel)
     val owner = LocalLifecycleOwner.current
@@ -56,6 +58,8 @@ internal fun LoopTreeScene(stage: Int, rewardLevel: Int, description: String,
         mutableStateOf(owner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED))
     }
     var animationsEnabled by remember { mutableStateOf(ValueAnimator.areAnimatorsEnabled()) }
+    // Observe only the scrolling/not-scrolling boundary, inside the scene's own scope.
+    val running = animationsRunning()
     DisposableEffect(owner) {
         val observer = LifecycleEventObserver { _, _ ->
             active = owner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
@@ -65,7 +69,7 @@ internal fun LoopTreeScene(stage: Int, rewardLevel: Int, description: String,
         onDispose { owner.lifecycle.removeObserver(observer) }
     }
     if (!animationsEnabled) {
-        NativeTreeScene(stage, rewardLevel, description, modifier, wiltLevel, pack)
+        NativeTreeScene(stage, rewardLevel, description, modifier, wiltLevel, pack, running, effects)
         return
     }
     // Recreate only when the selected image changes, not on clock or reward updates.
@@ -96,7 +100,7 @@ internal fun LoopTreeScene(stage: Int, rewardLevel: Int, description: String,
                 try {
                     TreeRiveRuntime.initialize(context)
                     candidate = TreePackRiveView(context)
-                    candidate.load(data, pack.definition.rive, stage, rewardLevel, wiltLevel, active)
+                    candidate.load(data, pack.definition.rive, stage, rewardLevel, wiltLevel, active, effects)
                     candidate
                 } catch (e: Exception) {
                     candidate?.releasePack()
@@ -114,7 +118,7 @@ internal fun LoopTreeScene(stage: Int, rewardLevel: Int, description: String,
             // showing it while loading causes a visible jump followed by a blank TextureView.
             Box(modifier)
         } else if (view == null) {
-            NativeTreeScene(stage, rewardLevel, description, modifier, wiltLevel, pack)
+            NativeTreeScene(stage, rewardLevel, description, modifier, wiltLevel, pack, running, effects)
         } else {
             BoxWithConstraints(modifier.clipToBounds(), contentAlignment = Alignment.Center) {
                 AndroidView(
@@ -123,7 +127,7 @@ internal fun LoopTreeScene(stage: Int, rewardLevel: Int, description: String,
                     onRelease = { it.releasePack() },
                     update = {
                         it.contentDescription = description
-                        it.updateState(stage, rewardLevel, wiltLevel, active)
+                        it.updateState(stage, rewardLevel, wiltLevel, active, running, effects)
                     },
                 )
             }
@@ -150,6 +154,7 @@ private class TreePackRiveView(context: Context) : RiveAnimationView(context) {
     private var released = false
     private var playing = false
     private var presentedFrame = false
+    private var inputs: TreeRiveInputs? = null
 
     init { alpha = 0f }
 
@@ -173,7 +178,7 @@ private class TreePackRiveView(context: Context) : RiveAnimationView(context) {
     override fun createObserver(): LifecycleObserver = object : DefaultLifecycleObserver {}
 
     fun load(data: PreparedTreeRive, definition: TreeRiveDefinition,
-        stage: Int, reward: Int, wilt: Int, active: Boolean) {
+        stage: Int, reward: Int, wilt: Int, active: Boolean, effects: Int) {
         machine = definition.stateMachine
         val loadedSlots = mutableSetOf<String>()
         setAssetLoader(object : FileAssetLoader() {
@@ -192,26 +197,36 @@ private class TreePackRiveView(context: Context) : RiveAnimationView(context) {
             require(instance.input(name) is SMINumber) { "Missing Number input: $name" }
         }
         require(instance.input("animationsEnabled") is SMIBoolean) { "Missing Boolean input: animationsEnabled" }
+        for (effect in TreeEffect.entries) {
+            require(instance.input(effect.inputName) is SMIBoolean) { "Missing effect toggle: " + effect.inputName }
+        }
         // Input setters queue changes. Settle them before attaching a renderer or calling play(),
         // which otherwise settles Entry with the template's preview reward (5) for one frame.
-        applyInputs(stage, reward, wilt, active)
+        applyInputs(stage, reward, wilt, active, effects)
         controller.advance(0f)
         if (!active) pause()
     }
 
-    fun updateState(stage: Int, reward: Int, wilt: Int, active: Boolean) {
+    fun updateState(stage: Int, reward: Int, wilt: Int, active: Boolean, running: Boolean, effects: Int) {
         if (released) return
-        applyInputs(stage, reward, wilt, active)
-        if (active && (!playing || !controller.isAdvancing)) play(machine, isStateMachine = true)
-        if (!active && playing) pause()
-        playing = active
+        applyInputs(stage, reward, wilt, active, effects)
+        // Pause the existing renderer without changing state-machine inputs or replacing its
+        // TextureView. The last frame stays visible and playback resumes from the same point.
+        val shouldPlay = active && running
+        if (shouldPlay && (!playing || !controller.isAdvancing)) play(machine, isStateMachine = true)
+        if (!shouldPlay && playing) pause()
+        playing = shouldPlay
     }
 
-    private fun applyInputs(stage: Int, reward: Int, wilt: Int, active: Boolean) {
-        setNumberState(machine, "stage", stage.coerceIn(1, 10).toFloat())
-        setNumberState(machine, "rewardLevel", reward.coerceIn(0, 5).toFloat())
-        setNumberState(machine, "wiltLevel", wilt.coerceIn(0, 3).toFloat())
+    private fun applyInputs(stage: Int, reward: Int, wilt: Int, active: Boolean, effects: Int) {
+        val next = TreeRiveInputs(stage.coerceIn(1, 10), reward.coerceIn(0, 5), wilt.coerceIn(0, 3), active, effects)
+        if (inputs == next) return
+        inputs = next
+        setNumberState(machine, "stage", next.stage.toFloat())
+        setNumberState(machine, "rewardLevel", next.reward.toFloat())
+        setNumberState(machine, "wiltLevel", next.wilt.toFloat())
         setBooleanState(machine, "animationsEnabled", active)
+        for (effect in TreeEffect.entries) setBooleanState(machine, effect.inputName, effect.enabled(effects))
     }
 
     fun releasePack() {

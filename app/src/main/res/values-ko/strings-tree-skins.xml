@@ -1,13 +1,21 @@
 <resources>
-    <string name="tree_skin_shop">스킨 상점</string>
+    <string name="tree_skin_shop">트리 상점</string>
+    <string name="tree_shop_count">나무 %1$d종</string>
+    <string name="tree_shop_all">모든 나무</string>
+    <string name="tree_shop_default">기본 제공</string>
+    <string name="tree_shop_milestone">누적 %1$d점</string>
+    <string name="tree_shop_growth">성장 미리보기</string>
+    <string name="tree_shop_stage">%1$d / 10단계</string>
+    <string name="tree_shop_preview_stage">%1$s · 성장 %2$d단계 미리보기</string>
+    <string name="tree_shop_remaining">%1$d점 더 쌓으면 해금</string>
     <string name="tree_skin_garden">초록 정원</string>
     <string name="tree_skin_garden_description">초록 잎과 나비·반딧불이 어우러지는 기존 나무예요.</string>
     <string name="tree_skin_maple">가을 단풍</string>
     <string name="tree_skin_maple_description">붉은 단풍 잎, 황금빛 입자, 가을 버섯과 날개 씨앗이 어우러져요.</string>
     <string name="tree_skin_points">누적 실천 %1$d점</string>
-    <string name="tree_skin_unlock_help">누적 실천 점수를 달성하면 스킨이 해금돼요. 점수는 차감하지 않으며, 해금한 스킨은 계속 사용할 수 있어요.</string>
+    <string name="tree_skin_unlock_help">누적 실천 점수를 달성하면 나무가 해금돼요. 점수는 차감하지 않으며, 해금한 나무는 계속 사용할 수 있어요.</string>
     <string name="tree_skin_preview">%1$s · 완전히 자란 모습</string>
-    <string name="tree_skin_preview_help">미리보기는 성장과 보상 기록에 영향을 주지 않아요. 적용하면 현재 성장 단계와 컨디션이 그대로 이어져요.</string>
+    <string name="tree_skin_preview_help">미리보기는 성장과 보상 기록에 영향을 주지 않아요. 나무를 적용하면 현재 성장 단계와 컨디션이 그대로 이어져요.</string>
     <string name="tree_skin_unlocked">해금 완료</string>
     <string name="tree_skin_requires_points">누적 %1$d점 달성 시 해금</string>
     <string name="tree_skin_preview_action">미리보기</string>
@@ -27,4 +35,14 @@
     <string name="tree_maple_motion_mushrooms">땅에 가을 버섯이 나타나고 단풍 잎이 바람을 타요.</string>
     <string name="tree_maple_motion_samara">단풍의 날개 씨앗이 나무 주변을 맴돌아요.</string>
     <string name="tree_maple_motion_halo">큰 황금빛 고리가 단풍나무 뒤에서 천천히 물결쳐요.</string>
+    <string name="tree_shop_trees_tab">나무</string>
+    <string name="tree_shop_effects_tab">이펙트</string>
+    <string name="tree_shop_customize_effects">이펙트 꾸미기</string>
+    <string name="tree_shop_effects_help">스위치로 각 이펙트를 미리 적용하거나 해제해 보세요. 해금 전 이펙트도 미리 볼 수 있어요.</string>
+    <string name="tree_shop_effects_healthy">건강한 모습으로 이펙트 보기</string>
+    <string name="tree_shop_effect_unlock">미리보기 · 실천율 %1$d%%를 %2$d일 유지하면 해금</string>
+    <string name="tree_shop_effect_toggle">%1$s 미리보기 켜기·끄기</string>
+    <string name="tree_shop_apply_settings">나무·이펙트 적용하기</string>
+    <string name="tree_shop_applied">적용 완료</string>
+    <string name="tree_shop_effects_apply_help">적용하면 홈에도 유지돼요. 해금한 이펙트만 표시되며, 시든 상태에서는 이펙트가 잠시 숨겨져요.</string>
 </resources>

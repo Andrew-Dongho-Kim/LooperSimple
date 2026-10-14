@@ -11,11 +11,16 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.lifecycleScope
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import app.rive.runtime.kotlin.RiveAnimationView
@@ -29,12 +34,85 @@ import app.rive.runtime.kotlin.core.File as RiveFile
 import com.pnd.android.loop.ui.theme.AppTheme
 import com.pnd.android.loop.ui.home.viewmodel.LoopRates
 import java.io.File
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.launch
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class TreeRivePackTest {
+    @Test fun scrollingPausesTreeAndResumesTheSameRenderer() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val context = instrumentation.targetContext
+        val activity = instrumentation.startActivitySync(Intent(context, ComponentActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) as ComponentActivity
+        lateinit var listState: LazyListState
+        var scrollJob: Job? = null
+        try {
+            instrumentation.runOnMainSync {
+                if (Build.VERSION.SDK_INT >= 27) {
+                    activity.setShowWhenLocked(true)
+                    activity.setTurnScreenOn(true)
+                }
+                activity.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                activity.setContent {
+                    AppTheme {
+                        listState = rememberLazyListState()
+                        LazyColumn(Modifier.width(300.dp).height(400.dp), state = listState) {
+                            item {
+                                LoopTreeCard(LoopRates.Empty,
+                                    TreeVitality(earnedStage = 10, earnedReward = 5), false,
+                                    animationsRunning = { !listState.isScrollInProgress })
+                            }
+                            items(20) { Box(Modifier.height(60.dp)) }
+                        }
+                    }
+                }
+            }
+            assertStartupDoesNotFlash(instrumentation, activity)
+            var original: RiveAnimationView? = null
+            instrumentation.runOnMainSync {
+                original = findRive(activity.window.decorView)
+                assertNotNull(original)
+                assertTrue(original!!.isPlaying)
+                scrollJob = activity.lifecycleScope.launch {
+                    listState.scroll {
+                        scrollBy(20f)
+                        awaitCancellation()
+                    }
+                }
+            }
+            SystemClock.sleep(500)
+            var pausedFrame: Bitmap? = null
+            instrumentation.runOnMainSync {
+                assertTrue(listState.isScrollInProgress)
+                assertSame(original, findRive(activity.window.decorView))
+                assertFalse("Tree kept rendering during scrolling", original!!.isPlaying)
+                assertTrue("Pausing changed the tree's condition", (original!!.controller
+                    .stateMachines.first().input("animationsEnabled") as SMIBoolean).value)
+                pausedFrame = requireNotNull(original!!.bitmap)
+            }
+            SystemClock.sleep(400)
+            instrumentation.runOnMainSync {
+                val frame = requireNotNull(original!!.bitmap)
+                assertTrue("Paused tree did not retain its last frame", pausedFrame!!.sameAs(frame))
+                pausedFrame!!.recycle()
+                frame.recycle()
+                scrollJob!!.cancel()
+            }
+            SystemClock.sleep(500)
+            instrumentation.runOnMainSync {
+                assertFalse(listState.isScrollInProgress)
+                assertSame("Scroll recreated the renderer", original, findRive(activity.window.decorView))
+            }
+            assertVisibleMotion(instrumentation, activity, "After scrolling")
+        } finally {
+            instrumentation.runOnMainSync { scrollJob?.cancel(); activity.finish() }
+        }
+    }
+
     @Test fun allMapleStagesLoadAndKeepTheConditionAnimationsRunning() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         Rive.init(context)

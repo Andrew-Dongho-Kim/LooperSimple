@@ -89,6 +89,7 @@ val HOME_NATIVE_AD_ID = if (BuildConfig.DEBUG) {
 
 fun LazyListScope.section(
     section: Section,
+    treeAnimationsRunning: () -> Boolean,
     recentCompletionByLoop: Map<Int, RecentLoopCompletion>,
     blurState: BlurState,
     loopViewModel: LoopViewModel,
@@ -101,12 +102,15 @@ fun LazyListScope.section(
     onStateChanged: (LoopBase, Int) -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
     onNavigateToHistoryPage: () -> Unit,
+    onNavigateToTreeShop: () -> Unit,
     // ✓ 한 번 완료. occurrence 날짜를 함께 받아야 자정을 넘긴 몫을 제 날짜에 기록한다.
     onQuickDone: (LoopBase, LocalDate) -> Unit,
 ) {
     when (section) {
         is Section.HeaderCard -> sectionHeader(
+            onNavigateToTreeShop = onNavigateToTreeShop,
             section = section,
+            treeAnimationsRunning = treeAnimationsRunning,
             loopViewModel = loopViewModel,
             selectedTab = selectedTab,
             onNavigateToDetailPage = onNavigateToDetailPage,
@@ -172,7 +176,9 @@ fun LazyListScope.section(
 }
 
 private fun LazyListScope.sectionHeader(
+    onNavigateToTreeShop: () -> Unit,
     section: Section.HeaderCard,
+    treeAnimationsRunning: () -> Boolean,
     loopViewModel: LoopViewModel,
     @HomeTab.Type selectedTab: Int,
     onNavigateToDetailPage: (LoopBase) -> Unit,
@@ -184,6 +190,8 @@ private fun LazyListScope.sectionHeader(
         // Statistics / history navigation now lives in the home app bar, so the
         // header item only carries the stats card itself.
         LoopHeaderCard(
+            onNavigateToTreeShop = onNavigateToTreeShop,
+            treeAnimationsRunning = treeAnimationsRunning,
             modifier = Modifier.padding(
                 horizontal = Dimens.screenHorizontalPadding,
                 vertical = if (selectedTab == HomeTab.TODAY) 8.dp else Dimens.contentPadding,

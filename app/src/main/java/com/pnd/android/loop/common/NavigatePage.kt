@@ -78,6 +78,10 @@ sealed class NavigatePage(val route: String) {
         }
     }
 
+    data object TreeShop : NavigatePage("tree_shop") {
+        fun navigate(navController: NavHostController) { navController.navigate(route) }
+    }
+
     data object SettingsPage : NavigatePage("settings") {
         fun navigate(navController: NavHostController) {
             navController.navigate(route)
