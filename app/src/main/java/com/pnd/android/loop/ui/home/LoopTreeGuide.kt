@@ -1,6 +1,5 @@
 package com.pnd.android.loop.ui.home
 
-import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -29,9 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -62,6 +59,7 @@ internal fun TreeGuide(currentStage: Int, vitality: TreeVitality, onDismiss: () 
     var stage by rememberSaveable { mutableIntStateOf(currentStage.coerceIn(1, 10)) }
     var effect by rememberSaveable { mutableIntStateOf(vitality.rewardLevel) }
     var tab by rememberSaveable { mutableIntStateOf(0) }
+    var wilt by rememberSaveable { mutableIntStateOf(vitality.wiltLevel) }
     val configuration = LocalConfiguration.current
     val scroll = rememberScrollState()
     val scope = rememberCoroutineScope()
@@ -85,9 +83,16 @@ internal fun TreeGuide(currentStage: Int, vitality: TreeVitality, onDismiss: () 
                     if (effect == 0) stringResource(R.string.tree_preview_no_effect) else
                         stringResource(rewardNames[effect - 1])),
                     style = AppTypography.titleSmall.copy(color = AppColor.onSurface))
-                LoopTreeScene(treeArt[stage - 1], effect,
+                LoopTreeScene(stage, effect,
                     stringResource(R.string.tree_image_description, stage),
-                    Modifier.fillMaxWidth().height(180.dp))
+                    Modifier.fillMaxWidth().height(180.dp), wilt)
+                Text(stringResource(R.string.garden_health_preview),
+                    style = AppTypography.labelMedium.copy(color = AppColor.onSurfaceVariant))
+                AppSegmentedControl(options = listOf(0, 1, 2, 3), selected = wilt,
+                    onSelected = { wilt = it }, label = { if (it == 0) stringResource(R.string.garden_health_0)
+                        else stringResource(R.string.garden_health_step, it) })
+                Text(stringResource(gardenHealthNames[wilt]),
+                    style = AppTypography.bodySmall.copy(color = AppColor.onSurfaceVariant))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     TextButton(onClick = { stage = (stage - 1).coerceAtLeast(1) }, enabled = stage > 1,
                         modifier = Modifier.weight(1f)) {
@@ -100,7 +105,7 @@ internal fun TreeGuide(currentStage: Int, vitality: TreeVitality, onDismiss: () 
                             style = AppTypography.labelLarge.copy(color = if (stage < 10) AppColor.primary else AppColor.onSurfaceVariant))
                     }
                 }
-                TextButton(onClick = { stage = currentStage; effect = vitality.rewardLevel },
+                TextButton(onClick = { stage = currentStage; effect = vitality.rewardLevel; wilt = vitality.wiltLevel },
                     modifier = Modifier.align(Alignment.End)) {
                     Text(stringResource(R.string.tree_preview_current),
                         style = AppTypography.labelLarge.copy(color = AppColor.primary))
@@ -109,9 +114,9 @@ internal fun TreeGuide(currentStage: Int, vitality: TreeVitality, onDismiss: () 
             AppSegmentedControl(options = listOf(0, 1), selected = tab, onSelected = { tab = it },
                 label = { stringResource(if (it == 0) R.string.tree_preview_growth_tab else R.string.tree_preview_effect_tab) })
             if (tab == 0) {
-                Text(stringResource(R.string.tree_guide_growth),
+                Text(stringResource(R.string.garden_growth_rules),
                     style = AppTypography.bodyMedium.copy(color = AppColor.onSurface))
-                Text(stringResource(R.string.tree_preview_formula),
+                Text(stringResource(R.string.garden_balance_rules),
                     style = AppTypography.bodySmall.copy(color = AppColor.onSurfaceVariant))
                 Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     repeat(5) { row ->
@@ -121,12 +126,11 @@ internal fun TreeGuide(currentStage: Int, vitality: TreeVitality, onDismiss: () 
                                 Column(Modifier.weight(1f).guideSelection(stage == number) { stage = number; showSelection() }
                                     .padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally,
                                     verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    TreeGuideThumbnail(number - 1)
+                                    TreeGuideThumbnail(number - 1, wilt)
                                     Text(stringResource(R.string.tree_stage, number),
                                         style = AppTypography.labelLarge.copy(color = AppColor.onSurface),
                                         textAlign = TextAlign.Center)
-                                    Text(stringResource(R.string.tree_preview_range,
-                                        (number - 1) * 10, if (number == 10) 100 else number * 10 - 1),
+                                    Text(stringResource(R.string.garden_points_requirement, treeGrowthPoints[number - 1]),
                                         style = AppTypography.labelMedium.copy(color = AppColor.onSurfaceVariant))
                                 }
                             }
@@ -134,7 +138,7 @@ internal fun TreeGuide(currentStage: Int, vitality: TreeVitality, onDismiss: () 
                     }
                 }
             } else {
-                Text(stringResource(R.string.tree_guide_rewards),
+                Text(stringResource(R.string.garden_rewards_rules),
                     style = AppTypography.bodyMedium.copy(color = AppColor.onSurface))
                 Text(stringResource(R.string.tree_preview_effect_help),
                     style = AppTypography.bodySmall.copy(color = AppColor.onSurfaceVariant))
@@ -160,9 +164,9 @@ internal fun TreeGuide(currentStage: Int, vitality: TreeVitality, onDismiss: () 
                 HorizontalDivider(color = AppColor.outlineVariant)
                 Text(stringResource(R.string.tree_preview_how_to),
                     style = AppTypography.titleMedium.copy(color = AppColor.onSurface))
-                Text(stringResource(R.string.tree_preview_actions),
+                Text(stringResource(R.string.garden_health_rules),
                     style = AppTypography.bodyMedium.copy(color = AppColor.onSurface))
-                Text(stringResource(R.string.tree_guide_rules),
+                Text(stringResource(R.string.garden_recovery),
                     style = AppTypography.bodySmall.copy(color = AppColor.onSurfaceVariant))
             }
         }
@@ -182,12 +186,8 @@ private fun Modifier.guideSelection(selected: Boolean, onSelect: () -> Unit): Mo
 
 /** Keep the full gallery's memory footprint small; the selected tree is rendered at full quality. */
 @Composable
-private fun TreeGuideThumbnail(index: Int) {
-    val resources = LocalContext.current.resources
-    val bitmap = remember(index, resources) {
-        BitmapFactory.decodeResource(resources, treeArt[index], BitmapFactory.Options().apply {
-            inSampleSize = 4
-        }).asImageBitmap()
-    }
+private fun TreeGuideThumbnail(index: Int, wiltLevel: Int) {
+    val pack = rememberTreeVisualPack()
+    val bitmap = rememberTreePackBitmap(pack, pack.treeImageKey(index + 1, wiltLevel), sampleSize = 4)
     Image(bitmap, null, Modifier.height(72.dp).fillMaxWidth())
 }

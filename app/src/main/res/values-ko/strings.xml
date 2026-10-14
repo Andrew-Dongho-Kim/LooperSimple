@@ -590,7 +590,7 @@
     <string name="tree_reward_start">꾸준히 키워 특별한 효과를 만나세요</string>
     <string name="tree_reward_current">특별 효과 %1$d단계 · %2$s</string>
     <string name="tree_reward_next">다음 효과: %1$d%% 이상 · 활동일 %2$d / %3$d일</string>
-    <string name="tree_reward_max">다섯 가지 효과가 모두 빛나고 있어요!</string>
+    <string name="tree_reward_max">다섯 가지 특별 효과를 모두 달성했어요!</string>
     <string name="tree_reward_light">따스한 빛</string>
     <string name="tree_reward_fireflies">반딧불</string>
     <string name="tree_reward_flowers">꽃 피는 정원</string>
@@ -613,7 +613,7 @@
     <string name="tree_preview_effect_tab">특별 효과</string>
     <string name="tree_preview_range">달성률 %1$d–%2$d%%</string>
     <string name="tree_preview_formula">달성률은 기간 내 완료한 할 일 ÷ 예정된 전체 할 일이에요. 건너뛰거나 응답하지 않은 할 일은 달성률을 낮춰요. 할 일을 마치고 완료로 기록하면 나무가 자라요.</string>
-    <string name="tree_preview_effect_help">효과는 이전 단계와 함께 누적돼요. 나무 성장과 유지 일수는 따로 계산되므로 원하는 나무와 효과를 자유롭게 조합해 볼 수 있어요.</string>
+    <string name="tree_preview_effect_help">효과는 이전 단계와 함께 누적돼요. 성장 점수와 보상 달성 일수는 따로 계산돼요. 나무·효과·컨디션을 자유롭게 조합해 볼 수 있어요.</string>
     <string name="tree_preview_earned">달성 완료 · 현재 효과에 포함돼요</string>
     <string name="tree_preview_progress">현재 유지 %1$d / %2$d활동일 · 앞으로 %3$d활동일</string>
     <string name="tree_preview_how_to">어떻게 달성하나요?</string>

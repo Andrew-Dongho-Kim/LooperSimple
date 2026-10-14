@@ -86,6 +86,8 @@ dependencies {
     implementation libs.androidx.compose.ui
     implementation libs.androidx.compose.ui.tooling
     implementation libs.androidx.compose.ui.viewbinding
+    // Referenced image assets; keep the runtime compatible with Kotlin 1.9.
+    implementation 'app.rive:rive-android:9.2.0'
     implementation libs.androidx.compose.runtime.livedata
     implementation libs.androidx.compose.foundation
     implementation libs.androidx.material

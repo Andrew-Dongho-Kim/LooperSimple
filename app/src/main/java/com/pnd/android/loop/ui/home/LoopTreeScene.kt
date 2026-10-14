@@ -1,7 +1,6 @@
 package com.pnd.android.loop.ui.home
 
 import android.animation.ValueAnimator
-import android.graphics.BitmapFactory
 import android.graphics.Paint
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -32,7 +31,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.graphicsLayer
@@ -40,14 +39,11 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.pnd.android.loop.R
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.cos
@@ -56,16 +52,27 @@ import kotlin.math.sin
 
 /** Every layer shares the tree's square, including on wide cards and small screens. */
 @Composable
-internal fun LoopTreeScene(tree: Int, rewardLevel: Int, description: String, modifier: Modifier) {
-    val level = rewardLevel.coerceIn(0, 5)
-    val time = rememberGardenTime(level > 0)
+internal fun NativeTreeScene(stage: Int, rewardLevel: Int, description: String, modifier: Modifier,
+    wiltLevel: Int, pack: TreeVisualPack) {
+    val wilt = wiltLevel.coerceIn(0, 3)
+    val level = if (wilt == 0) rewardLevel.coerceIn(0, 5) else 0
+    val effectAlpha = 1f - wilt * 0.22f
+    val time = rememberGardenTime(true)
+    val leafPath = remember {
+        Path().apply {
+            moveTo(-8f, 0f)
+            cubicTo(-4f, -6f, 4f, -6f, 8f, 0f)
+            cubicTo(4f, 6f, -4f, 6f, -8f, 0f)
+            close()
+        }
+    }
     // Load only unlocked art. Downsample effect overlays rather than decoding four full-size PNGs.
-    val sunlight = if (level >= 1) effectBitmap(R.drawable.loop_toy_effect_sunlight) else null
-    val firefly = if (level >= 2) effectBitmap(R.drawable.loop_toy_effect_firefly) else null
-    val flowers = if (level >= 3) effectBitmap(R.drawable.loop_toy_effect_flowers) else null
-    val petal = if (level >= 3) effectBitmap(R.drawable.loop_toy_effect_petal) else null
-    val butterfly = if (level >= 4) effectBitmap(R.drawable.loop_toy_effect_butterfly) else null
-    val aurora = if (level >= 5) effectBitmap(R.drawable.loop_toy_effect_aurora) else null
+    val sunlight = if (level >= 1) rememberTreePackBitmap(pack, "sunlight", 2) else null
+    val firefly = if (level >= 2) rememberTreePackBitmap(pack, "firefly", 2) else null
+    val flowers = if (level >= 3) rememberTreePackBitmap(pack, "flowers", 2) else null
+    val petal = if (level >= 3) rememberTreePackBitmap(pack, "petal", 2) else null
+    val butterfly = if (level >= 4) rememberTreePackBitmap(pack, "butterfly", 2) else null
+    val aurora = if (level >= 5) rememberTreePackBitmap(pack, "aurora", 2) else null
     val mesh = remember { FloatArray((16 + 1) * (8 + 1) * 2) }
     val meshPaint = remember { Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG) }
     val sunlightMask = remember {
@@ -74,7 +81,7 @@ internal fun LoopTreeScene(tree: Int, rewardLevel: Int, description: String, mod
     BoxWithConstraints(modifier.clipToBounds(), contentAlignment = Alignment.Center) {
         val side = minOf(maxWidth, maxHeight)
         androidx.compose.foundation.layout.Box(Modifier.size(side)) {
-            Canvas(Modifier.fillMaxSize().softAtmosphereEdges()) {
+            Canvas(Modifier.fillMaxSize().graphicsLayer { alpha = effectAlpha }.softAtmosphereEdges()) {
                 val seconds = time.value
                 sunlight?.let {
                     // Feather only the sunbeams. Aurora must remain visible around the outer crown.
@@ -102,8 +109,8 @@ internal fun LoopTreeScene(tree: Int, rewardLevel: Int, description: String, mod
                 }
                 firefly?.let { drawFireflies(it, seconds, level, behind = true) }
             }
-            Image(painterResource(tree), description, Modifier.fillMaxSize())
-            Canvas(Modifier.fillMaxSize()) {
+            Image(rememberTreePackBitmap(pack, pack.treeImageKey(stage, wilt)), description, Modifier.fillMaxSize())
+            Canvas(Modifier.fillMaxSize().graphicsLayer { alpha = effectAlpha }) {
                 val seconds = time.value
                 flowers?.let {
                     // Anchor the breeze at the soil, so the flower bed never floats off the mound.
@@ -115,6 +122,10 @@ internal fun LoopTreeScene(tree: Int, rewardLevel: Int, description: String, mod
                 }
                 firefly?.let { drawFireflies(it, seconds, level, behind = false) }
                 butterfly?.let { drawButterflies(it, seconds) }
+            }
+            Canvas(Modifier.fillMaxSize()) {
+                // Match the Rive condition effect, including packs without a usable .riv file.
+                if (ValueAnimator.areAnimatorsEnabled()) drawConditionLeaves(leafPath, time.value, stage, wilt)
             }
         }
     }
@@ -132,16 +143,6 @@ private fun Modifier.softAtmosphereEdges(): Modifier = graphicsLayer {
         drawContent()
         drawRect(horizontal, blendMode = BlendMode.DstIn)
         drawRect(vertical, blendMode = BlendMode.DstIn)
-    }
-}
-
-@Composable
-private fun effectBitmap(id: Int): ImageBitmap {
-    val resources = LocalContext.current.resources
-    return remember(resources, id) {
-        BitmapFactory.decodeResource(resources, id, BitmapFactory.Options().apply {
-            inSampleSize = 2
-        }).asImageBitmap()
     }
 }
 
@@ -170,6 +171,36 @@ private fun rememberGardenTime(hasReward: Boolean): State<Float> {
 }
 
 private fun wave(seconds: Float, period: Float): Float = sin(seconds * (2 * PI).toFloat() / period)
+
+private fun DrawScope.drawConditionLeaves(path: Path, seconds: Float, stage: Int, wilt: Int) {
+    val falling = wilt > 0
+    val count = if (falling) listOf(0, 3, 5, 8)[wilt] else 5
+    val total = if (falling) 8 else 5
+    val crown = listOf(0.75f, 0.64f, 0.53f, 0.46f, 0.40f, 0.36f, 0.34f, 0.32f, 0.30f, 0.29f)[stage.coerceIn(1, 10)-1]
+    val spread = minOf(0.28f, 0.04f + stage.coerceIn(1, 10) * 0.026f)
+    val palette = if (falling) listOf(Color(0xFFCCA15B), Color(0xFFB98540), Color(0xFFE0B86D), Color(0xFFA96F35))
+        else listOf(Color(0xFF96C95A), Color(0xFFB3DA71), Color(0xFF70AD4C))
+    repeat(count) { i ->
+        val progress = (seconds / 12f + i.toFloat() / total) % 1f
+        val sourceX = 0.5f + spread * ((i * 37 % 101) / 50f - 1f)
+        val sourceY = crown + 0.12f * (i % 3) / 2f
+        val drift = 0.035f * sin((2 * PI * progress + i).toFloat()) +
+            0.045f * progress * (if (i % 2 == 1) 1f else -1f)
+        val center = Offset(size.width * (sourceX + drift),
+            size.height * (if (falling) sourceY + (0.89f - sourceY) * progress else sourceY - 0.18f * progress))
+        val pulse = sin((PI * progress).toFloat())
+        val alpha = pulse * pulse * (if (falling) 0.9f else 0.65f)
+        val leafScale = size.width / 512f * (if (falling) 1f else 0.65f)
+        translate(center.x, center.y) {
+            rotate((progress * 2.4f + 0.4f * sin((2 * PI * progress + i).toFloat())) * (180 / PI).toFloat(), Offset.Zero) {
+                scale(leafScale * (0.65f + 0.35f * abs(cos((2 * PI * progress).toFloat()))), leafScale, Offset.Zero) {
+                    drawPath(path, palette[i % palette.size].copy(alpha = alpha))
+                    drawLine(Color(0xFFE8D6A0).copy(alpha = alpha), Offset(-6f, 0f), Offset(6f, 0f), 0.7f)
+                }
+            }
+        }
+    }
+}
 
 /** Keep sculpted flowers grounded; only the translucent aurora uses a wider travelling wave. */
 private fun DrawScope.drawLivingArt(

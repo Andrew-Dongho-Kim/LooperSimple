@@ -114,7 +114,7 @@ internal fun TimelineSummaryHeader(
         // Keep the weekly goal, but remove the second, non-interactive calendar strip.
         Row(
             Modifier.fillMaxWidth().clip(JournalCellShape)
-                .background(accent.copy(alpha = 0.08f)).padding(14.dp),
+                .background(accent.copy(alpha = 0.08f)).padding(horizontal = 14.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -124,6 +124,7 @@ internal fun TimelineSummaryHeader(
                 stringResource(R.string.detail_kpi_week_ratio, stats.weekly.done, stats.weekly.target),
                 style = AppTypography.titleMedium, color = accent,
             )
+            HistoryCalculationNote(stats.hasEstimatedHistory)
         }
         if (stats.weekly.target > 0) {
             Box(Modifier.padding(top = 8.dp).fillMaxWidth().height(3.dp).clip(CircleShape)
@@ -139,7 +140,6 @@ internal fun TimelineSummaryHeader(
                 color = AppColor.onSurface.copy(alpha = 0.6f),
             )
         }
-        HistoryCalculationNote(stats.hasEstimatedHistory, Modifier.padding(top = 8.dp))
     }
 }
 

@@ -598,8 +598,8 @@
     <string name="tree_water_hint">Each completed task adds water</string>
     <string name="tree_reward_start">Keep growing to earn special effects</string>
     <string name="tree_reward_current">Effect %1$d · %2$s</string>
-    <string name="tree_reward_next">Next: maintain %1$d%%+ · %2$d / %3$d active days</string>
-    <string name="tree_reward_max">All five effects are shining!</string>
+    <string name="tree_reward_next">Next: %1$d%%+ · %2$d / %3$d qualifying practice days</string>
+    <string name="tree_reward_max">All five special effects earned!</string>
     <string name="tree_reward_light">Warm glow</string>
     <string name="tree_reward_fireflies">Fireflies</string>
     <string name="tree_reward_flowers">Blossoming garden</string>
@@ -622,7 +622,7 @@
     <string name="tree_preview_effect_tab">Special effects</string>
     <string name="tree_preview_range">%1$d–%2$d%% completion</string>
     <string name="tree_preview_formula">Completion rate = completed tasks ÷ all scheduled tasks in the period. Skipped and unanswered tasks lower the rate. Finish tasks and mark them complete to help the tree grow.</string>
-    <string name="tree_preview_effect_help">Effects build on earlier levels. Tree growth and sustained days are calculated separately, so you can preview any combination.</string>
+    <string name="tree_preview_effect_help">Effects build on earlier levels. Growth points and qualifying reward days are tracked separately. Preview any tree, effect, and health condition.</string>
     <string name="tree_preview_earned">Earned · included in your current effects</string>
     <string name="tree_preview_progress">Maintained %1$d / %2$d active days · %3$d more needed</string>
     <string name="tree_preview_how_to">How to earn the effects</string>

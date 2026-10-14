@@ -13,8 +13,12 @@ val treeRewards = listOf(
     TreeReward(4, 80, 60), TreeReward(5, 80, 100),
 )
 
-data class TreeVitality(val daysAt60: Int = 0, val daysAt80: Int = 0) {
-    val rewardLevel: Int get() = treeRewards.lastOrNull {
+data class TreeVitality(
+    val daysAt60: Int = 0, val daysAt80: Int = 0,
+    val earnedStage: Int = 1, val earnedReward: Int? = null, val growthPoints: Int = 0,
+    val growthPercent: Int? = null, val healthPercent: Int? = null, val wiltLevel: Int = 0,
+) {
+    val rewardLevel: Int get() = earnedReward ?: treeRewards.lastOrNull {
         daysFor(it) >= it.days
     }?.level ?: 0
     val nextReward: TreeReward? get() = treeRewards.firstOrNull { it.level > rewardLevel }

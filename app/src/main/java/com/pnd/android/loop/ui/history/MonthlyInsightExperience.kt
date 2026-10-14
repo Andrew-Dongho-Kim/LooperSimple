@@ -12,7 +12,6 @@ import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.EditNote
-import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Insights
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -57,7 +56,6 @@ internal fun MonthlyInsightExperience(
     val month = YearMonth.from(LocalDate.ofEpochDay(monthEpoch))
     var route by rememberSaveable { mutableStateOf("summary") }
     var notesReturn by rememberSaveable { mutableStateOf("summary") }
-    var help by rememberSaveable { mutableStateOf(false) }
     var retry by remember { mutableStateOf(0) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val analysisState = rememberSaveableStateHolder()
@@ -72,7 +70,8 @@ internal fun MonthlyInsightExperience(
             InsightMonthHeader(
                 month, minDate, today,
                 onMonth = { monthEpoch = it.atDay(1).toEpochDay() },
-                onHelp = { help = true },
+                estimated = report?.hasEstimatedHistory == true,
+                showHelp = route == "summary",
             )
         }
         val content: @Composable () -> Unit = {
@@ -115,7 +114,6 @@ internal fun MonthlyInsightExperience(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     item { monthHeader() }
-                    item { HistoryCalculationNote(report?.hasEstimatedHistory == true) }
                     item { content() }
                 }
             }
@@ -137,9 +135,7 @@ internal fun MonthlyInsightExperience(
                                 stringResource(if (route == "notes") R.string.mi_notes else R.string.mi_analysis),
                                 Modifier.weight(1f), style = AppTypography.titleLarge,
                             )
-                            IconButton(onClick = { help = true }) {
-                                Icon(Icons.Outlined.Info, stringResource(R.string.mi_definitions))
-                            }
+                            InsightCalculationHelp(report?.hasEstimatedHistory == true)
                         }
                         if (route == "notes" && report != null) {
                             InsightNotes(report)
@@ -150,7 +146,6 @@ internal fun MonthlyInsightExperience(
                                 verticalArrangement = Arrangement.spacedBy(16.dp),
                             ) {
                                 item { monthHeader() }
-                    item { HistoryCalculationNote(report?.hasEstimatedHistory == true) }
                                 item { content() }
                             }
                         }
@@ -159,29 +154,29 @@ internal fun MonthlyInsightExperience(
             }
         }
     }
-    if (help) {
-        AlertDialog(
-            onDismissRequest = { help = false },
-            title = { Text(stringResource(R.string.mi_definitions)) },
-            text = {
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    item { Text(stringResource(R.string.mi_definition_rate)) }
-                    item { Text(stringResource(R.string.history_estimated)) }
-                    item { Text(stringResource(R.string.mi_definition_comparison)) }
-                    item { Text(stringResource(R.string.mi_definition_time)) }
-                    item { Text(stringResource(R.string.mi_definition_streak)) }
-                    item { Text(stringResource(R.string.mi_definition_samples)) }
-                }
-            },
-            confirmButton = { TextButton(onClick = { help = false }) { Text(stringResource(R.string.history_close)) } },
-        )
-    }
+}
+
+@Composable
+private fun InsightCalculationHelp(estimated: Boolean) {
+    HistoryCalculationNote(
+        estimated = estimated,
+        titleResId = R.string.mi_definitions,
+        explanationResId = R.string.mi_definition_rate,
+        additionalNotes = listOf(
+            stringResource(R.string.mi_definition_comparison),
+            stringResource(R.string.mi_definition_time),
+            stringResource(R.string.mi_definition_streak),
+            stringResource(R.string.mi_definition_samples),
+        ),
+    )
 }
 
 @Composable
 private fun InsightMonthHeader(
     month: YearMonth, minDate: LocalDate, today: LocalDate,
-    onMonth: (YearMonth) -> Unit, onHelp: () -> Unit,
+    onMonth: (YearMonth) -> Unit,
+    estimated: Boolean,
+    showHelp: Boolean,
 ) {
     Column {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -192,15 +187,13 @@ private fun InsightMonthHeader(
                     style = AppTypography.labelMedium, color = AppColor.onSurfaceVariant,
                 )
             }
+            if (showHelp) InsightCalculationHelp(estimated)
             IconButton(onClick = { onMonth(month.minusMonths(1)) }, enabled = month > YearMonth.from(minDate)) {
                 Icon(Icons.AutoMirrored.Outlined.KeyboardArrowLeft, stringResource(R.string.history_previous_month))
             }
             IconButton(onClick = { onMonth(month.plusMonths(1)) }, enabled = month < YearMonth.from(today)) {
                 Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, stringResource(R.string.history_next_month))
             }
-        }
-        TextButton(onClick = onHelp, contentPadding = PaddingValues(0.dp)) {
-            Text(stringResource(R.string.mi_definitions), style = AppTypography.labelMedium)
         }
     }
 }

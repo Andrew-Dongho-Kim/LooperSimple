@@ -1,0 +1,19 @@
+<resources>
+    <string name="garden_health_step">Wilt %1$d</string>
+    <string name="garden_health_0">Healthy</string>
+    <string name="garden_health_1">A little thirsty</string>
+    <string name="garden_health_2">Needs care</string>
+    <string name="garden_health_3">Waiting to recover</string>
+    <string name="garden_health_rate">Last 7 practice days · %1$d%%</string>
+    <string name="garden_health_pending">Gathering practice-day records</string>
+    <string name="garden_points">Practice points · %1$d / %2$d</string>
+    <string name="garden_points_max">Practice points · %1$d · Fully grown</string>
+    <string name="garden_upgrade_rate">Upgrade: last 14 days %1$d%% / 60%%</string>
+    <string name="garden_points_requirement">%1$d practice points</string>
+    <string name="garden_recovery" formatted="false">Keep 50% for 2 practice days to recover one step. Reach 60% to become healthy. Earned levels and rewards stay yours.</string>
+    <string name="garden_growth_rules" formatted="false">Each completed scheduled loop earns 1 point, once per loop each day. Completing 2 different loops adds 1 bonus point; the daily total is capped at 3. A new loop qualifies after 3 days and 2 scheduled occurrences. There is no weekly cap or required loop count. Upgrade with enough points, a healthy tree, and a 14-day completion average of at least 60%.</string>
+    <string name="garden_health_rules" formatted="false">The tree keeps its earned level. Its leaves wilt after the average of the last 7 settled practice days stays below 60% for 7 practice days, below 40% for 14, or below 25% for 21. Rest days and unfinished today are excluded. Initial records and uncertain schedules do not cause wilting. Points keep accumulating while wilted.</string>
+    <string name="garden_rewards_rules">Reward days accumulate when the 14-day loop-balanced average meets the threshold. Rest days pause counting; earned rewards stay yours. Green leaves rise when healthy; dry leaves fall when wilted. Special effects are hidden while wilted and return after recovery.</string>
+    <string name="garden_balance_rules">Each loop has equal weight in the completion average. Historical misses remain in their original schedule even when a loop is disabled later.</string>
+    <string name="garden_health_preview">Tree condition</string>
+</resources>
