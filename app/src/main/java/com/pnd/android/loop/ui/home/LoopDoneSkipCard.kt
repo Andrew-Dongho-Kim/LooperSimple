@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,6 +20,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Refresh
@@ -304,15 +306,63 @@ private fun DoneSkipCountBadge(
 }
 
 @Composable
-internal fun TodayFinishedRecords(
+internal fun TodayLoopRecords(
+    modifier: Modifier = Modifier,
     loops: List<LoopBase>,
     blurState: BlurState,
     loopViewModel: LoopViewModel,
     onNavigateToDetailPage: (LoopBase) -> Unit,
 ) {
-    Surface(shape = RoundShapes.large, color = AppColor.surfaceElevated) {
+    val records = loops.filterIsInstance<LoopWithDone>()
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        listOf(DoneState.DONE, DoneState.SKIP).forEach { state ->
+            val group = records.filter { it.done == state }
+            if (group.isNotEmpty()) {
+                TodayLoopRecordGroup(
+                    loops = group,
+                    blurState = blurState,
+                    loopViewModel = loopViewModel,
+                    onNavigateToDetailPage = onNavigateToDetailPage,
+                    isDone = state == DoneState.DONE,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TodayLoopRecordGroup(
+    loops: List<LoopWithDone>,
+    blurState: BlurState,
+    loopViewModel: LoopViewModel,
+    onNavigateToDetailPage: (LoopBase) -> Unit,
+    isDone: Boolean,
+) {
+    Surface(modifier = Modifier.fillMaxWidth(), shape = RoundShapes.large, color = AppColor.surfaceElevated) {
         Column {
-            loops.filterIsInstance<LoopWithDone>().forEachIndexed { index, loop ->
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = if (isDone) Icons.Filled.Done else Icons.AutoMirrored.Filled.Redo,
+                    contentDescription = null,
+                    tint = if (isDone) AppColor.primary else AppColor.onSurface.copy(alpha = 0.65f),
+                    modifier = Modifier.size(20.dp),
+                )
+                Text(
+                    text = stringResource(
+                        R.string.today_records_group_count,
+                        stringResource(if (isDone) R.string.done else R.string.today_records_skipped),
+                        loops.size,
+                    ),
+                    modifier = Modifier.padding(start = 8.dp),
+                    style = AppTypography.titleSmall,
+                    color = AppColor.onSurface,
+                )
+            }
+            HorizontalDivider(color = AppColor.onSurface.copy(alpha = 0.08f))
+            loops.forEachIndexed { index, loop ->
                 key(loop.loopId, loop.date) {
                     if (index > 0) {
                         HorizontalDivider(
@@ -368,7 +418,22 @@ private fun DoneSkipItem(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        LoopCardColor(
+        if (showRecordStatus) {
+            val isDone = (loop as? LoopWithDone)?.done == DoneState.DONE
+            val statusColor = if (isDone) AppColor.primary else AppColor.onSurface.copy(alpha = 0.65f)
+            Box(
+                modifier = Modifier.padding(end = 12.dp).size(28.dp)
+                    .background(statusColor.copy(alpha = 0.10f), RoundShapes.small),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = if (isDone) Icons.Filled.Done else Icons.AutoMirrored.Filled.Redo,
+                    contentDescription = null,
+                    tint = statusColor,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+        } else LoopCardColor(
             modifier = Modifier
                 .padding(end = 12.dp)
                 .size(8.dp),
@@ -379,7 +444,7 @@ private fun DoneSkipItem(
             DoneSkipItemTitle(title = loop.title)
             if (showRecordStatus) {
                 val status = stringResource(
-                    if ((loop as? LoopWithDone)?.done == DoneState.DONE) R.string.done else R.string.skip
+                    if ((loop as? LoopWithDone)?.done == DoneState.DONE) R.string.done else R.string.today_records_skipped
                 )
                 val schedule = if (loop.isAnyTime) stringResource(R.string.anytime) else {
                     "${loop.startInDay.formatHourMinute(withAmPm = false)}–${loop.endInDay.formatHourMinute(withAmPm = false)}"

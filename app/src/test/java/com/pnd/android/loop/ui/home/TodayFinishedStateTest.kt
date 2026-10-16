@@ -9,6 +9,7 @@ import com.pnd.android.loop.state.DoneState
 import com.pnd.android.loop.util.toMs
 import java.time.LocalDate
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -38,6 +39,17 @@ class TodayFinishedStateTest {
     @Test fun `undo and running loops return to the actionable view`() {
         assertFalse(section(DoneState.DONE, DoneState.NO_RESPONSE).isFinished)
         assertFalse(section(DoneState.DONE, DoneState.IN_PROGRESS).isFinished)
+    }
+
+    @Test fun `last response updates the same progress without treating skip as completion`() {
+        val section = section(DoneState.DONE, DoneState.DONE, DoneState.SKIP, DoneState.NO_RESPONSE)
+        assertEquals(TodaySectionProgress(done = 2, skipped = 1, remaining = 1), section.progress)
+        section.items.value = section.items.value.dropLast(1) + loop(4, DoneState.DONE)
+        assertEquals(TodaySectionProgress(done = 3, skipped = 1, remaining = 0), section.progress)
+        section.items.value = section.items.value.dropLast(1) + loop(4, DoneState.SKIP)
+        assertEquals(TodaySectionProgress(done = 2, skipped = 2, remaining = 0), section.progress)
+        section.items.value = section.items.value.dropLast(1) + loop(4, DoneState.NO_RESPONSE)
+        assertEquals(TodaySectionProgress(done = 2, skipped = 1, remaining = 1), section.progress)
     }
 
     @Test fun `yesterdays waiting occurrence does not count as todays unfinished work`() {

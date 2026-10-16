@@ -8,4 +8,15 @@
     <string name="today_finished_record_count">총 %1$d개</string>
     <string name="today_finished_water_hint">완료한 루프 %1$d개가 물로 쌓였어요</string>
     <string name="today_finished_undo">되돌리기</string>
+    <string name="today_section_title">오늘의 루프</string>
+    <string name="today_progress_remaining">오늘 남은 루프가 %1$d개 있어요</string>
+    <string name="today_progress_counts">남은 루프 %1$d · 완료 %2$d · 건너뜀 %3$d</string>
+    <string name="today_remaining_caption">남은 루프 · %1$d</string>
+    <string name="today_remaining_empty">오늘 남은 루프가 없어요</string>
+    <string name="today_remaining_empty_hint">이제 편하게 쉬어가세요. 아래에서 오늘 기록을 확인하거나 되돌릴 수 있어요.</string>
+    <string name="today_remaining_skipped_hint">오늘은 쉬어가기로 했어요. 아래에서 건너뛴 기록을 되돌릴 수 있어요.</string>
+    <string name="today_records_empty">완료하거나 건너뛴 루프가 여기에 모여요.</string>
+    <string name="today_records_history">기록 보기</string>
+    <string name="today_records_skipped">건너뜀</string>
+    <string name="today_records_group_count">%1$s · %2$d</string>
 </resources>

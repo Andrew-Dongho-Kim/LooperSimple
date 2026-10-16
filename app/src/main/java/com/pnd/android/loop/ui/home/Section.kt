@@ -60,6 +60,7 @@ import com.pnd.android.loop.data.TodayOccurrence
 import com.pnd.android.loop.data.asLoopVo
 import com.pnd.android.loop.data.isInProgress
 import com.pnd.android.loop.data.isNotRespond
+import com.pnd.android.loop.data.isRespond
 import com.pnd.android.loop.ui.common.AppEmptyState
 import com.pnd.android.loop.ui.common.ExpandableNativeAd
 import com.pnd.android.loop.ui.home.timeline.LoopCircularDial
@@ -126,6 +127,7 @@ fun LazyListScope.section(
             onDelete = onDelete,
             onNavigateToDetailPage = onNavigateToDetailPage,
             onQuickDone = onQuickDone,
+            onNavigateToHistoryPage = onNavigateToHistoryPage,
         )
 
         is Section.Yesterday -> sectionYesterday(
@@ -239,6 +241,7 @@ private fun LazyListScope.sectionToday(
     onDelete: (LoopBase) -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
     onQuickDone: (LoopBase, LocalDate) -> Unit,
+    onNavigateToHistoryPage: () -> Unit,
 ) {
     val loops by section.items
     val groups by section.groups
@@ -261,14 +264,22 @@ private fun LazyListScope.sectionToday(
         return
     }
 
-    if (section.isFinished) {
-        item(key = "TodayFinishedRecords", contentType = ContentTypes.LOOP_EMPTY) {
-            TodayFinishedCard(
-                loops = loops,
-                blurState = blurState,
-                loopViewModel = loopViewModel,
-                onNavigateToDetailPage = onNavigateToDetailPage,
+    sectionTodayViewModeToggle(section = section)
+    val progress = section.progress
+    if (section.viewMode.value == TodayViewMode.LIST) {
+        item(key = "TodayRemainingCaption", contentType = ContentTypes.TODAY_GROUP_CAPTION) {
+            Text(
+                text = stringResource(R.string.today_remaining_caption, progress.remaining),
+                modifier = Modifier.padding(horizontal = Dimens.screenHorizontalPadding + 4.dp, vertical = 8.dp),
+                style = AppTypography.labelMedium,
+                color = AppColor.onSurface.copy(alpha = 0.65f),
             )
+        }
+    }
+
+    if (section.isFinished && section.viewMode.value == TodayViewMode.LIST) {
+        item(key = "TodayRemainingEmpty", contentType = ContentTypes.LOOP_EMPTY) {
+            TodayRemainingEmpty(progress)
         }
         sectionTodayCarriedOver(
             groups = groups,
@@ -280,24 +291,38 @@ private fun LazyListScope.sectionToday(
             onNavigateToDetailPage = onNavigateToDetailPage,
             onQuickDone = onQuickDone,
         )
-        return
+    } else {
+        sectionTodayContent(
+            section = section,
+            blurState = blurState,
+            loopViewModel = loopViewModel,
+            editingLoopId = editingLoopId,
+            onEdit = onEdit,
+            onDelete = onDelete,
+            onNavigateToDetailPage = onNavigateToDetailPage,
+            onQuickDone = onQuickDone,
+        )
     }
-
-    // 응답할 루프가 남아 있는 동안에만 목록/다이얼 전환을 제공한다.
-    sectionTodayViewModeToggle(section = section)
-    sectionTodayContent(
-        section = section,
-        blurState = blurState,
-        loopViewModel = loopViewModel,
-        editingLoopId = editingLoopId,
-        onEdit = onEdit,
-        onDelete = onDelete,
-        onNavigateToDetailPage = onNavigateToDetailPage,
-        onQuickDone = onQuickDone,
-    )
+    val records = loops.filter { it.isRespond }
+    item(key = "TodayRecordsHeader") {
+        TodayRecordsHeader(records.size, onNavigateToHistoryPage)
+    }
+    item(key = "TodayRecords", contentType = ContentTypes.DONE_SKIP_CARD) {
+        if (records.isEmpty()) {
+            TodayRecordsEmpty()
+        } else {
+            TodayLoopRecords(
+                modifier = Modifier.padding(horizontal = Dimens.screenHorizontalPadding),
+                loops = records,
+                blurState = blurState,
+                loopViewModel = loopViewModel,
+                onNavigateToDetailPage = onNavigateToDetailPage,
+            )
+        }
+    }
 }
 
-/** 응답할 루프가 남아 있을 때의 뷰 모드(목록/다이얼) 토글. */
+/** 완료 후에도 같은 위치에서 유지하는 오늘 제목과 뷰 모드 토글. */
 private fun LazyListScope.sectionTodayViewModeToggle(
     section: Section.Today,
 ) {
@@ -622,7 +647,14 @@ private fun ViewModeToggle(
             .fillMaxWidth()
             .padding(horizontal = Dimens.screenHorizontalPadding),
         horizontalArrangement = Arrangement.End,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
+        Text(
+            text = stringResource(R.string.today_section_title),
+            modifier = Modifier.weight(1f),
+            style = AppTypography.titleMedium,
+            color = AppColor.onSurface,
+        )
         Row(
             modifier = Modifier
                 .clip(RoundShapes.medium)
