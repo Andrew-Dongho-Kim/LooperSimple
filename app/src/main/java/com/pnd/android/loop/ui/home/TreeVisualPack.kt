@@ -2,6 +2,7 @@ package com.pnd.android.loop.ui.home
 
 import android.content.Context
 import android.graphics.BitmapFactory
+import android.util.LruCache
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.ImageBitmap
@@ -9,6 +10,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import com.fasterxml.jackson.databind.ObjectMapper
 import java.io.InputStream
+import java.util.concurrent.ConcurrentHashMap
 
 internal data class TreePackImage(val path: String, val resource: String)
 
@@ -33,8 +35,10 @@ internal data class TreePackDefinition(
     companion object {
         val effectKeys = listOf("sunlight", "firefly", "flowers", "petal", "butterfly", "aurora")
 
+        private val mapper = ObjectMapper()
+
         fun parse(json: String): TreePackDefinition {
-            val root = ObjectMapper().readTree(json)
+            val root = mapper.readTree(json)
             require(root.path("schemaVersion").asInt() == 1) { "Unsupported tree pack schema" }
             val images = root.path("images").fields().asSequence().associate { (key, value) ->
                 key to TreePackImage(
@@ -101,11 +105,17 @@ internal class TreeVisualPack(private val context: Context, val definition: Tree
     }
 
     companion object {
+        // pack.json is static per skin, so parse it once instead of on every composition of every tree.
+        private val definitions = ConcurrentHashMap<TreeSkin, TreePackDefinition>()
+
         fun load(context: Context, skin: TreeSkin = TreeSkin.GARDEN): TreeVisualPack {
             val appContext = context.applicationContext
-            val json = appContext.assets.open("tree-packs/${skin.packId}/pack.json")
-                .bufferedReader().use { it.readText() }
-            return TreeVisualPack(appContext, TreePackDefinition.parse(json), skin)
+            val definition = definitions[skin] ?: run {
+                val json = appContext.assets.open("tree-packs/${skin.packId}/pack.json")
+                    .bufferedReader().use { it.readText() }
+                TreePackDefinition.parse(json).also { definitions[skin] = it }
+            }
+            return TreeVisualPack(appContext, definition, skin)
         }
     }
 }
@@ -113,16 +123,39 @@ internal class TreeVisualPack(private val context: Context, val definition: Tree
 @Composable
 internal fun rememberTreeVisualPack(skin: TreeSkin? = null): TreeVisualPack {
     val context = LocalContext.current.applicationContext
-    val selection = rememberTreeSkinInventory().selected
-    val selected = skin ?: selection
+    // An explicit skin (shop cards, previews) must not subscribe to the inventory at all.
+    val selected = skin ?: rememberTreeSkinInventory().selected
     return remember(context, selected) { TreeVisualPack.load(context, selected) }
 }
 
-@Composable
-internal fun rememberTreePackBitmap(pack: TreeVisualPack, key: String, sampleSize: Int = 1): ImageBitmap =
-    remember(pack, key, sampleSize) {
-        val options = BitmapFactory.Options().apply { inSampleSize = sampleSize }
-        val bitmap = pack.openImage(key).use { BitmapFactory.decodeStream(it, null, options) }
-            ?: pack.openBundledImage(key).use { BitmapFactory.decodeStream(it, null, options) }
-        requireNotNull(bitmap) { "Cannot decode tree pack image: $key" }.asImageBitmap()
+/**
+ * Decoded tree art is shared by the Home card, the guide and the shop. Keeping the bitmaps in a
+ * bounded cache means re-entering a screen reuses them instead of decoding PNGs on the main thread.
+ */
+private object TreeBitmapCache {
+    private const val MAX_CACHE_KB = 24 * 1024
+
+    private val cache = object : LruCache<String, ImageBitmap>(MAX_CACHE_KB) {
+        override fun sizeOf(key: String, value: ImageBitmap): Int = value.width * value.height * 4 / 1024
     }
+
+    fun getOrDecode(key: String, decode: () -> ImageBitmap): ImageBitmap {
+        synchronized(cache) { cache.get(key) }?.let { return it }
+        val bitmap = decode()
+        synchronized(cache) { cache.put(key, bitmap) }
+        return bitmap
+    }
+}
+
+@Composable
+internal fun rememberTreePackBitmap(pack: TreeVisualPack, key: String, sampleSize: Int = 1): ImageBitmap {
+    val cacheKey = "${pack.skin.packId}/$key/$sampleSize"
+    return remember(cacheKey) {
+        TreeBitmapCache.getOrDecode(cacheKey) {
+            val options = BitmapFactory.Options().apply { inSampleSize = sampleSize }
+            val bitmap = pack.openImage(key).use { BitmapFactory.decodeStream(it, null, options) }
+                ?: pack.openBundledImage(key).use { BitmapFactory.decodeStream(it, null, options) }
+            requireNotNull(bitmap) { "Cannot decode tree pack image: $key" }.asImageBitmap()
+        }
+    }
+}

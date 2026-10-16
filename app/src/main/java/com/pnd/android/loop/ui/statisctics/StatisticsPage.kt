@@ -313,6 +313,7 @@ private fun StatisticsPageContent(
     val habitHealth = rememberLoadable { statisticsViewModel.flowHabitHealth() }
     val newLoopSettling = rememberLoadable { statisticsViewModel.flowNewLoopSettling() }
     val milestones = rememberLoadable { statisticsViewModel.flowMilestones() }
+    val treeHistory = rememberLoadable { statisticsViewModel.flowTreeGrowthHistory() }
 
     // 로딩/빈 상태 판단과 콘텐츠 렌더에 쓸 실제 값(로딩 중에는 콘텐츠가 호출되지 않으므로 기본값이면 충분).
     val statsValue = periodStats.valueOrNull ?: PeriodStats()
@@ -324,6 +325,7 @@ private fun StatisticsPageContent(
     val habitHealthValue = habitHealth.valueOrNull ?: emptyList()
     val settlingValue = newLoopSettling.valueOrNull ?: emptyList()
     val milestonesValue = milestones.valueOrNull ?: emptyList()
+    val treeHistoryValue = treeHistory.valueOrNull.orEmpty()
 
     // 선택한 기준으로 전체 목록을 정렬한 뒤 순위 섹션에서 상위 항목을 표시한다.
     val topRanking = remember(rankingValue, rankingSortOrder) {
@@ -397,17 +399,23 @@ private fun StatisticsPageContent(
             }
 
             when (selectedTab) {
-                StatisticsTab.OVERVIEW -> statefulTab(
-                    isLoading = overviewLoading,
-                    isEmpty = trendValue.size < 2 && monthlyValue.isEmpty() && streakValue.longest == 0 &&
-                        !hasInsights(projectionValue, habitHealthValue, milestonesValue) && settlingValue.isEmpty(),
-                    isOverall = true,
-                ) {
-                    trendContent(completionTrend = trendValue, monthlyInvestedTimes = monthlyValue)
-                    achievementContent(
-                        projection = projectionValue, streak = streakValue, milestones = milestonesValue,
-                        habitHealth = habitHealthValue, newLoopSettling = settlingValue,
-                    )
+                StatisticsTab.OVERVIEW -> {
+                    fadingItem(key = "treeComparison") {
+                        if (treeHistory.isLoading) SkeletonCard(height = 320.dp)
+                        else TreeGrowthComparison(treeHistoryValue)
+                    }
+                    statefulTab(
+                        isLoading = overviewLoading,
+                        isEmpty = trendValue.size < 2 && monthlyValue.isEmpty() && streakValue.longest == 0 &&
+                            !hasInsights(projectionValue, habitHealthValue, milestonesValue) && settlingValue.isEmpty(),
+                        isOverall = true,
+                    ) {
+                        trendContent(completionTrend = trendValue, monthlyInvestedTimes = monthlyValue)
+                        achievementContent(
+                            projection = projectionValue, streak = streakValue, milestones = milestonesValue,
+                            habitHealth = habitHealthValue, newLoopSettling = settlingValue,
+                        )
+                    }
                 }
 
                 StatisticsTab.RHYTHM -> statefulTab(

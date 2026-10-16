@@ -1,0 +1,31 @@
+<resources>
+    <string name="tree_compare_title">See how your tree has grown</string>
+    <string name="tree_compare_scope">Tree history · includes archived loops · through yesterday</string>
+    <string name="tree_compare_before">Earlier record</string>
+    <string name="tree_compare_after">Later record</string>
+    <string name="tree_compare_date">%1$d/%2$02d/%3$02d</string>
+    <string name="tree_compare_grew">Your tree grew %1$d stages</string>
+    <string name="tree_compare_stage_unchanged">Your earned stage is maintained</string>
+    <string name="tree_compare_same_skin">Compared with the same skin and scale</string>
+    <string name="tree_compare_changes">What has changed?</string>
+    <string name="tree_compare_stage">Growth stage</string>
+    <string name="tree_compare_points">Growth points</string>
+    <string name="tree_compare_health">Tree health</string>
+    <string name="tree_compare_stage_value">%1$d → %2$d stages</string>
+    <string name="tree_compare_points_value">%1$d → %2$d points</string>
+    <string name="tree_compare_value">%1$s → %2$s</string>
+    <string name="tree_compare_events">What happened in between</string>
+    <string name="tree_compare_event_growth">Grew to stage %1$d</string>
+    <string name="tree_compare_event_wilt">Your tree became thirsty</string>
+    <string name="tree_compare_event_recovery">Your tree recovered</string>
+    <string name="tree_compare_event_reward">Unlocked a new tree effect</string>
+    <string name="tree_compare_no_events">No stage, health or reward changes during this period. Growth points can still accumulate.</string>
+    <string name="tree_compare_more">Show all changes</string>
+    <string name="tree_compare_less">Show fewer changes</string>
+    <string name="tree_compare_saved">Saved observation</string>
+    <string name="tree_compare_reconstructed">Recalculated</string>
+    <string name="tree_compare_history_note">Earlier appearances are recalculated from available records and may differ from what you saw. Saved observations preserve the state when checked. Both trees use your current skin. Rest days and tasks still in progress today do not reduce health.</string>
+    <string name="tree_compare_empty_title">Waiting for your first growth record</string>
+    <string name="tree_compare_empty_description">Your tree history will appear once you have settled practice records.</string>
+    <string name="tree_compare_one_record">Your first appearance is recorded. You can compare dates when more records are available.</string>
+</resources>

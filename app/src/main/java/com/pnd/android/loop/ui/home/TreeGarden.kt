@@ -69,6 +69,7 @@ private class TreeHealthTracker {
 /** Re-evaluation is idempotent. Earned points/levels never disappear after edits or deletion. */
 fun evaluateTreeGarden(
     snapshot: LoopHistorySnapshot, today: LocalDate, previous: TreeGardenMemory,
+    onDayEvaluated: ((LocalDate, TreeVitality) -> Unit)? = null,
 ): TreeGardenResult {
     val days = snapshot.firstDate?.let { first ->
         snapshot.settled(first, today.minusDays(1), today).filter { !it.loop.isMock }
@@ -135,6 +136,14 @@ fun evaluateTreeGarden(
             if (rate >= 60) days60++
             if (rate >= 80) days80++
         }
+        // Historical reconstruction must not apply today's earned-stage floor to older days.
+        onDayEvaluated?.invoke(date, TreeVitality(
+            daysAt60 = days60, daysAt80 = days80,
+            earnedStage = maxOf(candidateStage, migrationStage),
+            earnedReward = maxOf(migrationReward, TreeVitality(days60, days80).rewardLevel),
+            growthPoints = carriedPoints + newPointsSoFar + previous.migrationCredit,
+            growthPercent = rate, healthPercent = health, wiltLevel = tracker.wilt,
+        ))
     }
     val credit = if (!previous.initialized)
         (treeGrowthPoints[migrationStage - 1] - points.values.sum()).coerceAtLeast(0)

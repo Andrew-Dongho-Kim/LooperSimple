@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="today_finished_all_done">오늘의 루프를 모두 해냈어요</string>
+    <string name="today_finished_mixed">오늘의 루프를 정리했어요</string>
+    <string name="today_finished_all_skipped">오늘은 쉬어가기로 했어요</string>
+    <string name="today_finished_counts">남은 루프 0 · 완료 %1$d · 건너뜀 %2$d</string>
+    <string name="today_finished_records">오늘 남긴 기록</string>
+    <string name="today_finished_record_count">총 %1$d개</string>
+    <string name="today_finished_water_hint">완료한 루프 %1$d개가 물로 쌓였어요</string>
+    <string name="today_finished_undo">되돌리기</string>
+</resources>

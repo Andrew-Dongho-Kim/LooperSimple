@@ -78,7 +78,8 @@ class DetailTimelineRenderingTest {
                         key(current.name) {
                             Column(Modifier.fillMaxSize().background(AppColor.background).systemBarsPadding()
                                 .verticalScroll(scroll).padding(20.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
-                                TimelineSummaryHeader(loop, stats, responses)
+                                MotivationSummaryHeader(loop, stats)
+                                StatsSection(stats = stats, accent = Color(0xff6576b8))
                                 JournalCalendarCard(stats, Color(0xff6576b8), today, today,
                                     current.monthly, {}, {}, {}, {})
                                 val response = when {

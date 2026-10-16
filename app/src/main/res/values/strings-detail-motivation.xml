@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="detail_motivation_caption">Small steps become part of your day</string>
+    <string name="detail_motivation_paused">Your progress is here for you</string>
+    <string name="detail_motivation_no_target">Find your rhythm this week</string>
+    <string name="detail_motivation_no_target_caption">Set active days or a weekly goal to see your progress.</string>
+    <string name="detail_motivation_achieved">This week’s goal, reached!</string>
+    <string name="detail_motivation_achieved_caption">Every small step brought you here.</string>
+    <string name="detail_motivation_one_more">Just one more this week!</string>
+    <string name="detail_motivation_start">Start with one small step</string>
+    <string name="detail_motivation_keep_going">Getting closer, one step at a time</string>
+    <string name="detail_motivation_remaining">%1$d more to reach this week’s target.</string>
+    <string name="detail_motivation_week_ratio">%1$d / %2$d times</string>
+    <string name="detail_motivation_percent">%1$d%% reached</string>
+    <string name="detail_motivation_recent">Done · last 28 days</string>
+    <string name="detail_motivation_lifetime">All-time done</string>
+    <string name="detail_motivation_activity_title">Small steps, adding up</string>
+    <string name="detail_motivation_gentle_delta">%1$d fewer days than the previous 28. Take your next step at your own pace.</string>
+    <string name="detail_motivation_steady">As many completed days as the previous 28. Your effort keeps adding up.</string>
+    <string name="detail_motivation_best_days">Days with the most completions</string>
+    <string name="detail_motivation_empty">Your first small step will appear here. Build your record at your own pace.</string>
+</resources>

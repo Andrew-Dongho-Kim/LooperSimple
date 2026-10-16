@@ -69,6 +69,7 @@ import com.pnd.android.loop.ui.theme.surfaceContainer
 import com.pnd.android.loop.ui.theme.surfaceElevated
 import com.pnd.android.loop.util.formatHourMinute
 import com.pnd.android.loop.util.formatMonthDateDay
+import com.pnd.android.loop.util.toLocalDate
 import java.time.LocalDate
 
 @Composable
@@ -303,10 +304,52 @@ private fun DoneSkipCountBadge(
 }
 
 @Composable
+internal fun TodayFinishedRecords(
+    loops: List<LoopBase>,
+    blurState: BlurState,
+    loopViewModel: LoopViewModel,
+    onNavigateToDetailPage: (LoopBase) -> Unit,
+) {
+    Surface(shape = RoundShapes.large, color = AppColor.surfaceElevated) {
+        Column {
+            loops.filterIsInstance<LoopWithDone>().forEachIndexed { index, loop ->
+                key(loop.loopId, loop.date) {
+                    if (index > 0) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            color = AppColor.onSurface.copy(alpha = 0.08f),
+                        )
+                    }
+                    val date = loop.date.toLocalDate()
+                    DoneSkipItem(
+                        blurState = blurState,
+                        loop = loop,
+                        showRecordStatus = true,
+                        onGetRetrospect = { loopViewModel.getMemo(loop.loopId, date)?.text.orEmpty() },
+                        onSaveRetrospect = { text ->
+                            loopViewModel.saveMemo(loopId = loop.loopId, localDate = date, text = text)
+                        },
+                        onNavigateToDetailPage = onNavigateToDetailPage,
+                        onUndoDoneState = {
+                            loopViewModel.changeLoopState(
+                                loop = loop,
+                                localDate = date,
+                                doneState = DoneState.NO_RESPONSE,
+                            )
+                        },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun DoneSkipItem(
     modifier: Modifier = Modifier,
     blurState: BlurState,
     loop: LoopBase,
+    showRecordStatus: Boolean = false,
     onGetRetrospect: suspend () -> String,
     onSaveRetrospect: (String) -> Unit,
     onNavigateToDetailPage: (LoopBase) -> Unit,
@@ -332,12 +375,24 @@ private fun DoneSkipItem(
             color = loop.color
         )
 
-        DoneSkipItemTitle(
-            modifier = Modifier.weight(1f),
-            title = loop.title
-        )
+        Column(modifier = Modifier.weight(1f)) {
+            DoneSkipItemTitle(title = loop.title)
+            if (showRecordStatus) {
+                val status = stringResource(
+                    if ((loop as? LoopWithDone)?.done == DoneState.DONE) R.string.done else R.string.skip
+                )
+                val schedule = if (loop.isAnyTime) stringResource(R.string.anytime) else {
+                    "${loop.startInDay.formatHourMinute(withAmPm = false)}–${loop.endInDay.formatHourMinute(withAmPm = false)}"
+                }
+                Text(
+                    text = "$status · $schedule",
+                    style = AppTypography.bodySmall,
+                    color = AppColor.onSurface.copy(alpha = 0.65f),
+                )
+            }
+        }
 
-        if (LocalConfiguration.current.isLargeScreen()) {
+        if (!showRecordStatus && LocalConfiguration.current.isLargeScreen()) {
             DoneSkipItemStartAndEndTime(
                 modifier = Modifier.padding(horizontal = 8.dp),
                 loopStart = loop.startInDay,
@@ -357,7 +412,11 @@ private fun DoneSkipItem(
             },
         )
 
-        DoneSkipCardButton(
+        if (showRecordStatus) {
+            TextButton(onClick = { onUndoDoneState(loop) }) {
+                Text(stringResource(R.string.today_finished_undo), style = AppTypography.labelMedium)
+            }
+        } else DoneSkipCardButton(
             modifier = Modifier.padding(start = 8.dp),
             imageVector = Icons.Filled.Refresh,
             contentDescription = stringResource(id = R.string.restore),

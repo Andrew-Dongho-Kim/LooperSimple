@@ -6,6 +6,8 @@ import com.pnd.android.loop.data.history.LoopHistoryRepository
 import com.pnd.android.loop.data.history.LoopHistorySnapshot
 import com.pnd.android.loop.data.history.ResolvedLoopDay
 import com.pnd.android.loop.util.todayFlow
+import com.pnd.android.loop.ui.home.TreeGardenStore
+import com.pnd.android.loop.ui.home.TreeGrowthObservation
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDate
 import java.time.YearMonth
@@ -19,6 +21,7 @@ import kotlinx.coroutines.flow.map
 @HiltViewModel
 class StatisticsViewModel @Inject constructor(
     private val histories: LoopHistoryRepository,
+    private val treeGarden: TreeGardenStore,
 ) : ViewModel() {
     private val enabledHistories = histories.snapshots.map { it.forStatistics() }
 
@@ -31,6 +34,11 @@ class StatisticsViewModel @Inject constructor(
     val hasEstimatedHistory = observe { snapshot, _ -> snapshot.hasEstimatedHistory }
 
     val availableMonths = observe { snapshot, today -> statisticsMonthRange(snapshot.firstDate, today) }
+
+    // Tree progress includes archived loops, matching Home rather than the statistics filter.
+    fun flowTreeGrowthHistory(): Flow<List<TreeGrowthObservation>> =
+        combine(histories.snapshots, todayFlow()) { snapshot, today -> treeGarden.history(snapshot, today) }
+            .flowOn(Dispatchers.Default)
 
     fun flowPeriodStats(period: StatisticsPeriod): Flow<PeriodStats> = observe { snapshot, today ->
         val allDays = snapshot.days(

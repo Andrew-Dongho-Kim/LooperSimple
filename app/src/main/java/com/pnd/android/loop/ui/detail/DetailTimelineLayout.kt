@@ -24,12 +24,10 @@ import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.pnd.android.loop.R
-import com.pnd.android.loop.data.LoopBase
 import com.pnd.android.loop.data.LoopDoneVo
 import com.pnd.android.loop.state.DoneState
 import com.pnd.android.loop.state.isRespond
 import com.pnd.android.loop.state.stateLabelRes
-import com.pnd.android.loop.ui.common.HistoryCalculationNote
 import com.pnd.android.loop.ui.theme.*
 import com.pnd.android.loop.util.DAYS_WITH_3CHARS
 import com.pnd.android.loop.util.formatMonthDateDay
@@ -53,102 +51,6 @@ private fun JournalCard(
             .padding(16.dp),
         content = content,
     )
-}
-
-@Composable
-internal fun TimelineSummaryHeader(
-    loop: LoopBase,
-    stats: DetailStats,
-    responses: Map<LocalDate, LoopDoneVo>,
-) {
-    val accent = Color(loop.color).compositeOverOnSurface()
-    val month = YearMonth.from(stats.today)
-    val monthRecords = remember(responses, month, stats.today) {
-        responses.filter { (date, response) ->
-            YearMonth.from(date) == month && date <= stats.today && response.done == DoneState.DONE
-        }
-    }
-    val monthlyDuration = remember(monthRecords) {
-        monthRecords.mapNotNull { (date, response) -> recordedTimeOf(response, date) }
-            .filter { it.source == LoopDoneVo.TimeSource.MEASURED || it.source == LoopDoneVo.TimeSource.USER_ENTERED }
-            .mapNotNull { it.durationMs }.takeIf { it.isNotEmpty() }?.sum()
-    }
-    Column(Modifier.fillMaxWidth()) {
-        Text(
-            stringResource(R.string.detail_routine_eyebrow),
-            style = AppTypography.labelSmall, color = accent,
-        )
-        Text(
-            loop.title, modifier = Modifier.padding(top = 8.dp),
-            style = AppTypography.headlineLarge, color = AppColor.onSurface,
-        )
-        Text(
-            stringResource(R.string.detail_routine_caption),
-            modifier = Modifier.padding(top = 6.dp),
-            style = AppTypography.bodySmall, color = AppColor.onSurface.copy(alpha = 0.55f),
-        )
-        if (!loop.enabled) {
-            Text(stringResource(R.string.detail_loop_active_off),
-                modifier = Modifier.padding(top = 8.dp),
-                style = AppTypography.bodySmall, color = AppColor.error)
-        }
-        Row(
-            Modifier.fillMaxWidth().padding(vertical = 24.dp).height(IntrinsicSize.Min),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            SummaryMetric(
-                Modifier.weight(1.3f), stringResource(R.string.detail_month_recorded_time),
-                monthlyDuration?.let { journalDurationText(it) } ?: stringResource(R.string.detail_tile_no_data), accent,
-            )
-            Box(Modifier.width(1.dp).fillMaxHeight().background(AppColor.onSurface.copy(alpha = 0.08f)))
-            SummaryMetric(
-                Modifier.weight(1f), stringResource(R.string.detail_month_recorded_days),
-                stringResource(R.string.detail_kpi_streak_days, monthRecords.size), accent,
-            )
-            Box(Modifier.width(1.dp).fillMaxHeight().background(AppColor.onSurface.copy(alpha = 0.08f)))
-            SummaryMetric(
-                Modifier.weight(1f), stringResource(R.string.detail_kpi_streak),
-                stringResource(R.string.detail_kpi_streak_days, stats.streak.current), accent,
-            )
-        }
-        // Keep the weekly goal, but remove the second, non-interactive calendar strip.
-        Row(
-            Modifier.fillMaxWidth().clip(JournalCellShape)
-                .background(accent.copy(alpha = 0.08f)).padding(horizontal = 14.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Text(stringResource(if (stats.weekly.hasGoal) R.string.detail_week_goal_label else R.string.detail_kpi_this_week),
-                Modifier.weight(1f), style = AppTypography.bodySmall, color = AppColor.onSurface)
-            Text(
-                stringResource(R.string.detail_kpi_week_ratio, stats.weekly.done, stats.weekly.target),
-                style = AppTypography.titleMedium, color = accent,
-            )
-            HistoryCalculationNote(stats.hasEstimatedHistory)
-        }
-        if (stats.weekly.target > 0) {
-            Box(Modifier.padding(top = 8.dp).fillMaxWidth().height(3.dp).clip(CircleShape)
-                .background(accent.copy(alpha = 0.1f))
-                .semantics { progressBarRangeInfo = ProgressBarRangeInfo(stats.weekly.fraction, 0f..1f) }) {
-                if (stats.weekly.fraction > 0) Box(Modifier.fillMaxWidth(stats.weekly.fraction).fillMaxHeight().background(accent))
-            }
-        }
-        stats.pendingGoal?.let { goal ->
-            Text(
-                stringResource(if (goal > 0) R.string.history_goal_next_week else R.string.history_goal_removed_next_week, goal),
-                Modifier.padding(top = 8.dp), style = AppTypography.bodySmall,
-                color = AppColor.onSurface.copy(alpha = 0.6f),
-            )
-        }
-    }
-}
-
-@Composable
-private fun SummaryMetric(modifier: Modifier, label: String, value: String, accent: Color) {
-    Column(modifier.semantics(mergeDescendants = true) {}) {
-        Text(label, style = AppTypography.labelSmall, color = AppColor.onSurface.copy(alpha = 0.55f))
-        Text(value, Modifier.padding(top = 8.dp), style = AppTypography.titleLarge, color = accent)
-    }
 }
 
 @Composable

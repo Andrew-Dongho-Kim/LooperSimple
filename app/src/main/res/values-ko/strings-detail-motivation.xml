@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="detail_motivation_caption">작은 실천이 나의 일상이 되도록</string>
+    <string name="detail_motivation_paused">쌓아 온 노력은 여기 있어요</string>
+    <string name="detail_motivation_no_target">이번 주의 리듬을 정해 보세요</string>
+    <string name="detail_motivation_no_target_caption">활동 요일이나 주간 목표를 정하면 진행 상황을 볼 수 있어요.</string>
+    <string name="detail_motivation_achieved">이번 주 목표를 달성했어요!</string>
+    <string name="detail_motivation_achieved_caption">작은 실천이 모여 여기까지 왔어요.</string>
+    <string name="detail_motivation_one_more">이번 주, 한 번만 더!</string>
+    <string name="detail_motivation_start">작은 한 번으로 시작해요</string>
+    <string name="detail_motivation_keep_going">한 걸음씩 가까워지고 있어요</string>
+    <string name="detail_motivation_remaining">%1$d번 더 실천하면 이번 주 목표에 도착해요.</string>
+    <string name="detail_motivation_week_ratio">%1$d / %2$d회</string>
+    <string name="detail_motivation_percent">%1$d%% 달성</string>
+    <string name="detail_motivation_recent">최근 28일 완료</string>
+    <string name="detail_motivation_lifetime">전체 누적 완료</string>
+    <string name="detail_motivation_activity_title">차곡차곡 쌓이는 실천</string>
+    <string name="detail_motivation_gentle_delta">직전 28일보다 %1$d일 적게 실천했어요. 다음 한 번은 나의 속도로 이어 가요.</string>
+    <string name="detail_motivation_steady">직전 28일만큼 실천했어요. 꾸준한 노력이 쌓이고 있어요.</string>
+    <string name="detail_motivation_best_days">가장 많이 실천한 요일</string>
+    <string name="detail_motivation_empty">첫 실천이 여기에 쌓일 거예요. 나의 속도로 시작해 보세요.</string>
+</resources>

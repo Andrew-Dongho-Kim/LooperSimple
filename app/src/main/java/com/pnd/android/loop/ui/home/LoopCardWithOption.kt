@@ -17,6 +17,7 @@ import com.pnd.android.loop.ui.home.viewmodel.LoopViewModel
 import com.pnd.android.loop.util.isActive
 import com.pnd.android.loop.util.toLocalDate
 import java.time.LocalDate
+import java.time.LocalDateTime
 
 @Immutable
 data class LoopCardValues(
@@ -51,7 +52,8 @@ fun LoopCardWithOption(
     onNavigateToDetailPage: (LoopBase) -> Unit,
     onQuickDone: ((LoopBase) -> Unit)? = null,
 ) {
-    var isActive by remember { mutableStateOf(false) }
+    // Seed with the current time so a card scrolled into view lays out once, not twice.
+    var isActive by remember(loop) { mutableStateOf(loop.isActive(LocalDateTime.now())) }
     LaunchedEffect(loop, loopViewModel) {
         loopViewModel.localDateTime.collect { currTime ->
             isActive = loop.isActive(currTime)

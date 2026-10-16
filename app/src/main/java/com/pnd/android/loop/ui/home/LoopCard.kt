@@ -34,6 +34,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -181,7 +182,7 @@ fun LoopCard(
 ) {
     // 편집 중인 카드는 깜빡임(mock 펄스) 대신 안정적으로 강조한다. 그 외 mock(신규 작성) 카드만
     // 기존처럼 펄스한다. 편집 중인 다른 카드가 있으면 이 카드는 흐리게 물러난다.
-    val mockAlpha = if (cardValues.isEditing) 1f else animateCardAlphaWithMock(loopBase = loop)
+    val mockAlpha = if (cardValues.isEditing) FullAlpha else animateCardAlphaWithMock(loopBase = loop)
     val editDimAlpha = if (cardValues.isEditDimmed) LoopCardDefaults.EditDimmedAlpha else 1f
     val contentAlpha = if (loop.enabled) {
         LoopCardDefaults.EnabledAlpha
@@ -217,7 +218,7 @@ fun LoopCard(
 
     Row(
         modifier = modifier
-            .graphicsLayer { alpha = mockAlpha * editDimAlpha }
+            .graphicsLayer { alpha = mockAlpha() * editDimAlpha }
             .fillMaxWidth()
             .clip(LoopCardShape)
             .background(background)
@@ -465,9 +466,11 @@ private fun LoopColorDot(
             Box(
                 modifier = Modifier
                     .size(LoopCardDefaults.ColorDotSize)
+                    // Read the animated value only in the layer block, so the pulse redraws
+                    // the halo without recomposing the dot every frame.
                     .graphicsLayer {
-                        scaleX = pulseScale
-                        scaleY = pulseScale
+                        scaleX = pulseScale.value
+                        scaleY = pulseScale.value
                         alpha = LoopCardDefaults.ColorDotPulseAlpha
                     }
                     .clip(CircleShape)
@@ -518,9 +521,9 @@ private fun EditingDotBadge(
 
 /** Slow breathing scale (1 → 2) for the in-progress halo behind the color dot. */
 @Composable
-private fun rememberDotPulseScale(): Float {
+private fun rememberDotPulseScale(): State<Float> {
     val transition = rememberInfiniteTransition(label = "LoopDotPulse")
-    val scale by transition.animateFloat(
+    return transition.animateFloat(
         initialValue = 1f,
         targetValue = LoopCardDefaults.ColorDotPulseMaxScale,
         animationSpec = infiniteRepeatable(
@@ -529,7 +532,6 @@ private fun rememberDotPulseScale(): Float {
         ),
         label = "LoopDotPulseScale",
     )
-    return scale
 }
 
 @Composable
@@ -1016,13 +1018,16 @@ private fun loopMetaColor(): Color =
     AppColor.onSurface.copy(alpha = LoopCardDefaults.MetaAlpha)
 
 
+private val FullAlpha: () -> Float = { 1f }
+
+/** Returned as a lambda so the pulse is read in the card's layer block, not during composition. */
 @Composable
-private fun animateCardAlphaWithMock(loopBase: LoopBase): Float {
+private fun animateCardAlphaWithMock(loopBase: LoopBase): () -> Float {
     if (!loopBase.isMock) {
-        return 1f
+        return FullAlpha
     }
     val transition = rememberInfiniteTransition("CreateLoopTransitions")
-    val alpha by transition.animateFloat(
+    val alpha = transition.animateFloat(
         initialValue = 1.0f,
         targetValue = 0.3f,
         animationSpec = infiniteRepeatable(
@@ -1035,5 +1040,5 @@ private fun animateCardAlphaWithMock(loopBase: LoopBase): Float {
         label = "AlphaAnimForCreateLoop",
     )
 
-    return alpha
+    return { alpha.value }
 }

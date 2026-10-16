@@ -29,7 +29,6 @@ import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.ViewAgenda
 import androidx.compose.material.icons.rounded.ExpandMore
-import androidx.compose.material.icons.rounded.TaskAlt
 import androidx.compose.material3.Icon
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -262,8 +261,29 @@ private fun LazyListScope.sectionToday(
         return
     }
 
-    // 예정이 있으면 완료 여부와 무관하게 뷰 토글을 항상 유지한다. 다 끝낸 뒤에도
-    // 다이얼로 하루를 돌아볼 수 있어야 하기 때문이다.
+    if (section.isFinished) {
+        item(key = "TodayFinishedRecords", contentType = ContentTypes.LOOP_EMPTY) {
+            TodayFinishedCard(
+                loops = loops,
+                blurState = blurState,
+                loopViewModel = loopViewModel,
+                onNavigateToDetailPage = onNavigateToDetailPage,
+            )
+        }
+        sectionTodayCarriedOver(
+            groups = groups,
+            blurState = blurState,
+            loopViewModel = loopViewModel,
+            editingLoopId = editingLoopId,
+            onEdit = onEdit,
+            onDelete = onDelete,
+            onNavigateToDetailPage = onNavigateToDetailPage,
+            onQuickDone = onQuickDone,
+        )
+        return
+    }
+
+    // 응답할 루프가 남아 있는 동안에만 목록/다이얼 전환을 제공한다.
     sectionTodayViewModeToggle(section = section)
     sectionTodayContent(
         section = section,
@@ -277,7 +297,7 @@ private fun LazyListScope.sectionToday(
     )
 }
 
-/** 뷰 모드(목록/다이얼) 토글. 오늘 섹션 최상단에 항상 고정으로 노출한다. */
+/** 응답할 루프가 남아 있을 때의 뷰 모드(목록/다이얼) 토글. */
 private fun LazyListScope.sectionTodayViewModeToggle(
     section: Section.Today,
 ) {
@@ -296,12 +316,8 @@ private fun LazyListScope.sectionTodayViewModeToggle(
 }
 
 /**
- * 선택된 뷰 모드에 맞는 오늘 콘텐츠를 그린다.
- * 목록·다이얼 모두 오늘 몫이 하나도 남지 않으면(= 오늘 걸 모두 완료/스킵) 축하 화면으로 대체한다.
- *
- * 어젯밤에서 넘어온 몫은 어느 뷰에서든 카드로 덧붙인다([sectionTodayCarriedOver]). 시간축 뷰와
- * 축하 화면에는 그 몫을 그릴 자리가 없는데, 어제 미응답 카드에서도 빠져 있어 여기서 그리지
- * 않으면 답할 수 있는 화면이 아예 없어지기 때문이다.
+ * 응답할 루프를 선택된 목록/다이얼 뷰로 그린다. 완료 상태는 [sectionToday]가 처리한다.
+ * 어젯밤에서 넘어온 몫은 목록에서는 카드로, 다이얼에서는 별도 호로 표시한다.
  */
 private fun LazyListScope.sectionTodayContent(
     section: Section.Today,
@@ -315,34 +331,11 @@ private fun LazyListScope.sectionTodayContent(
 ) {
     // 목록 뷰에 그릴 그룹(지금 진행 중 / 다음 예정 / 응답 대기). 응답을 마친 몫은 이미 빠져 있다.
     val groups by section.groups
-    // 축하 화면은 "오늘 몫"을 다 끝냈을 때만 띄운다. 어젯밤에서 넘어온 몫은 어제 것이라
-    // 남아 있어도 오늘을 끝낸 것으로 본다(그 카드는 축하 화면 아래에 따로 남는다).
-    val isTodayFinished = groups.none { group ->
-        group.occurrences.any { occurrence -> !occurrence.isCarriedOver }
-    }
-    val hasCarriedOver = groups.any { group ->
-        group.occurrences.any { occurrence -> occurrence.isCarriedOver }
-    }
-
-    // 시간축 뷰(다이얼)에는 어젯밤 몫을 그릴 자리가 없다. 카드로 따로 덧붙이지 않으면
-    // 어제 미응답 카드에서도 빠져 있어 앱 안에서 답할 길이 사라진다.
-    fun LazyListScope.carriedOverCards() = sectionTodayCarriedOver(
-        groups = groups,
-        blurState = blurState,
-        loopViewModel = loopViewModel,
-        editingLoopId = editingLoopId,
-        onEdit = onEdit,
-        onDelete = onDelete,
-        onNavigateToDetailPage = onNavigateToDetailPage,
-        onQuickDone = onQuickDone,
-    )
 
     when (section.viewMode.value) {
         // 다이얼은 어젯밤 몫도 호로 그리므로(레인이 갈려 오늘 밤 몫과 겹치지 않는다)
         // 아래에 카드를 따로 덧붙이지 않는다.
-        TodayViewMode.DIAL -> if (isTodayFinished && !hasCarriedOver) {
-            sectionTodayFinished()
-        } else {
+        TodayViewMode.DIAL -> {
             sectionTodayDial(
                 blurState = blurState,
                 loopViewModel = loopViewModel,
@@ -353,11 +346,7 @@ private fun LazyListScope.sectionTodayContent(
             )
         }
 
-        TodayViewMode.LIST -> if (isTodayFinished) {
-            sectionTodayFinished()
-            // 목록 뷰도 오늘 몫이 없으면 축하 화면으로 넘어가므로, 어젯밤 몫은 여기서 덧붙인다.
-            carriedOverCards()
-        } else {
+        TodayViewMode.LIST -> {
             // onStateChanged 를 넘기지 않는 것은 의도적이다. 목록 항목은 occurrence 마다 기록할
             // 날짜가 달라, 이 함수 안에서 항목별 콜백을 따로 만든다.
             sectionTodayList(
@@ -586,16 +575,6 @@ private fun TodayGroupCaption(
     )
 }
 
-/** 오늘 예정된 루프를 전부 완료/스킵했을 때 목록·다이얼 자리에 대신 그리는 축하 화면. */
-private fun LazyListScope.sectionTodayFinished() {
-    item(
-        contentType = ContentTypes.LOOP_EMPTY,
-        key = "TodayFinished",
-    ) {
-        TodayFinishedState()
-    }
-}
-
 /** 오늘 예정된 루프 자체가 없을 때 그리는 중립 안내. */
 private fun LazyListScope.sectionTodayNoSchedule() {
     item(
@@ -607,28 +586,7 @@ private fun LazyListScope.sectionTodayNoSchedule() {
 }
 
 /**
- * 오늘 예정된 루프를 전부 완료/스킵했을 때의 축하 화면. 공용 [AppEmptyState]를 그대로
- * 써서 "루프 없음" 상태와 같은 문법으로 읽히되, 문구와 아이콘으로 보상의 느낌을 준다.
- */
-@Composable
-private fun TodayFinishedState(
-    modifier: Modifier = Modifier,
-) {
-    AppEmptyState(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(
-                horizontal = Dimens.screenHorizontalPadding,
-                vertical = 56.dp,
-            ),
-        icon = Icons.Rounded.TaskAlt,
-        title = stringResource(id = R.string.today_loops_finished),
-        hint = stringResource(id = R.string.today_loops_finished_hint),
-    )
-}
-
-/**
- * 오늘 예정된 루프가 하나도 없을 때의 안내. [TodayFinishedState]와 같은 레이아웃을 쓰되
+ * 오늘 예정된 루프가 하나도 없을 때의 안내. 공용 빈 상태 레이아웃을 쓰되
  * 달력 아이콘과 중립적인 문구로 "완료"가 아니라 "예정 없음"임을 분명히 한다.
  */
 @Composable

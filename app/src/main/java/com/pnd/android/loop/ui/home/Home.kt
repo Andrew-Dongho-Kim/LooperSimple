@@ -643,8 +643,12 @@ private fun LoopViewModel.observeSectionsAsState(
                 now = now,
             )
         }
+        val todayFinished = (todayOrAllSection as? Section.Today)?.isFinished == true
+        val headerSection = rememberHeaderSection(resultLoops)
+        val doneSection = rememberDoneSection(resultLoops)
         val sections = buildList {
-            add(rememberHeaderSection(resultLoops))
+            // The finished Today section includes its own records and compact water summary.
+            if (!todayFinished) add(headerSection)
             add(todayOrAllSection)
             // 전체 탭에서는 어제 미응답 루프 카드를 노출하지 않는다.
             if (!isAllTab) add(rememberYesterdaySection(noResponseYesterdayLoops))
@@ -652,7 +656,7 @@ private fun LoopViewModel.observeSectionsAsState(
             // 전체 탭에서는 오늘 Done/Skip한 루프 정보를 노출하지 않는다.
             // 오늘 탭의 두 뷰(리스트·다이얼)에서는 완료/스킵 루프를 별도 Done/Skip 카드로 모아 보여준다.
             // (다이얼은 완료/스킵 루프를 다이얼에서 제외하고 이 카드로만 표시한다.)
-            if (!isAllTab) add(rememberDoneSection(resultLoops))
+            if (!isAllTab && !todayFinished) add(doneSection)
             // 전체 탭 하단에는 전체 루프의 done/skip 이력을 매트릭스 그리드로 덧붙인다.
             if (isAllTab) add(rememberAllHistoryGridSection(resultLoops))
         }.filter { it.size > 0 }

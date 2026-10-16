@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="today_finished_all_done">You did every loop today</string>
+    <string name="today_finished_mixed">Today’s loops are settled</string>
+    <string name="today_finished_all_skipped">Taking a break today</string>
+    <string name="today_finished_counts">Remaining 0 · Done %1$d · Skipped %2$d</string>
+    <string name="today_finished_records">Today’s records</string>
+    <string name="today_finished_record_count">%1$d total</string>
+    <string name="today_finished_water_hint">%1$d completed loops contributed water</string>
+    <string name="today_finished_undo">Undo</string>
+</resources>

@@ -397,7 +397,6 @@ private fun DetailPageContent(
 ) {
     val stats by detailViewModel.stats.collectAsState()
     val memos by detailViewModel.memos.collectAsState()
-    val responses by detailViewModel.recordedResponses.collectAsState()
 
     Column(
         modifier = modifier
@@ -407,10 +406,9 @@ private fun DetailPageContent(
             .padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(DetailSpacing.group),
     ) {
-        TimelineSummaryHeader(
+        MotivationSummaryHeader(
             loop = loop,
             stats = stats,
-            responses = responses,
         )
 
         SectionList(
@@ -425,7 +423,7 @@ private fun DetailPageContent(
 
 }
 
-/** 기록·메모는 항상 펼치고, 보조 통계와 수정 이력은 접어서 둔다. */
+/** 통계와 기록·메모는 항상 펼치고, 수정 이력만 접어서 둔다. */
 @Composable
 private fun SectionList(
     modifier: Modifier = Modifier,
@@ -436,12 +434,13 @@ private fun SectionList(
 ) {
     val accent = Color(loop.color).compositeOverOnSurface()
 
-    var statsExpanded by rememberSaveable(loop.loopId) { mutableStateOf(false) }
     var historyExpanded by rememberSaveable(loop.loopId) { mutableStateOf(false) }
     val revisionHistory by detailViewModel.revisionHistory.collectAsState()
     val responses by detailViewModel.recordedResponses.collectAsState()
 
     Column(modifier = modifier.fillMaxWidth()) {
+        StatsSection(stats = stats, accent = accent)
+        Spacer(Modifier.size(24.dp))
         key(loop.loopId) {
             TimelineJournalSection(
                 stats = stats,
@@ -453,16 +452,6 @@ private fun SectionList(
                 onSaveMemoInBackground = { date, text ->
                     detailViewModel.saveRetrospectInBackground(date, text)
                 },
-            )
-        }
-
-        Spacer(Modifier.size(24.dp))
-        DetailCard(contentPadding = PaddingValues(horizontal = 16.dp)) {
-            StatsSection(
-                stats = stats,
-                accent = accent,
-                expanded = statsExpanded,
-                onExpandedChange = { statsExpanded = it },
             )
         }
 

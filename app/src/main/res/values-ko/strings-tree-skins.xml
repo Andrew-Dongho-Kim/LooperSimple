@@ -1,5 +1,5 @@
 <resources>
-    <string name="tree_skin_shop">트리 상점</string>
+    <string name="tree_skin_shop">나무 상점</string>
     <string name="tree_shop_count">나무 %1$d종</string>
     <string name="tree_shop_all">모든 나무</string>
     <string name="tree_shop_default">기본 제공</string>
